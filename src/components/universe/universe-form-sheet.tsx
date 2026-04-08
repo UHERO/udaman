@@ -33,11 +33,9 @@ const createSchema = z.object({
     .max(10, "Max 10 characters")
     .regex(/^[A-Z0-9]+$/, "Uppercase letters and digits only"),
   description: z.string(),
-  dataPortalUrl: z
-    .string()
-    .refine((v) => v === "" || /^https?:\/\//i.test(v), {
-      message: "Must be a valid http(s) URL",
-    }),
+  dataPortalUrl: z.string().refine((v) => v === "" || /^https?:\/\//i.test(v), {
+    message: "Must be a valid http(s) URL",
+  }),
 });
 
 type FormValues = z.infer<typeof createSchema>;

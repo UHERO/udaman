@@ -119,8 +119,7 @@ export function isScrapePeriodActive(date: Date = new Date()): boolean {
  * Maps months 1–7 → period 1, months 8–12 → period 2 (slightly broader
  * than the scrape windows to handle any legacy records from Jan/Feb/Aug).
  */
-export const PERIOD_WHERE =
-  `CONCAT(YEAR(scraped_at), '-', IF(MONTH(scraped_at) <= 7, '1', '2'))`;
+export const PERIOD_WHERE = `CONCAT(YEAR(scraped_at), '-', IF(MONTH(scraped_at) <= 7, '1', '2'))`;
 
 // ─── TMK helpers ──────────────────────────────────────────────────────
 
@@ -179,7 +178,12 @@ export function getJsonPath(tmk: string): string {
 /** Full path to the results directory for an island (period/island) */
 export function getResultsPath(island: string): string {
   const period = getScrapePeriod();
-  return path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.RESULTS_DIR, period, island);
+  return path.join(
+    QPUB_CONFIG.NAS_PATH,
+    QPUB_CONFIG.RESULTS_DIR,
+    period,
+    island,
+  );
 }
 
 /** Build QPub URL for a TMK on a given island */

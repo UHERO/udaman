@@ -12,7 +12,6 @@ import {
   createSourceDetail,
   updateSourceDetail,
 } from "@/actions/source-details";
-import { useUniverseNames } from "@/hooks/use-universe-names";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -37,6 +36,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 
 interface SourceDetailData {
   id: number;

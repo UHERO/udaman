@@ -504,9 +504,7 @@ export default function UploadPanel({
         setDialogError(msg);
         setUploads((prev) =>
           prev.map((u) =>
-            u.id === uploadId
-              ? { ...u, status: "fail", lastError: msg }
-              : u,
+            u.id === uploadId ? { ...u, status: "fail", lastError: msg } : u,
           ),
         );
         reportUploadError("processing", msg, {

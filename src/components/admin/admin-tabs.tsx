@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useAppPathname } from "@/hooks/use-app-pathname";
 import {
   Activity,
   Calendar,
@@ -16,6 +15,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useAppPathname } from "@/hooks/use-app-pathname";
 import { useFullWidth } from "@/hooks/use-full-width";
 import { getVisibleChildren } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";

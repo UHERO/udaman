@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { createGeography, updateGeography } from "@/actions/geographies";
-import { useUniverseNames } from "@/hooks/use-universe-names";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -35,6 +34,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 
 const formSchema = z.object({
   handle: z.string(),

@@ -142,7 +142,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description:
         "Exemption status indicating the property is wholly or partially non-taxable.",
       summary: ALL_VIEWS,
-      source_notes: "Kauai only. Not present in other counties' Parcel Information.",
+      source_notes:
+        "Kauai only. Not present in other counties' Parcel Information.",
     },
     {
       key: "living_units",
@@ -961,7 +962,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Non-Taxable Status",
       description: "Exemption status for the parcel.",
       summary: ALL_VIEWS,
-      source_notes: "Kauai only. Not present in other counties' Parcel Information.",
+      source_notes:
+        "Kauai only. Not present in other counties' Parcel Information.",
     },
     {
       key: "living_units",

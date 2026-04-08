@@ -3,9 +3,8 @@ import type {
   AdapterAccount,
   AdapterSession,
   AdapterUser,
-  VerificationToken,
 } from "@auth/core/adapters";
-import { mysql, rawQuery } from "@database/mysql";
+import { mysql } from "@database/mysql";
 
 // ─── Row → Auth.js object mappers ────────────────────────────────────
 

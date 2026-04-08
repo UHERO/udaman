@@ -81,9 +81,7 @@ export async function prepareUpload(
     label: config.uploadLabel ?? universe,
     uploadId: upload.id,
     filename: storedFilename,
-  }).catch((e) =>
-    log.error({ err: e }, "upload-started email failed"),
-  );
+  }).catch((e) => log.error({ err: e }, "upload-started email failed"));
 
   return { uploadId: upload.id, filePath };
 }
@@ -151,9 +149,7 @@ export async function executeUpload(
       filename,
       status: "ok",
       dataPointCount,
-    }).catch((e) =>
-      log.error({ err: e }, "upload-completed email failed"),
-    );
+    }).catch((e) => log.error({ err: e }, "upload-completed email failed"));
 
     const message = `${universe} upload complete: ${dataPointCount} data points loaded`;
     return { uploadId, dataPointCount, message };

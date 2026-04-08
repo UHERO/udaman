@@ -20,10 +20,10 @@ import HhdbLandClassificationCollection from "../collections/hhdb-land-classific
 import HhdbOwnerCollection from "../collections/hhdb-owner-collection";
 import HhdbParcelCollection from "../collections/hhdb-parcel-collection";
 import HhdbPermitCollection from "../collections/hhdb-permit-collection";
+import HhdbProfileCollection from "../collections/hhdb-profile-collection";
 import HhdbPropertyCollection from "../collections/hhdb-property-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
-import HhdbProfileCollection from "../collections/hhdb-profile-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
 import HhdbYardImprovementCollection from "../collections/hhdb-yard-improvement-collection";
 import type {
@@ -425,12 +425,13 @@ export async function getFreqSummary(
 
 // --- Profile ---
 
-export async function getProfileOverview(
-  table: string,
-): Promise<OverviewData> {
+export async function getProfileOverview(table: string): Promise<OverviewData> {
   log.info({ table }, "fetching hhdb profile overview");
   const result = await HhdbProfileCollection.getOverview(table);
-  log.info({ table, rows: result.rows.length }, "hhdb profile overview fetched");
+  log.info(
+    { table, rows: result.rows.length },
+    "hhdb profile overview fetched",
+  );
   return result;
 }
 

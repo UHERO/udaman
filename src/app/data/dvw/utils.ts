@@ -136,7 +136,11 @@ export function isAllDimSelected(dimensions: Dimension | SelectedDimension) {
   });
 }
 
-async function getSeriesData(mod: string, dimensions: SelectedDimension, frequency: string) {
+async function getSeriesData(
+  mod: string,
+  dimensions: SelectedDimension,
+  frequency: string,
+) {
   const apiParam = formatApiParam(dimensions);
   const series = await getSeries(mod, apiParam, frequency);
   return [apiParam, series ?? {}];
@@ -231,7 +235,9 @@ function setSeriesTableOrder(serie: DvwModuleSeries) {
   const dimensionKeys = Object.keys(serie.dimensions);
   dimensionKeys.forEach((key) => {
     const items = serie.dimensions![key];
-    const dims: ModuleDimension[] = Array.isArray(items) ? items : Object.values(items);
+    const dims: ModuleDimension[] = Array.isArray(items)
+      ? items
+      : Object.values(items);
     for (const d of dims) {
       if (serie.columns.includes(d.handle)) {
         serie.order = serie.order
@@ -242,13 +248,20 @@ function setSeriesTableOrder(serie: DvwModuleSeries) {
   });
 }
 
-function identifySeriesColumns(serie: DvwModuleSeries, dimensions: Dimension | SelectedDimension) {
+function identifySeriesColumns(
+  serie: DvwModuleSeries,
+  dimensions: Dimension | SelectedDimension,
+) {
   serie.columns.forEach((col: string) => {
     findColumnDimension(serie, dimensions, col);
   });
 }
 
-function findColumnDimension(serie: DvwModuleSeries, dimensions: Dimension | SelectedDimension, column: string) {
+function findColumnDimension(
+  serie: DvwModuleSeries,
+  dimensions: Dimension | SelectedDimension,
+  column: string,
+) {
   Object.keys(dimensions).forEach((key) => {
     matchDimensionAndColumn(dimensions, key, column, serie);
   });
@@ -261,7 +274,9 @@ function matchDimensionAndColumn(
   serie: Record<string, unknown>,
 ) {
   const items = dimensions[key];
-  const opts: ModuleDimension[] = Array.isArray(items) ? items : Object.values(items);
+  const opts: ModuleDimension[] = Array.isArray(items)
+    ? items
+    : Object.values(items);
   for (const opt of opts) {
     if (opt.handle === column) {
       serie[key] = opt.nameT ?? opt.nameW;

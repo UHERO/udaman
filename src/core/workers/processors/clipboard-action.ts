@@ -42,7 +42,10 @@ export async function processClipboardAction(
           } catch (e) {
             failed++;
             const msg = e instanceof Error ? e.message : String(e);
-            log.warn({ seriesId, err: msg }, "Series reload failed, continuing");
+            log.warn(
+              { seriesId, err: msg },
+              "Series reload failed, continuing",
+            );
             job.log(`Series ${seriesId} failed: ${msg}`);
           }
         }
@@ -65,7 +68,9 @@ export async function processClipboardAction(
               { id: sid, error: e instanceof Error ? e.message : String(e) },
               "reset failed for series loader",
             );
-            job.log(`Series ${sid} reset failed: ${e instanceof Error ? e.message : String(e)}`);
+            job.log(
+              `Series ${sid} reset failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
           }
         }
         result = `Reset ${resetCount} loaders across ${seriesIds.length} series`;
@@ -90,7 +95,9 @@ export async function processClipboardAction(
               { id: sid, error: e instanceof Error ? e.message : String(e) },
               "clear data failed for series",
             );
-            job.log(`Series ${sid} clear failed: ${e instanceof Error ? e.message : String(e)}`);
+            job.log(
+              `Series ${sid} clear failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
           }
         }
         result = `Cleared data points for ${cleared} of ${seriesIds.length} series`;
@@ -112,7 +119,9 @@ export async function processClipboardAction(
               { id, error: e instanceof Error ? e.message : String(e) },
               `${action} failed for series`,
             );
-            job.log(`Series ${id} ${action} failed: ${e instanceof Error ? e.message : String(e)}`);
+            job.log(
+              `Series ${id} ${action} failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
           }
         }
         result = `${label} ${updated} of ${seriesIds.length} series`;
@@ -142,7 +151,9 @@ export async function processClipboardAction(
               { id: sid, error: e instanceof Error ? e.message : String(e) },
               "destroy failed for series on second pass",
             );
-            job.log(`Series ${sid} destroy failed: ${e instanceof Error ? e.message : String(e)}`);
+            job.log(
+              `Series ${sid} destroy failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
           }
         }
         // Find the userId from the reload_jobs record to clear clipboard

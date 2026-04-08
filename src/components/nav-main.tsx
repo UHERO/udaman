@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 
-import { useAppPathname } from "@/hooks/use-app-pathname";
-
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,6 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { useAppPathname } from "@/hooks/use-app-pathname";
 
 export function NavMain({
   items,

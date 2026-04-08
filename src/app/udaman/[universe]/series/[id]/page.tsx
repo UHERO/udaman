@@ -13,6 +13,7 @@ import { SeriesChart } from "@/components/series/series-chart";
 import { SeriesHoverProvider } from "@/components/series/series-data-section";
 import { SeriesDataTable } from "@/components/series/series-table";
 import { SourceMapTable } from "@/components/series/source-map";
+import { getCurrentUserRole } from "@/lib/auth/dal";
 
 export default async function SeriesPage({
   params,
@@ -21,9 +22,13 @@ export default async function SeriesPage({
 }) {
   const { universe, id } = await params;
   const u = universe as Universe;
-  const series = await getSeriesById(id, { universe: u });
+  const [series, role] = await Promise.all([
+    getSeriesById(id, { universe: u }),
+    getCurrentUserRole(),
+  ]);
 
   const { dataPoints, metadata, measurement, aliases, loaders } = series;
+  const isDev = role === "dev";
 
   const [sourceMap, formOptions] = await Promise.all([
     getSourceMap(id, { name: metadata.s_name }),
@@ -60,7 +65,11 @@ export default async function SeriesPage({
             />
           </div>
           <div className="sticky top-4 self-start">
-            <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
+            <MetaDataTable
+              metadata={{ ...metadata, measurement, aliases }}
+              universe={universe}
+              isDev={isDev}
+            />
             <SeriesActionsBar
               seriesId={id}
               metadata={metadata}

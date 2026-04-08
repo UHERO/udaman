@@ -212,7 +212,10 @@ export async function doClipboardAction({
   // Enqueue BullMQ job with high priority
   await enqueueClipboardAction({
     reloadJobId: insertId,
-    action: action as Exclude<ClipboardAction, "meta_update" | "export_csv" | "export_tsd">,
+    action: action as Exclude<
+      ClipboardAction,
+      "meta_update" | "export_csv" | "export_tsd"
+    >,
     seriesIds,
   });
 

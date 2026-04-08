@@ -6,8 +6,7 @@ import { RecentSeriesList } from "@/components/series/recent-series-list";
 
 /** Extract the first valid series name from an expression */
 function extractFirstName(expr: string): string | null {
-  const SERIES_NAME_RE =
-    /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])/i;
+  const SERIES_NAME_RE = /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])/i;
   const match = expr.match(SERIES_NAME_RE);
   return match ? match[1] : null;
 }

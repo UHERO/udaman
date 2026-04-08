@@ -373,6 +373,13 @@ class EvalParser {
       };
     }
 
+    // Unary plus: +expr — no-op, helps the writer disambiguate from unary minus
+    // (e.g. `shift_by(+6)` reads nicer alongside a preceding `shift_by(-6)`).
+    if (tok.type === "OP" && tok.value === "+") {
+      this.advance();
+      return this.parsePrimary();
+    }
+
     // Number literal
     if (tok.type === "NUMBER") {
       this.advance();
@@ -473,7 +480,11 @@ class EvalParser {
           if (node.type === "scalar") {
             args.push({ type: "number", value: node.value });
           } else if (node.type === "series_ref") {
-            args.push({ type: "series_ref", name: node.name, nullable: node.nullable });
+            args.push({
+              type: "series_ref",
+              name: node.name,
+              nullable: node.nullable,
+            });
           } else {
             args.push({ type: "expression", node });
           }
@@ -550,7 +561,12 @@ class EvalParser {
         while (this.current()?.type === "DOT_IDENT") {
           const method = this.advance().value;
           const methodArgs = this.parseMethodArgs();
-          node = { type: "instance_method", target: node, method, args: methodArgs };
+          node = {
+            type: "instance_method",
+            target: node,
+            method,
+            args: methodArgs,
+          };
         }
 
         if (node.type === "series_ref") {

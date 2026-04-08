@@ -332,9 +332,7 @@ class EvalExecutor {
             myNs = await SeriesCollection.getByName(myNsName);
             await SeriesCollection.loadCurrentData(myNs);
           } catch {
-            throw new EvalExecuteError(
-              `No NS series corresponds to ${target}`,
-            );
+            throw new EvalExecuteError(`No NS series corresponds to ${target}`);
           }
 
           const startDate = county.firstValueDate;
@@ -363,9 +361,7 @@ class EvalExecutor {
           const incompleteYear = county
             .backwardLookingMovingAverage()
             .getLastIncompleteYear()
-            .divide(
-              myNs.backwardLookingMovingAverage().getLastIncompleteYear(),
-            )
+            .divide(myNs.backwardLookingMovingAverage().getLastIncompleteYear())
             .multiply(target);
 
           // Merge: start with mean-corrected data, overwrite with the
@@ -482,8 +478,7 @@ class EvalExecutor {
               if (v === undefined) return; // cannot redistribute — bail quietly
               sixMonth.push(v);
             }
-            const avg =
-              sixMonth.reduce((s, x) => s + x, 0) / sixMonth.length;
+            const avg = sixMonth.reduce((s, x) => s + x, 0) / sixMonth.length;
             const diff = (semiVal - avg) * 2;
             for (const off of [1, 3, 5]) {
               const d = addMonthsStr(startMonth, off);
@@ -581,10 +576,7 @@ class EvalExecutor {
         }
 
         // Real conversion (deflation): needs DB access to look up price index series
-        if (
-          methodName === "convertToReal" ||
-          methodName === "convertToRealB"
-        ) {
+        if (methodName === "convertToReal" || methodName === "convertToRealB") {
           const args = await resolveArgs(node.args);
 
           // Resolve index prefix
@@ -601,17 +593,25 @@ class EvalExecutor {
           }
           if (methodName === "convertToRealB") {
             if (indexPrefix.toUpperCase().endsWith("_B")) {
-              throw new EvalExecuteError(
-                "Do not include _B in index name",
-              );
+              throw new EvalExecuteError("Do not include _B in index name");
             }
             indexPrefix = indexPrefix + "_B";
           }
 
           // Determine geography for index lookup
           const HAWAII_GEOS = new Set([
-            "HI", "HAW", "HON", "KAU", "MAU", "NBI",
-            "MAUI", "LAN", "MOL", "HAWH", "HAWK", "HIONLY",
+            "HI",
+            "HAW",
+            "HON",
+            "KAU",
+            "MAU",
+            "NBI",
+            "MAUI",
+            "LAN",
+            "MOL",
+            "HAWH",
+            "HAWK",
+            "HIONLY",
           ]);
           const parsed = target.parseName();
           const geo = parsed.geo;

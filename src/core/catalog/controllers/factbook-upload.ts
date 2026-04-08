@@ -8,8 +8,8 @@ import MeasurementCollection from "../collections/measurement-collection";
 import SeriesCollection from "../collections/series-collection";
 import type { Universe } from "../types/shared";
 import {
-  getFactbookFilePath,
   geotypeForZip,
+  getFactbookFilePath,
   readFactbookFile,
   type FactbookHeader,
   type FactbookRow,
@@ -156,7 +156,10 @@ async function ensureHhfCategoriesAndLists(): Promise<{
       }
       await CategoryCollection.update(categoryId, { dataListId: dl.id });
       dataListId = dl.id;
-      log.info({ name, categoryId, dataListId }, "Linked data list to HHF category");
+      log.info(
+        { name, categoryId, dataListId },
+        "Linked data list to HHF category",
+      );
     }
 
     categoriesByName.set(name, { id: categoryId, dataListId });
@@ -429,9 +432,7 @@ async function insertFactbookDataPoints(
   log.info({ count: unique.length }, "Inserting HHF data_points");
   for (let i = 0; i < unique.length; i += 1000) {
     const batch = unique.slice(i, i + 1000);
-    const placeholders = batch
-      .map(() => "(?, ?, ?, ?, true, NOW())")
-      .join(",");
+    const placeholders = batch.map(() => "(?, ?, ?, ?, true, NOW())").join(",");
     const params: (string | number)[] = [];
     for (const dp of batch) {
       params.push(dp.xseriesId, dp.dataSourceId, dp.date, dp.value);

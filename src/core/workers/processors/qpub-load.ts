@@ -249,7 +249,14 @@ export async function loadOwners(
     await rawQuery(
       `INSERT INTO owners (tmk, scraped_at, owner_name, owner_type, owner_address, sequence_order)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [tmk, sqlDate(scrapedAt), str(o.owner_name), str(o.owner_type), str(o.owner_address), i + 1],
+      [
+        tmk,
+        sqlDate(scrapedAt),
+        str(o.owner_name),
+        str(o.owner_type),
+        str(o.owner_address),
+        i + 1,
+      ],
     );
   }
 }
@@ -962,13 +969,37 @@ export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
   current_tax_bills: loadCurrentTaxBills,
   condominium: loadCondoProject,
   yard_improvements: (tmk, data, s) =>
-    loadGenericForTable(tmk, data, "yard_improvement_information", "yard_improvements", s),
+    loadGenericForTable(
+      tmk,
+      data,
+      "yard_improvement_information",
+      "yard_improvements",
+      s,
+    ),
   residential_additions: (tmk, data, s) =>
-    loadGenericForTable(tmk, data, "residential_addition_information", "residential_additions", s),
+    loadGenericForTable(
+      tmk,
+      data,
+      "residential_addition_information",
+      "residential_additions",
+      s,
+    ),
   agricultural_assessments: (tmk, data, s) =>
-    loadGenericForTable(tmk, data, "agricultural_assessment_information", "agricultural_assessments", s),
+    loadGenericForTable(
+      tmk,
+      data,
+      "agricultural_assessment_information",
+      "agricultural_assessments",
+      s,
+    ),
   accessory_structures: (tmk, data, s) =>
-    loadGenericForTable(tmk, data, "accessory_structure_information", "accessory_structures", s),
+    loadGenericForTable(
+      tmk,
+      data,
+      "accessory_structure_information",
+      "accessory_structures",
+      s,
+    ),
   appeals: (tmk, data, s) =>
     loadGenericForTable(tmk, data, "appeal_information", "appeals", s),
   dedications: (tmk, data, s) =>

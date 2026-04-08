@@ -15,7 +15,7 @@ const COMMANDS: Record<AdminActionJobData["action"], string> = {
   restart_rest: "sudo systemctl restart rest-api.service",
   restart_dvw: "sudo systemctl restart dvw-api.service",
   // sync_nas: 'ssh uhero@uhero13.colo.hawaii.edu "/home/uhero/filesync.sh"', // runs on worker on uhero13
-  sync_nas: '/home/uhero/filesync.sh',
+  sync_nas: "/home/uhero/filesync.sh",
 };
 
 export async function processAdminAction(

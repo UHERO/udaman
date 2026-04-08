@@ -185,11 +185,7 @@ class ClientDataFileReader {
         }
       }
     } else {
-      for (
-        let col = 2;
-        col <= this.lastColumn && samples.length < n;
-        col++
-      ) {
+      for (let col = 2; col <= this.lastColumn && samples.length < n; col++) {
         const raw = this.cell(1, col);
         if (raw && !this.cellToDate(1, col)) {
           samples.push(JSON.stringify(raw));

@@ -81,13 +81,12 @@ export const formatObservations = (
     const dateExists = dates.indexOf(date.date);
     if (dateExists > -1) {
       const parsed = parseFloat(values[dateExists]);
-      results[date.tableDate] =
-        !isFinite(parsed)
-          ? " "
-          : parsed.toLocaleString("en-US", {
-              minimumFractionDigits: decimals,
-              maximumFractionDigits: decimals,
-            });
+      results[date.tableDate] = !isFinite(parsed)
+        ? " "
+        : parsed.toLocaleString("en-US", {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+          });
     }
   });
 

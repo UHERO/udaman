@@ -161,7 +161,7 @@ export class IntegerPatternProcessor {
    */
   compute(
     index: number,
-    sheet2d?: string[][] | null,
+    sheet2d?: CellValue[][] | null,
     handle?: string,
     sheetName?: string | null,
   ): number {
@@ -242,7 +242,7 @@ export class IntegerPatternProcessor {
     matchType?: string;
     searchStart?: number;
     searchEnd?: number;
-    sheet2d: string[][] | null;
+    sheet2d: CellValue[][] | null;
     handle: string | null;
     sheetName: string | null;
   }): number {
@@ -337,9 +337,27 @@ const SUPPRESSED_VALUES = new Set([
 
 /**
  * Parse a cell value to a number, null (suppressed), or "BREAK" (end of data).
+ *
+ * With `raw: true` in the XLSX reader, numeric cells come through as real
+ * numbers (including currency-formatted ones like "$205,550" which XLSX
+ * would otherwise display-format). We short-circuit on number/boolean
+ * inputs and only fall back to string parsing for text cells.
  */
 function parseCell(value: unknown): number | null | "BREAK" {
   if (value == null) return "BREAK";
+
+  // Numeric cell (e.g. currency-formatted, percentage, plain number)
+  if (typeof value === "number") {
+    return isFinite(value) ? value : "BREAK";
+  }
+
+  // Boolean cell — treat as 1/0
+  if (typeof value === "boolean") {
+    return value ? 1 : 0;
+  }
+
+  // Date cell — not a valid observation value, break
+  if (value instanceof Date) return "BREAK";
 
   const str = String(value).trim();
   if (str === "") return "BREAK";
@@ -349,8 +367,8 @@ function parseCell(value: unknown): number | null | "BREAK" {
     return null;
   }
 
-  // Try to parse as number (strip commas)
-  const cleaned = str.replace(/,/g, "");
+  // Try to parse as number (strip commas and leading currency symbols)
+  const cleaned = str.replace(/,/g, "").replace(/^[$£€¥]/, "");
   const num = parseFloat(cleaned);
   if (!isNaN(num) && isFinite(num)) return num;
 
@@ -360,11 +378,11 @@ function parseCell(value: unknown): number | null | "BREAK" {
 
 // ─── File reading functions ──────────────────────────────────────────
 
-/** Read a CSV file and return a 2D string array */
-function readCsvFile(filePath: string): string[][] {
+/** Read a CSV file and return a 2D array of cells (always strings for CSV). */
+function readCsvFile(filePath: string): CellValue[][] {
   const content = readFileSync(filePath, "utf-8");
   const lines = content.split(/\r?\n/);
-  const data: string[][] = [];
+  const data: CellValue[][] = [];
 
   for (const line of lines) {
     const row = splitCSVRow(line);
@@ -375,7 +393,21 @@ function readCsvFile(filePath: string): string[][] {
 }
 
 /**
- * Read an XLS/XLSX file and return a 2D string array for a given sheet.
+ * A single cell value as returned by the XLSX reader in `raw: true` mode.
+ * - numeric cells → `number`
+ * - boolean cells → `boolean`
+ * - date cells    → `Date` (with `cellDates: true`)
+ * - text cells    → `string`
+ * - empty cells   → `""` (via `defval: ""`)
+ */
+export type CellValue = string | number | boolean | Date;
+
+/**
+ * Read an XLS/XLSX file and return a 2D array for a given sheet. Cells are
+ * returned in their underlying types (numbers stay numeric, dates become
+ * `Date` objects) rather than being display-formatted to strings — this
+ * matches Rails Roo semantics and lets `parseCell` handle currency-formatted
+ * numeric cells correctly.
  *
  * Sheet resolution supports:
  *  - "sheet_num:N" — select by 1-based index
@@ -387,11 +419,11 @@ function readXlsFile(
   filePath: string,
   sheetSpec: string,
   date?: string | null,
-): string[][] {
+): CellValue[][] {
   // Use XLSX.read(buffer) instead of XLSX.readFile() — the latter's
   // built-in fs detection doesn't work in Bun's runtime.
   const buf = readFileSync(filePath);
-  const workbook = XLSX.read(buf);
+  const workbook = XLSX.read(buf, { cellDates: true });
   const sheetNames = workbook.SheetNames;
 
   if (sheetNames.length === 0) {
@@ -406,15 +438,15 @@ function readXlsFile(
   }
 
   const sheet = workbook.Sheets[resolvedName];
-  // Convert to 2D array (header: 1 means row-based arrays, defval ensures empty cells)
-  const data = XLSX.utils.sheet_to_json<string[]>(sheet, {
+  // header:1 → row-based arrays; defval:"" → empty cells stable;
+  // raw:true → preserve underlying cell types (numbers stay numeric)
+  const data = XLSX.utils.sheet_to_json<CellValue[]>(sheet, {
     header: 1,
     defval: "",
-    raw: false,
+    raw: true,
   });
 
-  // Ensure all values are strings
-  return data.map((row) => row.map((cell) => String(cell ?? "")));
+  return data;
 }
 
 /** Resolve a sheet specification to an actual sheet name */
@@ -612,7 +644,7 @@ class DownloadProcessor {
     // Download resolution cache: resolved handle → file path
     const downloadPathCache = new Map<string, string>();
     // File data cache: file path + sheet → 2D array
-    const fileCache = new Map<string, string[][]>();
+    const fileCache = new Map<string, CellValue[][]>();
 
     const data = new Map<string, number>();
     let index = 0;
@@ -652,7 +684,7 @@ class DownloadProcessor {
       // For date-sensitive handles, file/header errors skip that
       // iteration (the file may be missing or reformatted) — matching
       // the Rails behavior where date-sensitive misses are non-fatal.
-      let sheet2d: string[][];
+      let sheet2d: CellValue[][];
       try {
         sheet2d = getCachedSheet(
           fileCache,
@@ -842,17 +874,30 @@ function readDateFromFile(
   startRow: number,
   startCol: number,
 ): string {
-  let cellValue: string;
+  let rawCell: CellValue;
 
   if (fileType === "csv") {
     const csvData = readCsvFile(filePath);
-    cellValue = csvData[startRow - 1]?.[startCol - 1] ?? "";
+    rawCell = csvData[startRow - 1]?.[startCol - 1] ?? "";
   } else {
     // XLS/XLSX
     const sheet = String(options.sheet ?? "");
     const data = readXlsFile(filePath, sheet);
-    cellValue = data[startRow - 1]?.[startCol - 1] ?? "";
+    rawCell = data[startRow - 1]?.[startCol - 1] ?? "";
   }
+
+  // Date cell (Excel stores as date → xlsx gives us a JS Date)
+  if (rawCell instanceof Date) {
+    return formatDate(rawCell);
+  }
+
+  // Numeric cell — treat as Excel serial date (days since 1899-12-30)
+  if (typeof rawCell === "number") {
+    const ms = (rawCell - 25569) * 86400 * 1000;
+    return formatDate(new Date(ms));
+  }
+
+  const cellValue = String(rawCell);
 
   // Try as a "YYYY.MM" style date
   if (cellValue.includes(".")) {
@@ -884,18 +929,18 @@ function adjustForFrequency(dateString: string, frequency: string): string {
 // ─── Helper: file caching ────────────────────────────────────────────
 
 function getCachedSheet(
-  cache: Map<string, string[][]>,
+  cache: Map<string, CellValue[][]>,
   filePath: string,
   fileType: string,
   sheetSpec: string | null,
   date: string | null,
-): string[][] {
+): CellValue[][] {
   const cacheKey = `${filePath}|${sheetSpec ?? ""}`;
 
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  let sheet2d: string[][];
+  let sheet2d: CellValue[][];
   if (fileType === "csv") {
     sheet2d = readCsvFile(filePath);
   } else {
@@ -908,29 +953,58 @@ function getCachedSheet(
 
 // ─── Helper: header matching ─────────────────────────────────────────
 
-type MatchType = "equal" | "prefix" | "substring" | "trim_elipsis";
+type MatchBase = "equal" | "prefix" | "substring" | "trim_elipsis";
+type MatchType = { base: MatchBase; stripOkina: boolean };
 
 function normalizeMatchType(raw?: string): MatchType {
-  if (!raw) return "equal";
+  if (!raw) return { base: "equal", stripOkina: false };
   const normalized = raw.toLowerCase().replace(/-/g, "_");
   switch (normalized) {
     case "hiwi":
-      return "equal";
+      return { base: "equal", stripOkina: false };
     case "no_okina":
-      return "equal";
+      return { base: "equal", stripOkina: true };
     case "prefix":
-      return "prefix";
+      return { base: "prefix", stripOkina: false };
     case "prefix_no_okina":
-      return "prefix";
+      return { base: "prefix", stripOkina: true };
     case "sub":
-      return "substring";
+      return { base: "substring", stripOkina: false };
     case "sub_no_okina":
-      return "substring";
+      return { base: "substring", stripOkina: true };
     case "trim_elipsis":
-      return "trim_elipsis";
+      return { base: "trim_elipsis", stripOkina: false };
     default:
-      return "equal";
+      return { base: "equal", stripOkina: false };
   }
+}
+
+/**
+ * Mimic Rails `String#to_ascii`: strip diacritical marks by decomposing
+ * characters to NFD form and removing combining accent codepoints. This
+ * turns e.g. "Hawaiʻi" → "Hawai'i" (modifier letter turned comma is not
+ * a combining mark, so it survives this step — okina stripping handles it).
+ */
+function toAscii(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Strip Hawaiian okina characters and common stand-ins. Covers:
+ *   U+02BB  ʻ  MODIFIER LETTER TURNED COMMA (canonical okina)
+ *   U+2018  ‘  LEFT SINGLE QUOTATION MARK   (common substitute)
+ *   U+2019  ’  RIGHT SINGLE QUOTATION MARK  (common substitute)
+ *   U+0060  `  GRAVE ACCENT                 (ASCII stand-in)
+ *   U+0027  '  APOSTROPHE                   (ASCII stand-in)
+ */
+function stripOkina(s: string): string {
+  return s.replace(/[\u02BB\u2018\u2019\u0060\u0027]/g, "");
+}
+
+function normalizeForMatch(s: string, stripOkinaFlag: boolean): string {
+  let out = toAscii(s.trim().toLowerCase());
+  if (stripOkinaFlag) out = stripOkina(out);
+  return out;
 }
 
 function matchCell(
@@ -942,15 +1016,15 @@ function matchCell(
 
   let val = cellValue;
   // For exact match, strip parenthetical suffixes: "Hawaii(1)" → "Hawaii"
-  if (matchType === "equal" && val !== "") {
+  if (matchType.base === "equal" && val !== "") {
     const parenIdx = val.indexOf("(");
     if (parenIdx > 0) val = val.substring(0, parenIdx);
   }
 
-  const valNormalized = val.trim().toLowerCase();
-  const headerNormalized = header.trim().toLowerCase();
+  const valNormalized = normalizeForMatch(val, matchType.stripOkina);
+  const headerNormalized = normalizeForMatch(header, matchType.stripOkina);
 
-  switch (matchType) {
+  switch (matchType.base) {
     case "equal":
       return valNormalized === headerNormalized;
     case "prefix":

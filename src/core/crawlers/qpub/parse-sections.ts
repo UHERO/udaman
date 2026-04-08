@@ -960,9 +960,7 @@ export function parseResidentialImprovementInformation(
   // Condo fields are attached to the first building record.
   const condoTable =
     section.querySelector('table[id*="dgCondo"]') ??
-    section.querySelector(
-      "table.tabular-data:not(.tabular-data-two-column)",
-    );
+    section.querySelector("table.tabular-data:not(.tabular-data-two-column)");
 
   if (condoTable && buildings.length > 0) {
     const thead = condoTable.querySelector("thead");
@@ -1091,10 +1089,7 @@ function extractCommercialBuildingFields(
           building.building_type = value;
         } else if (key.includes("building square footage")) {
           building.building_square_footage = value;
-        } else if (
-          key === "% complete" ||
-          key === "percent complete"
-        ) {
+        } else if (key === "% complete" || key === "percent complete") {
           building.percent_complete = value;
         } else if (key === "value") {
           building.value = value;
@@ -1160,9 +1155,7 @@ export function parseCommercialImprovementInformation(
 
   const blockRows = section.querySelectorAll(".block-row");
   // Floor detail tables appear as siblings after each block-row, one per building
-  const floorTables = section.querySelectorAll(
-    'table[id*="dgFloorDetails"]',
-  );
+  const floorTables = section.querySelectorAll('table[id*="dgFloorDetails"]');
 
   for (let i = 0; i < blockRows.length; i++) {
     const building = makeEmptyCommercialBuilding();

@@ -111,7 +111,6 @@ function periodStart(dateStr: string, freq: string): string {
   }
 }
 
-
 /** Format YYYY-MM-DD from components. */
 function fmtDate(y: number, m: number, d = 1): string {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -1098,9 +1097,7 @@ class Series {
     if (!nextEntry) throw new Error(`No data point found after ${dateStr}`);
 
     if (operation !== "average") {
-      throw new Error(
-        `Operation ${operation} is not supported. Use "average"`,
-      );
+      throw new Error(`Operation ${operation} is not supported. Use "average"`);
     }
 
     const newValue = (prevEntry[1] + nextEntry[1]) / 2;
@@ -1254,7 +1251,10 @@ class Series {
    */
   censusInterpolate(frequency: string): Series {
     const target = normalizeFreq(frequency);
-    if (target !== "quarter" || normalizeFreq(this.frequency ?? "") !== "year") {
+    if (
+      target !== "quarter" ||
+      normalizeFreq(this.frequency ?? "") !== "year"
+    ) {
       throw new Error(
         `census_interpolate only supports year → quarter (got ${this.frequency} → ${target})`,
       );
@@ -1875,7 +1875,11 @@ class Series {
             this.trimPeriodEnd.getDate(),
           )
         : null) ??
-      fmtDate(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate());
+      fmtDate(
+        new Date().getFullYear(),
+        new Date().getMonth() + 1,
+        new Date().getDate(),
+      );
 
     if (!start) {
       // No start date even after defaults — return data as-is

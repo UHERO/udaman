@@ -299,8 +299,7 @@ export async function transformSeries({
   // Preprocess: find bare series names (PREFIX@GEO.FREQ) and wrap as "NAME".ts.
   // Uses regex so names followed by method calls (e.g. E_NF@HI.M.shift_by(12))
   // are correctly split into "E_NF@HI.M".ts.shift_by(12).
-  const SERIES_NAME_RE =
-    /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])/gi;
+  const SERIES_NAME_RE = /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])/gi;
   const evalStatement = evalStr.replace(SERIES_NAME_RE, '"$1".ts');
 
   const result = await EvalExecutor.run(evalStatement);

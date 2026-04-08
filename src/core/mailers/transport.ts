@@ -1,5 +1,3 @@
-
-
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { createLogger } from "@/core/observability/logger";
@@ -69,8 +67,7 @@ export type SendMailOptions = {
  */
 export async function sendMail(opts: SendMailOptions): Promise<void> {
   const disabled =
-    process.env.MAIL_DISABLED === "1" ||
-    process.env.MAIL_DISABLED === "true";
+    process.env.MAIL_DISABLED === "1" || process.env.MAIL_DISABLED === "true";
   if (disabled) {
     log.info(
       { to: opts.to, subject: opts.subject },

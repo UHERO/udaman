@@ -1,4 +1,7 @@
-const allowedEmails: string[] = ["wood2@hawaii.edu", "yang-seon.kim@hawaii.gov"];
+const allowedEmails: string[] = [
+  "wood2@hawaii.edu",
+  "yang-seon.kim@hawaii.gov",
+];
 
 const allowedDomains: string[] = ["hawaii.edu", "hawaii.gov"];
 

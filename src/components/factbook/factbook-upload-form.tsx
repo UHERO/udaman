@@ -168,7 +168,9 @@ export default function FactbookUploadForm() {
                     {preview.measurementCount >
                       preview.sampleColumns.length && (
                       <span className="text-muted-foreground px-2 py-0.5 text-xs">
-                        +{preview.measurementCount - preview.sampleColumns.length}{" "}
+                        +
+                        {preview.measurementCount -
+                          preview.sampleColumns.length}{" "}
                         more
                       </span>
                     )}

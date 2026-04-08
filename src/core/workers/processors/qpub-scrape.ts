@@ -26,7 +26,7 @@ export async function processQpubScrape(
   if (!isScrapePeriodActive()) {
     throw new Error(
       "Scraping is not allowed during county update months (Jan, Feb, Aug). " +
-      "Active periods: Mar–Jul (period 1) and Sep–Dec (period 2).",
+        "Active periods: Mar–Jul (period 1) and Sep–Dec (period 2).",
     );
   }
 

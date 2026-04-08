@@ -1,7 +1,4 @@
-import {
-  getUniverses,
-  getUniverseStats,
-} from "@/actions/universes";
+import { getUniverses, getUniverseStats } from "@/actions/universes";
 import { UniverseList } from "@/components/universe/universe-list";
 import { UniverseOverview } from "@/components/universe/universe-overview";
 
