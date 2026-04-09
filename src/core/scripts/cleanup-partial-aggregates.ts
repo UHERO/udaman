@@ -120,7 +120,7 @@ async function main() {
     JOIN xseries x ON x.id = s.xseries_id
     WHERE ds.eval REGEXP '@[A-Z0-9_]+\\\\.D["\\\\.]'
       AND ds.eval LIKE '%.aggregate%'
-      AND ds.last_run_at >= '2026-01-01'
+      AND ds.last_run_at >= '2026-04-01'
     ORDER BY s.name
   `;
 
