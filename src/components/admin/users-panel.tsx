@@ -1,11 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateUserRole } from "@/actions/users";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -21,6 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+import { UserFormSheet } from "./user-form-sheet";
 
 type SerializedUser = {
   id: number;
@@ -54,6 +58,7 @@ function formatDate(iso: string | null): string {
 export default function UsersPanel({ users }: { users: SerializedUser[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [createOpen, setCreateOpen] = useState(false);
 
   function handleRoleChange(userId: number, newRole: string) {
     startTransition(async () => {
@@ -68,8 +73,22 @@ export default function UsersPanel({ users }: { users: SerializedUser[] }) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
+    <>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">
+          {users.length} user{users.length !== 1 && "s"}
+        </p>
+        <Button
+          className="cursor-pointer"
+          onClick={() => setCreateOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          New User
+        </Button>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -137,6 +156,9 @@ export default function UsersPanel({ users }: { users: SerializedUser[] }) {
           )}
         </TableBody>
       </Table>
-    </div>
+      </div>
+
+      <UserFormSheet open={createOpen} onOpenChange={setCreateOpen} />
+    </>
   );
 }

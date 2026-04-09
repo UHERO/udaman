@@ -10,6 +10,14 @@ const BCRYPT_ROUNDS = 12;
 
 const VALID_ROLES = ["external", "fsonly", "internal", "admin", "dev"] as const;
 
+export interface CreateUserPayload {
+  email: string;
+  name?: string | null;
+  role: string;
+  universe: string;
+  password: string;
+}
+
 class UserCollection {
   /** Fetch all users (excludes password fields), ordered by name */
   static async list(): Promise<User[]> {
@@ -18,6 +26,47 @@ class UserCollection {
       FROM users ORDER BY name ASC, email ASC
     `;
     return rows.map((r) => new User(r));
+  }
+
+  /** Create a new user with a bcrypt-hashed password */
+  static async create(payload: CreateUserPayload): Promise<User> {
+    const email = payload.email.trim().toLowerCase();
+    if (!email) throw new Error("Email is required");
+
+    if (!VALID_ROLES.includes(payload.role as (typeof VALID_ROLES)[number])) {
+      throw new Error(`Invalid role: ${payload.role}`);
+    }
+    if (!payload.password || payload.password.length < 8) {
+      throw new Error("Password must be at least 8 characters");
+    }
+
+    const existing = await mysql<{ id: number }>`
+      SELECT id FROM users WHERE email = ${email} LIMIT 1
+    `;
+    if (existing.length) throw new Error(`Email already in use: ${email}`);
+
+    const hashed = await hash(payload.password + DEVISE_PEPPER, BCRYPT_ROUNDS);
+
+    await mysql`
+      INSERT INTO users (
+        email, name, role, universe, encrypted_password,
+        created_at, updated_at
+      )
+      VALUES (
+        ${email},
+        ${payload.name ?? null},
+        ${payload.role},
+        ${payload.universe},
+        ${hashed},
+        NOW(),
+        NOW()
+      )
+    `;
+
+    const [{ insertId }] = await mysql<{ insertId: number }>`
+      SELECT LAST_INSERT_ID() as insertId
+    `;
+    return this.getById(insertId);
   }
 
   /** Fetch a user by ID (excludes password fields) */

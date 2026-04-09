@@ -1,7 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   changePassword as changePasswordCtrl,
+  createUser as createUserCtrl,
   getUser as getUserCtrl,
   getUsers as getUsersCtrl,
   updateUserRole as updateUserRoleCtrl,
@@ -46,4 +48,26 @@ export async function updateUserRole(userId: number, role: string) {
   if (currentRole !== "dev") throw new Error("Unauthorized");
   const result = await updateUserRoleCtrl({ id: userId, role });
   return { message: result.message };
+}
+
+export async function createUserAction(payload: {
+  email: string;
+  name?: string | null;
+  role: string;
+  universe: string;
+  password: string;
+}): Promise<{ success: boolean; message: string; id?: number }> {
+  const currentRole = await getCurrentUserRole();
+  if (currentRole !== "dev") throw new Error("Unauthorized");
+
+  try {
+    const result = await createUserCtrl(payload);
+    revalidatePath("/udaman/admin/users");
+    log.info({ id: result.data.id }, "createUserAction completed");
+    return { success: true, message: result.message, id: result.data.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message }, "createUserAction failed");
+    return { success: false, message: `Failed to create user: ${message}` };
+  }
 }

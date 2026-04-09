@@ -3,6 +3,7 @@ import "server-only";
 import { createLogger } from "@/core/observability/logger";
 
 import UserCollection from "../collections/user-collection";
+import type { CreateUserPayload } from "../collections/user-collection";
 
 const log = createLogger("catalog.users");
 
@@ -20,6 +21,16 @@ export async function getUser({ id }: { id: number }) {
   log.info({ id }, "fetching user");
   const data = await UserCollection.getById(id);
   return { data };
+}
+
+export async function createUser(payload: CreateUserPayload) {
+  log.info(
+    { email: payload.email, role: payload.role, universe: payload.universe },
+    "creating user",
+  );
+  const data = await UserCollection.create(payload);
+  log.info({ id: data.id, email: data.email }, "user created");
+  return { data, message: `User ${data.email} created` };
 }
 
 export async function updateUserRole({
