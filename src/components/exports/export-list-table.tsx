@@ -32,6 +32,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { ExportFormSheet } from "./export-form-sheet";
+
 type ExportRow = SerializedExport & { seriesCount: number };
 
 interface Props {
@@ -43,6 +45,7 @@ export function ExportListTable({ data }: Props) {
   const { universe } = useParams();
   const base = `/udaman/${universe}/exports`;
 
+  const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -68,7 +71,7 @@ export function ExportListTable({ data }: Props) {
         </p>
         <Button
           className="cursor-pointer"
-          onClick={() => router.push(`${base}/new`)}
+          onClick={() => setCreateOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
           New Export
@@ -164,6 +167,12 @@ export function ExportListTable({ data }: Props) {
           </TableBody>
         </Table>
       </div>
+
+      <ExportFormSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        universe={String(universe)}
+      />
 
       <AlertDialog
         open={deleteId !== null}

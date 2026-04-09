@@ -123,7 +123,12 @@ export async function replaceAllExportSeries({
 }) {
   const result = await ExportCollection.replaceAllSeries(exportId, seriesNames);
   log.info(
-    { exportId, added: result.added, notFound: result.notFound.length },
+    {
+      exportId,
+      added: result.added,
+      notFound: result.notFound.length,
+      duplicates: result.duplicates.length,
+    },
     "Replaced all export series",
   );
   return result;

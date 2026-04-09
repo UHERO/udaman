@@ -5,7 +5,12 @@
  * NOTE: This routine collects only monthly data (matching Rails behavior).
  */
 
-import { fetchJson, grokDate, type ApiResult } from "./index";
+import {
+  fetchJson,
+  grokDate,
+  withRateLimitRetry,
+  type ApiResult,
+} from "./index";
 
 /**
  * Fetch a time series from the Japan e-Stat API.
@@ -28,7 +33,7 @@ export async function fetchSeries(
     `https://api.e-stat.go.jp/rest/${apiVersion}/app/json/getStatsData?` +
     `appId=${apiKey}&statsDataId=${code}&${query}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1`;
 
-  const json = await fetchJson<EstatResponse>(url);
+  const json = await withRateLimitRetry(() => fetchJson<EstatResponse>(url));
   const apiReturn = json.GET_STATS_DATA;
   if (!apiReturn) throw new Error("ESTATJP: major unknown failure");
 

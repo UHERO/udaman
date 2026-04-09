@@ -15,32 +15,9 @@ import {
   BEA_SUPPRESSED_VALUE,
   fetchJson,
   grokDate,
+  withRateLimitRetry,
   type ApiResult,
 } from "./index";
-
-// ─── Throttle ────────────────────────────────────────────────────────
-
-/**
- * Light per-request sleep to space out batch reloads. Most batch reload
- * paths are already sequential, so 100 ms of additional spacing on top of
- * actual request latency keeps us under BEA's 100 req/min ceiling for any
- * realistic response time. The real safety net for bursting is the 429
- * retry-after-pause logic in `fetchSeries` below.
- */
-const BEA_REQUEST_SLEEP_MS = 100;
-
-/** Pause length when a 429 (or BEA equivalent) is observed. */
-const BEA_RATE_LIMIT_PAUSE_MS = 60_000;
-
-/** Max attempts (initial + retries) for a single BEA request. */
-const BEA_MAX_ATTEMPTS = 3;
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-function isRateLimitError(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return /\b429\b|too many requests|rate limit/i.test(msg);
-}
 
 /**
  * Fetch a time series from the BEA API.
@@ -63,21 +40,7 @@ export async function fetchSeries(
     .join("&");
   const url = `https://apps.bea.gov/api/data/?UserID=${apiKey}&method=GetData&datasetname=${dataset}&${queryPars}&ResultFormat=JSON&`;
 
-  let response: BeaResponse | undefined;
-  for (let attempt = 1; attempt <= BEA_MAX_ATTEMPTS; attempt++) {
-    await sleep(BEA_REQUEST_SLEEP_MS);
-    try {
-      response = await fetchJson<BeaResponse>(url);
-      break;
-    } catch (e) {
-      if (isRateLimitError(e) && attempt < BEA_MAX_ATTEMPTS) {
-        await sleep(BEA_RATE_LIMIT_PAUSE_MS);
-        continue;
-      }
-      throw e;
-    }
-  }
-  if (!response) throw new Error("BEA API: no response");
+  const response = await withRateLimitRetry(() => fetchJson<BeaResponse>(url));
 
   const beaapi = response.BEAAPI;
   if (!beaapi) throw new Error("BEA API: major unknown failure");

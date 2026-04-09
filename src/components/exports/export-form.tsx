@@ -19,7 +19,6 @@ import { toast } from "sonner";
 
 import {
   addSeriesToExportAction,
-  createExportAction,
   getExportSeriesNamesAction,
   moveExportSeriesAction,
   removeSeriesFromExportAction,
@@ -62,21 +61,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 interface ExportFormProps {
-  export?: SerializedExport;
-  series?: ExportSeriesRow[];
+  export: SerializedExport;
+  series: ExportSeriesRow[];
   universe: string;
 }
 
 export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const isEdit = !!exp;
-
-  // ── Create mode state ──────────────────────────────────────────────
-  const [createName, setCreateName] = useState("");
 
   // ── Edit mode state ────────────────────────────────────────────────
-  const [editName, setEditName] = useState(exp?.name ?? "");
+  const [editName, setEditName] = useState(exp.name ?? "");
 
   // Search series state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -92,7 +87,7 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
   const [textValue, setTextValue] = useState("");
 
   // IDs already in the export
-  const existingIds = new Set((series ?? []).map((s) => s.seriesId));
+  const existingIds = new Set(series.map((s) => s.seriesId));
 
   // ── Search with debounce ───────────────────────────────────────────
 
@@ -148,44 +143,21 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
     });
   }
 
-  // ── Create mode ────────────────────────────────────────────────────
-
-  function handleCreate() {
-    if (!createName.trim()) return;
-    startTransition(async () => {
-      try {
-        const result = await createExportAction(createName.trim());
-        if (result.success && result.id) {
-          toast.success(result.message);
-          router.push(`/udaman/${universe}/exports/${result.id}`);
-        } else {
-          toast.error(result.message);
-        }
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Failed to create export");
-      }
-    });
-  }
-
   // ── Edit mode handlers ─────────────────────────────────────────────
 
   function handleSaveName() {
-    if (!exp) return;
     runAction(() => updateExportAction(exp.id, { name: editName }));
   }
 
   function handleMove(seriesId: number, direction: "up" | "down") {
-    if (!exp) return;
     runAction(() => moveExportSeriesAction(exp.id, seriesId, direction));
   }
 
   function handleRemove(seriesId: number) {
-    if (!exp) return;
     runAction(() => removeSeriesFromExportAction(exp.id, seriesId));
   }
 
   function handleAddSeries(seriesId: number) {
-    if (!exp) return;
     setSearchOpen(false);
     setSearchTerm("");
     setSearchResults([]);
@@ -193,7 +165,6 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
   }
 
   async function handleOpenTextDialog() {
-    if (!exp) return;
     try {
       const names = await getExportSeriesNamesAction(exp.id);
       setTextValue(names.join("\n"));
@@ -204,7 +175,6 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
   }
 
   function handleSaveText() {
-    if (!exp) return;
     const names = textValue
       .split(/\n/)
       .map((n) => n.trim())
@@ -227,54 +197,6 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
   }
 
   const base = `/udaman/${universe}/exports`;
-
-  // ── Create mode render ─────────────────────────────────────────────
-
-  if (!isEdit) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={base}>
-              <ArrowLeft className="mr-1.5 size-4" />
-              Back to Exports
-            </Link>
-          </Button>
-        </div>
-
-        <div className="max-w-md space-y-4">
-          <h2 className="text-lg font-semibold">New Export</h2>
-          <FieldSet className="m-0 gap-1 p-0">
-            <FieldGroup className="gap-2">
-              <Field>
-                <FieldLabel htmlFor="name">Name</FieldLabel>
-                <Input
-                  id="name"
-                  placeholder="Export name"
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleCreate();
-                    }
-                  }}
-                />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <Button
-            onClick={handleCreate}
-            disabled={isPending || !createName.trim()}
-          >
-            {isPending ? "Creating..." : "Create Export"}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Edit mode render ───────────────────────────────────────────────
 
   return (
     <div className="space-y-8">
@@ -329,7 +251,7 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
           </Button>
         </div>
 
-        {(series ?? []).length === 0 ? (
+        {series.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             No series in this export.
           </p>
@@ -344,7 +266,7 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(series ?? []).map((s, idx) => (
+                {series.map((s, idx) => (
                   <TableRow key={s.seriesId}>
                     <TableCell className="font-mono text-sm">
                       <Link
@@ -371,7 +293,7 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
                           size="icon"
                           className="size-7"
                           disabled={
-                            isPending || idx === (series ?? []).length - 1
+                            isPending || idx === series.length - 1
                           }
                           onClick={() => handleMove(s.seriesId, "down")}
                           title="Move down"

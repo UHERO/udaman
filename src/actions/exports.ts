@@ -136,6 +136,11 @@ export async function replaceAllExportSeriesAction(
     const result = await replaceAllExportSeries({ exportId, seriesNames });
     revalidatePath("/udaman", "layout");
     let msg = `Replaced with ${result.added} series`;
+    if (result.duplicates.length > 0) {
+      // Show unique duplicate names so the same repeated entry isn't listed N times.
+      const uniqueDupes = Array.from(new Set(result.duplicates));
+      msg += `. Dropped ${result.duplicates.length} duplicate${result.duplicates.length === 1 ? "" : "s"}: ${uniqueDupes.join(", ")}`;
+    }
     if (result.notFound.length > 0) {
       msg += `. Not found: ${result.notFound.join(", ")}`;
     }

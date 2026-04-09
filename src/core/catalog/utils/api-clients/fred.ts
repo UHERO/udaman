@@ -3,7 +3,12 @@
  * https://fred.stlouisfed.org/docs/api/fred/
  */
 
-import { fetchXml, grokDate, type ApiResult } from "./index";
+import {
+  fetchXml,
+  grokDate,
+  withRateLimitRetry,
+  type ApiResult,
+} from "./index";
 
 /**
  * Fetch a time series from the FRED API.
@@ -31,7 +36,7 @@ export async function fetchSeries(
     url += `&aggregation_method=${aggregationMethod.toLowerCase()}`;
   }
 
-  const xml = await fetchXml(url);
+  const xml = await withRateLimitRetry(() => fetchXml(url));
 
   // Check for API errors
   const errorMatch = xml.match(

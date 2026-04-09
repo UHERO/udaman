@@ -4,7 +4,12 @@
  * https://www.eia.gov/opendata/
  */
 
-import { fetchJson, grokDate, type ApiResult } from "./index";
+import {
+  fetchJson,
+  grokDate,
+  withRateLimitRetry,
+  type ApiResult,
+} from "./index";
 
 /**
  * Fetch a time series from the EIA v2 API.
@@ -31,7 +36,7 @@ export async function fetchSeries(
   if (frequency) url += `&frequency=${frequency}`;
   if (valueIn) url += `&data[]=${valueIn}`;
 
-  const response = await fetchJson<EiaResponse>(url);
+  const response = await withRateLimitRetry(() => fetchJson<EiaResponse>(url));
 
   if (response.error) {
     const msg = response.error.message ?? JSON.stringify(response.error);

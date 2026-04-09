@@ -3,7 +3,7 @@
  * Internal UHERO API for visitor/tourism data.
  */
 
-import { fetchJson, type ApiResult } from "./index";
+import { fetchJson, withRateLimitRetry, type ApiResult } from "./index";
 
 /**
  * Fetch a time series from the DVW API.
@@ -24,7 +24,7 @@ export async function fetchSeries(
     .join("&");
   const url = `https://api.uhero.hawaii.edu/dvw/series/${mod.toLowerCase()}?f=${freq}&i=${indicator}&${dims}`;
 
-  const json = await fetchJson<DvwResponse>(url);
+  const json = await withRateLimitRetry(() => fetchJson<DvwResponse>(url));
 
   const results = json.data;
   if (!results) throw new Error("DVW API: failure - no data returned");

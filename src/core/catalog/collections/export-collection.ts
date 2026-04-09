@@ -1,4 +1,4 @@
-import { mysql } from "@/lib/mysql/db";
+import { mysql, transaction } from "@/lib/mysql/db";
 
 import Export from "../models/export";
 import type { ExportAttrs } from "../models/export";
@@ -125,7 +125,8 @@ class ExportCollection {
 
   static async create(name: string): Promise<Export> {
     const rows = await mysql<ExportAttrs>`
-      INSERT INTO exports (name) VALUES (${name})
+      INSERT INTO exports (name, created_at, updated_at)
+      VALUES (${name}, NOW(), NOW())
       RETURNING *
     `;
     return new Export(rows[0]);
@@ -133,7 +134,10 @@ class ExportCollection {
 
   static async update(id: number, payload: { name?: string }): Promise<Export> {
     if (payload.name !== undefined) {
-      await mysql`UPDATE exports SET name = ${payload.name} WHERE id = ${id}`;
+      await mysql`
+        UPDATE exports SET name = ${payload.name}, updated_at = NOW()
+        WHERE id = ${id}
+      `;
     }
     return this.getById(id);
   }
@@ -205,12 +209,27 @@ class ExportCollection {
   static async replaceAllSeries(
     exportId: number,
     seriesNames: string[],
-  ): Promise<{ added: number; notFound: string[] }> {
-    // Look up series IDs by name
+  ): Promise<{ added: number; notFound: string[]; duplicates: string[] }> {
+    // Dedupe names, preserving first-occurrence order. A series can appear
+    // in an export at most once (unique index on export_id + series_id), so
+    // subsequent mentions of the same name are silently dropped but reported
+    // back to the caller.
+    const seen = new Set<string>();
+    const duplicates: string[] = [];
+    const uniqueNames: string[] = [];
+    for (const name of seriesNames) {
+      if (seen.has(name)) {
+        duplicates.push(name);
+      } else {
+        seen.add(name);
+        uniqueNames.push(name);
+      }
+    }
+
+    // Look up series IDs by name.
     const notFound: string[] = [];
     const seriesIds: number[] = [];
-
-    for (const name of seriesNames) {
+    for (const name of uniqueNames) {
       const rows = await mysql<{ id: number }>`
         SELECT id FROM series WHERE name = ${name} LIMIT 1
       `;
@@ -221,18 +240,19 @@ class ExportCollection {
       }
     }
 
-    // Delete all existing
-    await mysql`DELETE FROM export_series WHERE export_id = ${exportId}`;
+    // Delete + re-insert atomically so a mid-operation failure can't leave
+    // the export half-rewritten.
+    await transaction(async () => {
+      await mysql`DELETE FROM export_series WHERE export_id = ${exportId}`;
+      for (let i = 0; i < seriesIds.length; i++) {
+        await mysql`
+          INSERT INTO export_series (export_id, series_id, list_order)
+          VALUES (${exportId}, ${seriesIds[i]}, ${i})
+        `;
+      }
+    });
 
-    // Insert new ones in order
-    for (let i = 0; i < seriesIds.length; i++) {
-      await mysql`
-        INSERT INTO export_series (export_id, series_id, list_order)
-        VALUES (${exportId}, ${seriesIds[i]}, ${i})
-      `;
-    }
-
-    return { added: seriesIds.length, notFound };
+    return { added: seriesIds.length, notFound, duplicates };
   }
 
   static async getSeriesNames(exportId: number): Promise<string[]> {

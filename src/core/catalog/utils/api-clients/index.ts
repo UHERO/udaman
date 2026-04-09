@@ -39,6 +39,63 @@ export async function fetchXml(url: string): Promise<string> {
   return response.text();
 }
 
+// ─── Shared throttle + rate-limit retry ──────────────────────────────
+
+/** Default pre-request sleep used by public API clients. */
+export const API_DEFAULT_SLEEP_MS = 100;
+/** Pause length when a rate-limit error is observed. */
+export const API_RATE_LIMIT_PAUSE_MS = 60_000;
+/** Max attempts (initial + retries) for a rate-limited request. */
+export const API_MAX_ATTEMPTS = 3;
+
+/** Promise-based sleep. */
+export const apiSleep = (ms: number): Promise<void> =>
+  new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Heuristic detector for rate-limit / too-many-requests errors across the
+ * various public APIs we talk to. Matches HTTP 429, the literal phrase
+ * "too many requests", "rate limit", and common quota wording.
+ */
+export function isRateLimitError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /\b429\b|too many requests|rate limit|quota/i.test(msg);
+}
+
+/**
+ * Wraps an API fetch function with a pre-request sleep and a retry-after-
+ * pause loop for rate-limit errors. Used by the stateless API clients
+ * (BEA, FRED, EIA, DVW, e-Stat). BLS has its own throttle + key rotation
+ * and does not go through here.
+ */
+export async function withRateLimitRetry<T>(
+  fn: () => Promise<T>,
+  opts: {
+    sleepMs?: number;
+    pauseMs?: number;
+    maxAttempts?: number;
+  } = {},
+): Promise<T> {
+  const sleepMs = opts.sleepMs ?? API_DEFAULT_SLEEP_MS;
+  const pauseMs = opts.pauseMs ?? API_RATE_LIMIT_PAUSE_MS;
+  const maxAttempts = opts.maxAttempts ?? API_MAX_ATTEMPTS;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    await apiSleep(sleepMs);
+    try {
+      return await fn();
+    } catch (e) {
+      if (isRateLimitError(e) && attempt < maxAttempts) {
+        await apiSleep(pauseMs);
+        continue;
+      }
+      throw e;
+    }
+  }
+  // Unreachable: the loop either returns or throws.
+  throw new Error("withRateLimitRetry: exhausted without returning");
+}
+
 // ─── Date helpers ────────────────────────────────────────────────────
 
 const QUARTER_FIRST_MONTH: Record<string, string> = {
