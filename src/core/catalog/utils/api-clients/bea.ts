@@ -23,13 +23,28 @@ import {
 const BEA_MIN_INTERVAL_MS = 650;
 let beaNextRequestAt = 0;
 
-/** Sleeps until at least BEA_MIN_INTERVAL_MS has elapsed since the previous call. */
+/**
+ * Serializes concurrent callers onto fixed-spaced slots.
+ *
+ * `SeriesCollection.batchReload` fans out up to 25 series in parallel per
+ * group, so many callers can enter this function before any of them has
+ * actually sent its request. The naive "read beaNextRequestAt → sleep →
+ * update beaNextRequestAt" pattern races: every concurrent caller reads
+ * the *same* stale value, sleeps to the same target, and then fires in a
+ * burst — blowing straight through BEA's 100 req/min ceiling.
+ *
+ * Instead, each caller synchronously claims its own slot (read-modify-
+ * write of `beaNextRequestAt` with no intervening await), then sleeps
+ * until that exact slot. Subsequent callers immediately see the updated
+ * value and chain onto the next slot.
+ */
 async function throttleBea(): Promise<void> {
-  const now = Date.now();
-  if (now < beaNextRequestAt) {
-    await new Promise((r) => setTimeout(r, beaNextRequestAt - now));
+  const myTurn = Math.max(Date.now(), beaNextRequestAt);
+  beaNextRequestAt = myTurn + BEA_MIN_INTERVAL_MS;
+  const delay = myTurn - Date.now();
+  if (delay > 0) {
+    await new Promise((r) => setTimeout(r, delay));
   }
-  beaNextRequestAt = Date.now() + BEA_MIN_INTERVAL_MS;
 }
 
 /**
