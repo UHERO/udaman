@@ -122,6 +122,46 @@ function parseYM(dateStr: string): { year: number; month: number } {
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
 }
 
+/** Number of days in the given (0-indexed) month of the given year. */
+function daysInMonth(y: number, m0: number): number {
+  // Day 0 of month m0+1 is the last day of month m0.
+  return new Date(y, m0 + 1, 0).getDate();
+}
+
+/**
+ * Last calendar day (YYYY-MM-DD) of the period identified by `periodStartStr`
+ * at the given target frequency. `periodStartStr` is expected to be the start
+ * date produced by `periodStart()` for that frequency.
+ */
+function lastDayOfPeriod(periodStartStr: string, freq: string): string {
+  const f = normalizeFreq(freq);
+  const [yStr, mStr, dStr] = periodStartStr.split("-");
+  const y = Number(yStr);
+  const m = Number(mStr); // 1-indexed
+
+  switch (f) {
+    case "year":
+      return fmtDate(y, 12, 31);
+    case "semi":
+      return m === 1 ? fmtDate(y, 6, 30) : fmtDate(y, 12, 31);
+    case "quarter": {
+      const lastMonth = m + 2;
+      return fmtDate(y, lastMonth, daysInMonth(y, lastMonth - 1));
+    }
+    case "month":
+      return fmtDate(y, m, daysInMonth(y, m - 1));
+    case "week": {
+      // Period starts Monday; last day is Sunday (Monday + 6).
+      const d = Number(dStr);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      dt.setUTCDate(dt.getUTCDate() + 6);
+      return dt.toISOString().slice(0, 10);
+    }
+    default:
+      return periodStartStr;
+  }
+}
+
 // ─── Aggregation helpers ────────────────────────────────────────────
 
 type AggOp = "sum" | "average" | "min" | "max" | "first" | "last";
@@ -1015,24 +1055,43 @@ class Series {
 
     const op = (operation ?? "average") as AggOp;
 
-    // Group data points by target-frequency period start date
+    // Group data points by target-frequency period start date. Track the
+    // latest non-null source date so we can tell whether an in-progress
+    // period has been "closed out" by subsequent observations.
     const groups = new Map<string, number[]>();
     const sortedDates = [...this.data.keys()].sort();
+    let maxDate = "";
     for (const date of sortedDates) {
       const value = this.data.get(date);
       if (value == null) continue;
+      maxDate = date; // sortedDates ascending; last non-null assignment wins
       const key = periodStart(date, targetFreq);
       const arr = groups.get(key);
       if (arr) arr.push(value);
       else groups.set(key, [value]);
     }
 
-    // Prune incomplete periods
-    const minPoints = freqPerFreq(srcFreq, targetFreq);
+    // Prune incomplete periods. Day source needs a different rule than the
+    // generic `minPoints` count: daily series often have legitimate gaps
+    // (weekends, holidays, late reports) so a strict count match would hide
+    // every otherwise-complete month. Instead, emit a period once we have
+    // evidence that it's over — i.e. the latest source observation lies on
+    // or after the last calendar day of that period. Equivalently: we've
+    // seen a data point on the last day of the month (or later), which
+    // matches Rails `days_in_period` semantics in the common dense case
+    // while gracefully handling sparse daily feeds.
     const newData = new Map<string, number>();
-    for (const [date, values] of groups) {
-      if (minPoints && values.length < minPoints) continue;
-      newData.set(date, applyAggOp(values, op));
+    if (srcFreq === "day") {
+      for (const [date, values] of groups) {
+        if (maxDate < lastDayOfPeriod(date, targetFreq)) continue;
+        newData.set(date, applyAggOp(values, op));
+      }
+    } else {
+      const minPoints = freqPerFreq(srcFreq, targetFreq);
+      for (const [date, values] of groups) {
+        if (minPoints && values.length < minPoints) continue;
+        newData.set(date, applyAggOp(values, op));
+      }
     }
 
     const s = new Series({ name: `Aggregated as ${op} from ${this}` });

@@ -377,7 +377,7 @@ class LoaderCollection {
         await this.deleteDataPoints(loader);
       }
 
-      const result = await EvalExecutor.run(loader.eval);
+      const result = await EvalExecutor.run(loader.eval, loader.universe);
 
       // TODO: apply presave_hook if set (requires porting hook dispatch)
 

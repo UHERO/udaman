@@ -4,16 +4,66 @@
  *
  * Both fetchSeries and fetchSeriesV2 hit the v2 JSON endpoint. They share a
  * 200ms throttle and use a sticky API key with automatic failover: we stay
- * on the current key until a request fails, at which point we advance to
- * the next configured key and retry the same request. This maximizes the
+ * on the current key until a rate-limit failure, at which point we advance
+ * to the next configured key and retry the same request. This maximizes the
  * daily request budget (BLS allows 500/day per registered key) without
  * flipping back to an exhausted key on every other request.
+ *
+ * Only rate-limit type errors trigger key cycling. Permanent errors such as
+ * "Series does not exist" (a series was renamed/discontinued by BLS, or the
+ * caller passed a bad ID) are thrown immediately so we don't burn through
+ * every key trying to fetch something that will never succeed.
  *
  * BLS limits the API to 50 requests per 10 seconds, so the 200ms throttle
  * is enforced between every outbound request (including retries).
  */
 
 import { fetchJson, grokDate, type ApiResult } from "./index";
+
+/**
+ * Error thrown when BLS signals that the current registration key has
+ * exhausted its quota or hit a short-term rate limit. Only this specific
+ * error type causes `withKeyRetry` to advance to the next configured key.
+ */
+class BlsRateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BlsRateLimitError";
+  }
+}
+
+/**
+ * Patterns in a BLS API error message that indicate a rate limit / quota
+ * problem and therefore justify trying a different registration key.
+ * Everything else (invalid series, unauthorized, malformed request) is
+ * treated as permanent and bubbles up on the first attempt.
+ */
+const BLS_RATE_LIMIT_PATTERNS: RegExp[] = [
+  /daily threshold/i,
+  /threshold security/i,
+  /threshold for this query/i,
+  /request.*exceeded/i,
+  /exceeded.*request/i,
+  /rate limit/i,
+  /too many requests/i,
+  /quota/i,
+];
+
+function isBlsRateLimitMessage(msg: string): boolean {
+  return BLS_RATE_LIMIT_PATTERNS.some((re) => re.test(msg));
+}
+
+/**
+ * Classify a BLS error message and throw either a `BlsRateLimitError`
+ * (retryable — cycle keys) or a plain `Error` (permanent — bubble up).
+ */
+function throwBlsError(label: string, message: string): never {
+  const full = `${label}: ${message}`;
+  if (isBlsRateLimitMessage(message)) {
+    throw new BlsRateLimitError(full);
+  }
+  throw new Error(full);
+}
 
 // ─── Shared throttle + sticky key with failover ──────────────────────
 
@@ -51,11 +101,14 @@ async function throttleBls(): Promise<void> {
 }
 
 /**
- * Run `fetchWithKey` against the currently-active BLS key. On failure,
- * advance to the next key and retry, up to once per configured key.
+ * Run `fetchWithKey` against the currently-active BLS key. Only a
+ * `BlsRateLimitError` causes us to advance to the next key and retry —
+ * everything else (bad series ID, unauthorized, server error) is thrown
+ * immediately so we don't waste the entire key pool on a request that will
+ * never succeed.
  *
  * The module-level `blsKeyIndex` persists across calls, so once a key has
- * caused a failure we stay on the new key for subsequent requests rather
+ * hit its rate limit we stay on the new key for subsequent requests rather
  * than rotating back.
  */
 async function withKeyRetry<T>(
@@ -71,15 +124,19 @@ async function withKeyRetry<T>(
       return await fetchWithKey(key);
     } catch (err) {
       lastError = err;
-      // Advance the sticky index so the next call — and the next retry —
-      // skip the failed key.
+      if (!(err instanceof BlsRateLimitError)) {
+        // Non-rate-limit error: throw immediately without cycling keys.
+        throw err;
+      }
+      // Rate-limited: advance the sticky index so the next call — and the
+      // next retry — skip the exhausted key.
       blsKeyIndex = (blsKeyIndex + 1) % keys.length;
     }
   }
 
   throw lastError instanceof Error
     ? lastError
-    : new Error("All BLS keys failed");
+    : new Error("All BLS keys rate-limited");
 }
 
 // ─── BLS v2 (single-series) ──────────────────────────────────────────
@@ -103,7 +160,7 @@ export async function fetchSeries(
       const msg = Array.isArray(json.message)
         ? json.message.join(" ")
         : String(json.message ?? "Unknown error");
-      throw new Error(`BLS API error: ${msg}`);
+      throwBlsError("BLS API error", msg);
     }
 
     const resultsData = json.Results?.series?.[0]?.data;
@@ -111,7 +168,7 @@ export async function fetchSeries(
       const msg = Array.isArray(json.message)
         ? json.message.join(" ")
         : "No data returned";
-      throw new Error(`BLS API error: ${msg}`);
+      throwBlsError("BLS API error", msg);
     }
 
     const data = new Map<string, number>();
@@ -151,7 +208,7 @@ export async function fetchSeriesV2(
       const msg = Array.isArray(json.message)
         ? json.message.join(" ")
         : String(json.message ?? "Unknown error");
-      throw new Error(`BLS V2 API error: ${msg}`);
+      throwBlsError("BLS V2 API error", msg);
     }
 
     const resultsData = json.Results?.series?.[0]?.data;
@@ -159,7 +216,7 @@ export async function fetchSeriesV2(
       const msg = Array.isArray(json.message)
         ? json.message.join(" ")
         : "No data returned";
-      throw new Error(`BLS V2 API error: ${msg}`);
+      throwBlsError("BLS V2 API error", msg);
     }
 
     const data = new Map<string, number>();

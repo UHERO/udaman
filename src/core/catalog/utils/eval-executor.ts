@@ -124,7 +124,12 @@ const OP_TO_METHOD: Record<string, string> = {
 async function resolveArg(
   arg: EvalArg,
 ): Promise<
-  string | number | boolean | Series | Record<string, string | number | boolean>
+  | string
+  | number
+  | boolean
+  | null
+  | Series
+  | Record<string, string | number | boolean>
 > {
   switch (arg.type) {
     case "string":
@@ -146,10 +151,11 @@ async function resolveArg(
       }
     }
     case "options":
-      // Coerce all values to strings — API methods expect Record<string, string>
-      return Object.fromEntries(
-        Object.entries(arg.value).map(([k, v]) => [k, String(v)]),
-      );
+      // Preserve underlying JS types — API methods and kwarg-style
+      // dispatchers (e.g. moving averages) want real numbers/booleans,
+      // not stringified ones. Downstream code that only wanted strings
+      // can still call String(v) on the extracted value.
+      return arg.value as Record<string, string | number | boolean>;
     case "expression":
       return EvalExecutor.execute(arg.node);
   }
@@ -162,8 +168,18 @@ async function resolveArgs(args: EvalArg[]): Promise<unknown[]> {
 // ─── Executor ───────────────────────────────────────────────────────
 
 class EvalExecutor {
-  /** Execute a parsed eval node, returning a Series with data. */
-  static async execute(node: EvalNode): Promise<Series> {
+  /**
+   * Execute a parsed eval node, returning a Series with data.
+   *
+   * `universe` is threaded through so a few static helpers (notably
+   * `Series.search`) can scope their DB queries to the caller's universe.
+   * Defaults to "UHERO" to match Rails' historical behavior when a loader
+   * doesn't carry a universe.
+   */
+  static async execute(
+    node: EvalNode,
+    universe: string = "UHERO",
+  ): Promise<Series> {
     switch (node.type) {
       case "series_ref": {
         try {
@@ -189,7 +205,49 @@ class EvalExecutor {
       }
 
       case "instance_method": {
-        const target = await this.execute(node.target);
+        // Special case: `Series.search(text).sum` / `.first` / `.last`.
+        // The static `search` call resolves to a Series[] rather than a
+        // single Series, so we handle the reduction here instead of
+        // recursing into `execute(node.target)` (which would need to
+        // return a non-Series value).
+        if (
+          node.target.type === "static_method" &&
+          node.target.method === "search"
+        ) {
+          const searchArgs = await resolveArgs(node.target.args);
+          const text = String(searchArgs[0] ?? "");
+          const results = await SeriesCollection.search({ text, universe });
+
+          const reducer = snakeToCamel(node.method);
+          if (results.length === 0) {
+            throw new EvalExecuteError(
+              `Series.search("${text}") returned no results; cannot apply .${node.method}`,
+            );
+          }
+
+          // Load data for every matching series so arithmetic has
+          // something to work with.
+          for (const s of results) {
+            await SeriesCollection.loadCurrentData(s);
+          }
+
+          if (reducer === "first") return results[0];
+          if (reducer === "last") return results[results.length - 1];
+          if (reducer === "sum") {
+            // Element-wise sum via repeated Series#add. Start with the
+            // first series and fold in the rest.
+            let acc = results[0];
+            for (let i = 1; i < results.length; i++) {
+              acc = acc.add(results[i]);
+            }
+            return acc;
+          }
+          throw new EvalExecuteError(
+            `Unsupported reduction on Series.search result: .${node.method} (allowed: sum, first, last)`,
+          );
+        }
+
+        const target = await this.execute(node.target, universe);
         const methodName = snakeToCamel(node.method);
 
         if (!ALLOWED_INSTANCE_METHODS.has(methodName)) {
@@ -636,6 +694,36 @@ class EvalExecutor {
           return target.divide(idxSeries).multiply(100);
         }
 
+        // Moving average methods: Rails defines these with a `window:`
+        // keyword argument, e.g.
+        //   backward_looking_moving_average(window: 14)
+        // which our parser turns into an `options` arg. The TS
+        // implementations take `window` as a simple positional number,
+        // so extract it here before dispatching. Silently ignore any
+        // positional start/end date args since the TS versions don't
+        // support them yet.
+        if (
+          methodName === "backwardLookingMovingAverage" ||
+          methodName === "forwardLookingMovingAverage"
+        ) {
+          const args = await resolveArgs(node.args);
+          let window: number | undefined;
+          for (const a of args) {
+            if (a && typeof a === "object" && !(a instanceof Series)) {
+              const w = (a as Record<string, unknown>).window;
+              if (w !== undefined) window = Number(w);
+            }
+          }
+          const fn = (target as unknown as Record<string, unknown>)[methodName];
+          if (typeof fn !== "function") {
+            throw new EvalExecuteError(
+              `Series does not implement method: ${methodName}`,
+            );
+          }
+          const result = (fn as (w?: number) => Series).call(target, window);
+          return result instanceof Series ? result : target;
+        }
+
         const fn = (target as unknown as Record<string, unknown>)[methodName];
         if (typeof fn !== "function") {
           throw new EvalExecuteError(
@@ -649,6 +737,16 @@ class EvalExecutor {
       }
 
       case "static_method": {
+        // Bare `Series.search(...)` with no reduction chained after it
+        // can't produce a single Series. The `instance_method` branch
+        // handles the `.sum`/`.first`/`.last` variants; if we land here,
+        // the eval is incomplete.
+        if (node.method === "search") {
+          throw new EvalExecuteError(
+            `Series.search(...) must be followed by a reduction: .sum, .first, or .last`,
+          );
+        }
+
         const methodName = snakeToCamel(node.method);
 
         if (!ALLOWED_STATIC_METHODS.has(methodName)) {
@@ -672,8 +770,8 @@ class EvalExecutor {
 
       case "arithmetic": {
         const [left, right] = await Promise.all([
-          this.execute(node.left),
-          this.execute(node.right),
+          this.execute(node.left, universe),
+          this.execute(node.right, universe),
         ]);
 
         const methodName = OP_TO_METHOD[node.op];
@@ -702,9 +800,12 @@ class EvalExecutor {
   }
 
   /** Top-level convenience: parse + execute. */
-  static async run(evalStr: string): Promise<Series> {
+  static async run(
+    evalStr: string,
+    universe: string = "UHERO",
+  ): Promise<Series> {
     const node = EvalParser.parse(evalStr);
-    return this.execute(node);
+    return this.execute(node, universe);
   }
 }
 

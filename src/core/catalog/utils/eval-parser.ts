@@ -414,7 +414,7 @@ class EvalParser {
     return node;
   }
 
-  /** Parse: Series.method_name(args) */
+  /** Parse: Series.method_name(args)[.chain()...] */
   private parseStaticMethod(): EvalNode {
     this.advance(); // skip SERIES_CLASS
 
@@ -426,7 +426,12 @@ class EvalParser {
     }
     const method = this.advance().value;
     const args = this.parseMethodArgs();
-    return { type: "static_method", method, args };
+    const node: EvalNode = { type: "static_method", method, args };
+    // Allow `.method` chains after a static call, e.g.
+    //   Series.search("foo @hon .a").sum
+    //   Series.load_from_file("x.xls").trim
+    // Without this, the chained method would be silently dropped.
+    return this.parsePostfix(node);
   }
 
   /** Parse: "SERIES@GEO.FREQ".ts[.method(args)...] */
@@ -497,23 +502,34 @@ class EvalParser {
       return args;
     }
 
-    // Ruby space-call: method "arg".ts (series ref) or method "arg" (plain string)
+    // Ruby space-call: method "arg".ts (series ref) or method "arg" (plain string).
+    // Only continue with comma-separated args if we actually consumed a first
+    // space-call arg — otherwise a comma here belongs to the enclosing method
+    // call's argument list, not to this (paren-less, arg-less) method. Without
+    // this guard, something like `share_using(A.ts.trim, B.ts.trim)` would be
+    // parsed as `share_using(A.ts.trim(B.ts.trim))` because the inner `.trim`
+    // would greedily eat the outer comma.
+    let hadSpaceCallArg = false;
     if (this.current()?.type === "QUOTED_STRING") {
       const next = this.peek(1);
       if (next?.type === "DOT_TS" || next?.type === "DOT_TSN") {
         const name = this.advance().value;
         const nullable = this.advance().type === "DOT_TSN";
         args.push({ type: "series_ref", name, nullable });
+        hadSpaceCallArg = true;
       }
     } else if (this.current()?.type === "STRING_ARG") {
       args.push({ type: "string", value: this.advance().value });
+      hadSpaceCallArg = true;
     }
 
     // Continue consuming additional comma-separated args, e.g.
     //   `Series.load_from_download "handle", { :file_type => "xls" }`
-    while (this.current()?.type === "COMMA") {
-      this.advance(); // skip comma
-      args.push(this.parseOneArg());
+    if (hadSpaceCallArg) {
+      while (this.current()?.type === "COMMA") {
+        this.advance(); // skip comma
+        args.push(this.parseOneArg());
+      }
     }
 
     return args;
