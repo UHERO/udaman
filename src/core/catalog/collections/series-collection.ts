@@ -1534,7 +1534,7 @@ class SeriesCollection {
   static async loadApiBea(
     frequency: string,
     dataset: string,
-    params: Record<string, string> = {},
+    params: Record<string, string | number> = {},
   ): Promise<Series> {
     const { fetchSeries } = await import("../utils/api-clients/bea");
     const { data, url } = await fetchSeries(dataset, params);

@@ -14,11 +14,14 @@ import {
  * Fetch a time series from the BEA API.
  *
  * @param dataset - BEA dataset name (e.g. "NIPA", "Regional")
- * @param filters - Key-value filter parameters (e.g. { TableName: "T10101", LineNumber: "1" })
+ * @param filters - Key-value filter parameters (e.g. { TableName: "T10101", LineNumber: "1" }).
+ *   Numeric values are accepted because Ruby kwargs from the eval column
+ *   (`LineCode: 1, GeoFips: 15001`) reach this function as JS numbers after
+ *   `eval-executor.ts:resolveArg` was changed to preserve underlying types.
  */
 export async function fetchSeries(
   dataset: string,
-  filters: Record<string, string>,
+  filters: Record<string, string | number>,
 ): Promise<ApiResult> {
   const apiKey = process.env.API_KEY_BEA;
   if (!apiKey) throw new Error("No API key defined for BEA");
@@ -73,17 +76,20 @@ export async function fetchSeries(
 
 /** Check if a data point matches all requested filter keys. */
 function requestMatch(
-  request: Record<string, string>,
+  request: Record<string, string | number>,
   dataPoint: Record<string, string | undefined>,
 ): boolean {
   const dpUpper = Object.fromEntries(
-    Object.entries(dataPoint).map(([k, v]) => [k.toUpperCase(), v]),
+    Object.entries(dataPoint).map(([k, v]) => [
+      k.toUpperCase(),
+      v?.toUpperCase(),
+    ]),
   );
 
   for (const key of Object.keys(request)) {
     const dpValue = dpUpper[key.toUpperCase()] ?? "";
-    const reqValue = request[key].trim().toUpperCase();
-    if (dpValue && !/^(ANY|X)$/.test(reqValue) && dpValue !== request[key]) {
+    const reqValue = String(request[key]).trim().toUpperCase();
+    if (dpValue && !/^(ANY|X)$/.test(reqValue) && dpValue !== reqValue) {
       return false;
     }
   }
