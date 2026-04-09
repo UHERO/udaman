@@ -61,6 +61,22 @@ function normalizeFreq(freq: string): string {
   return map[f] ?? f;
 }
 
+/** Normalize a DB date column (Bun's mysql driver returns Date objects for
+ *  DATE/DATETIME columns) to a plain YYYY-MM-DD string. */
+function toDateStr(value: Date | string | null | undefined): string | null {
+  if (value == null) return null;
+  if (value instanceof Date) {
+    // Use local-time components, not toISOString(), to avoid UTC-shift when a
+    // DATE column like "2026-04-08" comes back as a local-midnight Date that
+    // lands on the previous day in UTC.
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  return String(value).slice(0, 10);
+}
+
 function lastDayOfPeriod(periodStartStr: string, freq: string): string {
   const f = normalizeFreq(freq);
   const [yStr, mStr, dStr] = periodStartStr.split("-");
@@ -161,14 +177,14 @@ async function main() {
     }
     const source = sourceRows[0];
 
-    const maxRows = await mysql<{ max_date: string | null }>`
+    const maxRows = await mysql<{ max_date: Date | string | null }>`
       SELECT MAX(date) AS max_date
       FROM data_points
       WHERE xseries_id = ${source.xseries_id}
         AND current = 1
         AND value IS NOT NULL
     `;
-    const sourceMaxDate = maxRows[0]?.max_date ?? null;
+    const sourceMaxDate = toDateStr(maxRows[0]?.max_date);
     if (!sourceMaxDate) {
       console.log(
         `  [skip] ${loader.target_name}: source ${parsed.sourceName} has no data`,
@@ -188,10 +204,8 @@ async function main() {
 
     const stale: string[] = [];
     for (const row of targetRows) {
-      const dateStr =
-        row.date instanceof Date
-          ? row.date.toISOString().slice(0, 10)
-          : String(row.date).slice(0, 10);
+      const dateStr = toDateStr(row.date);
+      if (!dateStr) continue;
       const lastDay = lastDayOfPeriod(dateStr, parsed.targetFreq);
       if (sourceMaxDate < lastDay) {
         stale.push(dateStr);
