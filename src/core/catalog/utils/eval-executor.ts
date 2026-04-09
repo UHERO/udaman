@@ -52,6 +52,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "aggregate",
   // Interpolation
   "addMissingDp",
+  "extendLastFwdToMatch",
   "fillMissingMonthsLinear",
   "fillAlternateMissingMonths",
   "interpolate",
@@ -468,6 +469,27 @@ class EvalExecutor {
           result.data = historical.data;
           result.frequency = target.frequency;
           return result;
+        }
+
+        // Extend the last value forward until it reaches the last
+        // observation of a reference series. The ref is passed as a
+        // string name (e.g. `.extend_last_fwd_to_match("YPC@HI.Q")`),
+        // which is why we handle it here instead of letting the generic
+        // dispatch call the method — the Series model method expects a
+        // loaded Series, not a name string.
+        //
+        // Ports Series#extend_last_fwd_to_match (tmp/lib/series_interpolation.rb).
+        if (methodName === "extendLastFwdToMatch") {
+          const args = await resolveArgs(node.args);
+          if (args.length !== 1) {
+            throw new EvalExecuteError(
+              `extendLastFwdToMatch expects 1 arg (series name), got ${args.length}`,
+            );
+          }
+          const refName = String(args[0]);
+          const refSeries = await SeriesCollection.getByName(refName);
+          await SeriesCollection.loadCurrentData(refSeries);
+          return target.extendLastFwdToMatch(refSeries);
         }
 
         // Interpolate alternate missing months: for a monthly series that

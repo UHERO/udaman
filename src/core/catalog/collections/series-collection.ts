@@ -1305,7 +1305,7 @@ class SeriesCollection {
     data: Map<string, number>;
     dataSourceId: number;
     pseudoHistory: boolean;
-  }): Promise<void> {
+  }): Promise<{ inserted: number }> {
     const { xseriesId, data, dataSourceId, pseudoHistory } = opts;
     const SENTINEL = 1.0e15;
 
@@ -1315,7 +1315,7 @@ class SeriesCollection {
       if (value != null) cleanData.set(date, value);
     }
 
-    if (cleanData.size === 0) return;
+    if (cleanData.size === 0) return { inserted: 0 };
 
     // Get this loader's priority
     const loaderRows = await mysql<{ priority: number | null }>`
@@ -1384,6 +1384,7 @@ class SeriesCollection {
       }
     }
 
+    let inserted = 0;
     for (const [dateStr, newValue] of cleanData) {
       if (newValue === SENTINEL) {
         // Sentinel means "no data" — mark existing points as non-current
@@ -1448,7 +1449,10 @@ class SeriesCollection {
         INSERT INTO data_points (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
         VALUES (${xseriesId}, ${dateStr}, ${newValue}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
       `;
+      inserted++;
     }
+
+    return { inserted };
   }
 
   // ─── Static loader stubs (eval-callable) ─────────────────────────

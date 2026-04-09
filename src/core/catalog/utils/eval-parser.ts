@@ -354,7 +354,17 @@ class EvalParser {
     }
 
     // Series reference: "NAME".ts or "NAME".tsn
-    if (tok.type === "QUOTED_STRING") {
+    // QUOTED_STRING is the fast path (string matches SERIES_NAME_PATTERN).
+    // STRING_ARG followed by .ts/.tsn also counts: the tokenizer's regex
+    // requires a `.FREQ` suffix, but some loaders use bare names like
+    // `"EMPL@HAW".tsn.load_from "opt_bench_m.csv"` where the frequency is
+    // implied by the source file. The `.ts`/`.tsn` suffix is the real
+    // disambiguating signal, not the name's shape.
+    if (
+      tok.type === "QUOTED_STRING" ||
+      (tok.type === "STRING_ARG" &&
+        (this.peek(1)?.type === "DOT_TS" || this.peek(1)?.type === "DOT_TSN"))
+    ) {
       return this.parseSeriesRef();
     }
 
@@ -436,7 +446,7 @@ class EvalParser {
 
   /** Parse: "SERIES@GEO.FREQ".ts[.method(args)...] */
   private parseSeriesRef(): EvalNode {
-    const nameTok = this.advance(); // QUOTED_STRING
+    const nameTok = this.advance(); // QUOTED_STRING or STRING_ARG
     const resolverTok = this.current();
 
     if (
@@ -480,7 +490,7 @@ class EvalParser {
         //   Series.add_demetra_series_and_mean_correct("A@B.M", "C@B.M", "D@B.M", "file.xls")
         // where the series-name-looking strings are plain args, not refs.
         const isSeriesRefStart =
-          tok.type === "QUOTED_STRING" &&
+          (tok.type === "QUOTED_STRING" || tok.type === "STRING_ARG") &&
           (this.peek(1)?.type === "DOT_TS" ||
             this.peek(1)?.type === "DOT_TSN");
         // Tokens that can start an expression — parse as full expression
@@ -521,17 +531,24 @@ class EvalParser {
     // parsed as `share_using(A.ts.trim(B.ts.trim))` because the inner `.trim`
     // would greedily eat the outer comma.
     let hadSpaceCallArg = false;
-    if (this.current()?.type === "QUOTED_STRING") {
+    const spaceCallCurrent = this.current();
+    if (
+      spaceCallCurrent?.type === "QUOTED_STRING" ||
+      spaceCallCurrent?.type === "STRING_ARG"
+    ) {
       const next = this.peek(1);
       if (next?.type === "DOT_TS" || next?.type === "DOT_TSN") {
         const name = this.advance().value;
         const nullable = this.advance().type === "DOT_TSN";
         args.push({ type: "series_ref", name, nullable });
         hadSpaceCallArg = true;
+      } else if (spaceCallCurrent.type === "STRING_ARG") {
+        args.push({ type: "string", value: this.advance().value });
+        hadSpaceCallArg = true;
       }
-    } else if (this.current()?.type === "STRING_ARG") {
-      args.push({ type: "string", value: this.advance().value });
-      hadSpaceCallArg = true;
+      // A bare QUOTED_STRING (series-name-shaped) in space-call position
+      // without a .ts/.tsn suffix is unusual — leave it unconsumed so the
+      // surrounding parser can decide what to do.
     }
 
     // Continue consuming additional comma-separated args, e.g.
@@ -570,14 +587,22 @@ class EvalParser {
       return { type: "number", value: Number(tok.value) };
     }
 
-    // String argument (non-series quoted string)
+    // String argument (non-series quoted string). If it's followed by
+    // .ts/.tsn, it's actually a series ref whose name didn't match the
+    // strict SERIES_NAME_PATTERN (e.g. missing the .FREQ suffix) — route
+    // it through the QUOTED_STRING path below.
     if (tok.type === "STRING_ARG") {
-      this.advance();
-      return { type: "string", value: tok.value };
+      const next = this.peek(1);
+      if (next?.type !== "DOT_TS" && next?.type !== "DOT_TSN") {
+        this.advance();
+        return { type: "string", value: tok.value };
+      }
+      // fall through to series-ref handling
     }
 
     // Series name as argument: "NAME".ts or "NAME".ts.method_chain(...)
-    if (tok.type === "QUOTED_STRING") {
+    // Accepts STRING_ARG too (fall-through from above) for bare names.
+    if (tok.type === "QUOTED_STRING" || tok.type === "STRING_ARG") {
       const name = this.advance().value;
       const resolver = this.current();
       if (resolver?.type === "DOT_TS" || resolver?.type === "DOT_TSN") {

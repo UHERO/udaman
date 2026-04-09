@@ -1170,6 +1170,53 @@ class Series {
   }
 
   /**
+   * Extend this series' last value forward, one period at a time, until
+   * it reaches the last observation of `refSeries`. Returns a delta-only
+   * Series (just the new padded points) — `update_data` on the caller
+   * merges it with existing data.
+   *
+   * Ports Series#extend_last_fwd_to_match (tmp/lib/series_interpolation.rb:22-36).
+   */
+  extendLastFwdToMatch(refSeries: Series): Series {
+    const refLast = refSeries.lastObservation;
+    if (!refLast) {
+      throw new Error(
+        `extendLastFwdToMatch: reference series ${refSeries.name} has no observations`,
+      );
+    }
+    const myLast = this.lastObservation;
+    if (!myLast) {
+      throw new Error(`extendLastFwdToMatch: ${this.name} has no data to extend`);
+    }
+    const lastVal = this.data.get(myLast);
+    if (lastVal == null) {
+      throw new Error(
+        `extendLastFwdToMatch: ${this.name} has no value at ${myLast}`,
+      );
+    }
+    const offset = freqPerFreq("month", this.frequency ?? "");
+    if (offset == null) {
+      throw new Error(
+        `extendLastFwdToMatch: cannot handle frequency ${this.frequency}`,
+      );
+    }
+
+    const newData = new Map<string, number>();
+    let newDate = addMonthsStr(myLast, offset);
+    while (newDate <= refLast) {
+      newData.set(newDate, lastVal);
+      newDate = addMonthsStr(newDate, offset);
+    }
+
+    const s = new Series({
+      name: `Replicated the last value out to the last date of ${refSeries.name}`,
+    });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
    * AREMOS-style interpolation to a higher frequency.
    * method: "average" (default) or "sum"
    */

@@ -382,6 +382,7 @@ class LoaderCollection {
       // TODO: apply presave_hook if set (requires porting hook dispatch)
 
       // Apply scale and write data points
+      let inserted = 0;
       if (loader.seriesId) {
         const scaledData = result.scaledData(parseFloat(loader.scale));
 
@@ -391,12 +392,13 @@ class LoaderCollection {
         const xseriesId = xseriesRows[0]?.xseries_id;
 
         if (xseriesId) {
-          await SeriesCollection.updateData({
+          const updateResult = await SeriesCollection.updateData({
             xseriesId,
             data: scaledData,
             dataSourceId: loader.id,
             pseudoHistory: loader.pseudoHistory,
           });
+          inserted = updateResult.inserted;
 
           // Check for base_year change from rebase
           const baseYear = loader.baseYearFromEval();
@@ -416,10 +418,14 @@ class LoaderCollection {
       updateProps.runtime = runtime;
 
       log.info(
-        { series: loader.seriesId, runtime },
+        { series: loader.seriesId, runtime, inserted },
         `Completed reload of definition ${loader.id}`,
       );
-      return { status: "success", message: `Loaded in ${runtime.toFixed(1)}s` };
+      const pointLabel = inserted === 1 ? "point" : "points";
+      return {
+        status: "success",
+        message: `Loaded ${inserted} new ${pointLabel} in ${runtime.toFixed(1)}s`,
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       log.error(
