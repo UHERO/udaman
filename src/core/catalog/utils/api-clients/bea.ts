@@ -1,6 +1,13 @@
 /**
  * BEA (Bureau of Economic Analysis) API client.
  * https://apps.bea.gov/api/
+ *
+ * BEA rate limits (per IP):
+ *   - 100 API calls per minute
+ *   - 100 MB per minute
+ *   - 30 errors per minute
+ * Exceeding any of these triggers a 1-hour block. We throttle to one request
+ * every 650 ms (~92 req/min) to stay comfortably under the 100/min ceiling.
  */
 
 import {
@@ -9,6 +16,21 @@ import {
   grokDate,
   type ApiResult,
 } from "./index";
+
+// ─── Throttle ────────────────────────────────────────────────────────
+
+/** Minimum interval between BEA requests. 60000/100 = 600 ms; add headroom. */
+const BEA_MIN_INTERVAL_MS = 650;
+let beaNextRequestAt = 0;
+
+/** Sleeps until at least BEA_MIN_INTERVAL_MS has elapsed since the previous call. */
+async function throttleBea(): Promise<void> {
+  const now = Date.now();
+  if (now < beaNextRequestAt) {
+    await new Promise((r) => setTimeout(r, beaNextRequestAt - now));
+  }
+  beaNextRequestAt = Date.now() + BEA_MIN_INTERVAL_MS;
+}
 
 /**
  * Fetch a time series from the BEA API.
@@ -31,6 +53,7 @@ export async function fetchSeries(
     .join("&");
   const url = `https://apps.bea.gov/api/data/?UserID=${apiKey}&method=GetData&datasetname=${dataset}&${queryPars}&ResultFormat=JSON&`;
 
+  await throttleBea();
   const response = await fetchJson<BeaResponse>(url);
   const beaapi = response.BEAAPI;
   if (!beaapi) throw new Error("BEA API: major unknown failure");
