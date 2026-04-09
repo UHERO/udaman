@@ -6,8 +6,9 @@
  *   - 100 API calls per minute
  *   - 100 MB per minute
  *   - 30 errors per minute
- * Exceeding any of these triggers a 1-hour block. We throttle to one request
- * every 650 ms (~92 req/min) to stay comfortably under the 100/min ceiling.
+ * Exceeding any of these triggers a 1-hour block. We sleep 100 ms before
+ * each request (added to actual request latency keeps us under 100/min for
+ * sequential callers) and pause for 60 s on observed 429s before retrying.
  */
 
 import {
@@ -19,32 +20,26 @@ import {
 
 // ─── Throttle ────────────────────────────────────────────────────────
 
-/** Minimum interval between BEA requests. 60000/100 = 600 ms; add headroom. */
-const BEA_MIN_INTERVAL_MS = 650;
-let beaNextRequestAt = 0;
-
 /**
- * Serializes concurrent callers onto fixed-spaced slots.
- *
- * `SeriesCollection.batchReload` fans out up to 25 series in parallel per
- * group, so many callers can enter this function before any of them has
- * actually sent its request. The naive "read beaNextRequestAt → sleep →
- * update beaNextRequestAt" pattern races: every concurrent caller reads
- * the *same* stale value, sleeps to the same target, and then fires in a
- * burst — blowing straight through BEA's 100 req/min ceiling.
- *
- * Instead, each caller synchronously claims its own slot (read-modify-
- * write of `beaNextRequestAt` with no intervening await), then sleeps
- * until that exact slot. Subsequent callers immediately see the updated
- * value and chain onto the next slot.
+ * Light per-request sleep to space out batch reloads. Most batch reload
+ * paths are already sequential, so 100 ms of additional spacing on top of
+ * actual request latency keeps us under BEA's 100 req/min ceiling for any
+ * realistic response time. The real safety net for bursting is the 429
+ * retry-after-pause logic in `fetchSeries` below.
  */
-async function throttleBea(): Promise<void> {
-  const myTurn = Math.max(Date.now(), beaNextRequestAt);
-  beaNextRequestAt = myTurn + BEA_MIN_INTERVAL_MS;
-  const delay = myTurn - Date.now();
-  if (delay > 0) {
-    await new Promise((r) => setTimeout(r, delay));
-  }
+const BEA_REQUEST_SLEEP_MS = 100;
+
+/** Pause length when a 429 (or BEA equivalent) is observed. */
+const BEA_RATE_LIMIT_PAUSE_MS = 60_000;
+
+/** Max attempts (initial + retries) for a single BEA request. */
+const BEA_MAX_ATTEMPTS = 3;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function isRateLimitError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /\b429\b|too many requests|rate limit/i.test(msg);
 }
 
 /**
@@ -68,8 +63,22 @@ export async function fetchSeries(
     .join("&");
   const url = `https://apps.bea.gov/api/data/?UserID=${apiKey}&method=GetData&datasetname=${dataset}&${queryPars}&ResultFormat=JSON&`;
 
-  await throttleBea();
-  const response = await fetchJson<BeaResponse>(url);
+  let response: BeaResponse | undefined;
+  for (let attempt = 1; attempt <= BEA_MAX_ATTEMPTS; attempt++) {
+    await sleep(BEA_REQUEST_SLEEP_MS);
+    try {
+      response = await fetchJson<BeaResponse>(url);
+      break;
+    } catch (e) {
+      if (isRateLimitError(e) && attempt < BEA_MAX_ATTEMPTS) {
+        await sleep(BEA_RATE_LIMIT_PAUSE_MS);
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (!response) throw new Error("BEA API: no response");
+
   const beaapi = response.BEAAPI;
   if (!beaapi) throw new Error("BEA API: major unknown failure");
 
