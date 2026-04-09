@@ -749,6 +749,66 @@ class EvalExecutor {
 
         const methodName = snakeToCamel(node.method);
 
+        // Multi-series demetra load + mean correction. Rails source
+        // (tmp/lib/series_sharing.rb:97-102):
+        //   Series.add_demetra_series_and_mean_correct(s1, s2, mc, file)
+        // Loads SA data for s1 and s2 from the demetra file, sums them,
+        // then mean-corrects against the annual sum of the `mc` series.
+        // Lives inline here (not in SeriesCollection) alongside the other
+        // file + DB hybrid handlers like loadMeanCorrectedSaFrom, since
+        // SeriesCollection only owns the pure API loaders.
+        if (methodName === "addDemetraSeriesAndMeanCorrect") {
+          const args = await resolveArgs(node.args);
+          if (args.length !== 4) {
+            throw new EvalExecuteError(
+              `Series.add_demetra_series_and_mean_correct expects 4 args (series1, series2, mcSeries, file), got ${args.length}`,
+            );
+          }
+          const name1 = String(args[0]);
+          const name2 = String(args[1]);
+          const mcName = String(args[2]);
+          const file = String(args[3]);
+
+          const reader = DataFileReader.fromFile(file, "sadata");
+
+          // For each add-series, look up the series in the DB to get its
+          // NS variant name, then read that series's demetra output from
+          // the file. Mirrors `load_sa_from` semantics at line 266 above:
+          // when the target isn't already NS, look up by `nsSeriesName`.
+          const loadOne = async (name: string): Promise<Series> => {
+            const dbSeries = await SeriesCollection.getByName(name);
+            const lookupName = dbSeries.isNS
+              ? dbSeries.name
+              : dbSeries.nsSeriesName;
+            const dataMap = reader.series(lookupName);
+            const s = new Series({ name: `${name} SA from <${file}>` });
+            s.data = dataMap;
+            s.frequency = reader.frequency;
+            return s;
+          };
+
+          const [as1, as2] = await Promise.all([
+            loadOne(name1),
+            loadOne(name2),
+          ]);
+          const asSum = as1.add(as2);
+
+          // Mean correct against the annual sum of mcSeries
+          const mcSeries = await SeriesCollection.getByName(mcName);
+          await SeriesCollection.loadCurrentData(mcSeries);
+
+          const meanCorrected = asSum
+            .divide(asSum.annualSum())
+            .multiply(mcSeries.annualSum());
+
+          const result = new Series({
+            name: `${name1} + ${name2} from demetra output of <${file}> mean corrected against ${mcName}`,
+          });
+          result.data = meanCorrected.data;
+          result.frequency = reader.frequency;
+          return result;
+        }
+
         if (!ALLOWED_STATIC_METHODS.has(methodName)) {
           throw new EvalExecuteError(
             `Static method not allowed: ${node.method} (mapped to ${methodName})`,

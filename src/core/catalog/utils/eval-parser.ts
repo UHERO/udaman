@@ -472,10 +472,21 @@ class EvalParser {
       this.advance(); // skip (
       while (this.current() && this.current()!.type !== "RPAREN") {
         const tok = this.current()!;
+        // A bare QUOTED_STRING that isn't followed by .ts/.tsn must go
+        // through parseOneArg — it's a plain string literal that happens
+        // to match the series-name regex. Routing it through parseExpression
+        // would force parseSeriesRef, which throws on the missing resolver.
+        // This matters for methods like
+        //   Series.add_demetra_series_and_mean_correct("A@B.M", "C@B.M", "D@B.M", "file.xls")
+        // where the series-name-looking strings are plain args, not refs.
+        const isSeriesRefStart =
+          tok.type === "QUOTED_STRING" &&
+          (this.peek(1)?.type === "DOT_TS" ||
+            this.peek(1)?.type === "DOT_TSN");
         // Tokens that can start an expression — parse as full expression
         // to support arithmetic in args (e.g. "A".ts + "B".ts)
         if (
-          tok.type === "QUOTED_STRING" ||
+          isSeriesRefStart ||
           tok.type === "NUMBER" ||
           tok.type === "LPAREN" ||
           tok.type === "SERIES_CLASS" ||
