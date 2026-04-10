@@ -157,7 +157,13 @@ function SummaryCounts({
 
 // ─── Worker processes table ─────────────────────────────────────────
 
-function WorkerProcesses({ workers }: { workers: SerializedWorkerInfo[] }) {
+function WorkerProcesses({
+  workers,
+  processStartedAt,
+}: {
+  workers: SerializedWorkerInfo[];
+  processStartedAt: number | null;
+}) {
   if (workers.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
@@ -166,34 +172,43 @@ function WorkerProcesses({ workers }: { workers: SerializedWorkerInfo[] }) {
     );
   }
 
+  const uptimeStr = processStartedAt
+    ? formatUptime(Math.floor((Date.now() - processStartedAt) / 1000))
+    : null;
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-20">Queue</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Client Name</TableHead>
-            <TableHead className="w-24">Uptime</TableHead>
-            <TableHead className="w-24">Idle</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {workers.map((w) => (
-            <TableRow key={`${w.queue}-${w.id}`}>
-              <TableCell className="text-muted-foreground text-xs">
-                {w.queue}
-              </TableCell>
-              <TableCell className="font-mono text-sm">{w.addr}</TableCell>
-              <TableCell className="text-muted-foreground text-xs">
-                {w.name}
-              </TableCell>
-              <TableCell className="text-xs">{formatUptime(w.age)}</TableCell>
-              <TableCell className="text-xs">{formatUptime(w.idle)}</TableCell>
+    <div className="space-y-2">
+      {uptimeStr && (
+        <p className="text-muted-foreground text-sm">
+          Process uptime: <span className="text-foreground font-medium">{uptimeStr}</span>
+        </p>
+      )}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-20">Queue</TableHead>
+              <TableHead>Address</TableHead>
+              <TableHead>Client Name</TableHead>
+              <TableHead className="w-24">Idle</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {workers.map((w) => (
+              <TableRow key={`${w.queue}-${w.id}`}>
+                <TableCell className="text-muted-foreground text-xs">
+                  {w.queue}
+                </TableCell>
+                <TableCell className="font-mono text-sm">{w.addr}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  {w.name}
+                </TableCell>
+                <TableCell className="text-xs">{formatUptime(w.idle)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
@@ -378,7 +393,7 @@ export default function WorkersPanel({
         <h2 className="mb-2 text-sm font-semibold">
           Worker Processes ({data.workers.length})
         </h2>
-        <WorkerProcesses workers={data.workers} />
+        <WorkerProcesses workers={data.workers} processStartedAt={data.processStartedAt} />
       </section>
 
       {/* Job table */}

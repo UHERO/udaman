@@ -47,6 +47,17 @@ export async function deleteReloadJob({
   return { message: "Reload job deleted" };
 }
 
+export async function rerunReloadJob({
+  id,
+}: {
+  id: number;
+}): Promise<{ message: string }> {
+  log.info({ id }, "re-running reload job");
+  const result = await ReloadJobCollection.rerunJob(id);
+  log.info({ id }, "reload job re-run enqueued");
+  return result;
+}
+
 export async function runAdminAction({
   action,
 }: {

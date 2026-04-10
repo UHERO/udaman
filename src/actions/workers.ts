@@ -1,6 +1,7 @@
 "use server";
 
 import { Queue } from "bullmq";
+import Redis from "ioredis";
 
 import { redisConnection } from "@/core/workers/connection";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -55,6 +56,7 @@ export type WorkerJobsResult = {
   jobs: SerializedJob[];
   counts: Record<string, QueueCounts>;
   workers: SerializedWorkerInfo[];
+  processStartedAt: number | null;
 };
 
 export async function getWorkerJobs(): Promise<WorkerJobsResult> {
@@ -124,7 +126,17 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
 
   allJobs.sort((a, b) => b.timestamp - a.timestamp);
 
-  return { jobs: allJobs, counts, workers: allWorkers };
+  // Read process start time written by worker.ts at boot
+  let processStartedAt: number | null = null;
+  const redis = new Redis(redisConnection);
+  try {
+    const val = await redis.get("udaman:worker:started_at");
+    if (val) processStartedAt = parseInt(val, 10);
+  } finally {
+    redis.disconnect();
+  }
+
+  return { jobs: allJobs, counts, workers: allWorkers, processStartedAt };
 }
 
 export async function getSchedulers(): Promise<SerializedScheduler[]> {

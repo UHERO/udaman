@@ -52,8 +52,7 @@ class ReloadJobCollection {
       LEFT JOIN users u ON u.id = rj.user_id
       JOIN reload_job_series rjs ON rjs.reload_job_id = rj.id
       JOIN series s ON s.id = rjs.series_id
-      WHERE rj.user_id > 1
-        AND s.universe = ${universe}
+      WHERE s.universe = ${universe}
       ORDER BY rj.created_at DESC
       LIMIT ${limit}
     `;
@@ -82,7 +81,12 @@ class ReloadJobCollection {
       const job = new ReloadJob(row);
       const seriesNames = seriesMap.get(row.id) ?? [];
       const email = row.email ?? "unknown";
-      const username = email.includes("@") ? email.split("@")[0] : email;
+      const username =
+        row.user_id === 1
+          ? "UDAMAN"
+          : email.includes("@")
+            ? email.split("@")[0]
+            : email;
       return {
         job: job.toJSON(),
         username,
@@ -133,6 +137,52 @@ class ReloadJobCollection {
       default:
         return { success: false, message: `Unknown action: ${action}` };
     }
+  }
+
+  /** Re-run a reload job by cloning its series list into a new job. */
+  static async rerunJob(id: number): Promise<{ message: string }> {
+    // Fetch original job for params/update_public
+    const [original] = await mysql<{
+      params: string | null;
+      update_public: number | null;
+      user_id: number | null;
+    }>`SELECT params, update_public, user_id FROM reload_jobs WHERE id = ${id}`;
+    if (!original) throw new Error(`Reload job ${id} not found`);
+
+    // Get series IDs from original
+    const seriesRows = await mysql<{ series_id: number }>`
+      SELECT series_id FROM reload_job_series WHERE reload_job_id = ${id}
+    `;
+    if (seriesRows.length === 0)
+      throw new Error(`Reload job ${id} has no associated series`);
+
+    // Create new job row
+    await mysql`
+      INSERT INTO reload_jobs (user_id, update_public, params, created_at)
+      VALUES (${original.user_id}, ${original.update_public ?? 0}, ${original.params}, NOW())
+    `;
+    const [{ insertId }] = await mysql<{ insertId: number }>`
+      SELECT LAST_INSERT_ID() AS insertId
+    `;
+
+    // Copy series associations
+    const values = seriesRows
+      .map((r) => `(${insertId}, ${r.series_id})`)
+      .join(", ");
+    await rawQuery(
+      `INSERT INTO reload_job_series (reload_job_id, series_id) VALUES ${values}`,
+    );
+
+    // Enqueue
+    await enqueueReloadJob({ reloadJobId: insertId });
+
+    log.info(
+      { originalId: id, newId: insertId, seriesCount: seriesRows.length },
+      "Reload job re-run enqueued",
+    );
+    return {
+      message: `Reload job re-queued (${seriesRows.length} series)`,
+    };
   }
 
   /** Delete reload jobs older than the given horizon. Ports ReloadJob.purge_old_jobs. */

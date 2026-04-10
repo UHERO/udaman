@@ -10,9 +10,19 @@ import type { ClipboardActionJobData } from "../queues";
 
 const log = createLogger("worker.clipboard-action");
 
+function timestamp(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export async function processClipboardAction(
   job: Job<ClipboardActionJobData>,
 ): Promise<string> {
+  // Wrap job.log so every message gets a timestamp
+  const origLog = job.log.bind(job);
+  job.log = (msg: string) => origLog(`[${timestamp()}] ${msg}`);
+
   const { reloadJobId, action, seriesIds } = job.data;
 
   // Mark as processing
@@ -67,6 +77,19 @@ export async function processClipboardAction(
           },
           "Reload with deps: expanded series set",
         );
+
+        // Insert expanded dependents into reload_job_series so the
+        // investigations panel reflects the full count.
+        const newIds = expandedIds.filter((id) => !seriesIds.includes(id));
+        if (newIds.length > 0) {
+          const values = newIds
+            .map((sid) => `(${reloadJobId}, ${sid})`)
+            .join(", ");
+          await rawQuery(
+            `INSERT IGNORE INTO reload_job_series (reload_job_id, series_id) VALUES ${values}`,
+          );
+        }
+
         await SeriesCollection.batchReload({
           seriesIds: expandedIds,
           suffix: "clipboard-deps",

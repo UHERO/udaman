@@ -226,7 +226,10 @@ export async function doClipboardAction({
     "Clipboard action queued",
   );
 
-  return {
-    message: `Clipboard ${action.replace("_", " ")} queued for ${seriesIds.length} series`,
-  };
+  const label = action.replace(/_/g, " ");
+  const message =
+    action === "reload_with_deps"
+      ? `Reload with deps queued for ${seriesIds.length} series (dependents will be added)`
+      : `Clipboard ${label} queued for ${seriesIds.length} series`;
+  return { message };
 }

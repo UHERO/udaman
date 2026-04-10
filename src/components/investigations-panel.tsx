@@ -10,7 +10,11 @@ import type {
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { deleteReloadJob, runAdminAction } from "@/actions/investigations";
+import {
+  deleteReloadJob,
+  rerunReloadJob,
+  runAdminAction,
+} from "@/actions/investigations";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -138,6 +142,18 @@ export default function InvestigationsPanel({
     });
   }
 
+  function handleRerunJob(id: number) {
+    startTransition(async () => {
+      try {
+        const result = await rerunReloadJob(id);
+        toast.success(result.message);
+        router.refresh();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to re-run job");
+      }
+    });
+  }
+
   function handleDeleteJob(id: number) {
     startTransition(async () => {
       try {
@@ -181,9 +197,9 @@ export default function InvestigationsPanel({
 
       {/* Reload Jobs */}
       <section>
-        <h2 className="text-lg font-semibold">User Reload Jobs</h2>
+        <h2 className="text-lg font-semibold">Recent Reload Jobs</h2>
         <p className="text-muted-foreground mb-3 text-sm">
-          Recent reload jobs submitted by users (excludes system/cron jobs).
+          Recent reload jobs from users and scheduled tasks.
         </p>
         {reloadJobs.length === 0 ? (
           <p className="text-muted-foreground text-sm">No reload jobs found.</p>
@@ -230,7 +246,15 @@ export default function InvestigationsPanel({
                       <TableCell className="max-w-xs truncate text-xs text-red-600">
                         {job.error}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={isPending}
+                          onClick={() => handleRerunJob(job.id)}
+                        >
+                          Rerun
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"

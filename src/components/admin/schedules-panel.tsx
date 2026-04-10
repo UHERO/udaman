@@ -118,7 +118,14 @@ function ScheduleRow({
       <TableCell className="text-muted-foreground text-xs">
         {scheduler.queue}
       </TableCell>
-      <TableCell className="font-mono text-sm">{scheduler.name}</TableCell>
+      <TableCell>
+        <div className="font-mono text-sm">{scheduler.name}</div>
+        {scheduler.data.name && (
+          <div className="text-muted-foreground text-xs">
+            {String(scheduler.data.name)}
+          </div>
+        )}
+      </TableCell>
       <TableCell className="font-mono text-xs">{scheduler.pattern}</TableCell>
       <TableCell className="text-xs">{scheduler.tz}</TableCell>
       <TableCell className="text-xs">
