@@ -1802,7 +1802,11 @@ class SeriesCollection {
         `SELECT DISTINCT data_sources.series_id
          FROM data_sources, series
          WHERE series.id IN (${placeholders})
-           AND data_sources.dependencies REGEXP CONCAT(' ', series.name)`,
+           AND (
+             (data_sources.dependencies LIKE '[%' AND JSON_CONTAINS(data_sources.dependencies, JSON_QUOTE(series.name)))
+             OR
+             (data_sources.dependencies NOT LIKE '[%' AND data_sources.dependencies REGEXP CONCAT(' ', series.name))
+           )`,
         nextSet,
       );
 
