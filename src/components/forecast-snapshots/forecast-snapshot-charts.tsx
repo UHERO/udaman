@@ -24,6 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  TooltipContent,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
   newForecast: TsdSeries[];
@@ -169,6 +176,32 @@ function computeYoy(
   });
 }
 
+/** Compute QoQ % change: period-over-period, always lag=1 */
+function computeQoq(
+  values: (number | null | undefined)[],
+): (number | null)[] {
+  return values.map((val, idx) => {
+    if (idx < 1) return null;
+    const prev = values[idx - 1];
+    if (val == null || prev == null || prev === 0) return null;
+    return ((val - prev) / prev) * 100;
+  });
+}
+
+/** Compute CAGR (annualized period-over-period): ((val/prev)^periodsPerYear - 1) * 100 */
+function computeCagr(
+  values: (number | null | undefined)[],
+  periodsPerYear: number,
+): (number | null)[] {
+  return values.map((val, idx) => {
+    if (idx < 1) return null;
+    const prev = values[idx - 1];
+    if (val == null || prev == null || prev <= 0) return null;
+    if (val <= 0) return null;
+    return (Math.pow(val / prev, periodsPerYear) - 1) * 100;
+  });
+}
+
 export function ForecastSnapshotCharts({
   newForecast,
   oldForecast,
@@ -198,6 +231,7 @@ export function ForecastSnapshotCharts({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [allExpanded, setAllExpanded] = useState(false);
+  const [calcMode, setCalcMode] = useState<"yoy" | "qoq" | "cagr">("yoy");
 
   // Silently update URL search params when date range changes (for permalink)
   useEffect(() => {
@@ -239,6 +273,14 @@ export function ForecastSnapshotCharts({
   );
 
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
+  const periodsPerYear = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
+
+  const barDataKey =
+    calcMode === "yoy" ? "newYoy" : calcMode === "qoq" ? "newQoq" : "newCagr";
+  const oldPctKey =
+    calcMode === "yoy" ? "oldYoy" : calcMode === "qoq" ? "oldQoq" : "oldCagr";
+  const calcLabel =
+    calcMode === "yoy" ? "YoY %" : calcMode === "qoq" ? "QoQ %" : "CAGR %";
 
   const chartConfig = useMemo(
     () =>
@@ -246,9 +288,9 @@ export function ForecastSnapshotCharts({
         newForecast: { label: newForecastLabel, color: COLORS.newForecast },
         oldForecast: { label: oldForecastLabel, color: COLORS.oldForecast },
         history: { label: historyLabel, color: COLORS.history },
-        newYoy: { label: "%ch", color: COLORS.yoyBar },
+        newYoy: { label: calcLabel, color: COLORS.yoyBar },
       }) satisfies ChartConfig,
-    [newForecastLabel, oldForecastLabel, historyLabel],
+    [newForecastLabel, oldForecastLabel, historyLabel, calcLabel],
   );
 
   if (seriesNames.length === 0) {
@@ -290,6 +332,86 @@ export function ForecastSnapshotCharts({
               ))}
             </SelectContent>
           </Select>
+
+          <span className="text-sm">Bars:</span>
+          <TooltipProvider>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={calcMode}
+              onValueChange={(v) => {
+                if (v) setCalcMode(v as "yoy" | "qoq" | "cagr");
+              }}
+            >
+              <ToggleGroupItem value="yoy" className="h-7 px-2.5 text-xs">
+                <TooltipRoot>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center">YoY</span>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    sideOffset={6}
+                    className="max-w-64 space-y-1 px-3 py-2"
+                  >
+                    <div className="font-mono text-[11px] leading-relaxed">
+                      <span>
+                        (V<sub>t</sub> &minus; V<sub>t&minus;lag</sub>) / V
+                        <sub>t&minus;lag</sub> &times; 100
+                      </span>
+                    </div>
+                    <div className="text-[10px] opacity-70">
+                      Year-over-year % change (lag = {yoyLag})
+                    </div>
+                  </TooltipContent>
+                </TooltipRoot>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="qoq" className="h-7 px-2.5 text-xs">
+                <TooltipRoot>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center">QoQ</span>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    sideOffset={6}
+                    className="max-w-64 space-y-1 px-3 py-2"
+                  >
+                    <div className="font-mono text-[11px] leading-relaxed">
+                      <span>
+                        (V<sub>t</sub> &minus; V<sub>t&minus;1</sub>) / V
+                        <sub>t&minus;1</sub> &times; 100
+                      </span>
+                    </div>
+                    <div className="text-[10px] opacity-70">
+                      Period-over-period % change (lag = 1)
+                    </div>
+                  </TooltipContent>
+                </TooltipRoot>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="cagr" className="h-7 px-2.5 text-xs">
+                <TooltipRoot>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center">CAGR</span>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    sideOffset={6}
+                    className="max-w-64 space-y-1 px-3 py-2"
+                  >
+                    <div className="font-mono text-[11px] leading-relaxed">
+                      <span>
+                        ((V<sub>t</sub> / V<sub>t&minus;1</sub>)
+                        <sup>{periodsPerYear}</sup> &minus; 1) &times; 100
+                      </span>
+                    </div>
+                    <div className="text-[10px] opacity-70">
+                      Compound annual growth rate (annualized QoQ)
+                    </div>
+                  </TooltipContent>
+                </TooltipRoot>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </TooltipProvider>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="link" size="sm" onClick={toggleAll}>
@@ -318,6 +440,10 @@ export function ForecastSnapshotCharts({
 
         const newYoy = computeYoy(newVals, yoyLag);
         const oldYoy = computeYoy(oldVals, yoyLag);
+        const newQoq = computeQoq(newVals);
+        const oldQoq = computeQoq(oldVals);
+        const newCagr = computeCagr(newVals, periodsPerYear);
+        const oldCagr = computeCagr(oldVals, periodsPerYear);
 
         // Build chart data rows
         const chartData = filteredDates.map((date, idx) => ({
@@ -328,6 +454,10 @@ export function ForecastSnapshotCharts({
           history: histS?.dataHash.get(date) ?? undefined,
           newYoy: newYoy[idx] ?? undefined,
           oldYoy: oldYoy[idx] ?? undefined,
+          newQoq: newQoq[idx] ?? undefined,
+          oldQoq: oldQoq[idx] ?? undefined,
+          newCagr: newCagr[idx] ?? undefined,
+          oldCagr: oldCagr[idx] ?? undefined,
         }));
 
         const hasData = chartData.some(
@@ -414,7 +544,7 @@ export function ForecastSnapshotCharts({
                     width={50}
                     tickFormatter={(v: number) => `${v.toFixed(1)}%`}
                     label={{
-                      value: "% Change in Forecast",
+                      value: `${calcLabel} Change in Forecast`,
                       angle: 90,
                       position: "center",
                       dx: 20,
@@ -440,7 +570,7 @@ export function ForecastSnapshotCharts({
                           name: newForecastLabel,
                           color: COLORS.newForecast,
                           level: byKey.get("newForecast"),
-                          pct: byKey.get("newYoy"),
+                          pct: byKey.get(barDataKey),
                         });
                       }
                       if (byKey.has("oldForecast")) {
@@ -448,7 +578,7 @@ export function ForecastSnapshotCharts({
                           name: oldForecastLabel,
                           color: COLORS.oldForecast,
                           level: byKey.get("oldForecast"),
-                          pct: byKey.get("oldYoy"),
+                          pct: byKey.get(oldPctKey),
                         });
                       }
                       if (byKey.has("history")) {
@@ -472,7 +602,7 @@ export function ForecastSnapshotCharts({
                                   Level
                                 </th>
                                 <th className="text-right font-medium">
-                                  % Chg
+                                  {calcLabel}
                                 </th>
                               </tr>
                             </thead>
@@ -520,11 +650,11 @@ export function ForecastSnapshotCharts({
                     />
                   ))}
 
-                  {/* YoY bar columns behind the lines */}
+                  {/* % change bar columns behind the lines */}
                   <Bar
                     yAxisId="right"
-                    dataKey="newYoy"
-                    name="%ch (new)"
+                    dataKey={barDataKey}
+                    name={`${calcLabel} (new)`}
                     fill={COLORS.yoyBar}
                     opacity={0.3}
                     isAnimationActive={false}

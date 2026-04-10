@@ -142,6 +142,7 @@ export function ForecastSnapshotDataTable({
   );
 
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
+  const periodsPerYear = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
 
   if (seriesNames.length === 0) {
     return (
@@ -224,15 +225,31 @@ export function ForecastSnapshotDataTable({
                 ? `https://data.uhero.hawaii.edu/#/series?id=${sid}`
                 : undefined;
 
-              // Build value array for YoY
+              // Build value array for calculations
               const vals = filteredDates.map(
                 (d) => series.dataHash.get(d) ?? null,
               );
-              const pctChange = vals.map((val, idx) => {
+              // YoY: year-over-year with frequency-based lag
+              const yoyChange = vals.map((val, idx) => {
                 if (idx < yoyLag) return null;
                 const prev = vals[idx - yoyLag];
                 if (val == null || prev == null || prev === 0) return null;
                 return ((val - prev) / prev) * 100;
+              });
+              // QoQ: period-over-period, always lag=1
+              const qoqChange = vals.map((val, idx) => {
+                if (idx < 1) return null;
+                const prev = vals[idx - 1];
+                if (val == null || prev == null || prev === 0) return null;
+                return ((val - prev) / prev) * 100;
+              });
+              // CAGR: annualized period-over-period
+              const cagrChange = vals.map((val, idx) => {
+                if (idx < 1) return null;
+                const prev = vals[idx - 1];
+                if (val == null || prev == null || prev <= 0) return null;
+                if (val <= 0) return null;
+                return (Math.pow(val / prev, periodsPerYear) - 1) * 100;
               });
 
               return (
@@ -263,12 +280,40 @@ export function ForecastSnapshotDataTable({
                       </td>
                     ))}
                   </tr>
-                  {/* % Change row */}
+                  {/* YoY % row */}
+                  <tr>
+                    <td className="text-muted-foreground bg-background sticky left-0 z-10 pr-4 pl-4 align-baseline text-xs whitespace-nowrap">
+                      YoY %
+                    </td>
+                    {yoyChange.map((pct, idx) => (
+                      <td
+                        key={filteredDates[idx]}
+                        className="text-muted-foreground px-3 text-right font-mono text-xs whitespace-nowrap"
+                      >
+                        {formatPct(pct)}
+                      </td>
+                    ))}
+                  </tr>
+                  {/* QoQ % row */}
+                  <tr>
+                    <td className="text-muted-foreground bg-background sticky left-0 z-10 pr-4 pl-4 align-baseline text-xs whitespace-nowrap">
+                      QoQ %
+                    </td>
+                    {qoqChange.map((pct, idx) => (
+                      <td
+                        key={filteredDates[idx]}
+                        className="text-muted-foreground px-3 text-right font-mono text-xs whitespace-nowrap"
+                      >
+                        {formatPct(pct)}
+                      </td>
+                    ))}
+                  </tr>
+                  {/* CAGR % row */}
                   <tr>
                     <td className="text-muted-foreground bg-background sticky left-0 z-10 pr-4 pb-1 pl-4 align-baseline text-xs whitespace-nowrap">
-                      % Change
+                      CAGR %
                     </td>
-                    {pctChange.map((pct, idx) => (
+                    {cagrChange.map((pct, idx) => (
                       <td
                         key={filteredDates[idx]}
                         className="text-muted-foreground px-3 pb-1 text-right font-mono text-xs whitespace-nowrap"
