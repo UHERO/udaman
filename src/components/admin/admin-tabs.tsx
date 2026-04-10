@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   Activity,
+  BarChart3,
   Calendar,
   Globe,
   Maximize2,
@@ -28,6 +29,7 @@ const TABS: { label: string; icon: LucideIcon; segment: string }[] = [
   { label: "Users", icon: Users, segment: "users" },
   { label: "Logs", icon: ScrollText, segment: "logs" },
   { label: "Crawlers", icon: Globe, segment: "crawlers" },
+  { label: "Stats", icon: BarChart3, segment: "stats" },
 ];
 
 export function AdminTabs({
