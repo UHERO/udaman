@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -14,6 +14,7 @@ import {
   type SerializedAppLogRow,
 } from "@/actions/app-log";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -30,6 +31,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface AppLogCounts {
+  total: number;
+  byLevel: Record<string, number>;
+  byCategory: Record<string, number>;
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -61,65 +68,127 @@ function formatTimestamp(iso: string): string {
 
 const PAGE_SIZE = 50;
 
+// ─── Stats Bar ──────────────────────────────────────────────────────
+
+function StatsBar({ counts }: { counts: AppLogCounts }) {
+  return (
+    <div className="flex flex-wrap gap-3">
+      <div className="rounded-md border px-3 py-1.5">
+        <span className="text-muted-foreground text-xs">Total</span>
+        <p className="text-sm font-semibold">{counts.total.toLocaleString()}</p>
+      </div>
+      {(["info", "warn", "error"] as const).map((level) => (
+        <div key={level} className="rounded-md border px-3 py-1.5">
+          <LevelBadge level={level} />
+          <p className="mt-0.5 text-sm font-semibold">
+            {(counts.byLevel[level] ?? 0).toLocaleString()}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Database Logs Tab ──────────────────────────────────────────────
 
 function DatabaseLogsTab({
   initialData,
+  categories,
+  counts,
+  users,
 }: {
   initialData: { logs: SerializedAppLogRow[]; total: number };
+  categories: string[];
+  counts: AppLogCounts;
+  users: Array<{ id: number; email: string }>;
 }) {
   const [data, setData] = useState(initialData);
   const [level, setLevel] = useState<string>("all");
   const [category, setCategory] = useState<string>("all");
+  const [userId, setUserId] = useState<string>("all");
+  const [nameFilter, setNameFilter] = useState("");
   const [offset, setOffset] = useState(0);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function refresh(
-    newOffset?: number,
-    newLevel?: string,
-    newCategory?: string,
-  ) {
-    const effectiveOffset = newOffset ?? offset;
-    const effectiveLevel = newLevel ?? level;
-    const effectiveCategory = newCategory ?? category;
+  const refresh = useCallback(
+    (overrides?: {
+      offset?: number;
+      level?: string;
+      category?: string;
+      userId?: string;
+      name?: string;
+    }) => {
+      const effectiveOffset = overrides?.offset ?? offset;
+      const effectiveLevel = overrides?.level ?? level;
+      const effectiveCategory = overrides?.category ?? category;
+      const effectiveUserId = overrides?.userId ?? userId;
+      const effectiveName = overrides?.name ?? nameFilter;
 
-    startTransition(async () => {
-      const result = await getAppLogs({
-        level:
-          effectiveLevel === "all"
-            ? undefined
-            : (effectiveLevel as "info" | "warn" | "error"),
-        category: effectiveCategory === "all" ? undefined : effectiveCategory,
-        limit: PAGE_SIZE,
-        offset: effectiveOffset,
+      startTransition(async () => {
+        const result = await getAppLogs({
+          level:
+            effectiveLevel === "all"
+              ? undefined
+              : (effectiveLevel as "info" | "warn" | "error"),
+          category: effectiveCategory === "all" ? undefined : effectiveCategory,
+          userId:
+            effectiveUserId === "all" ? undefined : Number(effectiveUserId),
+          name: effectiveName || undefined,
+          limit: PAGE_SIZE,
+          offset: effectiveOffset,
+        });
+        setData(result);
       });
-      setData(result);
-    });
-  }
+    },
+    [offset, level, category, userId, nameFilter],
+  );
 
   function handleLevelChange(val: string) {
     setLevel(val);
     setOffset(0);
-    refresh(0, val, undefined);
+    refresh({ offset: 0, level: val });
   }
 
   function handleCategoryChange(val: string) {
     setCategory(val);
     setOffset(0);
-    refresh(0, undefined, val);
+    refresh({ offset: 0, category: val });
   }
+
+  function handleUserChange(val: string) {
+    setUserId(val);
+    setOffset(0);
+    refresh({ offset: 0, userId: val });
+  }
+
+  function handleNameInput(val: string) {
+    setNameFilter(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setOffset(0);
+      refresh({ offset: 0, name: val });
+    }, 400);
+  }
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   function handlePrev() {
     const newOffset = Math.max(0, offset - PAGE_SIZE);
     setOffset(newOffset);
-    refresh(newOffset);
+    refresh({ offset: newOffset });
   }
 
   function handleNext() {
     const newOffset = offset + PAGE_SIZE;
     setOffset(newOffset);
-    refresh(newOffset);
+    refresh({ offset: newOffset });
   }
 
   const totalPages = Math.ceil(data.total / PAGE_SIZE);
@@ -127,8 +196,11 @@ function DatabaseLogsTab({
 
   return (
     <div className="space-y-3">
+      {/* Stats bar */}
+      <StatsBar counts={counts} />
+
       {/* Filters + refresh */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Select value={level} onValueChange={handleLevelChange}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Level" />
@@ -147,11 +219,34 @@ function DatabaseLogsTab({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="page_view">Page View</SelectItem>
-            <SelectItem value="action">Action</SelectItem>
-            <SelectItem value="error">Error</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
+
+        <Select value={userId} onValueChange={handleUserChange}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="User" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Users</SelectItem>
+            {users.map((u) => (
+              <SelectItem key={u.id} value={String(u.id)}>
+                {u.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Input
+          placeholder="Search name..."
+          value={nameFilter}
+          onChange={(e) => handleNameInput(e.target.value)}
+          className="w-40"
+        />
 
         <div className="ml-auto flex items-center gap-2">
           <span className="text-muted-foreground text-xs">
@@ -411,9 +506,15 @@ function ServerLogLine({ line }: { line: string }) {
 export function LogsPanel({
   initialDbLogs,
   initialFileLogs,
+  categories,
+  counts,
+  users,
 }: {
   initialDbLogs: { logs: SerializedAppLogRow[]; total: number };
   initialFileLogs: string[];
+  categories: string[];
+  counts: AppLogCounts;
+  users: Array<{ id: number; email: string }>;
 }) {
   return (
     <Tabs defaultValue="database">
@@ -423,7 +524,12 @@ export function LogsPanel({
       </TabsList>
 
       <TabsContent value="database">
-        <DatabaseLogsTab initialData={initialDbLogs} />
+        <DatabaseLogsTab
+          initialData={initialDbLogs}
+          categories={categories}
+          counts={counts}
+          users={users}
+        />
       </TabsContent>
 
       <TabsContent value="server">

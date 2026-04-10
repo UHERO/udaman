@@ -6,10 +6,12 @@ import {
   getSeriesDependents,
   getSourceMap,
 } from "@/actions/series-actions";
+import { getLoaderActions } from "@/actions/loader-actions";
 import { LoaderSection } from "@/components/series/data-loader";
 import { DependentsList } from "@/components/series/dependents-list";
 import { MetaDataTable } from "@/components/series/meta-data-table";
 import { RecordSeriesView } from "@/components/series/record-series-view";
+import { LoaderActionHistory } from "@/components/series/loader-action-history";
 import { SeriesActionsBar } from "@/components/series/series-actions-bar";
 import { SeriesChart } from "@/components/series/series-chart";
 import { SeriesHoverProvider } from "@/components/series/series-data-section";
@@ -32,10 +34,11 @@ export default async function SeriesPage({
   const { dataPoints, metadata, measurement, aliases, loaders } = series;
   const isDev = role === "dev";
 
-  const [sourceMap, formOptions, dependents] = await Promise.all([
+  const [sourceMap, formOptions, dependents, loaderActions] = await Promise.all([
     getSourceMap(id, { name: metadata.s_name }),
     getFormOptions({ universe: u }),
     getSeriesDependents({ name: metadata.s_name, universe: u }),
+    getLoaderActions(id),
   ]);
 
   return (
@@ -55,6 +58,7 @@ export default async function SeriesPage({
               seriesId={id}
               loaders={loaders}
             />
+            <LoaderActionHistory actions={loaderActions} />
             <SeriesDataTable
               data={dataPoints}
               options={{

@@ -1,3 +1,4 @@
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { Job } from "bullmq";
@@ -78,5 +79,12 @@ export async function processBatchReload(
   }
 
   log.info("Nightly batch reload complete");
+
+  AppLogCollection.log({
+    category: "loader",
+    name: "loader.batch_reload",
+    metadata: { reloaded: seriesIds.length, total: totalCount },
+  });
+
   return `Reloaded ${seriesIds.length} of ${totalCount} series${publicMsg}`;
 }

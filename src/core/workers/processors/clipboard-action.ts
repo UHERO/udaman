@@ -53,6 +53,30 @@ export async function processClipboardAction(
         break;
       }
 
+      case "reload_with_deps": {
+        const expandedIds =
+          await SeriesCollection.getAllDependencies(seriesIds);
+        job.log(
+          `Expanded ${seriesIds.length} clipboard series to ${expandedIds.length} (including dependents)`,
+        );
+        log.info(
+          {
+            reloadJobId,
+            original: seriesIds.length,
+            expanded: expandedIds.length,
+          },
+          "Reload with deps: expanded series set",
+        );
+        await SeriesCollection.batchReload({
+          seriesIds: expandedIds,
+          suffix: "clipboard-deps",
+          nightly: false,
+          job,
+        });
+        result = `Reloaded ${expandedIds.length} series (${seriesIds.length} original + ${expandedIds.length - seriesIds.length} dependents)`;
+        break;
+      }
+
       case "reset": {
         let resetCount = 0;
         for (const sid of seriesIds) {

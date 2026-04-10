@@ -64,6 +64,7 @@ const CLIPBOARD_ACTIONS: {
   destructive?: boolean;
 }[] = [
   { action: "reload", label: "Reload", icon: RotateCw },
+  { action: "reload_with_deps", label: "Reload with Deps.", icon: RotateCw },
   { action: "reset", label: "Reset Loaders", icon: RefreshCw },
   {
     action: "clear_data",

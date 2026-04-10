@@ -61,10 +61,12 @@ export async function getCurrentUserUniverse(): Promise<string> {
 export async function getCurrentUserContext(): Promise<{
   role: string;
   universe: string;
+  userId: string;
 }> {
   const session = await requireAuth();
   return {
     role: session.user.role ?? "external",
     universe: session.user.universe ?? "UHERO",
+    userId: session.user.id ?? "user not found"
   };
 }

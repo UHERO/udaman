@@ -9,9 +9,11 @@ const log = createLogger("app-log-collection");
 
 interface AppLogEntry {
   level?: "info" | "warn" | "error";
-  category: string; // "page_view" | "action" | "error"
-  name: string; // route path or action name
+  category: string;
+  name: string;
   userId?: number;
+  subject?: string;
+  subjectId?: number;
   metadata?: Record<string, unknown>;
 }
 
@@ -22,8 +24,16 @@ export interface AppLogRow {
   name: string;
   userId: number | null;
   username: string | null;
+  subject: string | null;
+  subjectId: number | null;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
+}
+
+export interface AppLogCounts {
+  total: number;
+  byLevel: Record<string, number>;
+  byCategory: Record<string, number>;
 }
 
 export class AppLogCollection {
@@ -32,11 +42,13 @@ export class AppLogCollection {
     try {
       const level = entry.level ?? "info";
       const userId = entry.userId ?? null;
+      const subject = entry.subject ?? null;
+      const subjectId = entry.subjectId ?? null;
       const metadata = entry.metadata ? JSON.stringify(entry.metadata) : null;
 
       await mysql`
-        INSERT INTO app_logs (level, category, name, user_id, metadata)
-        VALUES (${level}, ${entry.category}, ${entry.name}, ${userId}, ${metadata})
+        INSERT INTO app_logs (level, category, name, user_id, subject, subject_id, metadata)
+        VALUES (${level}, ${entry.category}, ${entry.name}, ${userId}, ${subject}, ${subjectId}, ${metadata})
       `;
     } catch (e) {
       log.error({ err: e, entry }, "Failed to write app_log");
@@ -47,6 +59,10 @@ export class AppLogCollection {
   static async list(opts: {
     level?: "info" | "warn" | "error";
     category?: string;
+    userId?: number;
+    name?: string;
+    subject?: string;
+    subjectId?: number;
     limit?: number;
     offset?: number;
   }): Promise<{ logs: AppLogRow[]; total: number }> {
@@ -65,6 +81,22 @@ export class AppLogCollection {
       conditions.push("al.category = ?");
       params.push(opts.category);
     }
+    if (opts.userId) {
+      conditions.push("al.user_id = ?");
+      params.push(opts.userId);
+    }
+    if (opts.name) {
+      conditions.push("al.name LIKE ?");
+      params.push(`%${opts.name}%`);
+    }
+    if (opts.subject) {
+      conditions.push("al.subject = ?");
+      params.push(opts.subject);
+    }
+    if (opts.subjectId) {
+      conditions.push("al.subject_id = ?");
+      params.push(opts.subjectId);
+    }
 
     const where =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -79,7 +111,7 @@ export class AppLogCollection {
     // Data query with user join
     const rows = await rawQuery(
       `SELECT al.id, al.level, al.category, al.name, al.user_id, u.email as username,
-              al.metadata, al.created_at
+              al.subject, al.subject_id, al.metadata, al.created_at
        FROM app_logs al
        LEFT JOIN users u ON u.id = al.user_id
        ${where}
@@ -95,6 +127,8 @@ export class AppLogCollection {
       name: r.name as string,
       userId: r.user_id != null ? Number(r.user_id) : null,
       username: (r.username as string) ?? null,
+      subject: (r.subject as string) ?? null,
+      subjectId: r.subject_id != null ? Number(r.subject_id) : null,
       metadata:
         typeof r.metadata === "string"
           ? JSON.parse(r.metadata)
@@ -103,6 +137,41 @@ export class AppLogCollection {
     }));
 
     return { logs, total };
+  }
+
+  /** Get distinct category values from app_logs. */
+  static async getDistinctCategories(): Promise<string[]> {
+    const rows = await rawQuery(
+      `SELECT DISTINCT category FROM app_logs ORDER BY category`,
+    );
+    return rows.map((r: Record<string, unknown>) => r.category as string);
+  }
+
+  /** Get aggregate counts: total, by level, by category. */
+  static async getCounts(): Promise<AppLogCounts> {
+    const [totalRows, levelRows, categoryRows] = await Promise.all([
+      rawQuery(`SELECT COUNT(*) as total FROM app_logs`),
+      rawQuery(
+        `SELECT level, COUNT(*) as cnt FROM app_logs GROUP BY level`,
+      ),
+      rawQuery(
+        `SELECT category, COUNT(*) as cnt FROM app_logs GROUP BY category ORDER BY cnt DESC`,
+      ),
+    ]);
+
+    const total = Number(totalRows[0].total);
+
+    const byLevel: Record<string, number> = {};
+    for (const r of levelRows) {
+      byLevel[r.level as string] = Number(r.cnt);
+    }
+
+    const byCategory: Record<string, number> = {};
+    for (const r of categoryRows) {
+      byCategory[r.category as string] = Number(r.cnt);
+    }
+
+    return { total, byLevel, byCategory };
   }
 
   /** Read the last N lines from the NDJSON log file. */

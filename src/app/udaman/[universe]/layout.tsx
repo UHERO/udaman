@@ -1,20 +1,18 @@
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import GeographyCollection from "@catalog/collections/geography-collection";
-import UniverseCollection from "@catalog/collections/universe-collection";
 import type { Universe } from "@catalog/types/shared";
-import { mysql } from "@database/mysql";
 
+import { getGeographies } from "@/actions/geographies";
+import { getUniverses } from "@/actions/universes";
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { NavSearchInput } from "@/components/nav-search";
+import { PageViewLogger } from "@/components/page-view-logger";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { logPageView } from "@/core/observability/app-events";
 import { requireAuth } from "@/lib/auth/dal";
 
 export default async function UniverseLayout({
@@ -27,7 +25,7 @@ export default async function UniverseLayout({
   const { universe } = await params;
 
   // Validate universe against the DB (not a hardcoded list).
-  const allUniverses = await UniverseCollection.list();
+  const allUniverses = await getUniverses();
   const matched = allUniverses.find(
     (u) => u.name.toUpperCase() === universe.toUpperCase(),
   );
@@ -36,33 +34,18 @@ export default async function UniverseLayout({
   }
 
   const session = await requireAuth();
-  const userId = session.user?.id;
-
-  const headerList = await headers();
-  const pathname = headerList.get("x-pathname") ?? `/${universe}`;
-  logPageView(pathname, userId ? Number(userId) : undefined);
-
-  let createdAt = "";
-  if (userId) {
-    const rows = await mysql<{ created_at: Date | string | null }>`
-      SELECT created_at FROM users WHERE id = ${userId}
-    `;
-    if (rows[0]?.created_at) {
-      createdAt = new Date(rows[0].created_at as string | Date).toISOString();
-    }
-  }
 
   const user = {
-    id: userId ?? "",
-    name: session.user?.name ?? session.user?.email ?? "User",
-    email: session.user?.email ?? "",
-    avatar: session.user?.image ?? "",
-    createdAt,
+    id: session.user.id ?? "",
+    name: session.user.name ?? session.user.email ?? "User",
+    email: session.user.email ?? "",
+    avatar: session.user.image ?? "",
+    createdAt: session.user.createdAt ?? "",
     role: session.user.role ?? "external",
     universe: session.user.universe ?? "UHERO",
   };
 
-  const geographies = await GeographyCollection.list({
+  const geographies = await getGeographies({
     universe: universe.toUpperCase() as Universe,
   });
   const geoHandles = geographies
@@ -93,6 +76,7 @@ export default async function UniverseLayout({
         </header>
         {children}
       </SidebarInset>
+      <PageViewLogger userId={parseInt(user.id) || 0} />
     </SidebarProvider>
   );
 }

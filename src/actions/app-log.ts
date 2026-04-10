@@ -2,10 +2,20 @@
 
 import {
   AppLogCollection,
+  type AppLogCounts,
   type AppLogRow,
 } from "@catalog/collections/app-log-collection";
 
 import { requireAuth } from "@/lib/auth/dal";
+
+/** Log a page view from the client. Fire-and-forget. */
+export async function logPageViewAction(pathname: string, userId?: number) {
+  AppLogCollection.log({
+    category: "page_view",
+    name: pathname,
+    userId,
+  });
+}
 
 /** Report a client-side error to the app_logs table. */
 export async function reportClientError(payload: {
@@ -30,6 +40,8 @@ export async function reportClientError(payload: {
 export async function getAppLogs(opts: {
   level?: "info" | "warn" | "error";
   category?: string;
+  userId?: number;
+  name?: string;
   limit?: number;
   offset?: number;
 }): Promise<{ logs: SerializedAppLogRow[]; total: number }> {
@@ -48,6 +60,24 @@ export async function getAppLogs(opts: {
     })),
     total: result.total,
   };
+}
+
+/** Get distinct log categories. Requires dev role. */
+export async function getLogCategories(): Promise<string[]> {
+  const session = await requireAuth();
+  if (session.user.role !== "dev") {
+    throw new Error("Unauthorized");
+  }
+  return AppLogCollection.getDistinctCategories();
+}
+
+/** Get aggregate log counts. Requires dev role. */
+export async function getLogCounts(): Promise<AppLogCounts> {
+  const session = await requireAuth();
+  if (session.user.role !== "dev") {
+    throw new Error("Unauthorized");
+  }
+  return AppLogCollection.getCounts();
 }
 
 /** Read recent lines from the NDJSON server log file. Requires dev role. */

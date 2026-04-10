@@ -111,6 +111,7 @@ export type ClipboardActionJobData = {
   reloadJobId: number;
   action:
     | "reload"
+    | "reload_with_deps"
     | "reset"
     | "clear_data"
     | "restrict"

@@ -144,6 +144,7 @@ export async function bulkUpdateMetadata({
 
 export type ClipboardAction =
   | "reload"
+  | "reload_with_deps"
   | "reset"
   | "clear_data"
   | "restrict"
@@ -156,6 +157,7 @@ export type ClipboardAction =
 /** Actions that get queued via BullMQ + tracked in reload_jobs */
 const QUEUED_ACTIONS = new Set<ClipboardAction>([
   "reload",
+  "reload_with_deps",
   "reset",
   "clear_data",
   "restrict",

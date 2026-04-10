@@ -670,11 +670,14 @@ model app_logs {
   category   String        @db.VarChar(50)
   name       String        @db.VarChar(255)
   user_id    Int?
+  subject    String?       @db.VarChar(50)
+  subject_id Int?
   metadata   Json?
   created_at DateTime      @default(now()) @db.Timestamp(0)
 
   @@index([category, created_at], map: "idx_app_logs_category_created")
   @@index([user_id, created_at], map: "idx_app_logs_user_created")
+  @@index([subject, subject_id, created_at], map: "idx_app_logs_subject")
 }
 
 model xseries {

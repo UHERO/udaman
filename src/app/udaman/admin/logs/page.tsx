@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 
-import { getAppLogs, getLogFileEntries } from "@/actions/app-log";
+import {
+  getAppLogs,
+  getLogCategories,
+  getLogCounts,
+  getLogFileEntries,
+} from "@/actions/app-log";
+import { listUsers } from "@/actions/users";
 import { LogsPanel } from "@/components/admin/logs-panel";
 import { requireAuth } from "@/lib/auth/dal";
 
@@ -10,9 +16,12 @@ export default async function LogsPage() {
     notFound();
   }
 
-  const [dbResult, fileLines] = await Promise.all([
+  const [dbResult, fileLines, categories, counts, users] = await Promise.all([
     getAppLogs({ limit: 50, offset: 0 }),
     getLogFileEntries({ lines: 200 }),
+    getLogCategories(),
+    getLogCounts(),
+    listUsers(),
   ]);
 
   return (
@@ -24,7 +33,13 @@ export default async function LogsPage() {
         </p>
       </div>
 
-      <LogsPanel initialDbLogs={dbResult} initialFileLogs={fileLines} />
+      <LogsPanel
+        initialDbLogs={dbResult}
+        initialFileLogs={fileLines}
+        categories={categories}
+        counts={counts}
+        users={users.map((u) => ({ id: u.id, email: u.email }))}
+      />
     </div>
   );
 }
