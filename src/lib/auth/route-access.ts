@@ -80,10 +80,13 @@ export const ROUTES: RouteEntry[] = [
     ],
   },
   {
-    label: "CSV-to-TSD",
-    path: "/csv-to-tsd",
+    label: "Data Tools",
+    path: "/data-tools",
     icon: FileSpreadsheet,
     roles: ["internal", "admin", "dev"],
+    children: [
+      { label: "TSD Convert & Inspect", path: "/data-tools/tsd" },
+    ],
   },
   {
     label: "Downloads",
