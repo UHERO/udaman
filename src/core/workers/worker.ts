@@ -1,3 +1,7 @@
+// Ensure all date operations use Hawaii Standard Time.
+// Must be set before any module that touches Date is imported.
+process.env.TZ = "Pacific/Honolulu";
+
 import { Job, Worker } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";

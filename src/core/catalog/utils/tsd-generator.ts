@@ -120,6 +120,15 @@ function dateKey(d: Date): string {
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
 }
 
+/**
+ * Parse a "YYYY-MM-DD" string into a local-time Date.
+ * Appending T00:00:00 forces the JS Date constructor to treat it as local
+ * midnight rather than UTC midnight (bare "YYYY-MM-DD" is spec'd as UTC).
+ */
+function parseLocalDate(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00");
+}
+
 /** Generate TSD output for a single series */
 function seriesToTsd(input: TsdSeriesInput): string {
   const { name, description = "", data, frequency } = input;
@@ -127,8 +136,8 @@ function seriesToTsd(input: TsdSeriesInput): string {
   if (data.size === 0) return "";
 
   const sortedDates = [...data.keys()].sort();
-  const startDate = new Date(sortedDates[0]);
-  const endDate = new Date(sortedDates[sortedDates.length - 1]);
+  const startDate = parseLocalDate(sortedDates[0]);
+  const endDate = parseLocalDate(sortedDates[sortedDates.length - 1]);
 
   // Strip frequency suffix from name (e.g. "E_NF@HI.M" -> "E_NF@HI")
   const nameNoFreq = name.includes(".") ? name.split(".")[0] : name;

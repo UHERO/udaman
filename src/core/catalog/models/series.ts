@@ -1933,13 +1933,13 @@ class Series {
 
   /** Set trim start to far past so trim() won't clip early data. Chainable, mutates self. */
   noTrimPast(): this {
-    this.trimPeriodStart = new Date("1000-01-01");
+    this.trimPeriodStart = new Date("1000-01-01T00:00:00");
     return this;
   }
 
   /** Set trim end to far future so trim() won't clip future data. Chainable, mutates self. */
   noTrimFuture(): this {
-    this.trimPeriodEnd = new Date("2999-12-31");
+    this.trimPeriodEnd = new Date("2999-12-31T00:00:00");
     return this;
   }
 
