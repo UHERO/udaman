@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
@@ -44,7 +45,7 @@ class GeographyCollection {
       SELECT * FROM geographies WHERE id = ${id} LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Geography not found: ${id}`);
+    if (!row) throw new NotFoundError("Geography", id);
     return new Geography(row);
   }
 

@@ -4,6 +4,7 @@ import { resolve } from "path";
 import { mysql, rawQuery } from "@database/mysql";
 
 import { createLogger } from "@/core/observability/logger";
+import { HttpError } from "@/lib/errors";
 
 const log = createLogger("app-log-collection");
 
@@ -53,6 +54,30 @@ export class AppLogCollection {
     } catch (e) {
       log.error({ err: e, entry }, "Failed to write app_log");
     }
+  }
+
+  /**
+   * Log an error to app_logs. Extracts structured info from HttpError
+   * subclasses; falls back to category "error" for plain errors.
+   * Fire-and-forget — never throws.
+   */
+  static logError(
+    err: unknown,
+    context?: { userId?: number; name?: string },
+  ): void {
+    const isHttp = err instanceof HttpError;
+    const message = err instanceof Error ? err.message : String(err);
+
+    AppLogCollection.log({
+      level: "error",
+      category: isHttp ? err.category : "error",
+      name: context?.name ?? "unhandled_error",
+      userId: context?.userId,
+      metadata: {
+        message,
+        ...(isHttp && { statusCode: err.statusCode, ...err.metadata }),
+      },
+    });
   }
 
   /** Query app_logs with optional filters and pagination. */

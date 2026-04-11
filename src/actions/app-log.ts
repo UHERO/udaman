@@ -7,6 +7,7 @@ import {
 } from "@catalog/collections/app-log-collection";
 
 import { requireAuth } from "@/lib/auth/dal";
+import { AuthorizationError } from "@/lib/errors";
 
 /** Log a page view from the client. Fire-and-forget. */
 export async function logPageViewAction(pathname: string, userId?: number) {
@@ -47,7 +48,7 @@ export async function getAppLogs(opts: {
 }): Promise<{ logs: SerializedAppLogRow[]; total: number }> {
   const session = await requireAuth();
   if (session.user.role !== "dev") {
-    throw new Error("Unauthorized");
+    throw new AuthorizationError("Unauthorized: dev role required");
   }
 
   const result = await AppLogCollection.list(opts);
@@ -66,7 +67,7 @@ export async function getAppLogs(opts: {
 export async function getLogCategories(): Promise<string[]> {
   const session = await requireAuth();
   if (session.user.role !== "dev") {
-    throw new Error("Unauthorized");
+    throw new AuthorizationError("Unauthorized: dev role required");
   }
   return AppLogCollection.getDistinctCategories();
 }
@@ -75,7 +76,7 @@ export async function getLogCategories(): Promise<string[]> {
 export async function getLogCounts(): Promise<AppLogCounts> {
   const session = await requireAuth();
   if (session.user.role !== "dev") {
-    throw new Error("Unauthorized");
+    throw new AuthorizationError("Unauthorized: dev role required");
   }
   return AppLogCollection.getCounts();
 }
@@ -86,7 +87,7 @@ export async function getLogFileEntries(opts?: {
 }): Promise<string[]> {
   const session = await requireAuth();
   if (session.user.role !== "dev") {
-    throw new Error("Unauthorized");
+    throw new AuthorizationError("Unauthorized: dev role required");
   }
 
   return AppLogCollection.readLogFile(opts);

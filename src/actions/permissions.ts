@@ -3,6 +3,7 @@
 import PermissionCollection from "@catalog/collections/permission-collection";
 
 import { requireAuth } from "@/lib/auth/dal";
+import { AuthorizationError } from "@/lib/errors";
 
 export async function updatePermissions(payload: {
   updates: { id: number; allowed: boolean }[];
@@ -15,7 +16,7 @@ export async function updatePermissions(payload: {
 }): Promise<{ message: string }> {
   const session = await requireAuth();
   if (session.user.role !== "dev") {
-    throw new Error("Unauthorized: dev role required");
+    throw new AuthorizationError("Unauthorized: dev role required");
   }
 
   if (payload.updates.length > 0) {

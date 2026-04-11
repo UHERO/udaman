@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
@@ -87,7 +88,7 @@ class UniverseCollection {
       LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Universe not found: ${name}`);
+    if (!row) throw new NotFoundError("Universe", name);
     return new Universe(row);
   }
 

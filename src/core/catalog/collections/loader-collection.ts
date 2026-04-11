@@ -1,4 +1,5 @@
 import { createLogger } from "@/core/observability/logger";
+import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
@@ -79,7 +80,7 @@ class LoaderCollection {
       SELECT * FROM data_sources WHERE id = ${id} LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Loader not found: ${id}`);
+    if (!row) throw new NotFoundError("Loader", id);
     return new Loader(row);
   }
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { ExternalServiceError } from "@/lib/errors";
 import { ExpandedSeries } from "@/types/rest-api";
 
 const BASE_URL = process.env.REST_API_V1_URL ?? "";
@@ -36,7 +37,7 @@ export async function fetchFromRestApi<T>({
   headers?: HeadersInit;
 }): Promise<T> {
   if (!baseUrl) {
-    throw new Error(
+    throw new ExternalServiceError(
       `fetchFromRestApi: baseUrl is empty — is REST_API_V1_URL set in the environment?`,
     );
   }
@@ -55,8 +56,9 @@ export async function fetchFromRestApi<T>({
     });
   } catch (e) {
     // Network / DNS / TLS failures land here.
-    throw new Error(
+    throw new ExternalServiceError(
       `fetchFromRestApi: network error fetching ${url}: ${(e as Error).message}`,
+      { url },
     );
   }
 
@@ -64,15 +66,17 @@ export async function fetchFromRestApi<T>({
   const bodyText = await res.text();
 
   if (!res.ok) {
-    throw new Error(
+    throw new ExternalServiceError(
       `fetchFromRestApi: ${res.status} ${res.statusText} from ${url} — body: ${previewBody(bodyText)}`,
+      { url, statusCode: res.status },
     );
   }
 
   const contentType = res.headers.get("content-type") ?? "";
   if (!contentType.includes("json")) {
-    throw new Error(
+    throw new ExternalServiceError(
       `fetchFromRestApi: expected JSON but got "${contentType}" from ${url} — body: ${previewBody(bodyText)}`,
+      { url, contentType },
     );
   }
 
@@ -80,8 +84,9 @@ export async function fetchFromRestApi<T>({
     const json = JSON.parse(bodyText);
     return json.data;
   } catch (e) {
-    throw new Error(
+    throw new ExternalServiceError(
       `fetchFromRestApi: invalid JSON from ${url} (${(e as Error).message}) — body: ${previewBody(bodyText)}`,
+      { url },
     );
   }
 }

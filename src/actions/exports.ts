@@ -16,6 +16,7 @@ import {
   updateExport,
 } from "@catalog/controllers/exports";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -36,16 +37,17 @@ export async function createExportAction(name: string): Promise<{
   message: string;
   id?: number;
 }> {
-  await requirePermission("export", "create");
+  const { userId } = await requirePermission("export", "create");
 
   try {
     const exp = await createExport({ name });
     revalidatePath("/udaman", "layout");
-    log.info({ id: exp.id }, "createExportAction completed");
+    log.info({ id: exp.id, userId }, "createExportAction completed");
     return { success: true, message: "Export created", id: exp.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "createExportAction failed");
+    log.error({ err: message, userId }, "createExportAction failed");
+    AppLogCollection.logError(err, { userId, name: "export.create" });
     return { success: false, message: `Failed to create export: ${message}` };
   }
 }
@@ -54,16 +56,17 @@ export async function updateExportAction(
   id: number,
   payload: { name?: string },
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("export", "update");
+  const { userId } = await requirePermission("export", "update");
 
   try {
     await updateExport({ id, payload });
     revalidatePath("/udaman", "layout");
-    log.info({ id }, "updateExportAction completed");
+    log.info({ id, userId }, "updateExportAction completed");
     return { success: true, message: "Export updated" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "updateExportAction failed");
+    log.error({ err: message, userId }, "updateExportAction failed");
+    AppLogCollection.logError(err, { userId, name: "export.update" });
     return { success: false, message: `Failed to update export: ${message}` };
   }
 }
@@ -72,16 +75,17 @@ export async function addSeriesToExportAction(
   exportId: number,
   seriesId: number,
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("export", "update");
+  const { userId } = await requirePermission("export", "update");
 
   try {
     await addSeriesToExport({ exportId, seriesId });
     revalidatePath("/udaman", "layout");
-    log.info({ exportId, seriesId }, "addSeriesToExportAction completed");
+    log.info({ exportId, seriesId, userId }, "addSeriesToExportAction completed");
     return { success: true, message: "Series added to export" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "addSeriesToExportAction failed");
+    log.error({ err: message, userId }, "addSeriesToExportAction failed");
+    AppLogCollection.logError(err, { userId, name: "export.add_series" });
     return { success: false, message: `Failed to add series: ${message}` };
   }
 }
@@ -90,16 +94,17 @@ export async function removeSeriesFromExportAction(
   exportId: number,
   seriesId: number,
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("export", "update");
+  const { userId } = await requirePermission("export", "update");
 
   try {
     await removeSeriesFromExport({ exportId, seriesId });
     revalidatePath("/udaman", "layout");
-    log.info({ exportId, seriesId }, "removeSeriesFromExportAction completed");
+    log.info({ exportId, seriesId, userId }, "removeSeriesFromExportAction completed");
     return { success: true, message: "Series removed from export" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "removeSeriesFromExportAction failed");
+    log.error({ err: message, userId }, "removeSeriesFromExportAction failed");
+    AppLogCollection.logError(err, { userId, name: "export.remove_series" });
     return { success: false, message: `Failed to remove series: ${message}` };
   }
 }
@@ -109,19 +114,20 @@ export async function moveExportSeriesAction(
   seriesId: number,
   direction: "up" | "down",
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("export", "update");
+  const { userId } = await requirePermission("export", "update");
 
   try {
     await moveExportSeries({ exportId, seriesId, direction });
     revalidatePath("/udaman", "layout");
     log.info(
-      { exportId, seriesId, direction },
+      { exportId, seriesId, direction, userId },
       "moveExportSeriesAction completed",
     );
     return { success: true, message: `Series moved ${direction}` };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "moveExportSeriesAction failed");
+    log.error({ err: message, userId }, "moveExportSeriesAction failed");
+    AppLogCollection.logError(err, { userId, name: "export.move_series" });
     return { success: false, message: `Failed to move series: ${message}` };
   }
 }
@@ -130,7 +136,7 @@ export async function replaceAllExportSeriesAction(
   exportId: number,
   seriesNames: string[],
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("export", "update");
+  const { userId } = await requirePermission("export", "update");
 
   try {
     const result = await replaceAllExportSeries({ exportId, seriesNames });
@@ -144,11 +150,12 @@ export async function replaceAllExportSeriesAction(
     if (result.notFound.length > 0) {
       msg += `. Not found: ${result.notFound.join(", ")}`;
     }
-    log.info({ exportId }, "replaceAllExportSeriesAction completed");
+    log.info({ exportId, userId }, "replaceAllExportSeriesAction completed");
     return { success: true, message: msg };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "replaceAllExportSeriesAction failed");
+    log.error({ err: message, userId }, "replaceAllExportSeriesAction failed");
+    AppLogCollection.logError(err, { userId, name: "export.replace_series" });
     return { success: false, message: `Failed to replace series: ${message}` };
   }
 }
@@ -174,16 +181,17 @@ export async function deleteExportAction(id: number): Promise<{
   success: boolean;
   message: string;
 }> {
-  await requirePermission("export", "delete");
+  const { userId } = await requirePermission("export", "delete");
 
   try {
     await deleteExport({ id });
     revalidatePath("/udaman", "layout");
-    log.info({ id }, "deleteExportAction completed");
+    log.info({ id, userId }, "deleteExportAction completed");
     return { success: true, message: "Export deleted" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "deleteExportAction failed");
+    log.error({ err: message, userId }, "deleteExportAction failed");
+    AppLogCollection.logError(err, { userId, name: "export.delete" });
     return { success: false, message: `Failed to delete export: ${message}` };
   }
 }

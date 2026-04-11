@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
@@ -111,7 +112,7 @@ class MeasurementCollection {
       SELECT * FROM measurements WHERE id = ${id} LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Measurement not found: ${id}`);
+    if (!row) throw new NotFoundError("Measurement", id);
     return new Measurement(row);
   }
 
@@ -126,7 +127,7 @@ class MeasurementCollection {
       LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Measurement not found: ${universe}/${prefix}`);
+    if (!row) throw new NotFoundError("Measurement", `${universe}/${prefix}`);
     return new Measurement(row);
   }
 
@@ -151,7 +152,7 @@ class MeasurementCollection {
       LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Measurement not found: ${id}`);
+    if (!row) throw new NotFoundError("Measurement", id);
     const m = new Measurement(row);
     return {
       ...m.toJSON(),

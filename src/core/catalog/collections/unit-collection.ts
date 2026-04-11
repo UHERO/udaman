@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
@@ -35,7 +36,7 @@ class UnitCollection {
       SELECT * FROM units WHERE id = ${id} LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Unit not found: ${id}`);
+    if (!row) throw new NotFoundError("Unit", id);
     return new Unit(row);
   }
 

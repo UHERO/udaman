@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
@@ -36,7 +37,7 @@ class SourceDetailCollection {
       SELECT * FROM source_details WHERE id = ${id} LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Source detail not found: ${id}`);
+    if (!row) throw new NotFoundError("Source detail", id);
     return new SourceDetail(row);
   }
 

@@ -1,4 +1,5 @@
 import { createLogger } from "@/core/observability/logger";
+import { NotFoundError } from "@/lib/errors";
 import { mysql, rawQuery, scopedConnection } from "@/lib/mysql/db";
 import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 
@@ -124,9 +125,7 @@ class SeriesCollection {
         LIMIT 1
       `;
       if (!geoRows[0]) {
-        throw new Error(
-          `No ${universe} geography found for handle=${parsed.geo}`,
-        );
+        throw new NotFoundError("Geography", `${universe}/${parsed.geo}`);
       }
       geoId = geoRows[0].id;
     }
@@ -228,7 +227,7 @@ class SeriesCollection {
       LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Series not found: ${seriesName}`);
+    if (!row) throw new NotFoundError("Series", seriesName);
     return new Series(row);
   }
 
@@ -354,7 +353,7 @@ class SeriesCollection {
       LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Series not found: ${id}`);
+    if (!row) throw new NotFoundError("Series", id);
     return new Series(row);
   }
 
@@ -418,7 +417,7 @@ class SeriesCollection {
       LEFT JOIN source_details sd ON s.source_detail_id = sd.id
       WHERE s.id = ${id}
     `;
-    if (rows.length === 0) throw new Error("404 - Series not found: " + id);
+    if (rows.length === 0) throw new NotFoundError("Series", id);
     return rows[0];
   }
 

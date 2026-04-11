@@ -2,6 +2,7 @@
 
 import { rawQuery } from "@database/mysql";
 import { requireAuth } from "@/lib/auth/dal";
+import { AuthorizationError } from "@/lib/errors";
 
 export type StatsData = {
   topPages: { path: string; views: number }[];
@@ -14,7 +15,7 @@ export type StatsData = {
 export async function getStats(days = 30): Promise<StatsData> {
   const session = await requireAuth();
   if (session.user.role !== "admin" && session.user.role !== "dev") {
-    throw new Error("Unauthorized");
+    throw new AuthorizationError("Unauthorized: admin or dev role required");
   }
 
   const [topPages, topSeries, mostActiveUsers, topActions, dailyActivity] =

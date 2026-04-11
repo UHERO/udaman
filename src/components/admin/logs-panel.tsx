@@ -379,6 +379,7 @@ function DatabaseLogRow({
 function ServerLogsTab({ initialLines }: { initialLines: string[] }) {
   const [lines, setLines] = useState(initialLines);
   const [lineCount, setLineCount] = useState("200");
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function refresh(count?: string) {
@@ -388,6 +389,7 @@ function ServerLogsTab({ initialLines }: { initialLines: string[] }) {
         lines: Number(effectiveCount),
       });
       setLines(result);
+      setExpandedIdx(null);
     });
   }
 
@@ -436,21 +438,29 @@ function ServerLogsTab({ initialLines }: { initialLines: string[] }) {
       ) : (
         <div className="rounded-md border">
           <div className="max-h-[600px] overflow-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/50 sticky top-0">
-                <tr>
-                  <th className="px-3 py-1.5 text-left font-medium">Time</th>
-                  <th className="px-3 py-1.5 text-left font-medium">Level</th>
-                  <th className="px-3 py-1.5 text-left font-medium">Event</th>
-                  <th className="px-3 py-1.5 text-left font-medium">Details</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-36">Time</TableHead>
+                  <TableHead className="w-20">Level</TableHead>
+                  <TableHead>Event</TableHead>
+                  <TableHead className="w-64">Context</TableHead>
+                  <TableHead className="w-8 px-2" />
+                </TableRow>
+              </TableHeader>
+              <TableBody className="font-mono text-xs">
                 {lines.map((line, i) => (
-                  <ServerLogLine key={i} line={line} />
+                  <ServerLogLine
+                    key={i}
+                    line={line}
+                    expanded={expandedIdx === i}
+                    onToggle={() =>
+                      setExpandedIdx(expandedIdx === i ? null : i)
+                    }
+                  />
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}
@@ -458,45 +468,114 @@ function ServerLogsTab({ initialLines }: { initialLines: string[] }) {
   );
 }
 
-function ServerLogLine({ line }: { line: string }) {
-  try {
-    const parsed = JSON.parse(line);
-    const time = parsed.time
-      ? formatTimestamp(new Date(parsed.time).toISOString())
-      : "";
-    const level =
-      parsed.level === 30
-        ? "info"
-        : parsed.level === 40
-          ? "warn"
-          : parsed.level === 50
-            ? "error"
+/** Fields to strip from the inline context display (noisy / already shown). */
+const HIDDEN_FIELDS = new Set([
+  "time", "level", "msg", "name", "pid", "hostname", "v",
+]);
+
+function parseServerLog(line: string) {
+  const parsed = JSON.parse(line);
+  const time = parsed.time
+    ? formatTimestamp(new Date(parsed.time).toISOString())
+    : "";
+  const level =
+    parsed.level === 30
+      ? "info"
+      : parsed.level === 40
+        ? "warn"
+        : parsed.level === 50
+          ? "error"
+          : parsed.level === 20
+            ? "debug"
             : String(parsed.level);
-    const { time: _t, level: _l, msg, name, ...rest } = parsed;
-    const details = Object.keys(rest).length > 0 ? JSON.stringify(rest) : "";
+
+  // Separate context fields (shown inline) from the full object (shown expanded)
+  const context: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(parsed)) {
+    if (!HIDDEN_FIELDS.has(k)) context[k] = v;
+  }
+
+  return { parsed, time, level, msg: parsed.msg, name: parsed.name, context };
+}
+
+function formatContextValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
+}
+
+function ServerLogLine({
+  line,
+  expanded,
+  onToggle,
+}: {
+  line: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  try {
+    const { parsed, time, level, msg, name, context } = parseServerLog(line);
+    const contextKeys = Object.keys(context);
+    const hasDetails = contextKeys.length > 0;
 
     return (
-      <tr className="hover:bg-muted/30 border-t">
-        <td className="px-3 py-1 whitespace-nowrap">{time}</td>
-        <td className="px-3 py-1">
-          <LevelBadge level={level} />
-        </td>
-        <td className="px-3 py-1">
-          {name && <span className="text-muted-foreground">[{name}] </span>}
-          {msg}
-        </td>
-        <td className="text-muted-foreground max-w-md truncate px-3 py-1">
-          {details}
-        </td>
-      </tr>
+      <>
+        <TableRow
+          className="hover:bg-muted/50 cursor-pointer"
+          onClick={onToggle}
+        >
+          <TableCell className="whitespace-nowrap">{time}</TableCell>
+          <TableCell>
+            <LevelBadge level={level} />
+          </TableCell>
+          <TableCell>
+            {name && (
+              <span className="text-muted-foreground">[{name}] </span>
+            )}
+            {msg}
+          </TableCell>
+          <TableCell className="text-muted-foreground">
+            {contextKeys.length <= 3 ? (
+              <span className="flex flex-wrap gap-x-2">
+                {contextKeys.map((k) => (
+                  <span key={k}>
+                    <span className="text-muted-foreground/60">{k}=</span>
+                    {formatContextValue(context[k])}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <span>{contextKeys.length} fields</span>
+            )}
+          </TableCell>
+          <TableCell className="px-2">
+            {hasDetails && (
+              <ChevronDown
+                className={`text-muted-foreground h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+              />
+            )}
+          </TableCell>
+        </TableRow>
+        {expanded && (
+          <TableRow>
+            <TableCell colSpan={5} className="bg-muted/30 p-4">
+              <pre className="bg-muted max-h-60 overflow-auto rounded p-2 text-xs">
+                {JSON.stringify(parsed, null, 2)}
+              </pre>
+            </TableCell>
+          </TableRow>
+        )}
+      </>
     );
   } catch {
     return (
-      <tr className="hover:bg-muted/30 border-t">
-        <td colSpan={4} className="text-muted-foreground px-3 py-1">
+      <TableRow>
+        <TableCell colSpan={5} className="text-muted-foreground">
           {line}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
     );
   }
 }

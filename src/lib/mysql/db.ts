@@ -41,11 +41,12 @@ function mysql(...args: any[]) {
   // Tagged template: mysql`SELECT ...`
   const strings = first as TemplateStringsArray;
   const values = args.slice(1);
-  assertNotReadOnly(strings.join("?"));
+  const query = strings.join("?");
+  assertNotReadOnly(query);
   const start = performance.now();
   return (connection(strings, ...values) as Promise<any[]>).then((result) => {
     const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, rows: result.length }, "query");
+    log.debug({ durationMs, rows: result.length }, query);
     return result;
   });
 }
@@ -59,7 +60,7 @@ function rawQuery<T = Record<string, unknown>>(
   const start = performance.now();
   return (connection as any).unsafe(sql, params).then((result: any[]) => {
     const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, rows: result.length }, "query");
+    log.debug({ durationMs, rows: result.length }, sql);
     return result;
   });
 }

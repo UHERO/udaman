@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/lib/errors";
 import { rawQuery } from "@/lib/mysql/db";
 
 import UniverseUpload from "../models/universe-upload";
@@ -23,7 +24,7 @@ class UniverseUploadCollection {
       [id],
     );
     const row = rows[0];
-    if (!row) throw new Error(`Upload not found: ${id}`);
+    if (!row) throw new NotFoundError("Upload", id);
     return new UniverseUpload(row);
   }
 
@@ -91,7 +92,7 @@ class DvwUploadCollection extends UniverseUploadCollection {
       [id],
     );
     const row = rows[0];
-    if (!row) throw new Error(`Upload not found: ${id}`);
+    if (!row) throw new NotFoundError("Upload", id);
     return new UniverseUpload(row);
   }
 

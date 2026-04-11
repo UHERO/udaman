@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/lib/errors";
 import { mysql, transaction } from "@/lib/mysql/db";
 
 import Export from "../models/export";
@@ -61,7 +62,7 @@ class ExportCollection {
       SELECT * FROM exports WHERE id = ${id} LIMIT 1
     `;
     const row = rows[0];
-    if (!row) throw new Error(`Export not found: ${id}`);
+    if (!row) throw new NotFoundError("Export", id);
     return new Export(row);
   }
 

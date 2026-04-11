@@ -12,6 +12,7 @@ import {
 
 import { createLogger } from "@/core/observability/logger";
 import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
+import { AuthorizationError } from "@/lib/errors";
 
 const log = createLogger("action.users");
 
@@ -39,7 +40,7 @@ export async function changePassword(
 
 export async function listUsers() {
   const role = await getCurrentUserRole();
-  if (role !== "dev") throw new Error("Unauthorized");
+  if (role !== "dev") throw new AuthorizationError("Unauthorized: dev role required");
   const result = await getUsersCtrl();
   return result.data.map((u) => u.toJSON());
 }
@@ -47,7 +48,7 @@ export async function listUsers() {
 export async function updateUserRole(userId: number, role: string) {
   const currentUserId = await getCurrentUserId();
   const currentRole = await getCurrentUserRole();
-  if (currentRole !== "dev") throw new Error("Unauthorized");
+  if (currentRole !== "dev") throw new AuthorizationError("Unauthorized: dev role required");
   const result = await updateUserRoleCtrl({ id: userId, role });
 
   AppLogCollection.log({
@@ -70,7 +71,7 @@ export async function createUserAction(payload: {
   password: string;
 }): Promise<{ success: boolean; message: string; id?: number }> {
   const currentRole = await getCurrentUserRole();
-  if (currentRole !== "dev") throw new Error("Unauthorized");
+  if (currentRole !== "dev") throw new AuthorizationError("Unauthorized: dev role required");
 
   try {
     const currentUserId = await getCurrentUserId();
