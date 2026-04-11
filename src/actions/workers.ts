@@ -1,7 +1,6 @@
 "use server";
 
 import { Queue } from "bullmq";
-import Redis from "ioredis";
 
 import { redisConnection } from "@/core/workers/connection";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -126,15 +125,9 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
 
   allJobs.sort((a, b) => b.timestamp - a.timestamp);
 
-  // Read process start time written by worker.ts at boot
-  let processStartedAt: number | null = null;
-  const redis = new Redis(redisConnection);
-  try {
-    const val = await redis.get("udaman:worker:started_at");
-    if (val) processStartedAt = parseInt(val, 10);
-  } finally {
-    redis.disconnect();
-  }
+  // Derive process start time from the oldest worker's age (seconds since connection)
+  const maxAge = allWorkers.reduce((max, w) => Math.max(max, w.age), 0);
+  const processStartedAt = maxAge > 0 ? Date.now() - maxAge * 1000 : null;
 
   return { jobs: allJobs, counts, workers: allWorkers, processStartedAt };
 }
