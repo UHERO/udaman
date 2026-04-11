@@ -1,9 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-
-import { reportClientError } from "@/actions/app-log";
-
 export default function GlobalError({
   error,
   reset,
@@ -11,15 +7,18 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error(error);
-    reportClientError({
-      message: error.message,
-      digest: error.digest,
-      pathname:
-        typeof window !== "undefined" ? window.location.pathname : undefined,
+  // Log error client-side; dynamic import avoids pulling in server action
+  // module graph at build time, which breaks global-error prerender.
+  if (typeof window !== "undefined") {
+    import("@/actions/app-log").then(({ reportClientError }) => {
+      reportClientError({
+        message: error.message,
+        digest: error.digest,
+        pathname: window.location.pathname,
+      });
     });
-  }, [error]);
+    console.error(error);
+  }
 
   return (
     <html>

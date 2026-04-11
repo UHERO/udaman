@@ -1,9 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-
-import { reportClientError } from "@/actions/app-log";
-
 export default function Error({
   error,
   reset,
@@ -11,14 +7,18 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error(error);
-    reportClientError({
-      message: error.message,
-      digest: error.digest,
-      pathname: window.location.pathname,
+  // Dynamic import avoids pulling in server action module graph at build time,
+  // which breaks prerender (same pattern as global-error.tsx).
+  if (typeof window !== "undefined") {
+    import("@/actions/app-log").then(({ reportClientError }) => {
+      reportClientError({
+        message: error.message,
+        digest: error.digest,
+        pathname: window.location.pathname,
+      });
     });
-  }, [error]);
+    console.error(error);
+  }
 
   return (
     <main className="flex h-full flex-col items-center justify-center">

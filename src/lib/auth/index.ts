@@ -49,7 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = rows[0];
         if (!user) return null;
 
-        // Devise stores bcrypt hashes — some accounts may be deactivated
+        // Devise stores bcrypt hashes
         const hash = user.encrypted_password;
         if (!hash || !hash.startsWith("$2")) return null;
 

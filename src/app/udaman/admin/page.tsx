@@ -21,7 +21,7 @@ export default async function AdminPage() {
         </p>
       </div>
 
-      <PermissionsPanel permissions={permissions.map((p) => p.toJSON())} />
+      <PermissionsPanel permissions={permissions} />
     </div>
   );
 }

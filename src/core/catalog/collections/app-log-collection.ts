@@ -4,7 +4,6 @@ import { resolve } from "path";
 import { mysql, rawQuery } from "@database/mysql";
 
 import { createLogger } from "@/core/observability/logger";
-import { HttpError } from "@/lib/errors";
 
 const log = createLogger("app-log-collection");
 
@@ -65,17 +64,30 @@ export class AppLogCollection {
     err: unknown,
     context?: { userId?: number; name?: string },
   ): void {
-    const isHttp = err instanceof HttpError;
     const message = err instanceof Error ? err.message : String(err);
+    // Duck-type check for HttpError properties to avoid importing @/lib/errors
+    // (adding that import changes the module graph and breaks global-error prerender).
+    const isHttp =
+      err instanceof Error && "category" in err && "statusCode" in err;
+    const httpErr = isHttp
+      ? (err as Error & {
+          category: string;
+          statusCode: number;
+          metadata?: Record<string, unknown>;
+        })
+      : null;
 
     AppLogCollection.log({
       level: "error",
-      category: isHttp ? err.category : "error",
+      category: httpErr?.category ?? "error",
       name: context?.name ?? "unhandled_error",
       userId: context?.userId,
       metadata: {
         message,
-        ...(isHttp && { statusCode: err.statusCode, ...err.metadata }),
+        ...(httpErr && {
+          statusCode: httpErr.statusCode,
+          ...httpErr.metadata,
+        }),
       },
     });
   }

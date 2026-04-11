@@ -451,7 +451,7 @@ function ServerLogsTab({ initialLines }: { initialLines: string[] }) {
               <TableBody className="font-mono text-xs">
                 {lines.map((line, i) => (
                   <ServerLogLine
-                    key={i}
+                    key={`logs-${i}`}
                     line={line}
                     expanded={expandedIdx === i}
                     onToggle={() =>
@@ -470,7 +470,13 @@ function ServerLogsTab({ initialLines }: { initialLines: string[] }) {
 
 /** Fields to strip from the inline context display (noisy / already shown). */
 const HIDDEN_FIELDS = new Set([
-  "time", "level", "msg", "name", "pid", "hostname", "v",
+  "time",
+  "level",
+  "msg",
+  "name",
+  "pid",
+  "hostname",
+  "v",
 ]);
 
 function parseServerLog(line: string) {
@@ -500,7 +506,11 @@ function parseServerLog(line: string) {
 
 function formatContextValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
     return String(value);
   }
   return JSON.stringify(value);
@@ -531,9 +541,7 @@ function ServerLogLine({
             <LevelBadge level={level} />
           </TableCell>
           <TableCell>
-            {name && (
-              <span className="text-muted-foreground">[{name}] </span>
-            )}
+            {name && <span className="text-muted-foreground">[{name}] </span>}
             {msg}
           </TableCell>
           <TableCell className="text-muted-foreground">
