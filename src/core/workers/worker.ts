@@ -3,18 +3,12 @@
 process.env.TZ = "Pacific/Honolulu";
 
 import { Job, Worker } from "bullmq";
-import Redis from "ioredis";
 
 import { createLogger } from "@/core/observability/logger";
 
 import { redisConnection } from "./connection";
 import { processors } from "./processors";
 import { registerSchedules } from "./scheduler";
-
-// Store process start time in Redis so the admin UI can show real uptime
-// (Redis CLIENT LIST `age` resets on idle connection recycles, which is misleading).
-const redis = new Redis(redisConnection);
-redis.set("udaman:worker:started_at", Date.now().toString());
 
 const log = createLogger("worker");
 
