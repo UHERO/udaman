@@ -120,9 +120,9 @@ function ScheduleRow({
       </TableCell>
       <TableCell>
         <div className="font-mono text-sm">{scheduler.name}</div>
-        {scheduler.data.name && (
+        {typeof scheduler.data.name === "string" && (
           <div className="text-muted-foreground text-xs">
-            {String(scheduler.data.name)}
+            {scheduler.data.name}
           </div>
         )}
       </TableCell>
