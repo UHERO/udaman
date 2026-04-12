@@ -15,6 +15,8 @@ const METHOD_ALIASES: Record<string, string> = {
   annualized_percentage_change: "yoy",
   // Rails `absolute_change` is just `diff` (series_arithmetic.rb:147-149).
   absolute_change: "diff",
+  // `per_1kcap` — snakeToCamel can't handle `_1` (digit after underscore).
+  per_1kcap: "per1kcap",
 };
 
 function snakeToCamel(s: string): string {
@@ -32,9 +34,13 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "power",
   "zeroAdd",
   "round",
+  // Special-cased below (need DB lookups) but must be in whitelist to pass the gate
   "rebase",
   "convertToReal",
+  "convertToRealB",
   "perCap",
+  "per1kcap",
+  "perCapCivilian",
   "yoy",
   "ytd",
   "ytdSum",
@@ -92,9 +98,6 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   // Daily census
   "dailyCensus",
   "daysInPeriod",
-  // Real conversion (deflation)
-  "convertToReal",
-  "convertToRealB",
 ]);
 
 /** Static methods callable from eval expressions (whitelist). */
@@ -490,6 +493,108 @@ class EvalExecutor {
           const refSeries = await SeriesCollection.getByName(refName);
           await SeriesCollection.loadCurrentData(refSeries);
           return target.extendLastFwdToMatch(refSeries);
+        }
+
+        // Rebase: divide every value by the annual sibling's value at a
+        // given date (default: last observation) and multiply by 100.
+        // Needs a DB lookup for the annual sibling series.
+        //
+        // Ports Series#rebase (tmp/lib/series_arithmetic.rb:70-85).
+        if (methodName === "rebase") {
+          // Look up annual sibling: CPI@HON.Q → CPI@HON.A
+          const annualName = target.buildName({ freq: "A" });
+          let annualSeries: Series;
+          try {
+            annualSeries = await SeriesCollection.getByName(annualName);
+            await SeriesCollection.loadCurrentData(annualSeries);
+          } catch {
+            throw new EvalExecuteError(
+              `No annual series found corresponding to ${target} (tried ${annualName})`,
+            );
+          }
+
+          // Optional date arg: .rebase(2020) or .rebase("2020-01-01")
+          const args = await resolveArgs(node.args);
+          let date: string | undefined;
+          if (args.length > 0 && args[0] !== undefined) {
+            const raw = args[0];
+            if (typeof raw === "number") {
+              // Year number → annual date "YYYY-01-01"
+              date = `${raw}-01-01`;
+            } else {
+              date = String(raw);
+              // Bare "YYYY" → "YYYY-01-01"
+              if (/^\d{4}$/.test(date)) date = `${date}-01-01`;
+            }
+          }
+
+          return target.rebase(annualSeries, date);
+        }
+
+        // Per-capita: divide by a population series and multiply by a
+        // constant. Needs a DB lookup for the population series.
+        //
+        // Ports Series#per_cap, #per_1kcap, #per_cap_civilian
+        // (tmp/lib/series_arithmetic.rb:109-123).
+        if (
+          methodName === "perCap" ||
+          methodName === "per1kcap" ||
+          methodName === "perCapCivilian"
+        ) {
+          const args = await resolveArgs(node.args);
+
+          let popPrefix = "NR";
+          let multiplier = 100;
+
+          if (methodName === "per1kcap") {
+            multiplier = 1000;
+          } else if (methodName === "perCapCivilian") {
+            popPrefix = "NRC";
+          }
+
+          let popSeries: Series | null = null;
+
+          // First positional arg can be a pre-loaded Series or a series name
+          if (args.length > 0 && args[0] != null) {
+            const first = args[0];
+            if (first instanceof Series) {
+              popSeries = first;
+            } else if (typeof first === "string") {
+              popSeries = await SeriesCollection.getByName(first);
+              await SeriesCollection.loadCurrentData(popSeries);
+            } else if (typeof first === "object") {
+              // kwargs: { pop: "NRC", multiplier: 1000 }
+              const opts = first as Record<string, string | number>;
+              if (opts.pop) popPrefix = String(opts.pop);
+              if (opts.multiplier) multiplier = Number(opts.multiplier);
+            }
+          }
+
+          // Check remaining args for kwargs
+          for (let i = 1; i < args.length; i++) {
+            const a = args[i];
+            if (a && typeof a === "object" && !(a instanceof Series)) {
+              const opts = a as Record<string, string | number>;
+              if (opts.pop) popPrefix = String(opts.pop);
+              if (opts.multiplier) multiplier = Number(opts.multiplier);
+            }
+          }
+
+          // If no explicit series given, build name from target's geo
+          if (!popSeries) {
+            const parsed = target.parseName();
+            const popName = Series.buildName(popPrefix, parsed.geo, parsed.freq);
+            try {
+              popSeries = await SeriesCollection.getByName(popName);
+            } catch {
+              throw new EvalExecuteError(
+                `No population series found: ${popName}`,
+              );
+            }
+            await SeriesCollection.loadCurrentData(popSeries);
+          }
+
+          return target.divide(popSeries).multiply(multiplier);
         }
 
         // Interpolate alternate missing months: for a monthly series that

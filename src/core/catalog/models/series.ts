@@ -737,19 +737,47 @@ class Series {
     return s;
   }
 
-  /** Rebase the series so the given year equals 100. */
-  rebase(_year?: number): Series {
-    /* TODO */ return this;
+  /**
+   * Rebase the series: divide every value by `newBase` and multiply by 100.
+   * When no `date` is given, defaults to the annual series' last observation.
+   * The annual sibling lookup is handled by the eval-executor; this method
+   * receives the already-loaded annual series.
+   *
+   * Ports Series#rebase (tmp/lib/series_arithmetic.rb:70-85).
+   */
+  rebase(annualSeries: Series, date?: string): Series {
+    const rebaseDate = date ?? annualSeries.lastObservation;
+    if (!rebaseDate) {
+      throw new Error(`No observation date for rebase of ${this}`);
+    }
+    const newBase = annualSeries.data.get(rebaseDate);
+    if (newBase === undefined || newBase === null || newBase === 0) {
+      const year = rebaseDate.slice(0, 4);
+      throw new Error(`No nonzero rebase of ${this} to ${year}`);
+    }
+
+    const newData = new Map<string, number>();
+    for (const [d, value] of this.data) {
+      if (value !== null && value !== undefined) {
+        newData.set(d, (value / newBase) * 100);
+      }
+    }
+
+    const year = rebaseDate.slice(0, 4);
+    const s = new Series({ name: `${this} rebased to ${year}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
   }
 
-  /** Deflate nominal values using a price index series. */
+  /** Deflate nominal values using a price index series. Intercepted by EvalExecutor. */
   convertToReal(_index?: string): Series {
-    /* TODO */ return this;
+    throw new Error("convertToReal must be called via EvalExecutor");
   }
 
-  /** Per-capita transform: divide by population series. */
+  /** Per-capita transform: divide by population series. Intercepted by EvalExecutor. */
   perCap(_options?: { pop?: string; multiplier?: number }): Series {
-    /* TODO */ return this;
+    throw new Error("perCap must be called via EvalExecutor");
   }
 
   /** Year-over-year percent change. */
