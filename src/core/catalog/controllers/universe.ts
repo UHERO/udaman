@@ -77,3 +77,4 @@ export async function deleteUniverse({ name }: { name: string }) {
   log.info({ name }, "universe deleted");
   return { message: `Universe ${name} deleted` };
 }
+

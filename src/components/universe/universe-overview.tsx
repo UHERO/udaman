@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { UniverseActions } from "./universe-actions";
 import { UniverseFormSheet } from "./universe-form-sheet";
 
 interface UniverseOverviewProps {
@@ -28,6 +29,8 @@ interface UniverseOverviewProps {
   description: string | null;
   dataPortalUrl: string | null;
   stats: UniverseStats;
+  canDelete?: boolean;
+  universes?: { name: string }[];
 }
 
 const STAT_DEFS: {
@@ -54,6 +57,8 @@ export function UniverseOverview({
   description,
   dataPortalUrl,
   stats,
+  canDelete = false,
+  universes = [],
 }: UniverseOverviewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -85,15 +90,20 @@ export function UniverseOverview({
               </a>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="cursor-pointer"
-            onClick={() => setEditOpen(true)}
-          >
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+            {canDelete && name !== "UHERO" && (
+              <UniverseActions name={name} universes={universes} />
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

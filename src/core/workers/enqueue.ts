@@ -17,6 +17,8 @@ import {
   type ReloadJobData,
   type SeriesReloadJobData,
   type TargetedReloadJobData,
+  type UniverseArchiveJobData,
+  type UniversePurgeJobData,
   type UpdatePublicJobData,
 } from "./queues";
 
@@ -115,4 +117,36 @@ export function enqueueQpubReparse(data: QpubReparseJobData) {
     jobId: `qpub-reparse-${id}`,
     attempts: 1,
   });
+}
+
+/**
+ * Enqueue a universe archive delayed until `scheduledAt` (ISO datetime).
+ * Removes any existing delayed job for the same universe first so the
+ * user can reschedule without getting a duplicate-jobId error.
+ */
+export async function enqueueUniverseArchive(
+  data: UniverseArchiveJobData,
+  scheduledAt: Date,
+) {
+  const jobId = `universe-archive-${data.universe}`;
+  const existing = await defaultQueue.getJob(jobId);
+  if (existing) await existing.remove();
+  const delay = Math.max(0, scheduledAt.getTime() - Date.now());
+  return defaultQueue.add(JobName.UNIVERSE_ARCHIVE, data, { jobId, delay });
+}
+
+/**
+ * Enqueue a universe purge delayed until `scheduledAt` (ISO datetime).
+ * Removes any existing delayed job for the same universe first so the
+ * user can reschedule without getting a duplicate-jobId error.
+ */
+export async function enqueueUniversePurge(
+  data: UniversePurgeJobData,
+  scheduledAt: Date,
+) {
+  const jobId = `universe-purge-${data.universe}`;
+  const existing = await defaultQueue.getJob(jobId);
+  if (existing) await existing.remove();
+  const delay = Math.max(0, scheduledAt.getTime() - Date.now());
+  return defaultQueue.add(JobName.UNIVERSE_PURGE, data, { jobId, delay });
 }

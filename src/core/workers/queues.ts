@@ -25,6 +25,8 @@ export const JobName = {
   QPUB_LOAD: "scraper.qpub-load",
   QPUB_REPARSE: "scraper.qpub-reparse",
   CLIPBOARD_ACTION: "clipboard.action",
+  UNIVERSE_ARCHIVE: "universe.archive",
+  UNIVERSE_PURGE: "universe.purge",
 } as const;
 
 export type JobNameValue = (typeof JobName)[keyof typeof JobName];
@@ -129,6 +131,14 @@ export type QpubReparseJobData = {
   period?: string;
   /** Progress report interval (default: 500) */
   batchSize?: number;
+};
+
+export type UniverseArchiveJobData = {
+  universe: string;
+};
+
+export type UniversePurgeJobData = {
+  universe: string;
 };
 
 // ─── Queue instances ─────────────────────────────────────────────────

@@ -15,6 +15,8 @@ import { processReloadJob } from "./reload-job";
 import { processSeriesReload } from "./series-reload";
 import { processTargetedReload } from "./targeted-reload";
 import { processTsdExport } from "./tsd-export";
+import { processUniverseArchive } from "./universe-archive";
+import { processUniversePurge } from "./universe-purge";
 import { processUpdatePublic } from "./update-public";
 
 export const processors: Record<string, (job: Job) => Promise<string>> = {
@@ -33,4 +35,6 @@ export const processors: Record<string, (job: Job) => Promise<string>> = {
   [JobName.DOWNLOAD]: processDownload,
   [JobName.KAUAI_EXPORT]: processKauaiExport,
   [JobName.CLIPBOARD_ACTION]: processClipboardAction,
+  [JobName.UNIVERSE_ARCHIVE]: processUniverseArchive,
+  [JobName.UNIVERSE_PURGE]: processUniversePurge,
 };

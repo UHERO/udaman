@@ -13,6 +13,10 @@ import {
   renameUniverse as renameUniverseCtrl,
   updateUniverse as updateUniverseCtrl,
 } from "@catalog/controllers/universe";
+import {
+  enqueueUniverseArchive,
+  enqueueUniversePurge,
+} from "@/core/workers/enqueue";
 
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -69,4 +73,80 @@ export async function deleteUniverse(name: string) {
   revalidatePath("/catalog");
   log.info({ name }, "deleteUniverse action completed");
   return { message: result.message };
+}
+
+/** Universes that cannot be archived or purged. */
+const PROTECTED_UNIVERSES = new Set(["UHERO"]);
+
+export async function archiveUniverseAction(
+  name: string,
+  scheduledAt: string,
+) {
+  await requirePermission("universe", "delete");
+
+  if (PROTECTED_UNIVERSES.has(name.toUpperCase())) {
+    return { success: false, message: `Universe ${name} is protected and cannot be archived via this action` };
+  }
+
+  const runAt = new Date(scheduledAt);
+  if (isNaN(runAt.getTime())) {
+    return { success: false, message: "Invalid scheduled time" };
+  }
+
+  log.info({ name, scheduledAt }, "archiveUniverse action enqueued");
+  try {
+    const job = await enqueueUniverseArchive({ universe: name }, runAt);
+    return {
+      success: true,
+      message: `Archive for ${name} scheduled at ${runAt.toLocaleString("en-US", { timeZone: "Pacific/Honolulu" })} HST. Job ID: ${job.id}`,
+    };
+  } catch (error) {
+    log.error({ name, error }, "archiveUniverse enqueue failed");
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to schedule archive",
+    };
+  }
+}
+
+export async function purgeUniverseAction(
+  name: string,
+  scheduledAt: string,
+) {
+  await requirePermission("universe", "delete");
+
+  if (PROTECTED_UNIVERSES.has(name.toUpperCase())) {
+    return { success: false, message: `Universe ${name} is protected and cannot be deleted` };
+  }
+
+  const runAt = new Date(scheduledAt);
+  if (isNaN(runAt.getTime())) {
+    return { success: false, message: "Invalid scheduled time" };
+  }
+
+  log.info({ name, scheduledAt }, "purgeUniverse action enqueued");
+  try {
+    const job = await enqueueUniversePurge({ universe: name }, runAt);
+    return {
+      success: true,
+      message:
+        `Delete for ${name} scheduled at ${runAt.toLocaleString("en-US", { timeZone: "Pacific/Honolulu" })} HST. Job ID: ${job.id}. ` +
+        `The job will verify a recent archive exists before proceeding.`,
+    };
+  } catch (error) {
+    log.error({ name, error }, "purgeUniverse enqueue failed");
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to schedule delete",
+    };
+  }
+}
+
+export async function canDeleteUniverse(): Promise<boolean> {
+  try {
+    await requirePermission("universe", "delete");
+    return true;
+  } catch {
+    return false;
+  }
 }
