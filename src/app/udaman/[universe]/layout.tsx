@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
 
-import { getGeographies } from "@/actions/geographies";
-import { getUniverses } from "@/actions/universes";
+import GeographyCollection from "@catalog/collections/geography-collection";
+import UniverseCollection from "@catalog/collections/universe-collection";
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { NavSearchInput } from "@/components/nav-search";
@@ -22,18 +22,20 @@ export default async function UniverseLayout({
   children: React.ReactNode;
   params: Promise<{ universe: string }>;
 }) {
+  // Auth gate first — unauthenticated users redirect to /udaman (login)
+  const session = await requireAuth();
+
   const { universe } = await params;
 
   // Validate universe against the DB (not a hardcoded list).
-  const allUniverses = await getUniverses();
+  // Uses collection directly — no permission gate needed for layout navigation data.
+  const allUniverses = await UniverseCollection.list();
   const matched = allUniverses.find(
     (u) => u.name.toUpperCase() === universe.toUpperCase(),
   );
   if (!matched) {
     notFound();
   }
-
-  const session = await requireAuth();
 
   const user = {
     id: session.user.id ?? "",
@@ -45,7 +47,7 @@ export default async function UniverseLayout({
     universe: session.user.universe ?? "UHERO",
   };
 
-  const geographies = await getGeographies({
+  const geographies = await GeographyCollection.list({
     universe: universe.toUpperCase() as Universe,
   });
   const geoHandles = geographies
