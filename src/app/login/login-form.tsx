@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -46,7 +46,19 @@ export function LoginForm({
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push(callbackUrl ?? "/udaman");
+        if (callbackUrl) {
+          router.push(callbackUrl);
+        } else {
+          // Fetch the session to get the user's role+universe for correct redirect
+          const session = await getSession();
+          const role = session?.user?.role ?? "external";
+          const universe = (session?.user?.universe ?? "UHERO").toLowerCase();
+          const landingPath =
+            role === "external"
+              ? `/udaman/${universe}`
+              : `/udaman/${universe}/series`;
+          router.push(landingPath);
+        }
         router.refresh();
       }
     });

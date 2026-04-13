@@ -48,6 +48,9 @@ function hasSessionCookie(request: NextRequest): boolean {
 /**
  * Check route-level access using the JWT token claims.
  * Returns a redirect response if denied, or null if allowed.
+ *
+ * Cross-universe policy: UHERO users (internal/admin/dev) can access any
+ * universe. All other users are restricted to their own universe.
  */
 async function checkRouteAccess(
   request: NextRequest,
@@ -61,9 +64,27 @@ async function checkRouteAccess(
   if (!token) return null; // No token — session check already handles redirect
 
   const role = (token.role as string) ?? "external";
-  const universe = (token.universe as string) ?? "UHERO";
+  const userUniverse = (token.universe as string) ?? "UHERO";
 
-  if (!isRouteAllowed(role, universe, internalPathname)) {
+  // Extract the URL universe from the internal pathname (/udaman/{universe}/...)
+  const uniMatch = internalPathname.match(/^\/udaman\/([^/]+)/);
+  const urlUniverse = uniMatch ? uniMatch[1].toUpperCase() : null;
+
+  // Cross-universe guard: non-UHERO users can only access their own universe
+  if (
+    urlUniverse &&
+    urlUniverse !== userUniverse.toUpperCase() &&
+    userUniverse.toUpperCase() !== "UHERO"
+  ) {
+    // Redirect to their own universe homepage
+    const ownUniverse = userUniverse.toLowerCase();
+    const ownHomepage = homepageUrl.includes("/udaman/")
+      ? `/udaman/${ownUniverse}`
+      : `/${ownUniverse}`;
+    return NextResponse.redirect(new URL(ownHomepage, request.url));
+  }
+
+  if (!isRouteAllowed(role, userUniverse, internalPathname)) {
     return NextResponse.redirect(new URL(homepageUrl, request.url));
   }
 
