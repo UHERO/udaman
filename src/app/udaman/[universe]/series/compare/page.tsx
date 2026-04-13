@@ -1,6 +1,5 @@
-import { getFilterOptionsAction } from "@/actions/compare-filters";
 import { compareSeriesAction } from "@/actions/series-actions";
-import { CompareToolbar } from "@/components/compare/compare-toolbar";
+import { CompareSearchInput } from "@/components/compare/compare-search-input";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
 
@@ -21,8 +20,6 @@ export default async function ComparePage({
         .filter(Boolean)
     : [];
 
-  const filterOptions = await getFilterOptionsAction(universe);
-
   // Landing state — no names at all
   if (names.length === 0) {
     return (
@@ -33,13 +30,7 @@ export default async function ComparePage({
             Compare two or more series side by side.
           </p>
         </div>
-        <CompareToolbar
-          initialMeasurements={filterOptions.measurements}
-          initialGeos={filterOptions.geos}
-          currentUniverse={universe}
-          currentFrequency="Q"
-          currentNames={names}
-        />
+        <CompareSearchInput currentNames={names} />
         <RecentSeriesList mode="compare" currentNames={names} />
       </>
     );
@@ -57,13 +48,7 @@ export default async function ComparePage({
             Compare two or more series side by side.
           </p>
         </div>
-        <CompareToolbar
-          initialMeasurements={filterOptions.measurements}
-          initialGeos={filterOptions.geos}
-          currentUniverse={universe}
-          currentFrequency="Q"
-          currentNames={names}
-        />
+        <CompareSearchInput currentNames={names} />
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-medium text-red-800">
             Error loading series
@@ -86,13 +71,7 @@ export default async function ComparePage({
         </p>
       </div>
 
-      <CompareToolbar
-        initialMeasurements={filterOptions.measurements}
-        initialGeos={filterOptions.geos}
-        currentUniverse={universe}
-        currentFrequency={series[0]?.frequencyCode ?? "Q"}
-        currentNames={names}
-      />
+      <CompareSearchInput currentNames={names} />
 
       {/* With only 1 series, show recent series as pills to quickly add more */}
       {names.length === 1 && (

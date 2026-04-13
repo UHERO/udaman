@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatLevel } from "@catalog/utils/format";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, ArrowRightLeft, X } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -710,7 +710,21 @@ export function AnalyzeControls({
 
   const searchParams = useSearchParams();
 
-  const [hiddenSeries, setHiddenSeries] = useState<Set<number>>(new Set());
+  // 3-state visibility: absent = colored (default), "gray" = muted, "hidden" = not rendered
+  const [seriesVisibility, setSeriesVisibility] = useState<
+    Map<number, "gray" | "hidden">
+  >(new Map());
+
+  const cycleVisibility = useCallback((index: number) => {
+    setSeriesVisibility((prev) => {
+      const next = new Map(prev);
+      const current = prev.get(index);
+      if (!current) next.set(index, "gray"); // colored → gray
+      else if (current === "gray") next.set(index, "hidden"); // gray → hidden
+      else next.delete(index); // hidden → colored
+      return next;
+    });
+  }, []);
 
   const [barMode, setBarMode] = useState<BarMode>(() =>
     parseBarMode(searchParams.get("barMode")),
@@ -770,17 +784,95 @@ export function AnalyzeControls({
     [isCompareMode, compareSeriesData],
   );
 
-  /** Group series indices by unit label for the compare stats bar */
+  /** Group visible (non-hidden) series indices by unit label for the compare stats bar */
   const compareUnits = useMemo(() => {
     if (!isCompareMode) return [];
     const map = new Map<string, number[]>();
     for (let i = 0; i < compareSeriesData.length; i++) {
+      if (seriesVisibility.get(i) === "hidden") continue;
       const label = compareSeriesData[i].unitShortLabel ?? "—";
       const indices = map.get(label);
       if (indices) indices.push(i);
       else map.set(label, [i]);
     }
     return [...map.entries()]; // [label, seriesIndices[]]
+  }, [isCompareMode, compareSeriesData, seriesVisibility]);
+
+  /** User overrides for axis assignment (index → "left" | "right").
+   *  Absent entries use the auto-default from unit groups. */
+  const [axisOverrides, setAxisOverrides] = useState<
+    Map<number, "left" | "right">
+  >(new Map());
+
+  /** Auto-default axis assignment based on unit groups */
+  const autoAxisMap = useMemo(() => {
+    const map = new Map<number, "left" | "right">();
+    if (!isCompareMode) return map;
+    if (compareUnits.length === 2) {
+      for (const idx of compareUnits[0][1]) map.set(idx, "left");
+      for (const idx of compareUnits[1][1]) map.set(idx, "right");
+    } else {
+      for (const [, indices] of compareUnits) {
+        for (const idx of indices) map.set(idx, "left");
+      }
+    }
+    return map;
+  }, [isCompareMode, compareUnits]);
+
+  /** Merged axis map: user overrides take precedence over auto-defaults */
+  const seriesAxisMap = useMemo(() => {
+    const map = new Map(autoAxisMap);
+    for (const [idx, axis] of axisOverrides) {
+      if (map.has(idx)) map.set(idx, axis);
+    }
+    return map;
+  }, [autoAxisMap, axisOverrides]);
+
+  const toggleSeriesAxis = useCallback((index: number) => {
+    setAxisOverrides((prev) => {
+      const next = new Map(prev);
+      const current = seriesAxisMap.get(index) ?? "left";
+      next.set(index, current === "left" ? "right" : "left");
+      return next;
+    });
+  }, [seriesAxisMap]);
+
+  const hasRightAxis = useMemo(
+    () => [...seriesAxisMap.values()].some((v) => v === "right"),
+    [seriesAxisMap],
+  );
+
+  /** Collect distinct unit labels for each axis side */
+  const leftAxisLabel = useMemo(() => {
+    if (!hasRightAxis || !isCompareMode) return undefined;
+    const labels = new Set<string>();
+    for (let i = 0; i < compareSeriesData.length; i++) {
+      if (seriesVisibility.get(i) === "hidden") continue;
+      if (seriesAxisMap.get(i) === "left")
+        labels.add(compareSeriesData[i].unitShortLabel ?? "—");
+    }
+    return [...labels].join(", ") || undefined;
+  }, [hasRightAxis, isCompareMode, compareSeriesData, seriesAxisMap, seriesVisibility]);
+
+  const rightAxisLabel = useMemo(() => {
+    if (!hasRightAxis || !isCompareMode) return undefined;
+    const labels = new Set<string>();
+    for (let i = 0; i < compareSeriesData.length; i++) {
+      if (seriesVisibility.get(i) === "hidden") continue;
+      if (seriesAxisMap.get(i) === "right")
+        labels.add(compareSeriesData[i].unitShortLabel ?? "—");
+    }
+    return [...labels].join(", ") || undefined;
+  }, [hasRightAxis, isCompareMode, compareSeriesData, seriesAxisMap, seriesVisibility]);
+
+  /** Map series index → unit short label for tooltip display */
+  const seriesUnitLabels = useMemo(() => {
+    const map = new Map<number, string>();
+    if (!isCompareMode) return map;
+    for (let i = 0; i < compareSeriesData.length; i++) {
+      map.set(i, compareSeriesData[i].unitShortLabel ?? "");
+    }
+    return map;
   }, [isCompareMode, compareSeriesData]);
 
   // ── Standard single-series chart data ──────────────────────────────
@@ -1160,33 +1252,52 @@ export function AnalyzeControls({
           <div className="flex flex-col gap-1">
             <span className="text-muted-foreground text-xs">Units</span>
             <div className="flex flex-wrap gap-2">
-              {compareUnits.map(([label, indices]) => (
-                <span
-                  key={label}
-                  className="flex items-center gap-1 text-sm font-medium"
-                >
-                  {compareUnits.length > 1 &&
-                    indices.map((i) => (
-                      <span
-                        key={i}
-                        className="inline-block h-2.5 w-2.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            SERIES_COLORS[i % SERIES_COLORS.length],
-                        }}
-                      />
-                    ))}
-                  {label}
-                </span>
-              ))}
+              {compareUnits.map(([label, indices]) => {
+                // Determine which axes this unit group spans
+                const axes = new Set(
+                  indices.map((i) => seriesAxisMap.get(i) ?? "left"),
+                );
+                const axisTags = hasRightAxis
+                  ? [...axes].map((a) => (a === "left" ? "L" : "R")).join(",")
+                  : null;
+                return (
+                  <span
+                    key={label}
+                    className="flex items-center gap-1 text-sm font-medium"
+                  >
+                    {compareUnits.length > 1 &&
+                      indices.map((i) => (
+                        <span
+                          key={i}
+                          className="inline-block h-2.5 w-2.5 rounded-full"
+                          style={{
+                            backgroundColor:
+                              SERIES_COLORS[i % SERIES_COLORS.length],
+                          }}
+                        />
+                      ))}
+                    {label}
+                    {axisTags && (
+                      <span className="text-muted-foreground text-[10px] font-normal">
+                        ({axisTags})
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
             </div>
           </div>
-          {compareUnits.length > 1 && (
+          {compareUnits.length > 2 && !hasRightAxis && (
             <div className="flex items-center gap-1.5 text-amber-600">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
               <span className="text-xs">
-                Mixed units — values may not be directly comparable
+                Series with mismatched units share a single axis
               </span>
+            </div>
+          )}
+          {hasRightAxis && (
+            <div className="flex items-center gap-1.5 text-blue-600">
+              <span className="text-xs">Dual Y-axis active</span>
             </div>
           )}
         </div>
@@ -1302,55 +1413,79 @@ export function AnalyzeControls({
           </div>
         </ControlPanel>
 
-        {/* Multi-series level chart with brush */}
-        <div className="w-full py-2">
-          <LevelChart
-            data={compareFullData}
-            decimals={decimals}
-            freqCode={currentFreqCode}
-            seriesNames={compareSeriesNames}
-            hiddenSeries={hiddenSeries}
-            brushStartIndex={brushRange.startIndex}
-            brushEndIndex={brushRange.endIndex}
-            onBrushChange={handleBrushChange}
-            indexBaseYear={
-              transformation === "indexToYear" ? indexBaseYear : undefined
-            }
-          />
-        </div>
+        {/* Two-column axis legend: Left Axis | Right Axis */}
+        {(() => {
+          const leftIndices = compareSeriesNames
+            .map((_, i) => i)
+            .filter((i) => seriesAxisMap.get(i) !== "right");
+          const rightIndices = compareSeriesNames
+            .map((_, i) => i)
+            .filter((i) => seriesAxisMap.get(i) === "right");
 
-        {/* Interactive legend: click name to toggle, X to remove */}
-        <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-          {compareSeriesNames.map((name, i) => {
-            const isHidden = hiddenSeries.has(i);
+          // Detect mixed units per axis (ignoring hidden series)
+          const unitsOnAxis = (indices: number[]) => {
+            const units = new Set<string>();
+            for (const i of indices) {
+              if (seriesVisibility.get(i) === "hidden") continue;
+              units.add(compareSeriesData[i].unitShortLabel ?? "—");
+            }
+            return units;
+          };
+          const leftMixed = unitsOnAxis(leftIndices).size > 1;
+          const rightMixed = unitsOnAxis(rightIndices).size > 1;
+
+          const renderSeriesItem = (i: number, axisMixed: boolean) => {
+            const name = compareSeriesNames[i];
+            const vis = seriesVisibility.get(i);
             const color = SERIES_COLORS[i % SERIES_COLORS.length];
+            const warnHighlight = axisMixed && vis !== "hidden";
+            const visTitles = {
+              undefined: `Gray out ${name}`,
+              gray: `Hide ${name}`,
+              hidden: `Show ${name}`,
+            } as const;
             return (
-              <span
+              <div
                 key={name}
-                className="inline-flex items-center gap-1.5 font-mono text-xs"
+                className={`flex items-center gap-1 rounded px-1 font-mono text-xs ${warnHighlight ? "bg-amber-50" : ""}`}
               >
                 <button
                   type="button"
-                  onClick={() => {
-                    setHiddenSeries((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(i)) next.delete(i);
-                      else next.add(i);
-                      return next;
-                    });
-                  }}
+                  onClick={() => cycleVisibility(i)}
                   className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80"
-                  style={{ opacity: isHidden ? 0.5 : 1 }}
-                  title={isHidden ? `Show ${name}` : `Hide ${name}`}
+                  style={{
+                    opacity:
+                      vis === "hidden" ? 0.4 : vis === "gray" ? 0.6 : 1,
+                  }}
+                  title={visTitles[vis ?? "undefined"]}
                 >
                   <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{
-                      backgroundColor: isHidden ? "#94a3b8" : color,
+                      backgroundColor:
+                        vis === "hidden"
+                          ? "transparent"
+                          : vis === "gray"
+                            ? "#94a3b8"
+                            : color,
+                      border:
+                        vis === "hidden"
+                          ? `1.5px solid ${color}`
+                          : "1.5px solid transparent",
                     }}
                   />
-                  {name}
+                  <span className="truncate">{name}</span>
                 </button>
+                {compareSeriesNames.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleSeriesAxis(i)}
+                    className="text-muted-foreground hover:text-foreground rounded p-0.5"
+                    title={`Move to ${seriesAxisMap.get(i) === "right" ? "left" : "right"} axis`}
+                  >
+                    <ArrowRightLeft className="h-3 w-3" />
+                  </button>
+                )}
                 {universe && compareSeriesNames.length > 1 && (
                   <button
                     type="button"
@@ -1368,9 +1503,59 @@ export function AnalyzeControls({
                     <X className="h-3 w-3" />
                   </button>
                 )}
-              </span>
+              </div>
             );
-          })}
+          };
+
+          return (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
+                  Left Axis{leftAxisLabel ? ` (${leftAxisLabel})` : ""}
+                </span>
+                {leftIndices.length > 0 ? (
+                  leftIndices.map((i) => renderSeriesItem(i, leftMixed))
+                ) : (
+                  <span className="text-muted-foreground text-xs italic">
+                    No series
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
+                  Right Axis{rightAxisLabel ? ` (${rightAxisLabel})` : ""}
+                </span>
+                {rightIndices.length > 0 ? (
+                  rightIndices.map((i) => renderSeriesItem(i, rightMixed))
+                ) : (
+                  <span className="text-muted-foreground text-xs italic">
+                    No series
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Multi-series level chart with brush */}
+        <div className="w-full py-2">
+          <LevelChart
+            data={compareFullData}
+            decimals={decimals}
+            freqCode={currentFreqCode}
+            seriesNames={compareSeriesNames}
+            seriesVisibility={seriesVisibility}
+            seriesAxisMap={seriesAxisMap}
+            leftAxisLabel={leftAxisLabel}
+            rightAxisLabel={rightAxisLabel}
+            seriesUnitLabels={seriesUnitLabels}
+            brushStartIndex={brushRange.startIndex}
+            brushEndIndex={brushRange.endIndex}
+            onBrushChange={handleBrushChange}
+            indexBaseYear={
+              transformation === "indexToYear" ? indexBaseYear : undefined
+            }
+          />
         </div>
 
         <Separator />

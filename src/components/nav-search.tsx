@@ -322,7 +322,7 @@ export function NavSearchInput({ geoHandles = [] }: { geoHandles?: string[] }) {
 
 // ── Syntax reference ────────────────────────────────────────────────
 
-function SearchSyntaxHelp() {
+export function SearchSyntaxHelp() {
   return (
     <div className="space-y-2">
       <p className="font-semibold">Search operators</p>

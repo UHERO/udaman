@@ -955,6 +955,8 @@ interface CompareTooltipProps {
   label?: string;
   decimals: number;
   seriesNames: string[];
+  seriesVisibility?: Map<number, "gray" | "hidden">;
+  unitLabels?: Map<number, string>;
 }
 
 function CompareTooltip({
@@ -963,6 +965,8 @@ function CompareTooltip({
   label,
   decimals,
   seriesNames,
+  seriesVisibility,
+  unitLabels,
 }: CompareTooltipProps) {
   if (!active || !payload?.length || !label) return null;
   const row = payload[0]?.payload as ChartRow | undefined;
@@ -974,14 +978,27 @@ function CompareTooltip({
         {formatDate(label)}
       </p>
       {seriesNames.map((name, i) => {
+        if (seriesVisibility?.get(i) === "hidden") return null;
         const v = row[`series_${i}`];
+        const vis = seriesVisibility?.get(i);
+        const unitSuffix = unitLabels?.get(i);
         return (
           <p
             key={name}
             className="text-sm font-semibold"
-            style={{ color: SERIES_COLORS[i % SERIES_COLORS.length] }}
+            style={{
+              color:
+                vis === "gray"
+                  ? "#94a3b8"
+                  : SERIES_COLORS[i % SERIES_COLORS.length],
+            }}
           >
             {name}: {v != null && !isNaN(v) ? v.toFixed(decimals) : "—"}
+            {unitSuffix ? (
+              <span className="ml-1 text-xs font-normal text-slate-400">
+                {unitSuffix}
+              </span>
+            ) : null}
           </p>
         );
       })}
@@ -1007,8 +1024,16 @@ interface LevelChartProps {
   indexBaseYear?: number;
   /** Multi-series compare mode: series names corresponding to series_0, series_1, ... */
   seriesNames?: string[];
-  /** Indices of series to visually mute (hidden by legend toggle) */
-  hiddenSeries?: Set<number>;
+  /** 3-state visibility: absent = colored, "gray" = muted, "hidden" = not rendered */
+  seriesVisibility?: Map<number, "gray" | "hidden">;
+  /** Per-series Y-axis assignment ("left" or "right") */
+  seriesAxisMap?: Map<number, "left" | "right">;
+  /** Label for left Y-axis (dual-axis mode) */
+  leftAxisLabel?: string;
+  /** Label for right Y-axis (dual-axis mode) */
+  rightAxisLabel?: string;
+  /** Per-series unit labels for tooltip */
+  seriesUnitLabels?: Map<number, string>;
   /** Brush props for compare mode (brush rendered inside LevelChart) */
   brushStartIndex?: number;
   brushEndIndex?: number;
@@ -1027,7 +1052,11 @@ export function LevelChart({
   rollingWindow = 12,
   indexBaseYear,
   seriesNames,
-  hiddenSeries,
+  seriesVisibility,
+  seriesAxisMap,
+  leftAxisLabel,
+  rightAxisLabel,
+  seriesUnitLabels,
   brushStartIndex,
   brushEndIndex,
   onBrushChange,
@@ -1056,13 +1085,17 @@ export function LevelChart({
 
   // ── Multi-series compare mode ──────────────────────────────────────
   if (isCompareMode) {
+    const hasRight = seriesAxisMap
+      ? [...seriesAxisMap.values()].some((v) => v === "right")
+      : false;
+
     return (
       <ResponsiveContainer width="100%" height={360}>
         <ComposedChart
           data={chartData}
           margin={{
             top: indexBaseDate ? 24 : 10,
-            right: 10,
+            right: hasRight ? 10 : 10,
             bottom: 0,
             left: 0,
           }}
@@ -1080,26 +1113,65 @@ export function LevelChart({
             tickFormatter={(v: number) => formatValue(v, decimals)}
             tick={{ fontSize: 11 }}
             width={70}
+            label={
+              hasRight && leftAxisLabel
+                ? {
+                    value: leftAxisLabel,
+                    angle: -90,
+                    position: "insideLeft",
+                    style: { fontSize: 11, fill: "#6b7280" },
+                  }
+                : undefined
+            }
           />
+          {hasRight && (
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              domain={["auto", "auto"]}
+              tickFormatter={(v: number) => formatValue(v, decimals)}
+              tick={{ fontSize: 11 }}
+              width={70}
+              label={
+                rightAxisLabel
+                  ? {
+                      value: rightAxisLabel,
+                      angle: 90,
+                      position: "insideRight",
+                      style: { fontSize: 11, fill: "#6b7280" },
+                    }
+                  : undefined
+              }
+            />
+          )}
           <Tooltip
             content={
-              <CompareTooltip decimals={decimals} seriesNames={seriesNames} />
+              <CompareTooltip
+                decimals={decimals}
+                seriesNames={seriesNames}
+                seriesVisibility={seriesVisibility}
+                unitLabels={seriesUnitLabels}
+              />
             }
           />
           {seriesNames.map((name, i) => {
-            const isHidden = hiddenSeries?.has(i) ?? false;
+            const vis = seriesVisibility?.get(i);
+            if (vis === "hidden") return null;
+            const axisId = seriesAxisMap?.get(i) ?? "left";
             return (
               <Line
                 key={name}
                 type="monotone"
                 dataKey={`series_${i}`}
                 name={name}
-                yAxisId="left"
+                yAxisId={axisId}
                 stroke={
-                  isHidden ? "#94a3b8" : SERIES_COLORS[i % SERIES_COLORS.length]
+                  vis === "gray"
+                    ? "#94a3b8"
+                    : SERIES_COLORS[i % SERIES_COLORS.length]
                 }
-                strokeWidth={isHidden ? 1 : 2}
-                strokeOpacity={isHidden ? 0.4 : 1}
+                strokeWidth={vis === "gray" ? 1 : 2}
+                strokeOpacity={vis === "gray" ? 0.4 : 1}
                 dot={false}
                 isAnimationActive={true}
                 animationDuration={400}
