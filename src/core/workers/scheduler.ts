@@ -10,6 +10,11 @@ const log = createLogger("worker.scheduler");
  * All cron times are in Pacific/Honolulu (HST, UTC-10, no DST).
  */
 export async function registerSchedules(): Promise<void> {
+  if (process.env.NODE_ENV !== "production") {
+    log.info("Skipping cron schedules in development (NODE_ENV=%s)", process.env.NODE_ENV);
+    return;
+  }
+
   const tz = "Pacific/Honolulu";
 
   // ─── Exports ────────────────────────────────────────────────────────
