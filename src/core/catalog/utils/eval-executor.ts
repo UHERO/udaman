@@ -1,9 +1,15 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { getDataDir } from "@/lib/data-dir";
+
 import SeriesCollection from "../collections/series-collection";
 import Series from "../models/series";
 import DataFileReader from "./data-file-reader";
 import EvalParser, { EvalParseError } from "./eval-parser";
 import type { EvalArg, EvalNode } from "./eval-parser";
 import { addMonthsStr } from "./time";
+import { parseTsdContent } from "./tsd-reader";
 
 // ─── Ruby → TypeScript method name mapping ──────────────────────────
 
@@ -169,6 +175,40 @@ async function resolveArgs(args: EvalArg[]): Promise<unknown[]> {
   return Promise.all(args.map(resolveArg));
 }
 
+// ─── TSD file helper ─────────────────────────────────────────────────
+
+const TSD_FREQ_MAP: Record<string, string> = {
+  A: "year",
+  S: "semi",
+  Q: "quarter",
+  M: "month",
+  W: "week",
+  D: "day",
+};
+
+function loadTsdSeries(
+  path: string,
+  seriesName: string,
+): { data: Map<string, number>; frequency: string } {
+  const fullPath = join(getDataDir(), path.trim());
+  const content = readFileSync(fullPath, "utf-8");
+  const allSeries = parseTsdContent(content);
+  const match = allSeries.find(
+    (s) => s.name.toUpperCase() === seriesName.toUpperCase(),
+  );
+  if (!match) {
+    throw new EvalExecuteError(
+      `No series "${seriesName}" found in TSD file ${path}`,
+    );
+  }
+  // Strip nulls (missing sentinel already handled by parseTsdContent)
+  const data = new Map<string, number>();
+  for (const [date, val] of match.dataHash) {
+    if (val !== null) data.set(date, val);
+  }
+  return { data, frequency: TSD_FREQ_MAP[match.frequency] ?? "month" };
+}
+
 // ─── Executor ───────────────────────────────────────────────────────
 
 class EvalExecutor {
@@ -261,22 +301,53 @@ class EvalExecutor {
         }
 
         // File loading methods: read file server-side, extract series data
-        if (methodName === "loadFrom" || methodName === "loadSaFrom") {
+        if (methodName === "loadFrom") {
           const args = await resolveArgs(node.args);
           const path = String(args[0]);
-          const reader = DataFileReader.fromFile(path);
 
-          const lookupName =
-            methodName === "loadSaFrom" && !target.isNS
-              ? target.nsSeriesName
-              : target.name;
+          // TSD files have a fundamentally different structure — handle directly
+          if (/\.tsd$/i.test(path)) {
+            const tsd = loadTsdSeries(path, target.name);
+            const result = new Series({
+              name: `loaded from static file <${path}>`,
+            });
+            result.data = tsd.data;
+            result.frequency = tsd.frequency;
+            return result;
+          }
+
+          // Optional 2nd arg: sheet spec for spreadsheet files
+          const sheet =
+            args[1] != null ? String(args[1]) : undefined;
+          const reader = DataFileReader.fromFile(path, sheet);
+
+          const dataMap = reader.series(target.name);
+          const result = new Series({
+            name: `loaded from static file <${path}>`,
+          });
+          result.data = dataMap;
+          result.frequency = reader.frequency;
+          return result;
+        }
+
+        if (methodName === "loadSaFrom") {
+          const args = await resolveArgs(node.args);
+          const path = String(args[0]);
+
+          // Extract sheet kwarg or default to "sadata"
+          const sheetArg =
+            args[1] && typeof args[1] === "object"
+              ? (args[1] as Record<string, string>).sheet
+              : undefined;
+          const reader = DataFileReader.fromFile(path, sheetArg ?? "sadata");
+
+          const lookupName = target.isNS
+            ? target.name
+            : target.nsSeriesName;
 
           const dataMap = reader.series(lookupName);
           const result = new Series({
-            name:
-              methodName === "loadFrom"
-                ? `loaded from static file <${path}>`
-                : `loaded SA from static file <${path}>`,
+            name: `loaded SA from static file <${path}>`,
           });
           result.data = dataMap;
           result.frequency = reader.frequency;

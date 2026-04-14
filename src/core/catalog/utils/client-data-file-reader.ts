@@ -170,6 +170,7 @@ class ClientDataFileReader {
       }
     }
 
+    this._dates = this.convertIfQuarters(this._dates);
     return this._dates;
   }
 
@@ -193,6 +194,27 @@ class ClientDataFileReader {
       }
     }
     return samples;
+  }
+
+  /**
+   * Rails convert_if_quarters: when all parsed date months are 1-4,
+   * treat them as quarter numbers and remap to quarter start months.
+   * month 1→Jan (Q1), 2→Apr (Q2), 3→Jul (Q3), 4→Oct (Q4).
+   */
+  private convertIfQuarters(dates: Map<string, number>): Map<string, number> {
+    const QUARTER_MONTHS = ["01", "04", "07", "10"];
+    for (const dateStr of dates.keys()) {
+      const month = parseInt(dateStr.slice(5, 7), 10);
+      if (month > 4) return dates; // not quarters — return unchanged
+    }
+    const remapped = new Map<string, number>();
+    for (const [dateStr, index] of dates) {
+      const year = dateStr.slice(0, 4);
+      const month = parseInt(dateStr.slice(5, 7), 10);
+      const newMonth = QUARTER_MONTHS[month - 1];
+      remapped.set(`${year}-${newMonth}-01`, index);
+    }
+    return remapped;
   }
 
   // ─── Frequency detection ──────────────────────────────────────────
