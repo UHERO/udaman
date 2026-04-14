@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import type { ClipboardLoaderRow } from "@catalog/collections/clipboard-collection";
 import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
 import type { ClipboardAction } from "@catalog/controllers/clipboard";
 import { format } from "date-fns";
@@ -25,8 +26,11 @@ import {
   clearClipboard,
   executeClipboardAction,
   getClipboardSeries,
+  reloadClipboardLoaders,
   removeSeriesFromClipboard,
+  searchClipboardLoaders,
 } from "@/actions/clipboard-actions";
+import { getColor } from "@/components/helpers";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +43,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,6 +99,12 @@ export function ClipboardTable({
   const [isPending, startTransition] = useTransition();
   const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
 
+  // Loader filter state
+  const [loaderFilter, setLoaderFilter] = useState("");
+  const [loaderRows, setLoaderRows] = useState<ClipboardLoaderRow[]>([]);
+  const isLoaderView = loaderFilter.length > 0;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchData = useCallback(() => {
     startTransition(async () => {
       const result = await getClipboardSeries();
@@ -101,6 +112,42 @@ export function ClipboardTable({
       setCount(result.count);
     });
   }, []);
+
+  // Debounced loader search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!loaderFilter) {
+      setLoaderRows([]);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      startTransition(async () => {
+        try {
+          const result = await searchClipboardLoaders(loaderFilter);
+          setLoaderRows(result.data as ClipboardLoaderRow[]);
+        } catch {
+          setLoaderRows([]);
+        }
+      });
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [loaderFilter]);
+
+  const handleReloadLoaders = () => {
+    const ids = loaderRows.map((r) => r.loaderId);
+    startTransition(async () => {
+      try {
+        const result = await reloadClipboardLoaders(ids);
+        toast.info(result.message);
+      } catch (err) {
+        toast.error("Loader reload failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
+  };
 
   const handleRemove = (seriesId: number) => {
     const series = rows.find((r) => r.id === seriesId);
@@ -177,30 +224,51 @@ export function ClipboardTable({
         <div className="flex gap-2">
           {count > 0 && (
             <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isPending}>
-                    Actions
-                    <ChevronDown className="ml-1 size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {CLIPBOARD_ACTIONS.map((item, i) => (
-                    <span key={item.action}>
-                      {item.destructive && i > 0 && <DropdownMenuSeparator />}
-                      <DropdownMenuItem
-                        onClick={() => handleAction(item.action)}
-                        className={
-                          item.destructive ? "text-destructive" : undefined
-                        }
-                      >
-                        <item.icon className="mr-2 size-4" />
-                        {item.label}
-                      </DropdownMenuItem>
-                    </span>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Input
+                placeholder="Filter loaders..."
+                value={loaderFilter}
+                onChange={(e) => setLoaderFilter(e.target.value)}
+                className="h-8 w-48"
+              />
+
+              {isLoaderView ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending || loaderRows.length === 0}
+                  onClick={handleReloadLoaders}
+                >
+                  <RotateCw className="mr-1 size-4" />
+                  Reload Loaders
+                </Button>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={isPending}>
+                      Actions
+                      <ChevronDown className="ml-1 size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {CLIPBOARD_ACTIONS.map((item, i) => (
+                      <span key={item.action}>
+                        {item.destructive && i > 0 && (
+                          <DropdownMenuSeparator />
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => handleAction(item.action)}
+                          className={
+                            item.destructive ? "text-destructive" : undefined
+                          }
+                        >
+                          <item.icon className="mr-2 size-4" />
+                          {item.label}
+                        </DropdownMenuItem>
+                      </span>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -229,83 +297,134 @@ export function ClipboardTable({
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Geo</TableHead>
-            <TableHead>Freq</TableHead>
-            <TableHead>SA</TableHead>
-            <TableHead>Units</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead>First</TableHead>
-            <TableHead>Last</TableHead>
-            <TableHead className="w-12" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.length === 0 && !isPending ? (
+      {isLoaderView ? (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell
-                colSpan={9}
-                className="text-muted-foreground h-24 text-center"
-              >
-                No series on clipboard.
-              </TableCell>
+              <TableHead>Series Name</TableHead>
+              <TableHead>Eval</TableHead>
+              <TableHead>Last Run</TableHead>
             </TableRow>
-          ) : (
-            rows.map((row, i) => (
-              <TableRow key={row.id} className={i % 2 === 0 ? "bg-muted" : ""}>
-                <TableCell className="font-mono text-sm">
-                  <Link
-                    href={`/udaman/${universe}/series/${row.id}`}
-                    className="text-primary hover:underline"
-                  >
-                    {row.name}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-sm">
-                  {row.geography ?? "-"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {row.frequency ?? "-"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {row.seasonalAdjustment ?? "-"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {row.unitShortLabel ?? "-"}
-                </TableCell>
-                <TableCell className="max-w-48 truncate text-sm">
-                  {row.sourceDescription ?? "-"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {row.minDate
-                    ? format(new Date(row.minDate), "yyyy-MM-dd")
-                    : "-"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {row.maxDate
-                    ? format(new Date(row.maxDate), "yyyy-MM-dd")
-                    : "-"}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7"
-                    disabled={isPending}
-                    onClick={() => handleRemove(row.id)}
-                  >
-                    <X className="size-4" />
-                    <span className="sr-only">Remove</span>
-                  </Button>
+          </TableHeader>
+          <TableBody>
+            {loaderRows.length === 0 && !isPending ? (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className="text-muted-foreground h-24 text-center"
+                >
+                  No loaders match filter
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              loaderRows.map((row) => (
+                <TableRow
+                  key={row.loaderId}
+                  className={getColor(row.color)}
+                >
+                  <TableCell className="font-mono text-sm">
+                    <Link
+                      href={`/udaman/${universe}/series/${row.seriesId}`}
+                      className="text-primary hover:underline"
+                    >
+                      {row.seriesName}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-md truncate text-sm">
+                    {row.eval}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.lastRunAt
+                      ? format(new Date(row.lastRunAt), "yyyy-MM-dd HH:mm")
+                      : "-"}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Geo</TableHead>
+              <TableHead>Freq</TableHead>
+              <TableHead>SA</TableHead>
+              <TableHead>Units</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>First</TableHead>
+              <TableHead>Last</TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 && !isPending ? (
+              <TableRow>
+                <TableCell
+                  colSpan={9}
+                  className="text-muted-foreground h-24 text-center"
+                >
+                  No series on clipboard.
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row, i) => (
+                <TableRow
+                  key={row.id}
+                  className={i % 2 === 0 ? "bg-muted" : ""}
+                >
+                  <TableCell className="font-mono text-sm">
+                    <Link
+                      href={`/udaman/${universe}/series/${row.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {row.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.geography ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.frequency ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.seasonalAdjustment ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.unitShortLabel ?? "-"}
+                  </TableCell>
+                  <TableCell className="max-w-48 truncate text-sm">
+                    {row.sourceDescription ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.minDate
+                      ? format(new Date(row.minDate), "yyyy-MM-dd")
+                      : "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.maxDate
+                      ? format(new Date(row.maxDate), "yyyy-MM-dd")
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      disabled={isPending}
+                      onClick={() => handleRemove(row.id)}
+                    >
+                      <X className="size-4" />
+                      <span className="sr-only">Remove</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
 
       <ClipboardMetadataDialog
         open={metadataDialogOpen}

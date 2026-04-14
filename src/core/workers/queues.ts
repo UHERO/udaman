@@ -25,6 +25,7 @@ export const JobName = {
   QPUB_LOAD: "scraper.qpub-load",
   QPUB_REPARSE: "scraper.qpub-reparse",
   CLIPBOARD_ACTION: "clipboard.action",
+  CLIPBOARD_LOADER_RELOAD: "clipboard.loader-reload",
   UNIVERSE_ARCHIVE: "universe.archive",
   UNIVERSE_PURGE: "universe.purge",
 } as const;
@@ -120,6 +121,11 @@ export type ClipboardActionJobData = {
     | "unrestrict"
     | "destroy";
   seriesIds: number[];
+};
+
+export type ClipboardLoaderReloadJobData = {
+  reloadJobId: number;
+  loaderIds: number[];
 };
 
 export type QpubReparseJobData = {

@@ -7,7 +7,9 @@ import {
   clearClipboard as clearClipboardCtrl,
   doClipboardAction as doClipboardActionCtrl,
   getClipboard as fetchClipboard,
+  reloadClipboardLoaders as reloadClipboardLoadersCtrl,
   removeFromClipboard as removeFromClipboardCtrl,
+  searchClipboardLoaders as searchClipboardLoadersCtrl,
 } from "@catalog/controllers/clipboard";
 import type {
   BulkMetadataPayload,
@@ -81,5 +83,24 @@ export async function bulkUpdateClipboardMetadata(
     "bulkUpdateClipboardMetadata called",
   );
   const result = await bulkUpdateMetadataCtrl({ userId, payload });
+  return result;
+}
+
+export async function searchClipboardLoaders(pattern: string) {
+  await requirePermission("clipboard", "read");
+  const userId = await getCurrentUserId();
+  log.info({ userId, pattern }, "searchClipboardLoaders action called");
+  const result = await searchClipboardLoadersCtrl({ userId, pattern });
+  return result;
+}
+
+export async function reloadClipboardLoaders(loaderIds: number[]) {
+  await requirePermission("clipboard", "execute");
+  const userId = await getCurrentUserId();
+  log.info(
+    { userId, loaderCount: loaderIds.length },
+    "reloadClipboardLoaders action called",
+  );
+  const result = await reloadClipboardLoadersCtrl({ userId, loaderIds });
   return result;
 }

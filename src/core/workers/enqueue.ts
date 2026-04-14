@@ -7,6 +7,7 @@ import {
   type ApiDvwReloadJobData,
   type BatchReloadJobData,
   type ClipboardActionJobData,
+  type ClipboardLoaderReloadJobData,
   type DbedtUploadJobData,
   type DownloadJobData,
   type DvwUploadJobData,
@@ -109,6 +110,14 @@ export function enqueueQpubLoad(data: QpubLoadJobData) {
 
 export function enqueueClipboardAction(data: ClipboardActionJobData) {
   return defaultQueue.add(JobName.CLIPBOARD_ACTION, data, { priority: 1 });
+}
+
+export function enqueueClipboardLoaderReload(
+  data: ClipboardLoaderReloadJobData,
+) {
+  return defaultQueue.add(JobName.CLIPBOARD_LOADER_RELOAD, data, {
+    priority: 1,
+  });
 }
 
 export function enqueueQpubReparse(data: QpubReparseJobData) {

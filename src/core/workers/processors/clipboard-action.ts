@@ -6,7 +6,10 @@ import type { Job } from "bullmq";
 import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
-import type { ClipboardActionJobData } from "../queues";
+import type {
+  ClipboardActionJobData,
+  ClipboardLoaderReloadJobData,
+} from "../queues";
 
 const log = createLogger("worker.clipboard-action");
 
@@ -236,6 +239,64 @@ export async function processClipboardAction(
       [errMsg.slice(0, 254), reloadJobId],
     );
     log.error({ reloadJobId, action, err: errMsg }, "Clipboard action failed");
+    throw e;
+  }
+}
+
+export async function processClipboardLoaderReload(
+  job: Job<ClipboardLoaderReloadJobData>,
+): Promise<string> {
+  const origLog = job.log.bind(job);
+  job.log = (msg: string) => origLog(`[${timestamp()}] ${msg}`);
+
+  const { reloadJobId, loaderIds } = job.data;
+
+  await mysql`UPDATE reload_jobs SET status = 'processing' WHERE id = ${reloadJobId}`;
+
+  try {
+    job.log(`Reloading ${loaderIds.length} loaders`);
+    log.info(
+      { reloadJobId, loaderCount: loaderIds.length },
+      "Processing clipboard loader reload",
+    );
+
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const loaderId of loaderIds) {
+      try {
+        const loader = await LoaderCollection.getById(loaderId);
+        if (!loader) {
+          job.log(`Loader ${loaderId} not found, skipping`);
+          failed++;
+          continue;
+        }
+        await LoaderCollection.reload({ loader, clearFirst: false });
+        succeeded++;
+        job.log(`Reloaded loader ${loaderId}`);
+      } catch (e) {
+        failed++;
+        const msg = e instanceof Error ? e.message : String(e);
+        log.warn({ loaderId, err: msg }, "Loader reload failed, continuing");
+        job.log(`Loader ${loaderId} failed: ${msg}`);
+      }
+    }
+
+    const result = `Reloaded ${succeeded} loaders (${failed} failed)`;
+
+    await rawQuery(
+      "UPDATE reload_jobs SET status = 'done', finished_at = NOW() WHERE id = ?",
+      [reloadJobId],
+    );
+    log.info({ reloadJobId }, "Clipboard loader reload completed");
+    return result;
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    await rawQuery(
+      "UPDATE reload_jobs SET status = 'fail', finished_at = NOW(), error = ? WHERE id = ?",
+      [errMsg.slice(0, 254), reloadJobId],
+    );
+    log.error({ reloadJobId, err: errMsg }, "Clipboard loader reload failed");
     throw e;
   }
 }

@@ -20,6 +20,16 @@ export interface ClipboardSeriesRow {
  * The `clipboards` view (users ⨝ user_series ⨝ series) is used for reads.
  * The underlying `user_series` table (user_id, series_id) is used for writes.
  */
+/** Row shape returned by the clipboard loader search query. */
+export interface ClipboardLoaderRow {
+  loaderId: number;
+  seriesId: number;
+  seriesName: string;
+  eval: string;
+  color: string | null;
+  lastRunAt: Date | null;
+}
+
 class ClipboardCollection {
   /**
    * Get all series on the user's clipboard with summary info for display.
@@ -224,6 +234,46 @@ class ClipboardCollection {
       WHERE us.user_id = ${userId}
     `;
     return rows.map((r) => Number(r.id));
+  }
+  /**
+   * Search loaders (data_sources) for clipboard series whose eval matches a pattern.
+   * Uses REGEXP for flexible matching.
+   */
+  static async searchLoadersByEval(
+    userId: number,
+    pattern: string,
+  ): Promise<ClipboardLoaderRow[]> {
+    const rows = await mysql<{
+      loader_id: number;
+      series_id: number;
+      series_name: string;
+      eval: string;
+      color: string | null;
+      last_run_at: Date | null;
+    }>`
+      SELECT
+        ds.id AS loader_id,
+        s.id AS series_id,
+        s.name AS series_name,
+        ds.eval,
+        ds.color,
+        ds.last_run_at
+      FROM user_series us
+        JOIN series s ON s.id = us.series_id
+        JOIN data_sources ds ON ds.series_id = s.id
+      WHERE us.user_id = ${userId}
+        AND ds.disabled = 0
+        AND ds.eval REGEXP ${pattern}
+      ORDER BY s.name, ds.priority
+    `;
+    return rows.map((r) => ({
+      loaderId: r.loader_id,
+      seriesId: r.series_id,
+      seriesName: r.series_name,
+      eval: r.eval,
+      color: r.color,
+      lastRunAt: r.last_run_at,
+    }));
   }
 }
 

@@ -1,12 +1,18 @@
 import "server-only";
 
 import ClipboardCollection from "@catalog/collections/clipboard-collection";
-import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
+import type {
+  ClipboardLoaderRow,
+  ClipboardSeriesRow,
+} from "@catalog/collections/clipboard-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { UpdateSeriesPayload } from "@catalog/collections/series-collection";
 
 import { createLogger } from "@/core/observability/logger";
-import { enqueueClipboardAction } from "@/core/workers/enqueue";
+import {
+  enqueueClipboardAction,
+  enqueueClipboardLoaderReload,
+} from "@/core/workers/enqueue";
 import { mysql } from "@/lib/mysql/db";
 
 const log = createLogger("catalog.clipboard");
@@ -152,7 +158,72 @@ export type ClipboardAction =
   | "destroy"
   | "meta_update"
   | "export_csv"
-  | "export_tsd";
+  | "export_tsd"
+  | "reload_loaders";
+
+// ─── Clipboard loader search & targeted reload ──────────────────────
+
+export async function searchClipboardLoaders({
+  userId,
+  pattern,
+}: {
+  userId: number;
+  pattern: string;
+}): Promise<{ data: ClipboardLoaderRow[] }> {
+  log.info({ userId, pattern }, "searching clipboard loaders");
+  const data = await ClipboardCollection.searchLoadersByEval(userId, pattern);
+  log.info({ userId, pattern, count: data.length }, "clipboard loader search complete");
+  return { data };
+}
+
+export async function reloadClipboardLoaders({
+  userId,
+  loaderIds,
+}: {
+  userId: number;
+  loaderIds: number[];
+}): Promise<{ message: string }> {
+  if (loaderIds.length === 0) {
+    return { message: "No loaders to reload" };
+  }
+
+  log.info({ userId, loaderCount: loaderIds.length }, "queueing clipboard loader reload");
+
+  // Derive unique series IDs from loader IDs
+  const seriesRows = await mysql<{ series_id: number }>`
+    SELECT DISTINCT series_id FROM data_sources WHERE id IN ${mysql(loaderIds)}
+  `;
+  const seriesIds = seriesRows.map((r) => r.series_id);
+
+  // Insert reload_jobs record
+  await mysql`
+    INSERT INTO reload_jobs (user_id, params, created_at)
+    VALUES (${userId}, ${"reload_loaders"}, NOW())
+  `;
+  const [{ insertId }] = await mysql<{ insertId: number }>`
+    SELECT LAST_INSERT_ID() AS insertId
+  `;
+
+  // Insert reload_job_series join rows
+  for (const sid of seriesIds) {
+    await mysql`
+      INSERT INTO reload_job_series (reload_job_id, series_id)
+      VALUES (${insertId}, ${sid})
+    `;
+  }
+
+  await enqueueClipboardLoaderReload({
+    reloadJobId: insertId,
+    loaderIds,
+  });
+
+  log.info(
+    { userId, reloadJobId: insertId, loaderCount: loaderIds.length },
+    "Clipboard loader reload queued",
+  );
+
+  return { message: `Reload queued for ${loaderIds.length} loaders` };
+}
 
 /** Actions that get queued via BullMQ + tracked in reload_jobs */
 const QUEUED_ACTIONS = new Set<ClipboardAction>([
@@ -216,7 +287,7 @@ export async function doClipboardAction({
     reloadJobId: insertId,
     action: action as Exclude<
       ClipboardAction,
-      "meta_update" | "export_csv" | "export_tsd"
+      "meta_update" | "export_csv" | "export_tsd" | "reload_loaders"
     >,
     seriesIds,
   });

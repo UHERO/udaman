@@ -4,7 +4,10 @@ import { JobName } from "../queues";
 import { processAdminAction } from "./admin-action";
 import { processApiDvwReload } from "./api-dvw-reload";
 import { processBatchReload } from "./batch-reload";
-import { processClipboardAction } from "./clipboard-action";
+import {
+  processClipboardAction,
+  processClipboardLoaderReload,
+} from "./clipboard-action";
 import { processDbedtUpload } from "./dbedt-upload";
 import { processDependencyReset } from "./dependency-reset";
 import { processDownload } from "./download";
@@ -35,6 +38,7 @@ export const processors: Record<string, (job: Job) => Promise<string>> = {
   [JobName.DOWNLOAD]: processDownload,
   [JobName.KAUAI_EXPORT]: processKauaiExport,
   [JobName.CLIPBOARD_ACTION]: processClipboardAction,
+  [JobName.CLIPBOARD_LOADER_RELOAD]: processClipboardLoaderReload,
   [JobName.UNIVERSE_ARCHIVE]: processUniverseArchive,
   [JobName.UNIVERSE_PURGE]: processUniversePurge,
 };
