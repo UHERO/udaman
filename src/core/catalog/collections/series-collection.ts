@@ -40,6 +40,13 @@ interface DateRangeRow {
 
 // ─── Payload types ───────────────────────────────────────────────────
 
+export type DeleteByMode =
+  | "observationDate"
+  | "beforeObservationDate"
+  | "vintageDate"
+  | "currentOnly"
+  | "none";
+
 export type CreateSeriesPayload = {
   name: string;
   universe?: Universe;
@@ -841,20 +848,36 @@ class SeriesCollection {
   static async deleteDataPoints(opts: {
     id: number;
     u: Universe;
-    deleteBy: "observationDate" | "vintageDate" | "none";
+    deleteBy: DeleteByMode;
     date?: string;
   }) {
     const { id, u, deleteBy, date } = opts;
-    if (deleteBy === "observationDate" && date) {
-      await this.deleteDataPointsByObservationDate({ id, u, date });
-      await this.repairDataPoints({ id });
-    }
-    if (deleteBy === "vintageDate" && date) {
-      await this.deleteDataPointsByVintage({ id, u, date });
-      await this.repairDataPoints({ id });
-    }
-    if (deleteBy === "none") {
-      await this.deleteAllDataPoints({ id, u });
+    switch (deleteBy) {
+      case "observationDate":
+        if (date) {
+          await this.deleteDataPointsByObservationDate({ id, u, date });
+          await this.repairDataPoints({ id });
+        }
+        break;
+      case "beforeObservationDate":
+        if (date) {
+          await this.deleteDataPointsBeforeDate({ id, u, date });
+          await this.repairDataPoints({ id });
+        }
+        break;
+      case "vintageDate":
+        if (date) {
+          await this.deleteDataPointsByVintage({ id, u, date });
+          await this.repairDataPoints({ id });
+        }
+        break;
+      case "currentOnly":
+        await this.deleteCurrentDataPoints({ id, u });
+        await this.repairDataPoints({ id });
+        break;
+      case "none":
+        await this.deleteAllDataPoints({ id, u });
+        break;
     }
 
     return "ok";
@@ -921,6 +944,21 @@ class SeriesCollection {
     date: string;
   }) {
     return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id} AND created_at > ${opts.date}`;
+  }
+
+  static async deleteDataPointsBeforeDate(opts: {
+    id: number;
+    u: Universe;
+    date: string;
+  }) {
+    return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id} AND date <= ${opts.date}`;
+  }
+
+  static async deleteCurrentDataPoints(opts: {
+    id: number;
+    u: Universe;
+  }) {
+    return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id} AND current = 1`;
   }
 
   /** Fetch aliases for a series, returned as Series model instances */

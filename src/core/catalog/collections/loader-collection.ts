@@ -9,6 +9,7 @@ import type { SourceMapNode, Universe } from "../types/shared";
 import type { CreateLoaderPayload } from "../types/sources";
 import EvalExecutor from "../utils/eval-executor";
 import SeriesCollection from "./series-collection";
+import type { DeleteByMode } from "./series-collection";
 
 const log = createLogger("catalog.loader-collection");
 
@@ -475,6 +476,38 @@ class LoaderCollection {
       { loaderId: loader.id },
       `Deleted data points for loader ${loader.id}`,
     );
+  }
+
+  /** Delete data points for a loader using a DeleteByMode */
+  static async deleteDataPointsByMode(
+    loaderId: number,
+    deleteBy: DeleteByMode,
+    date?: string,
+  ): Promise<void> {
+    switch (deleteBy) {
+      case "observationDate":
+        if (date) {
+          await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND date >= ${date}`;
+        }
+        break;
+      case "beforeObservationDate":
+        if (date) {
+          await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND date <= ${date}`;
+        }
+        break;
+      case "vintageDate":
+        if (date) {
+          await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND created_at > ${date}`;
+        }
+        break;
+      case "currentOnly":
+        await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND current = 1`;
+        break;
+      case "none":
+        await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId}`;
+        break;
+    }
+    log.info({ loaderId, deleteBy }, `Deleted data points for loader ${loaderId}`);
   }
 
   /** Update dependencies for all UHERO loaders */

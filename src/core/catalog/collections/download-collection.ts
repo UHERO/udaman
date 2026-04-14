@@ -196,9 +196,13 @@ class DownloadCollection {
    * if last_download_at is within the past hour, skip the HTTP request.
    * Otherwise fetch a fresh copy.
    *
+   * If the HTTP request returns a non-200 status AND no cached file exists
+   * on disk, throws an error so the loader surfaces the failure.
+   * If a cached file exists, logs a warning and continues with stale data.
+   *
    * For frozen or URL-less downloads, silently returns (reads existing file).
    * For date-sensitive handles (containing %), ensures freshness for ALL
-   * matching downloads.
+   * matching downloads (individual failures are non-fatal).
    */
   static async ensureFresh(handle: string): Promise<void> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -210,16 +214,48 @@ class DownloadCollection {
         if (dl.freezeFile || !dl.url) continue;
         if (dl.lastDownloadAt && dl.lastDownloadAt > oneHourAgo) continue;
         try {
-          await this.downloadToServer(dl.id);
+          const result = await this.downloadToServer(dl.id);
+          if (result.status !== 200 && !existsSync(dl.effectivePath())) {
+            console.warn(
+              `[ensureFresh] ${dl.handle}: HTTP ${result.status}, no cached file`,
+            );
+          }
         } catch {
-          // Non-fatal: file may already exist on disk from a prior download
+          // Non-fatal for date-sensitive: file may already exist from prior download
         }
       }
     } else {
       const dl = await this.getByHandle(handle);
       if (dl.freezeFile || !dl.url) return;
       if (dl.lastDownloadAt && dl.lastDownloadAt > oneHourAgo) return;
-      await this.downloadToServer(dl.id);
+
+      let result: { status: number; changed: boolean };
+      try {
+        result = await this.downloadToServer(dl.id);
+      } catch (e) {
+        // downloadToServer throws for frozen/URL-less (already checked above)
+        // or network-level failures (DNS, timeout, etc.)
+        if (!existsSync(dl.effectivePath())) {
+          throw new Error(
+            `Download "${handle}" failed: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+        console.warn(
+          `[ensureFresh] ${handle}: fetch error, using cached file — ${e instanceof Error ? e.message : String(e)}`,
+        );
+        return;
+      }
+
+      if (result.status !== 200) {
+        if (!existsSync(dl.effectivePath())) {
+          throw new Error(
+            `Download "${handle}" returned HTTP ${result.status} and no cached file exists at ${dl.effectivePath()}`,
+          );
+        }
+        console.warn(
+          `[ensureFresh] ${handle}: HTTP ${result.status}, using cached file`,
+        );
+      }
     }
   }
 

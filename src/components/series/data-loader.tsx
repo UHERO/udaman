@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { DeleteByMode } from "@catalog/collections/series-collection";
 import type { SerializedLoader } from "@catalog/models/loader";
 import Series from "@catalog/models/series";
 import type { Universe } from "@catalog/types/shared";
@@ -44,6 +45,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 import { getColor } from "../helpers";
@@ -169,6 +181,111 @@ const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
   );
 };
 
+const CLEAR_MODES: { value: DeleteByMode; label: string; description: string; needsDate: boolean }[] = [
+  { value: "none", label: "All", description: "Clear all data points", needsDate: false },
+  { value: "observationDate", label: "After date", description: "Delete points on or after date", needsDate: true },
+  { value: "beforeObservationDate", label: "Before date", description: "Delete points on or before date", needsDate: true },
+  { value: "currentOnly", label: "Current only", description: "Delete only current points (preserves vintages)", needsDate: false },
+  { value: "vintageDate", label: "After vintage", description: "Delete points loaded after date", needsDate: true },
+];
+
+function ClearDataDialog({
+  open,
+  onOpenChange,
+  seriesId,
+  universe,
+  loaderId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  seriesId: number;
+  universe: string;
+  /** When set, scopes deletion to this loader's data points only */
+  loaderId?: number;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [deleteBy, setDeleteBy] = useState<DeleteByMode>("none");
+  const [date, setDate] = useState("");
+
+  const needsDate = CLEAR_MODES.find((m) => m.value === deleteBy)?.needsDate ?? false;
+  const scope = loaderId ? `loader #${loaderId}` : "this series";
+
+  const handleClear = () =>
+    startTransition(async () => {
+      try {
+        if (needsDate && !date) {
+          toast.error("Please enter a date");
+          return;
+        }
+        if (loaderId) {
+          await clearLoader(loaderId, { deleteBy, date });
+        } else {
+          await deleteSeriesDataPoints(seriesId, { universe, date, deleteBy });
+        }
+        const modeLabel = CLEAR_MODES.find((m) => m.value === deleteBy)?.label ?? deleteBy;
+        toast.success("Data cleared", {
+          description: `Cleared data points (${modeLabel}${needsDate ? `: ${date}` : ""})`,
+        });
+        onOpenChange(false);
+        router.refresh();
+      } catch (err) {
+        toast.error("Clear failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Clear Data Points</DialogTitle>
+          <DialogDescription>
+            Choose how to clear data points for {scope}.
+          </DialogDescription>
+        </DialogHeader>
+        <RadioGroup
+          value={deleteBy}
+          onValueChange={(v) => setDeleteBy(v as DeleteByMode)}
+          className="gap-3"
+        >
+          {CLEAR_MODES.map((mode) => (
+            <div key={mode.value} className="flex items-start gap-2">
+              <RadioGroupItem value={mode.value} id={`clear-${loaderId ?? "s"}-${mode.value}`} className="mt-0.5" />
+              <Label htmlFor={`clear-${loaderId ?? "s"}-${mode.value}`} className="cursor-pointer font-normal leading-tight">
+                <span className="font-semibold">{mode.label}</span>
+                <span className="text-muted-foreground ml-1 text-xs">{mode.description}</span>
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+        <div className={cn("transition-opacity", needsDate ? "opacity-100" : "pointer-events-none opacity-30")}>
+          <Label htmlFor={`clear-date-${loaderId ?? "s"}`} className="text-xs">
+            Date <span className="text-muted-foreground">(YYYY-MM-DD)</span>
+          </Label>
+          <Input
+            id={`clear-date-${loaderId ?? "s"}`}
+            placeholder="YYYY-MM-DD"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            disabled={!needsDate}
+            className="mt-1"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleClear} disabled={isPending}>
+            {isPending ? "Clearing..." : "Clear"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export const LoaderSection = ({
   universe,
   seriesId,
@@ -181,25 +298,7 @@ export const LoaderSection = ({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
-
-  const handleClearAll = () =>
-    startTransition(async () => {
-      try {
-        await deleteSeriesDataPoints(seriesId, {
-          universe,
-          date: "",
-          deleteBy: "none",
-        });
-        toast.success("Data cleared", {
-          description: "All data points for this series have been deleted",
-        });
-        router.refresh();
-      } catch (err) {
-        toast.error("Clear failed", {
-          description: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
-    });
+  const [clearOpen, setClearOpen] = useState(false);
 
   const handleLoadAll = () =>
     startTransition(async () => {
@@ -237,28 +336,9 @@ export const LoaderSection = ({
           new
         </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant={"link"} disabled={isPending}>
-              clear data
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Clear all data points?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will delete all data points for this series across all
-                loaders.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearAll}>
-                Clear all
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button variant={"link"} onClick={() => setClearOpen(true)} disabled={isPending}>
+          clear data
+        </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
         <Button variant={"link"} onClick={handleLoadAll} disabled={isPending}>
           {isPending ? "loading..." : "load all"}
@@ -269,7 +349,7 @@ export const LoaderSection = ({
         l.disabled ? (
           <DisabledLoaderItem key={`data-loader-${i}`} loader={l} />
         ) : (
-          <LoaderItem key={`data-loader-${i}`} universe={universe} loader={l} />
+          <LoaderItem key={`data-loader-${i}`} universe={universe} seriesId={seriesId} loader={l} />
         ),
       )}
 
@@ -279,20 +359,29 @@ export const LoaderSection = ({
         universe={universe as Universe}
         seriesId={seriesId}
       />
+      <ClearDataDialog
+        open={clearOpen}
+        onOpenChange={setClearOpen}
+        seriesId={seriesId}
+        universe={universe}
+      />
     </div>
   );
 };
 
 const LoaderItem = ({
   universe,
+  seriesId,
   loader,
 }: {
   universe: string;
+  seriesId: number;
   loader: SerializedLoader;
 }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
   const lastRunDate =
     loader.lastRunAt !== null ? uheroDate(loader.lastRunAt) : "-";
   const lastRunTime =
@@ -314,19 +403,6 @@ const LoaderItem = ({
         router.refresh();
       } catch (err) {
         toast.error("Loader failed", {
-          description: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
-    });
-
-  const handleClear = () =>
-    startTransition(async () => {
-      try {
-        const result = await clearLoader(loader.id);
-        toast.success(result.message);
-        router.refresh();
-      } catch (err) {
-        toast.error("Clear failed", {
           description: err instanceof Error ? err.message : "Unknown error",
         });
       }
@@ -384,7 +460,7 @@ const LoaderItem = ({
             variant="link"
             size="sm"
             className="h-6"
-            onClick={handleClear}
+            onClick={() => setClearOpen(true)}
             disabled={isPending}
           >
             clear
@@ -498,6 +574,13 @@ const LoaderItem = ({
         open={editOpen}
         onOpenChange={setEditOpen}
         loader={loader}
+      />
+      <ClearDataDialog
+        open={clearOpen}
+        onOpenChange={setClearOpen}
+        seriesId={seriesId}
+        universe={universe}
+        loaderId={loader.id}
       />
     </Card>
   );

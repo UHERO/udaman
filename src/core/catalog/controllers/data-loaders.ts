@@ -2,6 +2,8 @@ import "server-only";
 
 import LoaderCollection from "@catalog/collections/loader-collection";
 import type { ReloadResult } from "@catalog/collections/loader-collection";
+import type { DeleteByMode } from "@catalog/collections/series-collection";
+import SeriesCollection from "@catalog/collections/series-collection";
 import type { SerializedLoader } from "@catalog/models/loader";
 
 import { logControllerCall } from "@/core/observability/app-events";
@@ -74,13 +76,26 @@ export async function loadDataPoints({
 
 export async function clearLoaderDataPoints({
   id,
+  deleteBy = "none",
+  date,
 }: {
   id: number;
+  deleteBy?: DeleteByMode;
+  date?: string;
 }): Promise<ControllerResponse<boolean>> {
-  log.info({ id }, "clearing data points for loader");
-  const loader = await LoaderCollection.getById(id);
-  await LoaderCollection.deleteDataPoints(loader);
-  log.info({ id }, "data points cleared");
+  log.info({ id, deleteBy, date }, "clearing data points for loader");
+  await LoaderCollection.deleteDataPointsByMode(id, deleteBy, date);
+  // Repair currents on the parent series (unless we deleted everything)
+  if (deleteBy !== "none") {
+    const loader = await LoaderCollection.getById(id);
+    if (loader.seriesId) {
+      const series = await SeriesCollection.getById(loader.seriesId);
+      if (series.xseriesId) {
+        await SeriesCollection.repairDataPoints({ id: series.xseriesId });
+      }
+    }
+  }
+  log.info({ id, deleteBy }, "data points cleared");
   return { message: "data points cleared", data: true };
 }
 

@@ -5,6 +5,7 @@ import GeographyCollection from "@catalog/collections/geography-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
+import type { DeleteByMode } from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 import EvalExecutor from "@catalog/utils/eval-executor";
 
@@ -108,7 +109,7 @@ export async function deleteSeriesDataPoints({
   id: number;
   u: Universe;
   date?: string;
-  deleteBy: "observationDate" | "vintageDate" | "none";
+  deleteBy: DeleteByMode;
 }) {
   log.info({ id, universe: u, deleteBy, date }, "deleting series data points");
   const data = await SeriesCollection.deleteDataPoints({

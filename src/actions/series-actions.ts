@@ -5,7 +5,10 @@ import { notFound } from "next/navigation";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
-import type { CreateSeriesPayload } from "@catalog/collections/series-collection";
+import type {
+  CreateSeriesPayload,
+  DeleteByMode,
+} from "@catalog/collections/series-collection";
 import {
   analyzeSeries as analyzeSeriesCtrl,
   compareSeries as compareSeriesCtrl,
@@ -110,7 +113,7 @@ export async function deleteSeriesDataPoints(
   queryParams: {
     universe: string;
     date: string;
-    deleteBy: "observationDate" | "vintageDate" | "none";
+    deleteBy: DeleteByMode;
   },
 ) {
   await requirePermission("series", "delete");

@@ -11,6 +11,7 @@ import {
   loadDataPoints as loadDataPointsCtrl,
   updateDataLoader as updateDataLoaderCtrl,
 } from "@catalog/controllers/data-loaders";
+import type { DeleteByMode } from "@catalog/collections/series-collection";
 import type { Universe } from "@catalog/types/shared";
 import type {
   CreateLoaderFormData,
@@ -75,12 +76,19 @@ export async function reloadLoader(loaderId: number, clearFirst = false) {
   return result;
 }
 
-export async function clearLoader(loaderId: number) {
+export async function clearLoader(
+  loaderId: number,
+  opts?: { deleteBy?: DeleteByMode; date?: string },
+) {
   const session = await requireAuth();
   const userId = parseInt(session.user!.id!);
 
-  log.info({ loaderId }, "clearLoader action called");
-  const result = await clearLoaderCtrl({ id: loaderId });
+  log.info({ loaderId, ...opts }, "clearLoader action called");
+  const result = await clearLoaderCtrl({
+    id: loaderId,
+    deleteBy: opts?.deleteBy,
+    date: opts?.date,
+  });
   log.info({ loaderId }, "clearLoader action completed");
 
   AppLogCollection.log({

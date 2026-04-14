@@ -26,7 +26,13 @@ const formSchema = z.object({
   date: z.string().refine((val) => val === "" || isValidDate(val), {
     message: "Date is invalid",
   }),
-  deleteBy: z.enum(["observationDate", "vintageDate", "none"]),
+  deleteBy: z.enum([
+    "observationDate",
+    "beforeObservationDate",
+    "vintageDate",
+    "currentOnly",
+    "none",
+  ]),
 });
 
 export function DeleteSeriesForm({
@@ -48,7 +54,7 @@ export function DeleteSeriesForm({
   });
 
   const deleteBy = form.watch("deleteBy");
-  const disableDate = deleteBy === "none";
+  const disableDate = deleteBy === "none" || deleteBy === "currentOnly";
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
@@ -69,7 +75,12 @@ export function DeleteSeriesForm({
                 onValueChange={(value) =>
                   form.setValue(
                     "deleteBy",
-                    value as "observationDate" | "vintageDate" | "none",
+                    value as
+                      | "observationDate"
+                      | "beforeObservationDate"
+                      | "vintageDate"
+                      | "currentOnly"
+                      | "none",
                   )
                 }
                 className="flex flex-col"
@@ -83,7 +94,19 @@ export function DeleteSeriesForm({
                     htmlFor="observationDate"
                     className="font-normal text-pretty"
                   >
-                    <b>Observation date:</b> delete data points following given
+                    <b>After date:</b> delete data points on or after given date
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <RadioGroupItem
+                    value="beforeObservationDate"
+                    id="beforeObservationDate"
+                  />
+                  <FieldLabel
+                    htmlFor="beforeObservationDate"
+                    className="font-normal text-pretty"
+                  >
+                    <b>Before date:</b> delete data points on or before given
                     date
                   </FieldLabel>
                 </Field>
@@ -94,9 +117,16 @@ export function DeleteSeriesForm({
                   </FieldLabel>
                 </Field>
                 <Field orientation="horizontal">
+                  <RadioGroupItem value="currentOnly" id="currentOnly" />
+                  <FieldLabel htmlFor="currentOnly" className="font-normal">
+                    <b>Current only:</b> delete only current data points
+                    (preserves vintages)
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
                   <RadioGroupItem value="none" id="none" />
                   <FieldLabel htmlFor="none" className="font-normal">
-                    <b>Neither:</b> clear all data points.
+                    <b>All:</b> clear all data points
                   </FieldLabel>
                 </Field>
               </RadioGroup>
