@@ -1272,12 +1272,24 @@ class SeriesCollection {
     return rows.map((row) => new Series(row));
   }
 
-  /** Resolve a list of series names to a name→id map. Unknown names are omitted. */
-  static async getIdsByNames(names: string[]): Promise<Record<string, number>> {
+  /** Resolve a list of series names to a name→id map. Unknown names are omitted.
+   *  When `universe` is provided, only matches within that universe are returned. */
+  static async getIdsByNames(
+    names: string[],
+    universe?: string,
+  ): Promise<Record<string, number>> {
     if (names.length === 0) return {};
-    const rows = await mysql<{ name: string; id: number }>`
-      SELECT name, id FROM series WHERE name IN ${mysql(names)}
-    `;
+    let rows: { name: string; id: number }[];
+    if (universe) {
+      rows = await mysql<{ name: string; id: number }>`
+        SELECT name, id FROM series
+        WHERE name IN ${mysql(names)} AND universe = ${universe.toUpperCase()}
+      `;
+    } else {
+      rows = await mysql<{ name: string; id: number }>`
+        SELECT name, id FROM series WHERE name IN ${mysql(names)}
+      `;
+    }
     const map: Record<string, number> = {};
     for (const row of rows) {
       map[row.name] = row.id;

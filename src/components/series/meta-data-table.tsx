@@ -34,8 +34,43 @@ export function MetaDataTable({
   universe: string;
   isDev?: boolean;
 }) {
+  // Build universe list: current series + aliases, bold the primary
+  const currentIsPrimary =
+    metadata.s_id === metadata.xs_primary_series_id;
+  const universeEntries: { name: string; isPrimary: boolean }[] = [
+    { name: metadata.s_universe, isPrimary: currentIsPrimary },
+    ...metadata.aliases.map((a) => ({
+      name: a.universe,
+      isPrimary: a.isPrimary,
+    })),
+  ];
+  // Deduplicate (shouldn't happen, but just in case) and sort primary first
+  const seen = new Set<string>();
+  const uniqueUniverses = universeEntries.filter((e) => {
+    if (seen.has(e.name)) return false;
+    seen.add(e.name);
+    return true;
+  });
+  uniqueUniverses.sort((a, b) =>
+    a.isPrimary ? -1 : b.isPrimary ? 1 : a.name.localeCompare(b.name),
+  );
+
   const rows: MetadataRow[] = [
-    { name: "Universe", value: metadata.s_universe },
+    {
+      name: "Universe",
+      value: (
+        <span>
+          {uniqueUniverses.map((u, i) => (
+            <span key={u.name}>
+              {i > 0 && ", "}
+              <span className={u.isPrimary ? "font-bold" : ""}>
+                {u.name}
+              </span>
+            </span>
+          ))}
+        </span>
+      ),
+    },
     {
       name: "Aliases",
       value: metadata.aliases.length > 0 ? metadata.aliases.length : "-",

@@ -37,7 +37,7 @@ export default async function ComparePage({
   }
 
   // ── Load series (works with 1 or more names) ─────────────────────────
-  const result = await compareSeriesAction(names);
+  const result = await compareSeriesAction(names, universe);
 
   if ("error" in result) {
     return (

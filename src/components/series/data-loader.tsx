@@ -89,7 +89,7 @@ const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
     const plainText = text.replace(/<[^>]*>/g, " ");
     const names = plainText.split(" ").filter((w) => Series.isValidName(w));
     if (names.length === 0) return;
-    resolveSeriesIds(names).then(setIdMap);
+    resolveSeriesIds(names, universe).then(setIdMap);
   }, [text]);
 
   const segments = splitTextSegments(text);

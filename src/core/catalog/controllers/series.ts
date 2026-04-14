@@ -390,8 +390,10 @@ export async function transformSeries({
 
 export async function compareSeries({
   names,
+  universe,
 }: {
   names: string[];
+  universe?: string;
 }): Promise<CompareResult> {
   log.info({ names }, "comparing series");
 
@@ -410,7 +412,7 @@ export async function compareSeries({
     }),
   );
 
-  const seriesLinks = await SeriesCollection.getIdsByNames(names);
+  const seriesLinks = await SeriesCollection.getIdsByNames(names, universe);
 
   log.info({ count: entries.length, names }, "series compared");
 
@@ -450,7 +452,7 @@ export async function getCompareAllGeos({
 
   if (candidates.length === 0) return null;
 
-  const existing = await SeriesCollection.getIdsByNames(candidates);
+  const existing = await SeriesCollection.getIdsByNames(candidates, universe);
   // Preserve geo list_order by filtering candidates (already ordered)
   const result = candidates.filter((n) => n in existing);
 
@@ -463,8 +465,10 @@ export async function getCompareAllGeos({
  */
 export async function getCompareSANS({
   name,
+  universe,
 }: {
   name: string;
+  universe?: string;
 }): Promise<string[] | null> {
   log.info({ name }, "getCompareSANS");
 
@@ -488,7 +492,7 @@ export async function getCompareSANS({
     return null;
   }
 
-  const existing = await SeriesCollection.getIdsByNames([counterpartName]);
+  const existing = await SeriesCollection.getIdsByNames([counterpartName], universe);
   if (!(counterpartName in existing)) return null;
 
   return [name, counterpartName];

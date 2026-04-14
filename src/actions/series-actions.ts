@@ -184,12 +184,14 @@ export async function getAllDataPointVintages(xseriesId: number) {
   return vintages;
 }
 
-/** Resolve series names to their IDs. Returns a name→id map. */
+/** Resolve series names to their IDs. Returns a name→id map.
+ *  When `universe` is provided, only matches within that universe are returned. */
 export async function resolveSeriesIds(
   names: string[],
+  universe?: string,
 ): Promise<Record<string, number>> {
   await requirePermission("series", "read");
-  return SeriesCollection.getIdsByNames(names);
+  return SeriesCollection.getIdsByNames(names, universe);
 }
 
 // ─── Create actions ─────────────────────────────────────────────────
@@ -550,11 +552,12 @@ export async function transformSeriesAction(
 
 export async function compareSeriesAction(
   names: string[],
+  universe?: string,
 ): Promise<CompareResult | { error: string }> {
   await requirePermission("series", "read");
-  log.info({ names }, "compareSeriesAction called");
+  log.info({ names, universe }, "compareSeriesAction called");
   try {
-    return await compareSeriesCtrl({ names });
+    return await compareSeriesCtrl({ names, universe });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     log.error({ names, error: message }, "compareSeriesAction failed");
@@ -578,10 +581,11 @@ export async function getCompareAllGeosAction(
 
 export async function getCompareSANSAction(
   name: string,
+  universe?: string,
 ): Promise<string[] | null> {
   await requirePermission("series", "read");
   try {
-    return await getCompareSANSCtrl({ name });
+    return await getCompareSANSCtrl({ name, universe });
   } catch {
     return null;
   }

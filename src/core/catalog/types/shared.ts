@@ -146,6 +146,8 @@ export type SeriesMetadata = PrefixKeys<SeriesSelection, "s_"> &
 export interface SeriesAlias {
   id: number | null;
   name: string;
+  universe: string;
+  isPrimary: boolean;
 }
 
 /** Minimal measurement shape used by the series detail page. */
