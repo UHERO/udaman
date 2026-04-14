@@ -191,6 +191,39 @@ class DownloadCollection {
   }
 
   /**
+   * Ensure a download's file is fresh before reading it.
+   * Mirrors Rails `DownloadsCache#download_handle` freshness gate:
+   * if last_download_at is within the past hour, skip the HTTP request.
+   * Otherwise fetch a fresh copy.
+   *
+   * For frozen or URL-less downloads, silently returns (reads existing file).
+   * For date-sensitive handles (containing %), ensures freshness for ALL
+   * matching downloads.
+   */
+  static async ensureFresh(handle: string): Promise<void> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+    if (handle.includes("%")) {
+      // Date-sensitive: refresh all matching downloads
+      const downloads = await this.findByPattern(handle);
+      for (const dl of downloads) {
+        if (dl.freezeFile || !dl.url) continue;
+        if (dl.lastDownloadAt && dl.lastDownloadAt > oneHourAgo) continue;
+        try {
+          await this.downloadToServer(dl.id);
+        } catch {
+          // Non-fatal: file may already exist on disk from a prior download
+        }
+      }
+    } else {
+      const dl = await this.getByHandle(handle);
+      if (dl.freezeFile || !dl.url) return;
+      if (dl.lastDownloadAt && dl.lastDownloadAt > oneHourAgo) return;
+      await this.downloadToServer(dl.id);
+    }
+  }
+
+  /**
    * Find series whose data_sources.eval references the given handle.
    * Returns series id, name, aremos_diff, aremos_missing.
    */

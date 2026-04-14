@@ -1,4 +1,5 @@
 import { compareSeriesAction } from "@/actions/series-actions";
+import { listTimelineEventsAction } from "@/actions/timeline-events";
 import { CompareSearchInput } from "@/components/compare/compare-search-input";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
@@ -37,7 +38,17 @@ export default async function ComparePage({
   }
 
   // ── Load series (works with 1 or more names) ─────────────────────────
-  const result = await compareSeriesAction(names, universe);
+  const [result, rawEvents] = await Promise.all([
+    compareSeriesAction(names, universe),
+    listTimelineEventsAction(),
+  ]);
+  const timelineEvents = rawEvents.map((e) => ({
+    id: e.id,
+    start: e.startDate,
+    end: e.effectiveEndDate,
+    name: e.name,
+    eventType: e.eventType,
+  }));
 
   if ("error" in result) {
     return (
@@ -92,6 +103,7 @@ export default async function ComparePage({
         currentFreqCode={series[0]?.frequencyCode}
         seriesLinks={seriesLinks}
         universe={universe}
+        timelineEvents={timelineEvents}
       />
     </>
   );

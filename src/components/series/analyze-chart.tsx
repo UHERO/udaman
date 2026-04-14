@@ -70,8 +70,15 @@ export type Overlay =
   | "hpTrend"
   | "mean"
   | "stdDev"
-  | "rollingStdDev"
-  | "recessions";
+  | "rollingStdDev";
+
+export type TimelineEventForChart = {
+  id: number;
+  start: string;
+  end: string;
+  name: string;
+  eventType: string;
+};
 
 export type Transformation =
   | "zScore"
@@ -202,22 +209,6 @@ export const formatValue = (v: number, decimals: number) => {
   if (abs >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
   return v.toFixed(decimals);
 };
-
-/* ------------------------------------------------------------------ */
-/*  NBER Recession Dates                                               */
-/* ------------------------------------------------------------------ */
-
-export const NBER_RECESSIONS = [
-  { start: "1960-04-01", end: "1961-02-01" },
-  { start: "1969-12-01", end: "1970-11-01" },
-  { start: "1973-11-01", end: "1975-03-01" },
-  { start: "1980-01-01", end: "1980-07-01" },
-  { start: "1981-07-01", end: "1982-11-01" },
-  { start: "1990-07-01", end: "1991-03-01" },
-  { start: "2001-03-01", end: "2001-11-01" },
-  { start: "2007-12-01", end: "2009-06-01" },
-  { start: "2020-02-01", end: "2020-04-01" },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Overlay computation helpers                                        */
@@ -1010,6 +1001,34 @@ function CompareTooltip({
 /*  LevelChart — Primary line chart showing level data                */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Snap an event date to the nearest chart data point.
+ * For x1 (start): find the last data point <= eventDate.
+ * For x2 (end): find the first data point >= eventDate.
+ * Returns undefined if the date is out of the data range (no clamping).
+ */
+function snapToDataPoint(
+  chartData: ChartRow[],
+  eventDate: string,
+  mode: "start" | "end",
+): string | undefined {
+  if (chartData.length === 0) return undefined;
+  if (mode === "start") {
+    // Last data point <= eventDate
+    let best: string | undefined;
+    for (const r of chartData) {
+      if (r.date <= eventDate) best = r.date;
+      else break; // sorted ascending
+    }
+    return best; // undefined if event starts after all data
+  }
+  // mode === "end": first data point >= eventDate
+  for (const r of chartData) {
+    if (r.date >= eventDate) return r.date;
+  }
+  return undefined; // undefined if event ends before all data
+}
+
 interface LevelChartProps {
   data: ChartRow[];
   decimals: number;
@@ -1034,6 +1053,8 @@ interface LevelChartProps {
   rightAxisLabel?: string;
   /** Per-series unit labels for tooltip */
   seriesUnitLabels?: Map<number, string>;
+  /** Selected timeline events to render as shaded regions */
+  selectedEvents?: TimelineEventForChart[];
   /** Brush props for compare mode (brush rendered inside LevelChart) */
   brushStartIndex?: number;
   brushEndIndex?: number;
@@ -1057,6 +1078,7 @@ export function LevelChart({
   leftAxisLabel,
   rightAxisLabel,
   seriesUnitLabels,
+  selectedEvents = [],
   brushStartIndex,
   brushEndIndex,
   onBrushChange,
@@ -1088,6 +1110,18 @@ export function LevelChart({
     const hasRight = seriesAxisMap
       ? [...seriesAxisMap.values()].some((v) => v === "right")
       : false;
+
+    // Use brush range (not full data range) so events outside the visible
+    // window don't get rendered and throw off the chart axis.
+    const compareFirstDate =
+      chartData[brushStartIndex ?? 0]?.date ?? chartData[0]?.date ?? "";
+    const compareLastDate =
+      chartData[brushEndIndex ?? chartData.length - 1]?.date ??
+      chartData[chartData.length - 1]?.date ??
+      "";
+    const compareVisibleEvents = selectedEvents.filter(
+      (e) => e.start <= compareLastDate && e.end >= compareFirstDate,
+    );
 
     return (
       <ResponsiveContainer width="100%" height={360}>
@@ -1179,6 +1213,36 @@ export function LevelChart({
               />
             );
           })}
+          {/* Timeline event shading (compare mode) */}
+          {compareVisibleEvents.map((e) => {
+            const x1 = snapToDataPoint(chartData, e.start, "start");
+            let x2 = snapToDataPoint(chartData, e.end, "end");
+            if (!x1 || !x2 || x1 > x2) return null;
+            if (x1 === x2) {
+              const idx = chartData.findIndex((r) => r.date === x1);
+              if (idx >= 0 && idx < chartData.length - 1) {
+                x2 = chartData[idx + 1].date;
+              }
+            }
+            return (
+              <ReferenceArea
+                key={`${e.id}-${e.start}`}
+                x1={x1}
+                x2={x2}
+                fill="#94a3b8"
+                fillOpacity={0.15}
+                strokeOpacity={0}
+                yAxisId="left"
+                label={{
+                  value: e.name,
+                  position: "insideTop",
+                  fontSize: 9,
+                  fill: "transparent",
+                  className: "timeline-event-label",
+                }}
+              />
+            );
+          })}
           {indexBaseDate && (
             <ReferenceLine
               x={indexBaseDate}
@@ -1225,9 +1289,9 @@ export function LevelChart({
 
   const firstDate = chartData[0].date;
   const lastDate = chartData[chartData.length - 1].date;
-  const visibleRecessions = overlays.includes("recessions")
-    ? NBER_RECESSIONS.filter((r) => r.start <= lastDate && r.end >= firstDate)
-    : [];
+  const visibleEvents = selectedEvents.filter(
+    (e) => e.start <= lastDate && e.end >= firstDate,
+  );
 
   const hasSecondAxis =
     secondAxis && data.some((r) => r.transformedLevel != null);
@@ -1314,18 +1378,37 @@ export function LevelChart({
             connectNulls
           />
         )}
-        {/* Recession shading */}
-        {visibleRecessions.map((r) => (
-          <ReferenceArea
-            key={r.start}
-            x1={r.start < firstDate ? firstDate : r.start}
-            x2={r.end > lastDate ? lastDate : r.end}
-            fill="#94a3b8"
-            fillOpacity={0.15}
-            strokeOpacity={0}
-            yAxisId="left"
-          />
-        ))}
+        {/* Timeline event shading */}
+        {visibleEvents.map((e) => {
+          const x1 = snapToDataPoint(chartData, e.start, "start");
+          let x2 = snapToDataPoint(chartData, e.end, "end");
+          if (!x1 || !x2 || x1 > x2) return null;
+          // Enforce minimum visual width for single-day / narrow events
+          if (x1 === x2) {
+            const idx = chartData.findIndex((r) => r.date === x1);
+            if (idx >= 0 && idx < chartData.length - 1) {
+              x2 = chartData[idx + 1].date;
+            }
+          }
+          return (
+            <ReferenceArea
+              key={`${e.id}-${e.start}`}
+              x1={x1}
+              x2={x2}
+              fill="#94a3b8"
+              fillOpacity={0.15}
+              strokeOpacity={0}
+              yAxisId="left"
+              label={{
+                value: e.name,
+                position: "insideTop",
+                fontSize: 9,
+                fill: "transparent",
+                className: "timeline-event-label",
+              }}
+            />
+          );
+        })}
         {/* Full-sample ±σ filled band */}
         {stats && overlays.includes("stdDev") && (
           <ReferenceArea

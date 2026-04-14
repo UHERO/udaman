@@ -709,6 +709,20 @@ model xseries {
   @@index([quarantined, id], map: "xseries_quar_id")
 }
 
+model timeline_events {
+  id          Int       @id @default(autoincrement())
+  event_type  String    @db.VarChar(50)
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  start_date  DateTime  @db.Date
+  end_date    DateTime? @db.Date
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  updated_at  DateTime  @default(now()) @updatedAt @db.DateTime(0)
+
+  @@index([event_type], map: "idx_timeline_events_event_type")
+  @@index([start_date, end_date], map: "idx_timeline_events_dates")
+}
+
 enum users_role {
   external
   fsonly

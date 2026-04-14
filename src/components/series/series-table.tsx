@@ -50,13 +50,10 @@ export const SeriesDataTable = ({
     xseriesId: number;
     universe: string;
     seriesId: number;
-    unitShortLabel?: string | null;
   };
 }) => {
   const { setHoveredDate } = useSeriesHover();
   const { decimals } = options;
-
-  const { unitShortLabel } = options;
 
   const FormattedCell = ({
     n,
@@ -69,7 +66,7 @@ export const SeriesDataTable = ({
   }) => {
     if (!isNumber(n)) return "-";
     const value = isLevel
-      ? formatLevel(n, decimals, unitShortLabel)
+      ? formatLevel(n, decimals)
       : unit === "perc"
         ? `${n.toFixed(decimals)}%`
         : n.toFixed(decimals);
@@ -94,7 +91,7 @@ export const SeriesDataTable = ({
       cell: ({ cell, row }) => {
         const val = cell.getValue() as number | null;
         const displayValue = isNumber(val)
-          ? formatLevel(val, decimals, unitShortLabel)
+          ? formatLevel(val, decimals)
           : "-";
         const rowDate = row.getValue("date") as Date;
         const dateStr = format(rowDate, "yyyy-MM-dd");

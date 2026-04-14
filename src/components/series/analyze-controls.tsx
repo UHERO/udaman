@@ -3,8 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatLevel } from "@catalog/utils/format";
-import { AlertTriangle, ArrowRightLeft, X } from "lucide-react";
+import { formatEventType } from "@catalog/models/timeline-event";
+import { AlertTriangle, ArrowRightLeft, Calendar, X } from "lucide-react";
 
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -26,6 +33,7 @@ import {
   type BarMode,
   type ChartRow,
   type Overlay,
+  type TimelineEventForChart,
   type Transformation,
 } from "./analyze-chart";
 import { AnalyzeDataTable } from "./analyze-data-table";
@@ -229,6 +237,7 @@ const RANGE_PRESETS = [
 
 const MANAGED_PARAMS = [
   "overlays",
+  "events",
   "transform",
   "secondAxis",
   "secondAxisTransform",
@@ -246,7 +255,6 @@ const VALID_OVERLAYS = new Set<Overlay>([
   "mean",
   "stdDev",
   "rollingStdDev",
-  "recessions",
 ]);
 
 const VALID_TRANSFORMATIONS = new Set<Transformation>([
@@ -267,6 +275,12 @@ function parseOverlays(v: string | null): Overlay[] {
   return v
     .split(",")
     .filter((s): s is Overlay => VALID_OVERLAYS.has(s as Overlay));
+}
+
+/** Parse selected event types from URL */
+function parseEventTypes(v: string | null): Set<string> {
+  if (!v) return new Set();
+  return new Set(v.split(",").filter(Boolean));
 }
 
 function parseTransformation(v: string | null): Transformation | null {
@@ -303,6 +317,82 @@ function getRangeStartIndex(chartData: ChartRow[], years: number): number {
   return 0;
 }
 
+/** Standalone Timeline popover — select event types to overlay on charts */
+function TimelinePopover({
+  timelineEvents,
+  selectedEventTypes,
+  onSelectedEventTypesChange,
+}: {
+  timelineEvents: TimelineEventForChart[];
+  selectedEventTypes: Set<string>;
+  onSelectedEventTypesChange: (types: Set<string>) => void;
+}) {
+  const typeCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of timelineEvents) {
+      map.set(e.eventType, (map.get(e.eventType) ?? 0) + 1);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [timelineEvents]);
+
+  const toggleType = useCallback(
+    (type: string) => {
+      const next = new Set(selectedEventTypes);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      onSelectedEventTypesChange(next);
+    },
+    [selectedEventTypes, onSelectedEventTypesChange],
+  );
+
+  if (timelineEvents.length === 0) return null;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+            selectedEventTypes.size > 0
+              ? "border-slate-400 bg-slate-100 text-slate-700"
+              : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+          }`}
+        >
+          <Calendar className="h-3.5 w-3.5" />
+          Timeline
+          {selectedEventTypes.size > 0 && (
+            <span className="rounded-full bg-slate-500 px-1.5 text-[10px] leading-4 text-white">
+              {selectedEventTypes.size}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-0" align="start">
+        <div className="max-h-64 space-y-0.5 overflow-y-auto p-2">
+          {typeCounts.map(([type, count]) => (
+            <button
+              key={type}
+              type="button"
+              className="hover:bg-accent flex w-full items-center gap-2 rounded px-1 py-1.5 text-xs"
+              onClick={() => toggleType(type)}
+            >
+              <Checkbox
+                checked={selectedEventTypes.has(type)}
+                className="h-3.5 w-3.5"
+                tabIndex={-1}
+              />
+              <span>{formatEventType(type)}</span>
+              <span className="text-muted-foreground ml-auto font-mono text-[10px]">
+                {count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function OverlaysToggle({
   overlays,
   onValueChange,
@@ -312,6 +402,7 @@ function OverlaysToggle({
   rollingWindow,
   onRollingWindowChange,
   freqCode,
+  children,
 }: {
   overlays: Overlay[];
   onValueChange: (values: string[]) => void;
@@ -321,6 +412,7 @@ function OverlaysToggle({
   rollingWindow: number;
   onRollingWindowChange: (k: number) => void;
   freqCode?: string | null;
+  children?: React.ReactNode;
 }) {
   const showWindowInput =
     !disabled && overlays.some((o) => ROLLING_OVERLAYS.includes(o));
@@ -449,15 +541,8 @@ function OverlaysToggle({
         >
           <span className="text-muted-foreground">HP Trend</span>
         </TooltipToggleItem>
-        <TooltipToggleItem
-          value="recessions"
-          className="h-7 px-2.5 text-xs"
-          formula={<span>NBER recession shading</span>}
-          description="Peak-to-trough dates from the National Bureau of Economic Research"
-        >
-          <span className="text-muted-foreground">Recessions</span>
-        </TooltipToggleItem>
       </ToggleGroup>
+      {children}
       {showWindowInput && windowPresets.length > 0 && (
         <div className="ml-auto flex items-center gap-1">
           <span className="text-muted-foreground text-[10px]">k</span>
@@ -690,6 +775,8 @@ interface AnalyzeControlsProps {
   seriesLinks?: Record<string, number>;
   /** Universe slug for building URLs (compare mode) */
   universe?: string;
+  /** Timeline events for chart overlays */
+  timelineEvents?: TimelineEventForChart[];
 }
 
 export function AnalyzeControls({
@@ -704,6 +791,7 @@ export function AnalyzeControls({
   compareSeries: compareSeriesData,
   seriesLinks,
   universe,
+  timelineEvents = [],
 }: AnalyzeControlsProps) {
   const isCompareMode = !!(compareSeriesData && compareSeriesData.length >= 1);
   const router = useRouter();
@@ -732,6 +820,9 @@ export function AnalyzeControls({
   const [overlays, setOverlays] = useState<Overlay[]>(() =>
     parseOverlays(searchParams.get("overlays")),
   );
+  const [selectedEventTypes, setSelectedEventTypes] = useState<Set<string>>(
+    () => parseEventTypes(searchParams.get("events")),
+  );
   const [transformation, setTransformation] = useState<Transformation | null>(
     () => parseTransformation(searchParams.get("transform")),
   );
@@ -750,6 +841,12 @@ export function AnalyzeControls({
     const v = parseInt(searchParams.get("indexYear") ?? "", 10);
     return !isNaN(v) ? v : 2015;
   });
+
+  // Selected events filtered from all timeline events by type
+  const selectedEvents = useMemo(
+    () => timelineEvents.filter((e) => selectedEventTypes.has(e.eventType)),
+    [timelineEvents, selectedEventTypes],
+  );
 
   // When second axis is on, overlays are disabled
   const effectiveOverlays = useMemo(
@@ -957,6 +1054,10 @@ export function AnalyzeControls({
   useEffect(() => {
     syncParamsToUrl({
       overlays: overlays.length > 0 ? overlays.join(",") : undefined,
+      events:
+        selectedEventTypes.size > 0
+          ? [...selectedEventTypes].join(",")
+          : undefined,
       transform: transformation ?? undefined,
       secondAxis: secondAxis ? "1" : undefined,
       secondAxisTransform: secondAxis
@@ -969,6 +1070,7 @@ export function AnalyzeControls({
     });
   }, [
     overlays,
+    selectedEventTypes,
     transformation,
     secondAxis,
     secondAxisTransformation,
@@ -1377,6 +1479,11 @@ export function AnalyzeControls({
                 HP Trend
               </TooltipToggleItem>
             </ToggleGroup>
+            <TimelinePopover
+              timelineEvents={timelineEvents}
+              selectedEventTypes={selectedEventTypes}
+              onSelectedEventTypesChange={setSelectedEventTypes}
+            />
             {transformation === "rollingMean" &&
               (() => {
                 const dataPPY = PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12;
@@ -1549,6 +1656,7 @@ export function AnalyzeControls({
             leftAxisLabel={leftAxisLabel}
             rightAxisLabel={rightAxisLabel}
             seriesUnitLabels={seriesUnitLabels}
+            selectedEvents={selectedEvents}
             brushStartIndex={brushRange.startIndex}
             brushEndIndex={brushRange.endIndex}
             onBrushChange={handleBrushChange}
@@ -1635,7 +1743,7 @@ export function AnalyzeControls({
 
       <Separator />
 
-      {/* Overlays & Transforms toggle groups */}
+      {/* Overlays, Timeline & Transforms toggle groups */}
       {chartStats && (
         <ControlPanel>
           <OverlaysToggle
@@ -1647,7 +1755,13 @@ export function AnalyzeControls({
             rollingWindow={rollingWindow}
             onRollingWindowChange={setRollingWindow}
             freqCode={currentFreqCode}
-          />
+          >
+            <TimelinePopover
+              timelineEvents={timelineEvents}
+              selectedEventTypes={selectedEventTypes}
+              onSelectedEventTypesChange={setSelectedEventTypes}
+            />
+          </OverlaysToggle>
           <TransformToggle
             value={transformation}
             onValueChange={setTransformation}
@@ -1685,6 +1799,7 @@ export function AnalyzeControls({
               ? indexBaseYear
               : undefined
           }
+          selectedEvents={selectedEvents}
         />
       </div>
 

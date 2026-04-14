@@ -86,6 +86,7 @@ export const ROUTES: RouteEntry[] = [
     roles: ["internal", "admin", "dev"],
     children: [
       { label: "TSD Convert & Inspect", path: "/data-tools/tsd" },
+      { label: "Timeline Events", path: "/data-tools/timeline" },
     ],
   },
   {

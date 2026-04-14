@@ -136,6 +136,11 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+/* Timeline event labels: hidden by default, visible on hover */
+.recharts-reference-area:hover .timeline-event-label {
+  fill: #64748b !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

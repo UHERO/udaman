@@ -1320,10 +1320,13 @@ class SeriesCollection {
     const { xseriesId, data, dataSourceId, pseudoHistory } = opts;
     const SENTINEL = 1.0e15;
 
-    // Remove nil/undefined values
+    // Only allow finite numbers into the database.
+    // NaN, Infinity, null, undefined are all skipped — no data point is created.
     const cleanData = new Map<string, number>();
     for (const [date, value] of data) {
-      if (value != null) cleanData.set(date, value);
+      if (typeof value === "number" && isFinite(value)) {
+        cleanData.set(date, value);
+      }
     }
 
     if (cleanData.size === 0) return { inserted: 0 };
@@ -1468,11 +1471,18 @@ class SeriesCollection {
 
   // ─── Static loader stubs (eval-callable) ─────────────────────────
 
-  /** Load series data from a named download source. */
+  /** Load series data from a named download source.
+   *  Ensures the file is fresh (re-downloads if older than 1 hour)
+   *  before reading and parsing — mirrors Rails DownloadsCache behavior.
+   */
   static async loadFromDownload(
     handle: string,
     options: Record<string, unknown> = {},
   ): Promise<Series> {
+    const { default: DownloadCollection } =
+      await import("./download-collection");
+    await DownloadCollection.ensureFresh(handle);
+
     const { default: DownloadProcessor } =
       await import("../utils/download-processor");
     const data = await DownloadProcessor.getData(

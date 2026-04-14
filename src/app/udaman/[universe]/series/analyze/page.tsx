@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { analyzeSeriesAction } from "@/actions/series-actions";
+import { listTimelineEventsAction } from "@/actions/timeline-events";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { AnalyzeSearchInput } from "@/components/series/analyze-search-input";
 import { FrequencyLinks } from "@/components/series/frequency-links";
@@ -36,7 +37,17 @@ export default async function AnalyzePage({
   }
 
   // ── Single-series analysis ───────────────────────────────────────────
-  const result = await analyzeSeriesAction(id);
+  const [result, rawEvents] = await Promise.all([
+    analyzeSeriesAction(id),
+    listTimelineEventsAction(),
+  ]);
+  const timelineEvents = rawEvents.map((e) => ({
+    id: e.id,
+    start: e.startDate,
+    end: e.effectiveEndDate,
+    name: e.name,
+    eventType: e.eventType,
+  }));
 
   const { series, yoy, levelChange, ytd, siblings, unitLabel, unitShortLabel } =
     result;
@@ -86,6 +97,7 @@ export default async function AnalyzePage({
         unitLabel={unitLabel}
         unitShortLabel={unitShortLabel}
         currentFreqCode={series.frequencyCode}
+        timelineEvents={timelineEvents}
       />
     </>
   );

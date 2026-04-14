@@ -1,4 +1,5 @@
 import { transformSeriesAction } from "@/actions/series-actions";
+import { listTimelineEventsAction } from "@/actions/timeline-events";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { LinkedExpression } from "@/components/series/linked-expression";
@@ -50,7 +51,17 @@ export default async function CalculatePage({
   }
 
   // ── Expression mode ──────────────────────────────────────────────────
-  const result = await transformSeriesAction(expression);
+  const [result, rawEvents] = await Promise.all([
+    transformSeriesAction(expression),
+    listTimelineEventsAction(),
+  ]);
+  const timelineEvents = rawEvents.map((e) => ({
+    id: e.id,
+    start: e.startDate,
+    end: e.effectiveEndDate,
+    name: e.name,
+    eventType: e.eventType,
+  }));
   const firstName = extractFirstName(expression);
 
   if ("error" in result) {
@@ -113,6 +124,7 @@ export default async function CalculatePage({
         ytd={ytd}
         levelChange={levelChange}
         decimals={series.decimals}
+        timelineEvents={timelineEvents}
       />
     </>
   );

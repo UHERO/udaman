@@ -67,7 +67,6 @@ export default async function SeriesPage({
                 xseriesId: metadata.xs_id,
                 universe,
                 seriesId: id,
-                unitShortLabel: metadata.u_short_label,
               }}
             />
           </div>

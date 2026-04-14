@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { FileSpreadsheet, Maximize2, Minimize2 } from "lucide-react";
+import { Calendar, FileSpreadsheet, Maximize2, Minimize2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAppPathname } from "@/hooks/use-app-pathname";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { label: "TSD Tools", icon: FileSpreadsheet, segment: "tsd" },
+  { label: "Timeline", icon: Calendar, segment: "timeline" },
 ] as const;
 
 export function DataToolsTabs({
