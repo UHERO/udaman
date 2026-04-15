@@ -18,7 +18,11 @@
  * is enforced between every outbound request (including retries).
  */
 
+import { createLogger } from "@/core/observability/logger";
+
 import { fetchJson, grokDate, type ApiResult } from "./index";
+
+const log = createLogger("api.bls");
 
 /**
  * Error thrown when BLS signals that the current registration key has
@@ -139,98 +143,75 @@ async function withKeyRetry<T>(
     : new Error("All BLS keys rate-limited");
 }
 
-// ─── BLS v2 (single-series) ──────────────────────────────────────────
+// ─── BLS v2 ─────────────────────────────────────────────────────────
 
 /**
  * Fetch a time series from the BLS v2 JSON API.
+ * Defaults to 20 years of data. Automatically chunks into 20-year
+ * windows when a wider custom range is requested.
  *
  * @param seriesId - BLS series ID (e.g. "LNS12000000")
  * @param _frequency - Unused; the seriesId encodes frequency. Kept for signature parity.
+ * @param startYear - First year to fetch (default: 20 years ago)
+ * @param endYear - Last year to fetch (default: current year)
  */
 export async function fetchSeries(
   seriesId: string,
   _frequency?: string | null,
+  startYear?: number,
+  endYear?: number,
 ): Promise<ApiResult> {
-  return withKeyRetry(async (apiKey) => {
-    const url = `https://api.bls.gov/publicAPI/v2/timeseries/data/${seriesId}?registrationkey=${apiKey}`;
+  const end = endYear ?? new Date().getFullYear();
+  const start = startYear ?? end - 19;
+  const BLS_MAX_SPAN = 20; // BLS v2 allows at most 20 years per request
 
-    const json = await fetchJson<BlsV1Response>(url);
+  const data = new Map<string, number>();
+  let lastUrl = "";
 
-    if (!/succeeded/i.test(json.status ?? "")) {
-      const msg = Array.isArray(json.message)
-        ? json.message.join(" ")
-        : String(json.message ?? "Unknown error");
-      throwBlsError("BLS API error", msg);
-    }
+  // Chunk into 20-year windows when the requested range exceeds the API limit
+  for (let chunkStart = start; chunkStart <= end; chunkStart += BLS_MAX_SPAN) {
+    const chunkEnd = Math.min(chunkStart + BLS_MAX_SPAN - 1, end);
+    await withKeyRetry(async (apiKey) => {
+      const url = `https://api.bls.gov/publicAPI/v2/timeseries/data/${seriesId}?registrationkey=${apiKey}&startyear=${chunkStart}&endyear=${chunkEnd}`;
+      lastUrl = url;
+      log.info({ url }, "BLS fetch");
 
-    const resultsData = json.Results?.series?.[0]?.data;
-    if (!resultsData || resultsData.length === 0) {
-      const msg = Array.isArray(json.message)
-        ? json.message.join(" ")
-        : "No data returned";
-      throwBlsError("BLS API error", msg);
-    }
+      const json = await fetchJson<BlsV1Response>(url);
 
-    const data = new Map<string, number>();
-    for (const dp of resultsData) {
-      const date = grokDate(dp.year, dp.period);
-      const value = parseFloat(String(dp.value).replace(/,/g, ""));
-      if (!isNaN(value)) {
-        data.set(date, value);
+      if (!/succeeded/i.test(json.status ?? "")) {
+        const msg = Array.isArray(json.message)
+          ? json.message.join(" ")
+          : String(json.message ?? "Unknown error");
+        throwBlsError("BLS API error", msg);
       }
-    }
 
-    return { data, url };
-  });
+      const resultsData = json.Results?.series?.[0]?.data;
+      if (!resultsData || resultsData.length === 0) {
+        log.info({ url }, "BLS chunk empty (no data for range)");
+        return;
+      }
+
+      log.info({ url, points: resultsData.length }, "BLS chunk received");
+      for (const dp of resultsData) {
+        const date = grokDate(dp.year, dp.period);
+        const value = parseFloat(String(dp.value).replace(/,/g, ""));
+        if (!isNaN(value)) {
+          data.set(date, value);
+        }
+      }
+    });
+  }
+
+  if (data.size === 0) {
+    throw new Error(`BLS API: No data returned for ${seriesId} (${start}–${end})`);
+  }
+
+  log.info({ seriesId, start, end, totalPoints: data.size }, "BLS fetch complete");
+  return { data, url: lastUrl };
 }
 
-// ─── BLS v2 (JSON API) ──────────────────────────────────────────────
-
-/**
- * Fetch a time series from the BLS v2 JSON API.
- * Uses a different API key and endpoint with year range parameters.
- *
- * @param seriesId - BLS series ID
- * @param frequency - Optional frequency filter (unused by API, kept for interface consistency)
- */
-export async function fetchSeriesV2(
-  seriesId: string,
-  _frequency?: string | null,
-): Promise<ApiResult> {
-  const thisYear = new Date().getFullYear();
-
-  return withKeyRetry(async (apiKey) => {
-    const url = `https://api.bls.gov/publicAPI/v2/timeseries/data/${seriesId}?registrationkey=${apiKey}&startyear=${thisYear - 9}&endyear=${thisYear}`;
-
-    const json = await fetchJson<BlsV1Response>(url);
-
-    if (!/succeeded/i.test(json.status ?? "")) {
-      const msg = Array.isArray(json.message)
-        ? json.message.join(" ")
-        : String(json.message ?? "Unknown error");
-      throwBlsError("BLS V2 API error", msg);
-    }
-
-    const resultsData = json.Results?.series?.[0]?.data;
-    if (!resultsData || resultsData.length === 0) {
-      const msg = Array.isArray(json.message)
-        ? json.message.join(" ")
-        : "No data returned";
-      throwBlsError("BLS V2 API error", msg);
-    }
-
-    const data = new Map<string, number>();
-    for (const dp of resultsData) {
-      const date = grokDate(dp.year, dp.period);
-      const value = parseFloat(String(dp.value).replace(/,/g, ""));
-      if (!isNaN(value)) {
-        data.set(date, value);
-      }
-    }
-
-    return { data, url };
-  });
-}
+/** @deprecated Use fetchSeries — this is kept for backwards compat only. */
+export const fetchSeriesV2 = fetchSeries;
 
 // ─── Types ───────────────────────────────────────────────────────────
 

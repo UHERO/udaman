@@ -62,7 +62,7 @@ export default async function SeriesPage({
             <SeriesDataTable
               data={dataPoints}
               options={{
-                decimals: metadata.s_decimals,
+                decimals: 2,
                 showLoaderCol: loaders.length > 1,
                 xseriesId: metadata.xs_id,
                 universe,

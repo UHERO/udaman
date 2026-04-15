@@ -1562,13 +1562,15 @@ class SeriesCollection {
     return result;
   }
 
-  /** Load from the BLS API (v1 legacy endpoint). */
+  /** Load from the BLS v2 API. */
   static async loadApiBls(
     seriesId: string,
     frequency: string,
+    startYear?: number,
+    endYear?: number,
   ): Promise<Series> {
     const { fetchSeries } = await import("../utils/api-clients/bls");
-    const { data, url } = await fetchSeries(seriesId, frequency);
+    const { data, url } = await fetchSeries(seriesId, frequency, startYear, endYear);
     return this.wrapApiResult(data, url, frequency);
   }
 

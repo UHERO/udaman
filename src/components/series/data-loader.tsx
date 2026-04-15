@@ -379,13 +379,15 @@ export const LoaderSection = ({
         </Button>
       </div>
 
-      {loaders.map((l, i) =>
-        l.disabled ? (
-          <DisabledLoaderItem key={`data-loader-${i}`} loader={l} />
-        ) : (
-          <LoaderItem key={`data-loader-${i}`} universe={universe} seriesId={seriesId} loader={l} />
-        ),
-      )}
+      {[...loaders]
+        .sort((a, b) => b.priority - a.priority)
+        .map((l) =>
+          l.disabled ? (
+            <DisabledLoaderItem key={`data-loader-${l.id}`} loader={l} />
+          ) : (
+            <LoaderItem key={`data-loader-${l.id}`} universe={universe} seriesId={seriesId} loader={l} />
+          ),
+        )}
 
       <LoaderCreateDialog
         open={createOpen}
