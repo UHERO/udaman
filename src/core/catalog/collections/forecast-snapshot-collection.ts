@@ -1,4 +1,4 @@
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import ForecastSnapshot from "../models/forecast-snapshot";
@@ -40,31 +40,27 @@ class ForecastSnapshotCollection {
   static async create(
     payload: CreateForecastSnapshotPayload,
   ): Promise<ForecastSnapshot> {
-    await mysql`
-      INSERT INTO forecast_snapshots (
+    const insertId = await insertAndGetId(
+      `INSERT INTO forecast_snapshots (
         name, version, published, comments,
         new_forecast_tsd_filename, new_forecast_tsd_label,
         old_forecast_tsd_filename, old_forecast_tsd_label,
         history_tsd_filename, history_tsd_label,
         created_at, updated_at
-      ) VALUES (
-        ${payload.name},
-        ${payload.version},
-        ${payload.published ? 1 : 0},
-        ${payload.comments ?? null},
-        ${payload.newForecastTsdFilename ?? null},
-        ${payload.newForecastTsdLabel ?? null},
-        ${payload.oldForecastTsdFilename ?? null},
-        ${payload.oldForecastTsdLabel ?? null},
-        ${payload.historyTsdFilename ?? null},
-        ${payload.historyTsdLabel ?? null},
-        NOW(), NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        payload.name,
+        payload.version,
+        payload.published ? 1 : 0,
+        payload.comments ?? null,
+        payload.newForecastTsdFilename ?? null,
+        payload.newForecastTsdLabel ?? null,
+        payload.oldForecastTsdFilename ?? null,
+        payload.oldForecastTsdLabel ?? null,
+        payload.historyTsdFilename ?? null,
+        payload.historyTsdLabel ?? null,
+      ],
+    );
     return this.getById(insertId);
   }
 

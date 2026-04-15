@@ -1,5 +1,5 @@
 import { createLogger } from "@/core/observability/logger";
-import { mysql, rawQuery } from "@/lib/mysql/db";
+import { insertAndGetId, mysql, rawQuery } from "@/lib/mysql/db";
 
 import CategoryCollection from "../collections/category-collection";
 import DataListCollection from "../collections/data-list-collection";
@@ -199,18 +199,13 @@ async function upsertGeographies(rows: FactbookRow[]): Promise<{
       existing++;
       continue;
     }
-    await mysql`
-      INSERT INTO geographies (
+    const insertId = await insertAndGetId(
+      `INSERT INTO geographies (
         universe, handle, display_name, display_name_short, geotype,
         created_at, updated_at
-      ) VALUES (
-        ${HHF}, ${zip}, ${zipname}, ${zipname}, ${geotypeForZip(zip)},
-        NOW(), NOW()
-      )
-    `;
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+      [HHF, zip, zipname, zipname, geotypeForZip(zip)],
+    );
     byZip.set(zip, insertId);
     created++;
   }

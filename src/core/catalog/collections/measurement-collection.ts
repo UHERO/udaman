@@ -1,5 +1,5 @@
 import { NotFoundError } from "@/lib/errors";
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Measurement from "../models/measurement";
@@ -181,24 +181,21 @@ class MeasurementCollection {
       universe = "UHERO",
     } = payload;
 
-    await mysql`
-      INSERT INTO measurements (
+    const insertId = await insertAndGetId(
+      `INSERT INTO measurements (
         universe, prefix, data_portal_name, unit_id, source_id,
         source_detail_id, decimals, percent, \`real\`, restricted,
         seasonal_adjustment, frequency_transform, source_link, notes,
         created_at, updated_at
-      ) VALUES (
-        ${universe}, ${prefix}, ${dataPortalName ?? null}, ${unitId ?? null},
-        ${sourceId ?? null}, ${sourceDetailId ?? null}, ${decimals},
-        ${percent ? 1 : 0}, ${real ? 1 : 0}, ${restricted ? 1 : 0},
-        ${seasonalAdjustment ?? null}, ${frequencyTransform ?? null},
-        ${sourceLink ?? null}, ${notes ?? null}, NOW(), NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        universe, prefix, dataPortalName ?? null, unitId ?? null,
+        sourceId ?? null, sourceDetailId ?? null, decimals,
+        percent ? 1 : 0, real ? 1 : 0, restricted ? 1 : 0,
+        seasonalAdjustment ?? null, frequencyTransform ?? null,
+        sourceLink ?? null, notes ?? null,
+      ],
+    );
     return this.getById(insertId);
   }
 

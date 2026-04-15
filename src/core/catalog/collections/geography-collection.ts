@@ -1,5 +1,5 @@
 import { NotFoundError } from "@/lib/errors";
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Geography from "../models/geography";
@@ -61,20 +61,15 @@ class GeographyCollection {
       universe = "UHERO",
     } = payload;
 
-    await mysql`
-      INSERT INTO geographies (
+    const insertId = await insertAndGetId(
+      `INSERT INTO geographies (
         universe, handle, display_name, display_name_short,
         fips, list_order, geotype, created_at, updated_at
-      ) VALUES (
-        ${universe}, ${handle ?? null}, ${displayName ?? null},
-        ${displayNameShort ?? null}, ${fips ?? null}, ${listOrder ?? null},
-        ${geotype ?? null}, NOW(), NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [universe, handle ?? null, displayName ?? null,
+       displayNameShort ?? null, fips ?? null, listOrder ?? null,
+       geotype ?? null],
+    );
     return this.getById(insertId);
   }
 

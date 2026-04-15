@@ -1,5 +1,5 @@
 import { NotFoundError } from "@/lib/errors";
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Unit from "../models/unit";
@@ -63,14 +63,11 @@ class UnitCollection {
   static async create(payload: CreateUnitPayload): Promise<Unit> {
     const { shortLabel, longLabel, universe = "UHERO" } = payload;
 
-    await mysql`
-      INSERT INTO units (universe, short_label, long_label, created_at, updated_at)
-      VALUES (${universe}, ${shortLabel ?? null}, ${longLabel ?? null}, NOW(), NOW())
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+    const insertId = await insertAndGetId(
+      `INSERT INTO units (universe, short_label, long_label, created_at, updated_at)
+       VALUES (?, ?, ?, NOW(), NOW())`,
+      [universe, shortLabel ?? null, longLabel ?? null],
+    );
     return this.getById(insertId);
   }
 

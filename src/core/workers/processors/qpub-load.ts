@@ -11,7 +11,7 @@ import {
 } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { parseDollarValue } from "@/core/crawlers/qpub/parse-utils";
-import { rawQuery } from "@/lib/mysql/hhdb";
+import { insertAndGetId, rawQuery } from "@/lib/mysql/hhdb";
 
 import type { QpubLoadJobData } from "../queues";
 
@@ -423,7 +423,7 @@ export async function loadCommercialImprovements(
   const scrapedAtStr = sqlDate(scrapedAt);
 
   for (const b of buildings) {
-    await rawQuery(
+    const improvementId = await insertAndGetId(
       `INSERT INTO commercial_improvements (tmk, scraped_at,
          building_number, building_card, year_built, effective_year_built,
          improvement_name, property_class, structure_type, units, identical_units,
@@ -453,10 +453,6 @@ export async function loadCommercialImprovements(
     const floorDetails = (b.floor_details as Row[] | undefined) ?? [];
 
     if (floorDetails.length > 0) {
-      const [{ id: improvementId }] = await rawQuery<{ id: number }>(
-        `SELECT LAST_INSERT_ID() as id`,
-        [],
-      );
 
       for (const d of floorDetails) {
         await rawQuery(

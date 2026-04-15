@@ -1,6 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 import { NotFoundError } from "@/lib/errors";
-import { mysql, rawQuery, scopedConnection } from "@/lib/mysql/db";
+import { insertAndGetId, mysql, rawQuery, scopedConnection } from "@/lib/mysql/db";
 import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 
 import Series from "../models/series";
@@ -178,35 +178,30 @@ class SeriesCollection {
     });
 
     // 2. Insert series row
-    await mysql`
-      INSERT INTO series (
+    const insertId = await insertAndGetId(
+      `INSERT INTO series (
         xseries_id, name, universe, geography_id, unit_id, source_id,
         source_detail_id, dataPortalName, description, decimals,
         source_link, investigation_notes, dependency_depth, scratch,
         created_at, updated_at
-      ) VALUES (
-        ${timeSeries.id},
-        ${payload.name},
-        ${universe},
-        ${geoId},
-        ${payload.unitId ?? null},
-        ${payload.sourceId ?? null},
-        ${payload.sourceDetailId ?? null},
-        ${payload.dataPortalName ?? null},
-        ${payload.description ?? null},
-        ${payload.decimals ?? 1},
-        ${payload.sourceLink ?? null},
-        ${payload.investigationNotes ?? null},
-        ${0},
-        ${0},
-        NOW(),
-        NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        timeSeries.id,
+        payload.name,
+        universe,
+        geoId,
+        payload.unitId ?? null,
+        payload.sourceId ?? null,
+        payload.sourceDetailId ?? null,
+        payload.dataPortalName ?? null,
+        payload.description ?? null,
+        payload.decimals ?? 1,
+        payload.sourceLink ?? null,
+        payload.investigationNotes ?? null,
+        0,
+        0,
+      ],
+    );
 
     // 3. Set primary_series_id back on xseries
     await TimeSeriesCollection.setPrimarySeries(timeSeries.id, insertId);
@@ -812,35 +807,30 @@ class SeriesCollection {
     }
 
     // Insert the alias series pointing to the same xseries
-    await mysql`
-      INSERT INTO series (
+    const insertId = await insertAndGetId(
+      `INSERT INTO series (
         xseries_id, name, universe, geography_id, unit_id, source_id,
         source_detail_id, dataPortalName, description, decimals,
         source_link, investigation_notes, dependency_depth, scratch,
         created_at, updated_at
-      ) VALUES (
-        ${primary.xseriesId},
-        ${aliasName},
-        ${opts.universe},
-        ${geoId},
-        ${primary.unitId},
-        ${primary.sourceId},
-        ${primary.sourceDetailId},
-        ${primary.dataPortalName},
-        ${primary.description},
-        ${primary.decimals},
-        ${primary.sourceLink},
-        ${primary.investigationNotes},
-        ${primary.dependencyDepth},
-        ${0},
-        NOW(),
-        NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        primary.xseriesId,
+        aliasName,
+        opts.universe,
+        geoId,
+        primary.unitId,
+        primary.sourceId,
+        primary.sourceDetailId,
+        primary.dataPortalName,
+        primary.description,
+        primary.decimals,
+        primary.sourceLink,
+        primary.investigationNotes,
+        primary.dependencyDepth,
+        0,
+      ],
+    );
     return this.getById(insertId);
   }
 

@@ -1,6 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 import { NotFoundError } from "@/lib/errors";
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Loader from "../models/loader";
@@ -139,33 +139,28 @@ class LoaderCollection {
     );
     const dependencies = Loader.extractDependencies(description || "", code);
 
-    await mysql`
-      INSERT INTO data_sources (
+    const insertId = await insertAndGetId(
+      `INSERT INTO data_sources (
         series_id, eval, priority, scale, presave_hook,
         clear_before_load, pseudo_history, universe, disabled,
         reload_nightly, color, dependencies,
         created_at, updated_at
-      ) VALUES (
-        ${seriesId},
-        ${code},
-        ${priority || 50},
-        ${scale || "1.0"},
-        ${presaveHook},
-        ${clearBeforeLoad},
-        ${pseudoHistory},
-        ${universe},
-        ${false},
-        ${true},
-        ${optimalColor},
-        ${JSON.stringify(dependencies)},
-        NOW(),
-        NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        seriesId,
+        code,
+        priority || 50,
+        scale || "1.0",
+        presaveHook,
+        clearBeforeLoad ? 1 : 0,
+        pseudoHistory ? 1 : 0,
+        universe,
+        0,
+        1,
+        optimalColor,
+        JSON.stringify(dependencies),
+      ],
+    );
     return this.getById(insertId);
   }
 

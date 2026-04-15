@@ -33,4 +33,24 @@ function rawQuery<T = Record<string, unknown>>(
   });
 }
 
-export { rawQuery };
+/**
+ * Execute an INSERT statement and return LAST_INSERT_ID(), guaranteed to
+ * run on the same pooled connection so the ID is correct.
+ */
+async function insertAndGetId(
+  sql: string,
+  params: unknown[] = [],
+): Promise<number> {
+  const start = performance.now();
+  const connection = getConnection();
+  const [result] = await connection.begin(async (tx: any) => {
+    await tx.unsafe(sql, params);
+    const rows = await tx.unsafe("SELECT LAST_INSERT_ID() as insertId");
+    return [rows[0].insertId as number];
+  });
+  const durationMs = +(performance.now() - start).toFixed(2);
+  log.debug({ durationMs }, sql);
+  return result as number;
+}
+
+export { rawQuery, insertAndGetId };

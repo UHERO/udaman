@@ -1,4 +1,4 @@
-import { mysql, rawQuery } from "@/lib/mysql/db";
+import { insertAndGetId, mysql, rawQuery } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import DataList from "../models/data-list";
@@ -107,14 +107,11 @@ class DataListCollection {
   static async create(payload: CreateDataListPayload): Promise<DataList> {
     const { name, universe = "UHERO" } = payload;
 
-    await mysql`
-      INSERT INTO data_lists (universe, name, created_at, updated_at)
-      VALUES (${universe}, ${name ?? null}, NOW(), NOW())
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+    const insertId = await insertAndGetId(
+      `INSERT INTO data_lists (universe, name, created_at, updated_at)
+       VALUES (?, ?, NOW(), NOW())`,
+      [universe, name ?? null],
+    );
     return this.getById(insertId);
   }
 

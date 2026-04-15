@@ -1,4 +1,4 @@
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Source from "../models/source";
@@ -72,14 +72,11 @@ class SourceCollection {
   static async create(payload: CreateSourcePayload): Promise<Source> {
     const { description, link, universe = "UHERO" } = payload;
 
-    await mysql`
-      INSERT INTO sources (universe, description, link, created_at, updated_at)
-      VALUES (${universe}, ${description ?? null}, ${link ?? null}, NOW(), NOW())
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+    const insertId = await insertAndGetId(
+      `INSERT INTO sources (universe, description, link, created_at, updated_at)
+       VALUES (?, ?, ?, NOW(), NOW())`,
+      [universe, description ?? null, link ?? null],
+    );
     return this.getById(insertId);
   }
 

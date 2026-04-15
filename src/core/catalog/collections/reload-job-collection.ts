@@ -5,7 +5,7 @@ import {
   enqueueTsdExport,
   enqueueUpdatePublic,
 } from "@/core/workers/enqueue";
-import { mysql, rawQuery } from "@/lib/mysql/db";
+import { insertAndGetId, mysql, rawQuery } from "@/lib/mysql/db";
 
 import ReloadJob from "../models/reload-job";
 import type { ReloadJobAttrs } from "../models/reload-job";
@@ -157,13 +157,11 @@ class ReloadJobCollection {
       throw new Error(`Reload job ${id} has no associated series`);
 
     // Create new job row
-    await mysql`
-      INSERT INTO reload_jobs (user_id, update_public, params, created_at)
-      VALUES (${original.user_id}, ${original.update_public ?? 0}, ${original.params}, NOW())
-    `;
-    const [{ insertId }] = await mysql<{ insertId: number }>`
-      SELECT LAST_INSERT_ID() AS insertId
-    `;
+    const insertId = await insertAndGetId(
+      `INSERT INTO reload_jobs (user_id, update_public, params, created_at)
+       VALUES (?, ?, ?, NOW())`,
+      [original.user_id, original.update_public ?? 0, original.params],
+    );
 
     // Copy series associations
     const values = seriesRows
@@ -266,13 +264,11 @@ class ReloadJobCollection {
     const params = JSON.stringify([name, { nightly }]);
 
     try {
-      await mysql`
-        INSERT INTO reload_jobs (user_id, update_public, params, created_at)
-        VALUES (1, ${updatePublic}, ${params}, NOW())
-      `;
-      const [{ insertId }] = await mysql<{ insertId: number }>`
-        SELECT LAST_INSERT_ID() AS insertId
-      `;
+      const insertId = await insertAndGetId(
+        `INSERT INTO reload_jobs (user_id, update_public, params, created_at)
+         VALUES (?, ?, ?, NOW())`,
+        [1, updatePublic ? 1 : 0, params],
+      );
 
       // Insert join table rows
       for (const sid of seriesIds) {

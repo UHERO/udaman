@@ -1,7 +1,7 @@
 import { compare, hash } from "bcryptjs";
 
 import { DEVISE_PEPPER } from "@/lib/auth/pepper";
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 
 import User from "../models/user";
 import type { UserAttrs } from "../models/user";
@@ -47,25 +47,13 @@ class UserCollection {
 
     const hashed = await hash(payload.password + DEVISE_PEPPER, BCRYPT_ROUNDS);
 
-    await mysql`
-      INSERT INTO users (
+    const insertId = await insertAndGetId(
+      `INSERT INTO users (
         email, name, role, universe, encrypted_password,
         created_at, updated_at
-      )
-      VALUES (
-        ${email},
-        ${payload.name ?? null},
-        ${payload.role},
-        ${payload.universe},
-        ${hashed},
-        NOW(),
-        NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{ insertId: number }>`
-      SELECT LAST_INSERT_ID() as insertId
-    `;
+      ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+      [email, payload.name ?? null, payload.role, payload.universe, hashed],
+    );
     return this.getById(insertId);
   }
 

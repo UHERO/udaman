@@ -1,4 +1,4 @@
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Category from "../models/category";
@@ -83,22 +83,19 @@ class CategoryCollection {
     const maskedValue =
       masked ?? (parent ? parent.masked || parent.hidden : false);
 
-    await mysql`
-      INSERT INTO categories (
+    const insertId = await insertAndGetId(
+      `INSERT INTO categories (
         data_list_id, default_geo_id, universe, name, description,
         ancestry, list_order, masked, hidden, header, default_freq,
         meta, created_at, updated_at
-      ) VALUES (
-        ${dataListId ?? null}, ${defaultGeoId ?? null}, ${categoryUniverse},
-        ${name ?? "*** NEW UNNAMED CATEGORY ***"}, ${description ?? null},
-        ${ancestry}, ${listOrder}, ${maskedValue ? 1 : 0}, ${hidden ? 1 : 0},
-        ${header ? 1 : 0}, ${defaultFreq ?? null}, ${meta ?? null}, NOW(), NOW()
-      )
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        dataListId ?? null, defaultGeoId ?? null, categoryUniverse,
+        name ?? "*** NEW UNNAMED CATEGORY ***", description ?? null,
+        ancestry, listOrder, maskedValue ? 1 : 0, hidden ? 1 : 0,
+        header ? 1 : 0, defaultFreq ?? null, meta ?? null,
+      ],
+    );
     return this.getById(insertId);
   }
 

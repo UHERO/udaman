@@ -1,5 +1,5 @@
 import { NotFoundError } from "@/lib/errors";
-import { rawQuery } from "@/lib/mysql/db";
+import { insertAndGetId, rawQuery } from "@/lib/mysql/db";
 
 import UniverseUpload from "../models/universe-upload";
 import type {
@@ -29,14 +29,11 @@ class UniverseUploadCollection {
   }
 
   static async create(filename: string): Promise<UniverseUpload> {
-    await rawQuery(
+    const id = await insertAndGetId(
       `INSERT INTO ${this.tableName} (upload_at, active, status, filename) VALUES (NOW(), 0, 'processing', ?)`,
       [filename],
     );
-    const rows = await rawQuery<{ insertId: number }>(
-      "SELECT LAST_INSERT_ID() as insertId",
-    );
-    return this.getById(rows[0].insertId);
+    return this.getById(id);
   }
 
   static async updateStatus(
@@ -97,14 +94,11 @@ class DvwUploadCollection extends UniverseUploadCollection {
   }
 
   static override async create(filename: string): Promise<UniverseUpload> {
-    await rawQuery(
+    const id = await insertAndGetId(
       `INSERT INTO ${this.tableName} (upload_at, active, series_status, filename) VALUES (NOW(), 0, 'processing', ?)`,
       [filename],
     );
-    const rows = await rawQuery<{ insertId: number }>(
-      "SELECT LAST_INSERT_ID() as insertId",
-    );
-    return this.getById(rows[0].insertId);
+    return this.getById(id);
   }
 
   static override async updateStatus(

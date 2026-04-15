@@ -13,7 +13,7 @@ import {
   enqueueClipboardAction,
   enqueueClipboardLoaderReload,
 } from "@/core/workers/enqueue";
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 
 const log = createLogger("catalog.clipboard");
 
@@ -196,13 +196,11 @@ export async function reloadClipboardLoaders({
   const seriesIds = seriesRows.map((r) => r.series_id);
 
   // Insert reload_jobs record
-  await mysql`
-    INSERT INTO reload_jobs (user_id, params, created_at)
-    VALUES (${userId}, ${"reload_loaders"}, NOW())
-  `;
-  const [{ insertId }] = await mysql<{ insertId: number }>`
-    SELECT LAST_INSERT_ID() AS insertId
-  `;
+  const insertId = await insertAndGetId(
+    `INSERT INTO reload_jobs (user_id, params, created_at)
+     VALUES (?, ?, NOW())`,
+    [userId, "reload_loaders"],
+  );
 
   // Insert reload_job_series join rows
   for (const sid of seriesIds) {
@@ -266,13 +264,11 @@ export async function doClipboardAction({
   }
 
   // Insert reload_jobs record
-  await mysql`
-    INSERT INTO reload_jobs (user_id, params, created_at)
-    VALUES (${userId}, ${action}, NOW())
-  `;
-  const [{ insertId }] = await mysql<{ insertId: number }>`
-    SELECT LAST_INSERT_ID() AS insertId
-  `;
+  const insertId = await insertAndGetId(
+    `INSERT INTO reload_jobs (user_id, params, created_at)
+     VALUES (?, ?, NOW())`,
+    [userId, action],
+  );
 
   // Insert reload_job_series join rows
   for (const sid of seriesIds) {

@@ -1,4 +1,4 @@
-import { mysql, rawQuery } from "@/lib/mysql/db";
+import { insertAndGetId, mysql, rawQuery } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import TimeSeries from "../models/time-series";
@@ -77,7 +77,7 @@ class TimeSeriesCollection {
 
   /** Create a new TimeSeries record. Returns the new model instance. */
   static async create(payload: CreateTimeSeriesPayload): Promise<TimeSeries> {
-    await rawQuery(
+    const insertId = await insertAndGetId(
       `INSERT INTO xseries (
         primary_series_id, frequency, seasonal_adjustment, seasonally_adjusted,
         restricted, quarantined, percent, \`real\`, base_year,
@@ -102,12 +102,8 @@ class TimeSeriesCollection {
         payload.aremosDiff ?? null,
         payload.mult ?? null,
         payload.units ?? 1,
-      ] as any[],
+      ],
     );
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 

@@ -1,4 +1,4 @@
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import TimelineEvent from "../models/timeline-event";
@@ -54,13 +54,11 @@ class TimelineEventCollection {
     payload: CreateTimelineEventPayload,
   ): Promise<TimelineEvent> {
     const { eventType, name, description, startDate, endDate } = payload;
-    await mysql`
-      INSERT INTO timeline_events (event_type, name, description, start_date, end_date, created_at, updated_at)
-      VALUES (${eventType}, ${name}, ${description ?? null}, ${startDate}, ${endDate ?? null}, NOW(), NOW())
-    `;
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+    const insertId = await insertAndGetId(
+      `INSERT INTO timeline_events (event_type, name, description, start_date, end_date, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+      [eventType, name, description ?? null, startDate, endDate ?? null],
+    );
     return this.getById(insertId);
   }
 

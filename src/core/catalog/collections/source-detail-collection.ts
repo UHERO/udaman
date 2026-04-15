@@ -1,5 +1,5 @@
 import { NotFoundError } from "@/lib/errors";
-import { mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import SourceDetail from "../models/source-detail";
@@ -47,14 +47,11 @@ class SourceDetailCollection {
   ): Promise<SourceDetail> {
     const { description, universe = "UHERO" } = payload;
 
-    await mysql`
-      INSERT INTO source_details (universe, description, created_at, updated_at)
-      VALUES (${universe}, ${description ?? null}, NOW(), NOW())
-    `;
-
-    const [{ insertId }] = await mysql<{
-      insertId: number;
-    }>`SELECT LAST_INSERT_ID() as insertId`;
+    const insertId = await insertAndGetId(
+      `INSERT INTO source_details (universe, description, created_at, updated_at)
+       VALUES (?, ?, NOW(), NOW())`,
+      [universe, description ?? null],
+    );
     return this.getById(insertId);
   }
 
