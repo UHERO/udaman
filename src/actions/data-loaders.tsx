@@ -8,7 +8,7 @@ import {
   deleteDataLoader as deleteLoaderCtrl,
   disableDataLoader as disableLoaderCtrl,
   enableDataLoader as enableLoaderCtrl,
-  loadDataPoints as loadDataPointsCtrl,
+  getDataLoader as getDataLoaderCtrl,
   updateDataLoader as updateDataLoaderCtrl,
 } from "@catalog/controllers/data-loaders";
 import type { DeleteByMode } from "@catalog/collections/series-collection";
@@ -17,8 +17,11 @@ import type {
   CreateLoaderFormData,
   UpdateLoaderFormData,
 } from "@catalog/types/sources";
+import { Queue } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
+import { enqueueSeriesReload } from "@/core/workers/enqueue";
+import { redisConnection } from "@/core/workers/connection";
 import { requireAuth } from "@/lib/auth/dal";
 
 const log = createLogger("action.data-loaders");
@@ -61,9 +64,14 @@ export async function reloadLoader(loaderId: number, clearFirst = false) {
   const session = await requireAuth();
   const userId = parseInt(session.user!.id!);
 
-  log.info({ loaderId, clearFirst }, "reloadLoader action called");
-  const result = await loadDataPointsCtrl({ id: loaderId, clearFirst });
-  log.info({ loaderId }, "reloadLoader action completed");
+  log.info({ loaderId, clearFirst }, "reloadLoader action called — enqueuing");
+  const { data: loader } = await getDataLoaderCtrl({ id: loaderId });
+  const job = await enqueueSeriesReload({
+    seriesId: loader.seriesId!,
+    loaderId,
+    clearFirst,
+  });
+  log.info({ loaderId, jobId: job.id }, "reloadLoader job enqueued");
 
   AppLogCollection.log({
     category: "loader",
@@ -73,7 +81,34 @@ export async function reloadLoader(loaderId: number, clearFirst = false) {
     subjectId: loaderId,
   });
 
-  return result;
+  return {
+    message: "Reload queued",
+    data: { status: "queued" as const, jobId: job.id! },
+  };
+}
+
+export async function getLoaderJobStatus(jobId: string): Promise<{
+  state: "active" | "waiting" | "completed" | "failed" | "unknown";
+  result?: string;
+  failedReason?: string;
+}> {
+  await requireAuth();
+  const queue = new Queue("default", {
+    connection: redisConnection,
+    prefix: "udaman",
+  });
+  try {
+    const job = await queue.getJob(jobId);
+    if (!job) return { state: "unknown" };
+    const state = await job.getState();
+    return {
+      state: state as "active" | "waiting" | "completed" | "failed" | "unknown",
+      result: job.returnvalue ? String(job.returnvalue) : undefined,
+      failedReason: job.failedReason ?? undefined,
+    };
+  } finally {
+    await queue.close();
+  }
 }
 
 export async function clearLoader(

@@ -17,6 +17,7 @@ import {
   deleteLoader,
   disableLoader,
   enableLoader,
+  getLoaderJobStatus,
   reloadLoader,
 } from "@/actions/data-loaders";
 import {
@@ -296,37 +297,70 @@ export const LoaderSection = ({
   loaders: SerializedLoader[];
 }) => {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
+  const [pendingJobs, setPendingJobs] = useState<
+    { loaderId: number; jobId: string }[]
+  >([]);
 
-  const handleLoadAll = () =>
-    startTransition(async () => {
-      try {
-        const enabledLoaders = loaders.filter((l) => !l.disabled);
-        const errors: string[] = [];
-        for (const loader of enabledLoaders) {
-          const result = await reloadLoader(loader.id);
-          if (result.data.status === "error") {
-            errors.push(`#${loader.id}: ${result.data.message}`);
-          }
+  const isLoading = pendingJobs.length > 0;
+
+  // Poll all pending jobs
+  useEffect(() => {
+    if (pendingJobs.length === 0) return;
+    const interval = setInterval(async () => {
+      const results = await Promise.all(
+        pendingJobs.map(async ({ loaderId, jobId }) => {
+          const status = await getLoaderJobStatus(jobId);
+          return { loaderId, jobId, ...status };
+        }),
+      );
+      const still = results.filter(
+        (r) => r.state !== "completed" && r.state !== "failed",
+      );
+      const done = results.filter(
+        (r) => r.state === "completed" || r.state === "failed",
+      );
+      if (done.length > 0) {
+        setPendingJobs(still);
+      }
+      if (still.length === 0 && pendingJobs.length > 0) {
+        const failed = results.filter((r) => r.state === "failed");
+        const succeeded = results.filter((r) => r.state === "completed");
+        if (failed.length > 0) {
+          toast.error(`${failed.length} loader(s) failed`, {
+            description: failed
+              .map((f) => `#${f.loaderId}: ${f.failedReason ?? "unknown"}`)
+              .join("; "),
+          });
         }
-        if (errors.length > 0) {
-          toast.error(`${errors.length} loader(s) failed`, {
-            description: errors.join("; "),
-          });
-        } else {
-          toast.success("All loaders completed", {
-            description: `Ran ${enabledLoaders.length} loader(s)`,
-          });
+        if (succeeded.length > 0) {
+          toast.success(`${succeeded.length} loader(s) completed`);
         }
         router.refresh();
-      } catch (err) {
-        toast.error("Load all failed", {
-          description: err instanceof Error ? err.message : "Unknown error",
-        });
       }
-    });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [pendingJobs, router]);
+
+  const handleLoadAll = async () => {
+    try {
+      const enabledLoaders = loaders.filter((l) => !l.disabled);
+      const jobs: { loaderId: number; jobId: string }[] = [];
+      for (const loader of enabledLoaders) {
+        const result = await reloadLoader(loader.id);
+        jobs.push({ loaderId: loader.id, jobId: result.data.jobId });
+      }
+      setPendingJobs(jobs);
+      toast.info("Reloads queued", {
+        description: `Enqueued ${jobs.length} loader(s)`,
+      });
+    } catch (err) {
+      toast.error("Load all failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col border-b">
@@ -336,12 +370,12 @@ export const LoaderSection = ({
           new
         </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
-        <Button variant={"link"} onClick={() => setClearOpen(true)} disabled={isPending}>
+        <Button variant={"link"} onClick={() => setClearOpen(true)} disabled={isLoading}>
           clear data
         </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
-        <Button variant={"link"} onClick={handleLoadAll} disabled={isPending}>
-          {isPending ? "loading..." : "load all"}
+        <Button variant={"link"} onClick={handleLoadAll} disabled={isLoading}>
+          {isLoading ? "loading..." : "load all"}
         </Button>
       </div>
 
@@ -382,25 +416,41 @@ const LoaderItem = ({
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
   const lastRunDate =
     loader.lastRunAt !== null ? uheroDate(loader.lastRunAt) : "-";
   const lastRunTime =
     loader.lastRunAt !== null ? format(loader.lastRunAt, "HH:MM") : "-";
   const runtime = formatRuntime(loader.runtime);
 
+  const isLoading = isPending || !!jobId;
+
+  // Poll job status when a reload is queued
+  useEffect(() => {
+    if (!jobId) return;
+    const interval = setInterval(async () => {
+      const status = await getLoaderJobStatus(jobId);
+      if (status.state === "completed") {
+        toast.success("Loader completed", { description: status.result });
+        setJobId(null);
+        router.refresh();
+      } else if (status.state === "failed") {
+        toast.error("Loader failed", {
+          description: status.failedReason ?? "Unknown error",
+        });
+        setJobId(null);
+        router.refresh();
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [jobId, router]);
+
   const handleLoad = () =>
     startTransition(async () => {
       try {
         const result = await reloadLoader(loader.id);
-        const { status, message } = result.data;
-        if (status === "error") {
-          toast.error("Loader failed", { description: message });
-        } else if (status === "skipped") {
-          toast("Loader skipped", { description: message });
-        } else {
-          toast.success("Loader completed", { description: message });
-        }
-        router.refresh();
+        setJobId(result.data.jobId);
+        toast.info("Reload queued", { description: result.message });
       } catch (err) {
         toast.error("Loader failed", {
           description: err instanceof Error ? err.message : "Unknown error",
@@ -448,9 +498,9 @@ const LoaderItem = ({
             size="sm"
             className="h-6"
             onClick={handleLoad}
-            disabled={isPending}
+            disabled={isLoading}
           >
-            {isPending ? "loading..." : "load"}
+            {isLoading ? "loading..." : "load"}
           </Button>
         </CardAction>
         <Separator orientation="vertical" className="bg-primary/60 w-4" />

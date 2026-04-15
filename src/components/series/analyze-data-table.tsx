@@ -110,7 +110,7 @@ export function AnalyzeDataTable({
     );
   };
 
-  const isCompareMode = seriesNames && seriesNames.length >= 2;
+  const isCompareMode = seriesNames && seriesNames.length >= 1;
 
   const columns = useMemo(() => {
     const cols: ColumnDef<ChartRow>[] = [

@@ -1061,6 +1061,45 @@ interface LevelChartProps {
   onBrushChange?: (range: { startIndex?: number; endIndex?: number }) => void;
 }
 
+/**
+ * Insert a single null-valued row wherever consecutive dates are further
+ * apart than expected for the given frequency.  This causes Recharts'
+ * `connectNulls={false}` to visually break the line at gaps (e.g. missing
+ * months during COVID).
+ */
+function fillGaps(rows: ChartRow[], freqCode: string | null | undefined): ChartRow[] {
+  if (rows.length < 2) return rows;
+  const DAY = 86_400_000;
+  // Maximum gap (in ms) before we consider data missing
+  const maxGap: Record<string, number> = {
+    D: 3 * DAY,
+    W: 10 * DAY,
+    M: 45 * DAY,
+    Q: 105 * DAY,
+    S: 200 * DAY,
+    A: 400 * DAY,
+  };
+  const threshold = maxGap[freqCode ?? "M"] ?? 45 * DAY;
+
+  const result: ChartRow[] = [rows[0]];
+  for (let i = 1; i < rows.length; i++) {
+    const prevMs = new Date(rows[i - 1].date).getTime();
+    const currMs = new Date(rows[i].date).getTime();
+    if (currMs - prevMs > threshold) {
+      // Insert a null placeholder one day after the last real point
+      result.push({
+        date: new Date(prevMs + DAY).toISOString().slice(0, 10),
+        level: null,
+        levelChange: null,
+        yoy: null,
+        ytd: null,
+      });
+    }
+    result.push(rows[i]);
+  }
+  return result;
+}
+
 export function LevelChart({
   data,
   decimals,
@@ -1085,11 +1124,12 @@ export function LevelChart({
 }: LevelChartProps) {
   const isCompareMode = seriesNames && seriesNames.length >= 1;
 
-  const chartData = useMemo(
-    () =>
-      isCompareMode ? data : computeOverlays(data, overlays, rollingWindow),
-    [data, overlays, rollingWindow, isCompareMode],
-  );
+  const chartData = useMemo(() => {
+    const rows = isCompareMode
+      ? data
+      : computeOverlays(data, overlays, rollingWindow);
+    return fillGaps(rows, freqCode);
+  }, [data, overlays, rollingWindow, isCompareMode, freqCode]);
 
   const { ticks, tickFormatter } = useMemo(() => {
     const dates = chartData.map((r) => r.date);
@@ -1209,7 +1249,7 @@ export function LevelChart({
                 dot={false}
                 isAnimationActive={true}
                 animationDuration={400}
-                connectNulls
+                connectNulls={false}
               />
             );
           })}
@@ -1361,7 +1401,7 @@ export function LevelChart({
           dot={false}
           isAnimationActive={true}
           animationDuration={400}
-          connectNulls
+          connectNulls={false}
         />
         {/* Second axis: transformed level */}
         {hasSecondAxis && (
@@ -1375,7 +1415,7 @@ export function LevelChart({
             dot={false}
             isAnimationActive={true}
             animationDuration={400}
-            connectNulls
+            connectNulls={false}
           />
         )}
         {/* Timeline event shading */}
@@ -1478,7 +1518,7 @@ export function LevelChart({
             stroke="transparent"
             isAnimationActive={true}
             animationDuration={400}
-            connectNulls
+            connectNulls={false}
           />
         )}
         {overlays.includes("rollingStdDev") && (
@@ -1494,7 +1534,7 @@ export function LevelChart({
             strokeOpacity={0.4}
             isAnimationActive={true}
             animationDuration={400}
-            connectNulls
+            connectNulls={false}
           />
         )}
         {/* Index base year reference line */}
@@ -1536,7 +1576,7 @@ export function LevelChart({
             dot={false}
             isAnimationActive={true}
             animationDuration={400}
-            connectNulls
+            connectNulls={false}
           />
         )}
         {/* Linear trend */}
@@ -1551,7 +1591,7 @@ export function LevelChart({
             dot={false}
             isAnimationActive={true}
             animationDuration={400}
-            connectNulls
+            connectNulls={false}
           />
         )}
         {/* Log-linear trend */}
@@ -1566,7 +1606,7 @@ export function LevelChart({
             dot={false}
             isAnimationActive={true}
             animationDuration={400}
-            connectNulls
+            connectNulls={false}
           />
         )}
         {/* HP trend */}
@@ -1580,7 +1620,7 @@ export function LevelChart({
             dot={false}
             isAnimationActive={true}
             animationDuration={400}
-            connectNulls
+            connectNulls={false}
           />
         )}
       </ComposedChart>
