@@ -1,4 +1,13 @@
 /**
+ * Internal display precision: show one extra decimal place so editors can
+ * see more detail than the public-facing dashboards.  Zero stays zero
+ * (integers should stay integers).
+ */
+export function internalDecimals(decimals: number): number {
+  return decimals === 0 ? 0 : decimals + 1;
+}
+
+/**
  * Format a numeric value for display based on the series' unit short label.
  *
  * Currency units (any short_label containing "$") get:
@@ -16,15 +25,17 @@ export function formatLevel(
   decimals: number,
   unitShortLabel?: string | null,
 ): string {
+  const dp = internalDecimals(decimals);
+
   if (unitShortLabel && unitShortLabel.includes("$")) {
-    return formatCurrency(value, decimals);
+    return formatCurrency(value, dp);
   }
 
   if (unitShortLabel === "%" || unitShortLabel === "Percent") {
-    return `${value.toFixed(decimals)}%`;
+    return `${value.toFixed(dp)}%`;
   }
 
-  return addCommas(value.toFixed(decimals));
+  return addCommas(value.toFixed(dp));
 }
 
 function formatCurrency(value: number, decimals: number): string {

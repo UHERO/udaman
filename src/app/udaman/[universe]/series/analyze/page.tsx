@@ -49,7 +49,7 @@ export default async function AnalyzePage({
     eventType: e.eventType,
   }));
 
-  const { series, yoy, levelChange, ytd, siblings, unitLabel, unitShortLabel } =
+  const { series, yoy, levelChange, ytd, pop, siblings, unitLabel, unitShortLabel } =
     result;
 
   return (
@@ -93,6 +93,7 @@ export default async function AnalyzePage({
         yoy={yoy}
         ytd={ytd}
         levelChange={levelChange}
+        pop={pop}
         decimals={series.decimals}
         unitLabel={unitLabel}
         unitShortLabel={unitShortLabel}

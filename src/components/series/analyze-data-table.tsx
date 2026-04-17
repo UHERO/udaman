@@ -225,6 +225,17 @@ export function AnalyzeDataTable({
           />
         ),
       },
+      {
+        accessorKey: "pop",
+        header: () => <span className="text-end">PoP %</span>,
+        cell: ({ cell }) => (
+          <FormattedCell
+            n={cell.getValue<number | null>()}
+            unit="perc"
+            colored
+          />
+        ),
+      },
     );
 
     // Add overlay columns

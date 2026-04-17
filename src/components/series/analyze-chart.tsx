@@ -18,12 +18,13 @@ import {
   YAxis,
 } from "recharts";
 
-export type BarMode = "yoy" | "ytd" | "levelChange";
+export type BarMode = "yoy" | "ytd" | "levelChange" | "pop";
 
 export const BAR_LABELS: Record<BarMode, string> = {
   yoy: "YOY %",
   ytd: "YTD %",
   levelChange: "LVL Chg",
+  pop: "PoP %",
 };
 
 export const SERIES_COLORS = [
@@ -45,6 +46,7 @@ export interface ChartRow {
   levelChange: number | null;
   yoy: number | null;
   ytd: number | null;
+  pop: number | null;
   // Overlay fields (populated on demand by computeOverlays)
   linearTrend?: number | null;
   logLinearTrend?: number | null;
@@ -88,7 +90,11 @@ export type Transformation =
   | "rollingMean"
   | "linearTrend"
   | "logLinearTrend"
-  | "hpTrend";
+  | "hpTrend"
+  | "yoy"
+  | "ytd"
+  | "pop"
+  | "levelChange";
 
 export const formatDate = (d: string) => d;
 
@@ -524,6 +530,14 @@ export function applyTransformation(
         level: !isNaN(hp[i]) ? hp[i] : null,
       }));
     }
+    case "yoy":
+      return data.map((r) => ({ ...r, level: r.yoy }));
+    case "ytd":
+      return data.map((r) => ({ ...r, level: r.ytd }));
+    case "pop":
+      return data.map((r) => ({ ...r, level: r.pop }));
+    case "levelChange":
+      return data.map((r) => ({ ...r, level: r.levelChange }));
   }
 }
 
@@ -621,6 +635,14 @@ export function computeSecondAxis(
         transformedLevel: !isNaN(hp[i]) ? hp[i] : null,
       }));
     }
+    case "yoy":
+      return data.map((r) => ({ ...r, transformedLevel: r.yoy }));
+    case "ytd":
+      return data.map((r) => ({ ...r, transformedLevel: r.ytd }));
+    case "pop":
+      return data.map((r) => ({ ...r, transformedLevel: r.pop }));
+    case "levelChange":
+      return data.map((r) => ({ ...r, transformedLevel: r.levelChange }));
   }
 }
 
@@ -804,6 +826,12 @@ export function applyTransformationMulti(
         });
         break;
       }
+      case "yoy":
+      case "ytd":
+      case "pop":
+      case "levelChange":
+        // No-op in compare mode — per-series change data not available
+        break;
     }
   }
 
@@ -819,6 +847,10 @@ export const TRANSFORMATION_LABELS: Record<Transformation, string> = {
   linearTrend: "Linear Trend",
   logLinearTrend: "Log-Linear Trend",
   hpTrend: "HP Trend",
+  yoy: "YOY %",
+  ytd: "YTD %",
+  pop: "PoP %",
+  levelChange: "LVL Chg",
 };
 
 /* ------------------------------------------------------------------ */
@@ -930,6 +962,7 @@ function ChartTooltip({
         <p>LVL Chg: {fmt(row.levelChange)}</p>
         <p>YOY %: {fmtPct(row.yoy)}</p>
         <p>YTD %: {fmtPct(row.ytd)}</p>
+        <p>PoP %: {fmtPct(row.pop)}</p>
       </div>
     </div>
   );
@@ -1093,6 +1126,7 @@ function fillGaps(rows: ChartRow[], freqCode: string | null | undefined): ChartR
         levelChange: null,
         yoy: null,
         ytd: null,
+        pop: null,
       });
     }
     result.push(rows[i]);
@@ -1662,7 +1696,7 @@ export function ChangeChart({
 
   if (data.length === 0) return null;
 
-  const isPercent = barMode === "yoy" || barMode === "ytd";
+  const isPercent = barMode === "yoy" || barMode === "ytd" || barMode === "pop";
 
   return (
     <ResponsiveContainer width="100%" height={180}>

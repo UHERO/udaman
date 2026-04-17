@@ -129,6 +129,7 @@ function TransformItems({
   minYear,
   maxYear,
   isActive,
+  showChangeTransforms = true,
 }: {
   indexBaseYear: number;
   onIndexBaseYearChange: (year: number) => void;
@@ -136,6 +137,8 @@ function TransformItems({
   maxYear: number;
   /** Whether the "indexToYear" transform is currently selected */
   isActive: boolean;
+  /** Show YOY/YTD/PoP/LVL Chg items (hidden in compare mode) */
+  showChangeTransforms?: boolean;
 }) {
   return (
     <>
@@ -205,6 +208,58 @@ function TransformItems({
           />
         )}
       </TooltipToggleItem>
+      {showChangeTransforms && (
+        <>
+          <TooltipToggleItem
+            value="yoy"
+            className="h-7 px-2.5 text-xs"
+            formula={
+              <span>
+                (x<sub>t</sub> &minus; x<sub>t&minus;4</sub>) / x<sub>t&minus;4</sub> &times; 100
+              </span>
+            }
+            description="Year-over-year percent change"
+          >
+            YOY %
+          </TooltipToggleItem>
+          <TooltipToggleItem
+            value="ytd"
+            className="h-7 px-2.5 text-xs"
+            formula={
+              <span>
+                (x<sub>t</sub> &minus; x<sub>Jan</sub>) / x<sub>Jan</sub> &times; 100
+              </span>
+            }
+            description="Year-to-date percent change from first period of year"
+          >
+            YTD %
+          </TooltipToggleItem>
+          <TooltipToggleItem
+            value="pop"
+            className="h-7 px-2.5 text-xs"
+            formula={
+              <span>
+                (x<sub>t</sub> &minus; x<sub>t&minus;1</sub>) / x<sub>t&minus;1</sub> &times; 100
+              </span>
+            }
+            description="Period-over-period percent change"
+          >
+            PoP %
+          </TooltipToggleItem>
+          <TooltipToggleItem
+            value="levelChange"
+            className="h-7 px-2.5 text-xs"
+            formula={
+              <span>
+                &Delta;x<sub>t</sub> = x<sub>t</sub> &minus; x<sub>t&minus;1</sub>
+              </span>
+            }
+            description="Absolute change from previous period"
+          >
+            LVL Chg
+          </TooltipToggleItem>
+        </>
+      )}
     </>
   );
 }
@@ -266,9 +321,13 @@ const VALID_TRANSFORMATIONS = new Set<Transformation>([
   "linearTrend",
   "logLinearTrend",
   "hpTrend",
+  "yoy",
+  "ytd",
+  "pop",
+  "levelChange",
 ]);
 
-const VALID_BAR_MODES = new Set<BarMode>(["yoy", "ytd", "levelChange"]);
+const VALID_BAR_MODES = new Set<BarMode>(["yoy", "ytd", "levelChange", "pop"]);
 
 function parseOverlays(v: string | null): Overlay[] {
   if (!v) return [];
@@ -710,6 +769,54 @@ function TransformToggle({
                 />
               )}
             </TooltipToggleItem>
+            <TooltipToggleItem
+              value="yoy"
+              className="h-7 px-2.5 text-xs"
+              formula={
+                <span>
+                  (x<sub>t</sub> &minus; x<sub>t&minus;4</sub>) / x<sub>t&minus;4</sub> &times; 100
+                </span>
+              }
+              description="Year-over-year percent change"
+            >
+              YOY %
+            </TooltipToggleItem>
+            <TooltipToggleItem
+              value="ytd"
+              className="h-7 px-2.5 text-xs"
+              formula={
+                <span>
+                  (x<sub>t</sub> &minus; x<sub>Jan</sub>) / x<sub>Jan</sub> &times; 100
+                </span>
+              }
+              description="Year-to-date percent change from first period of year"
+            >
+              YTD %
+            </TooltipToggleItem>
+            <TooltipToggleItem
+              value="pop"
+              className="h-7 px-2.5 text-xs"
+              formula={
+                <span>
+                  (x<sub>t</sub> &minus; x<sub>t&minus;1</sub>) / x<sub>t&minus;1</sub> &times; 100
+                </span>
+              }
+              description="Period-over-period percent change"
+            >
+              PoP %
+            </TooltipToggleItem>
+            <TooltipToggleItem
+              value="levelChange"
+              className="h-7 px-2.5 text-xs"
+              formula={
+                <span>
+                  &Delta;x<sub>t</sub> = x<sub>t</sub> &minus; x<sub>t&minus;1</sub>
+                </span>
+              }
+              description="Absolute change from previous period"
+            >
+              LVL Chg
+            </TooltipToggleItem>
           </ToggleGroup>
         )}
         <div className="ml-auto">
@@ -761,6 +868,7 @@ interface AnalyzeControlsProps {
   yoy: [string, number][];
   ytd: [string, number][];
   levelChange: [string, number][];
+  pop?: [string, number][];
   decimals: number;
   unitLabel?: string | null;
   unitShortLabel?: string | null;
@@ -784,6 +892,7 @@ export function AnalyzeControls({
   yoy,
   ytd,
   levelChange,
+  pop: popData,
   decimals,
   unitLabel,
   unitShortLabel,
@@ -867,6 +976,7 @@ export function AnalyzeControls({
             levelChange: null,
             yoy: null,
             ytd: null,
+            pop: null,
           });
         }
         const row = dateSet.get(date)!;
@@ -983,6 +1093,7 @@ export function AnalyzeControls({
         levelChange: null,
         yoy: null,
         ytd: null,
+        pop: null,
       });
     }
     for (const [date, value] of levelChange) {
@@ -997,8 +1108,14 @@ export function AnalyzeControls({
       const existing = map.get(date);
       if (existing) existing.ytd = value;
     }
+    if (popData) {
+      for (const [date, value] of popData) {
+        const existing = map.get(date);
+        if (existing) existing.pop = value;
+      }
+    }
     return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }, [isCompareMode, compareChartData, data, yoy, ytd, levelChange]);
+  }, [isCompareMode, compareChartData, data, yoy, ytd, levelChange, popData]);
 
   const endIdx = Math.max(0, chartData.length - 1);
   const [rangePreset, setRangePreset] = useState(() => {
@@ -1429,6 +1546,7 @@ export function AnalyzeControls({
                 minYear={minYear}
                 maxYear={maxYear}
                 isActive={transformation === "indexToYear"}
+                showChangeTransforms={false}
               />
               <TooltipToggleItem
                 value="rollingMean"
@@ -1825,6 +1943,13 @@ export function AnalyzeControls({
             </ToggleGroupItem>
             <ToggleGroupItem value="ytd" className="h-7 px-2.5 text-xs">
               YTD %
+            </ToggleGroupItem>
+            <ToggleGroupItem value="pop" className="h-7 px-2.5 text-xs">
+              {currentFreqCode === "M"
+                ? "MoM %"
+                : currentFreqCode === "Q"
+                  ? "QoQ %"
+                  : "PoP %"}
             </ToggleGroupItem>
             <ToggleGroupItem value="levelChange" className="h-7 px-2.5 text-xs">
               LVL Chg

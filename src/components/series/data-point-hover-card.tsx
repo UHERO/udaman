@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { format } from "date-fns";
 
+import { internalDecimals } from "@catalog/utils/format";
+
 import {
   TooltipContent,
   TooltipRoot,
@@ -66,7 +68,7 @@ export function DataPointTooltip({
               {dateVintages.map((v, i) => (
                 <tr key={i} className={getColor(v.color)}>
                   <td className="py-0.5 pl-2 text-left font-mono font-semibold">
-                    {v.value != null ? Number(v.value).toFixed(decimals) : "-"}
+                    {v.value != null ? Number(v.value).toFixed(internalDecimals(decimals)) : "-"}
                   </td>
                   <td className="py-0.5 pr-2">
                     {format(new Date(v.created_at), "MMM d, yyyy")}

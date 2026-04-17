@@ -89,6 +89,7 @@ export default async function CalculatePage({
     yoy,
     levelChange,
     ytd,
+    pop,
     seriesLinks,
     seriesLastValues,
     resultValue,
@@ -123,6 +124,7 @@ export default async function CalculatePage({
         yoy={yoy}
         ytd={ytd}
         levelChange={levelChange}
+        pop={pop}
         decimals={series.decimals}
         timelineEvents={timelineEvents}
       />

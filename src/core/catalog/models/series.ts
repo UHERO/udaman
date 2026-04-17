@@ -806,6 +806,61 @@ class Series {
   }
 
   /**
+   * Period-over-period percent change.
+   * Uses a frequency-aware month offset: M→1, Q→3, S→6, A→12.
+   * Falls back to 1-period lag for weekly/daily.
+   */
+  pop(): Series {
+    const freqMonths: Record<string, number> = {
+      month: 1,
+      quarter: 3,
+      semi: 6,
+      year: 12,
+    };
+    const months = freqMonths[this.frequency ?? ""] ?? null;
+
+    if (months != null) {
+      // Use month-based offset (same approach as yoy but shorter lag)
+      const newData = new Map<string, number>();
+      for (const [dateStr, value] of this.data) {
+        const prevDate = addMonthsStr(dateStr, -months);
+        const prevVal = this.data.get(prevDate);
+        if (prevVal == null) continue;
+        if (prevVal === 0 && value !== 0) continue;
+        if (prevVal === 0 && value === 0) {
+          newData.set(dateStr, 0);
+          continue;
+        }
+        newData.set(dateStr, ((value - prevVal) / prevVal) * 100);
+      }
+      const s = new Series({ name: `Period-over-period % change of ${this}` });
+      s.data = newData;
+      s.frequency = this.frequency;
+      return s;
+    }
+
+    // Weekly / daily: use 1-observation lag via diff-based % change
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+    for (let i = 1; i < sorted.length; i++) {
+      const [dateStr, value] = sorted[i];
+      const prevVal = sorted[i - 1][1];
+      if (prevVal === 0 && value !== 0) continue;
+      if (prevVal === 0 && value === 0) {
+        newData.set(dateStr, 0);
+        continue;
+      }
+      newData.set(dateStr, ((value - prevVal) / prevVal) * 100);
+    }
+    const s = new Series({ name: `Period-over-period % change of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
    * Month-to-date cumulative sum (daily series only). For each day, the
    * value is the running sum of all observations from the 1st of the month
    * up to and including that day. Resets at the start of each month. Raises

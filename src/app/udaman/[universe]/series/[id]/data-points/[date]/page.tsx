@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Universe } from "@catalog/types/shared";
+import { internalDecimals } from "@catalog/utils/format";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 
@@ -66,7 +67,7 @@ export default async function DataPointVintagesPage({
               <TableRow key={`vintage-${i}`} className={getColor(v.color)}>
                 <TableCell className="text-end font-semibold">
                   {v.value != null
-                    ? Number(v.value).toFixed(metadata.s_decimals)
+                    ? Number(v.value).toFixed(internalDecimals(metadata.s_decimals ?? 1))
                     : "-"}
                 </TableCell>
                 <TableCell>

@@ -226,6 +226,7 @@ export interface AnalyzeResult {
   yoy: [string, number][];
   levelChange: [string, number][];
   ytd: [string, number][];
+  pop: [string, number][];
   stats?: { mean: number; median: number | null; standardDeviation: number };
   siblings?: Array<{ freqCode: string; id: number; name: string }>;
   seriesLinks?: Record<string, number>;

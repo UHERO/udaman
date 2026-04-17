@@ -291,6 +291,7 @@ export async function analyzeSeries({
   const yoySeries = series.yoy();
   const diffSeries = series.diff();
   const ytdSeries = series.ytd();
+  const popSeries = series.pop();
 
   const siblings = await SeriesCollection.getFrequencySiblings(series);
 
@@ -301,6 +302,7 @@ export async function analyzeSeries({
     yoy: mapToTuples(yoySeries.data),
     levelChange: mapToTuples(diffSeries.data),
     ytd: mapToTuples(ytdSeries.data),
+    pop: mapToTuples(popSeries.data),
     stats: {
       mean: series.mean(),
       median: series.median(),
@@ -330,6 +332,7 @@ export async function transformSeries({
   const yoySeries = result.yoy();
   const diffSeries = result.diff();
   const ytdSeries = result.ytd();
+  const popSeries = result.pop();
 
   // Extract series names from the original expression for linking
   const seriesNames = [
@@ -375,6 +378,7 @@ export async function transformSeries({
     yoy: mapToTuples(yoySeries.data),
     levelChange: mapToTuples(diffSeries.data),
     ytd: mapToTuples(ytdSeries.data),
+    pop: mapToTuples(popSeries.data),
     stats: {
       mean: result.mean(),
       median: result.median(),
