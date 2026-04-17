@@ -56,12 +56,14 @@ export type WorkerJobsResult = {
   counts: Record<string, QueueCounts>;
   workers: SerializedWorkerInfo[];
   processStartedAt: number | null;
+  schedulers: SerializedScheduler[];
 };
 
 export async function getWorkerJobs(): Promise<WorkerJobsResult> {
   await requirePermission("worker", "read");
   const allJobs: SerializedJob[] = [];
   const allWorkers: SerializedWorkerInfo[] = [];
+  const allSchedulers: SerializedScheduler[] = [];
   const counts: Record<string, QueueCounts> = {};
 
   for (const name of QUEUE_NAMES) {
@@ -71,7 +73,7 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
     });
 
     try {
-      const [jobs, jobCounts, workers] = await Promise.all([
+      const [jobs, jobCounts, workers, schedulers] = await Promise.all([
         queue.getJobs(
           ["active", "waiting", "delayed", "completed", "failed"],
           0,
@@ -85,6 +87,7 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
           "failed",
         ),
         queue.getWorkers().catch(() => [] as Record<string, string>[]),
+        queue.getJobSchedulers().catch(() => []),
       ]);
 
       counts[name] = jobCounts;
@@ -97,6 +100,18 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
           age: parseInt(w.age ?? "0", 10),
           idle: parseInt(w.idle ?? "0", 10),
           queue: name,
+        });
+      }
+
+      for (const s of schedulers) {
+        allSchedulers.push({
+          key: s.key,
+          queue: name,
+          name: s.name,
+          pattern: s.pattern ?? "",
+          tz: s.tz ?? "",
+          next: s.next ?? 0,
+          data: (s.template?.data as Record<string, unknown>) ?? {},
         });
       }
 
@@ -124,12 +139,13 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
   }
 
   allJobs.sort((a, b) => b.timestamp - a.timestamp);
+  allSchedulers.sort((a, b) => a.next - b.next);
 
   // Derive process start time from the oldest worker's age (seconds since connection)
   const maxAge = allWorkers.reduce((max, w) => Math.max(max, w.age), 0);
   const processStartedAt = maxAge > 0 ? Date.now() - maxAge * 1000 : null;
 
-  return { jobs: allJobs, counts, workers: allWorkers, processStartedAt };
+  return { jobs: allJobs, counts, workers: allWorkers, processStartedAt, schedulers: allSchedulers };
 }
 
 export async function getSchedulers(): Promise<SerializedScheduler[]> {
@@ -197,6 +213,45 @@ export async function triggerScheduledJob(
   } finally {
     await queue.close();
   }
+}
+
+/**
+ * Cancel active jobs and drain waiting/delayed jobs from all queues.
+ * Completed/failed job history is preserved.
+ */
+export async function clearJobs(): Promise<{ cancelled: number; drained: number }> {
+  await requirePermission("worker", "execute");
+  let cancelled = 0;
+  let drained = 0;
+
+  for (const name of QUEUE_NAMES) {
+    const queue = new Queue(name, {
+      connection: redisConnection,
+      prefix: PREFIX,
+    });
+
+    try {
+      // Count waiting + delayed before draining
+      const counts = await queue.getJobCounts("waiting", "delayed");
+      drained += (counts.waiting ?? 0) + (counts.delayed ?? 0);
+
+      // Cancel active jobs by failing them
+      const activeJobs = await queue.getJobs(["active"]);
+      for (const job of activeJobs) {
+        if (job.id) {
+          await job.moveToFailed(new Error("Cancelled by user"), job.token ?? "0", false);
+          cancelled++;
+        }
+      }
+
+      // Remove waiting and delayed jobs
+      await queue.drain();
+    } finally {
+      await queue.close();
+    }
+  }
+
+  return { cancelled, drained };
 }
 
 export async function getJobLogs(

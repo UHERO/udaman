@@ -5,6 +5,21 @@ import { defaultQueue, JobName } from "./queues";
 const log = createLogger("worker.scheduler");
 
 /**
+ * Remove all job schedulers from Redis. Called in non-production
+ * environments to prevent stale schedulers (persisted from prior runs)
+ * from firing unexpectedly.
+ */
+async function removeAllSchedulers(): Promise<void> {
+  const schedulers = await defaultQueue.getJobSchedulers();
+  for (const s of schedulers) {
+    await defaultQueue.removeJobScheduler(s.key);
+  }
+  if (schedulers.length > 0) {
+    log.info("Removed %d stale scheduler(s) from Redis", schedulers.length);
+  }
+}
+
+/**
  * Register cron schedules using BullMQ v5's `upsertJobScheduler`.
  * Called once at worker startup. Idempotent — safe to call on every restart.
  * All cron times are in Pacific/Honolulu (HST, UTC-10, no DST).
@@ -12,6 +27,7 @@ const log = createLogger("worker.scheduler");
 export async function registerSchedules(): Promise<void> {
   if (process.env.NODE_ENV !== "production") {
     log.info("Skipping cron schedules in development (NODE_ENV=%s)", process.env.NODE_ENV);
+    await removeAllSchedulers();
     return;
   }
 
@@ -93,7 +109,7 @@ export async function registerSchedules(): Promise<void> {
     "scheduled:reload-tour-ocup",
     { pattern: "0 3 * * *", tz },
     {
-      name: JobName.TARGETED_RELOAD,
+      name: JobName.RELOAD_TOUR_OCUP,
       data: {
         name: "tour_ocup",
         search: "#tour_ocup%Y",
@@ -109,7 +125,7 @@ export async function registerSchedules(): Promise<void> {
     "scheduled:reload-bea",
     { pattern: "0 6 * * *", tz },
     {
-      name: JobName.TARGETED_RELOAD,
+      name: JobName.RELOAD_BEA,
       data: {
         name: "bea",
         search: "#load_api_bea",
@@ -126,7 +142,7 @@ export async function registerSchedules(): Promise<void> {
     "scheduled:reload-bls-morning",
     { pattern: "0 6 * * *", tz },
     {
-      name: JobName.TARGETED_RELOAD,
+      name: JobName.RELOAD_BLS,
       data: {
         name: "bls",
         search: "#load_api_bls",
@@ -142,7 +158,7 @@ export async function registerSchedules(): Promise<void> {
     "scheduled:reload-bls-midday",
     { pattern: "20 10 * * *", tz },
     {
-      name: JobName.TARGETED_RELOAD,
+      name: JobName.RELOAD_BLS,
       data: {
         name: "bls",
         search: "#load_api_bls",
@@ -158,7 +174,7 @@ export async function registerSchedules(): Promise<void> {
     "scheduled:reload-sa",
     { pattern: "0 10 * * 1-5", tz },
     {
-      name: JobName.TARGETED_RELOAD,
+      name: JobName.RELOAD_SA,
       data: {
         name: "sa",
         search: "#sa_jobs.csv,#sa_tour.csv",
@@ -174,7 +190,7 @@ export async function registerSchedules(): Promise<void> {
     "scheduled:reload-vap-hi",
     { pattern: "15 16 * * 1-5", tz },
     {
-      name: JobName.TARGETED_RELOAD,
+      name: JobName.RELOAD_VAP_HI,
       data: {
         name: "vaphid",
         search: "^vap ~ns$ @hi .d",
@@ -190,7 +206,7 @@ export async function registerSchedules(): Promise<void> {
     "scheduled:reload-uic",
     { pattern: "0 11 * * 4", tz },
     {
-      name: JobName.TARGETED_RELOAD,
+      name: JobName.RELOAD_UIC,
       data: {
         name: "uic_weekly",
         search: "#uic@hawa",
