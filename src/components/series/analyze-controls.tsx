@@ -219,13 +219,19 @@ const MANAGED_PARAMS = [
   "overlays",
   "events",
   "transform",
-  "secondAxis",
   "secondAxisTransform",
+  "rightOverlays",
   "barMode",
   "rollingWindow",
   "indexDate",
   "range",
+  "rangeStart",
+  "rangeEnd",
   "stdDevMultiplier",
+  "leftChartType",
+  "rightChartType",
+  "vis",
+  "axes",
 ] as const;
 
 const VALID_OVERLAYS = new Set<Overlay>([
@@ -1600,7 +1606,16 @@ export function AnalyzeControls({
   // 3-state visibility: absent = colored (default), "gray" = muted, "hidden" = not rendered
   const [seriesVisibility, setSeriesVisibility] = useState<
     Map<number, "gray" | "hidden">
-  >(new Map());
+  >(() => {
+    const v = searchParams.get("vis");
+    if (!v) return new Map();
+    const map = new Map<number, "gray" | "hidden">();
+    for (const entry of v.split(",")) {
+      const [idx, state] = entry.split(":");
+      if (state === "gray" || state === "hidden") map.set(Number(idx), state);
+    }
+    return map;
+  });
 
   const cycleVisibility = useCallback((index: number) => {
     setSeriesVisibility((prev) => {
@@ -1628,7 +1643,9 @@ export function AnalyzeControls({
     () => parseTransformation(searchParams.get("transform")),
   );
   // Right axis state (replaces old secondAxis toggle)
-  const [rightOverlays, setRightOverlays] = useState<Overlay[]>([]);
+  const [rightOverlays, setRightOverlays] = useState<Overlay[]>(() =>
+    parseOverlays(searchParams.get("rightOverlays")),
+  );
   const [rightTransformation, setRightTransformation] =
     useState<Transformation | null>(() =>
       parseTransformation(searchParams.get("secondAxisTransform")),
@@ -1648,9 +1665,15 @@ export function AnalyzeControls({
     return v >= 1 && v <= 2 ? v : 1;
   });
   // Chart type per axis (line or column)
-  const [leftChartType, setLeftChartType] = useState<"line" | "column">("line");
+  const [leftChartType, setLeftChartType] = useState<"line" | "column">(() => {
+    const v = searchParams.get("leftChartType");
+    return v === "column" ? "column" : "line";
+  });
   const [rightChartType, setRightChartType] = useState<"line" | "column">(
-    "line",
+    () => {
+      const v = searchParams.get("rightChartType");
+      return v === "column" ? "column" : "line";
+    },
   );
 
   // Selected events filtered from all timeline events by type
@@ -1709,7 +1732,16 @@ export function AnalyzeControls({
    *  Absent entries use the auto-default from unit groups. */
   const [axisOverrides, setAxisOverrides] = useState<
     Map<number, "left" | "right">
-  >(new Map());
+  >(() => {
+    const v = searchParams.get("axes");
+    if (!v) return new Map();
+    const map = new Map<number, "left" | "right">();
+    for (const entry of v.split(",")) {
+      const [idx, side] = entry.split(":");
+      if (side === "left" || side === "right") map.set(Number(idx), side);
+    }
+    return map;
+  });
 
   /** Auto-default axis assignment based on unit groups */
   const autoAxisMap = useMemo(() => {
@@ -1867,12 +1899,16 @@ export function AnalyzeControls({
       const preset = RANGE_PRESETS.find((p) => p.label === v);
       if (preset) return v;
     }
+    // If custom rangeStart/rangeEnd are in URL, no preset is active
+    if (searchParams.get("rangeStart") || searchParams.get("rangeEnd"))
+      return "";
     return "10Y";
   });
   const [brushRange, setBrushRange] = useState<{
     startIndex: number;
     endIndex: number;
   }>(() => {
+    // First check for preset
     const rangeParam = searchParams.get("range");
     if (rangeParam) {
       const preset = RANGE_PRESETS.find((p) => p.label === rangeParam);
@@ -1882,6 +1918,30 @@ export function AnalyzeControls({
           endIndex: endIdx,
         };
       }
+    }
+    // Then check for custom date range
+    const rangeStart = searchParams.get("rangeStart");
+    const rangeEnd = searchParams.get("rangeEnd");
+    if (rangeStart || rangeEnd) {
+      let startIndex = 0;
+      let endIndex = endIdx;
+      if (rangeStart) {
+        for (let i = 0; i < chartData.length; i++) {
+          if (chartData[i].date >= rangeStart) {
+            startIndex = i;
+            break;
+          }
+        }
+      }
+      if (rangeEnd) {
+        for (let i = chartData.length - 1; i >= 0; i--) {
+          if (chartData[i].date <= rangeEnd) {
+            endIndex = i;
+            break;
+          }
+        }
+      }
+      return { startIndex, endIndex };
     }
     return { startIndex: getRangeStartIndex(chartData, 10), endIndex: endIdx };
   });
@@ -1910,6 +1970,25 @@ export function AnalyzeControls({
     [],
   );
 
+  // Derive custom range dates from brush indices (for URL sync)
+  const brushStartDate = chartData[brushRange.startIndex]?.date;
+  const brushEndDate = chartData[brushRange.endIndex]?.date;
+
+  // Serialize map states for URL
+  const visParam = useMemo(() => {
+    if (seriesVisibility.size === 0) return undefined;
+    return [...seriesVisibility.entries()]
+      .map(([i, s]) => `${i}:${s}`)
+      .join(",");
+  }, [seriesVisibility]);
+
+  const axesParam = useMemo(() => {
+    if (axisOverrides.size === 0) return undefined;
+    return [...axisOverrides.entries()]
+      .map(([i, s]) => `${i}:${s}`)
+      .join(",");
+  }, [axisOverrides]);
+
   // ── Sync chart state → URL search params ────────────────────────────
   useEffect(() => {
     syncParamsToUrl({
@@ -1919,26 +1998,40 @@ export function AnalyzeControls({
           ? [...selectedEventTypes].join(",")
           : undefined,
       transform: transformation ?? undefined,
-      secondAxis: secondAxis ? "1" : undefined,
       secondAxisTransform: rightTransformation ?? undefined,
+      rightOverlays:
+        rightOverlays.length > 0 ? rightOverlays.join(",") : undefined,
       barMode: barMode !== "yoy" ? barMode : undefined,
       rollingWindow: rollingWindow !== 12 ? String(rollingWindow) : undefined,
       indexDate: indexBaseDate || undefined,
       range: rangePreset && rangePreset !== "10Y" ? rangePreset : undefined,
+      // Custom brush range (only when no preset is active)
+      rangeStart: !rangePreset ? brushStartDate : undefined,
+      rangeEnd: !rangePreset ? brushEndDate : undefined,
       stdDevMultiplier:
         stdDevMultiplier !== 1 ? String(stdDevMultiplier) : undefined,
+      leftChartType: leftChartType !== "line" ? leftChartType : undefined,
+      rightChartType: rightChartType !== "line" ? rightChartType : undefined,
+      vis: visParam,
+      axes: axesParam,
     });
   }, [
     overlays,
     selectedEventTypes,
     transformation,
-    secondAxis,
     rightTransformation,
+    rightOverlays,
     barMode,
     rollingWindow,
     indexBaseDate,
     rangePreset,
+    brushStartDate,
+    brushEndDate,
     stdDevMultiplier,
+    leftChartType,
+    rightChartType,
+    visParam,
+    axesParam,
   ]);
 
   // ── Available dates from brush-selected range ─────────────────────
