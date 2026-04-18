@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { transformSeriesAction } from "@/actions/series-actions";
 import { listTimelineEventsAction } from "@/actions/timeline-events";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
@@ -61,6 +63,9 @@ export default async function CalculatePage({
     end: e.effectiveEndDate,
     name: e.name,
     eventType: e.eventType,
+    description: e.description,
+    startDate: e.startDate,
+    endDate: e.endDate,
   }));
   const firstName = extractFirstName(expression);
 
@@ -73,7 +78,17 @@ export default async function CalculatePage({
             Compute a derived series from an expression.
           </p>
         </div>
-        <CalculateForm initialExpression={expression} />
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <CalculateForm initialExpression={expression} />
+          </div>
+          <Link
+            href={`/udaman/${universe}/series/calculate`}
+            className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-9 shrink-0 items-center rounded-md border px-3 text-sm font-medium"
+          >
+            Reset
+          </Link>
+        </div>
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-medium text-red-800">
             Error evaluating expression
@@ -105,7 +120,17 @@ export default async function CalculatePage({
         </p>
       </div>
 
-      <CalculateForm initialExpression={expression} />
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <CalculateForm initialExpression={expression} />
+        </div>
+        <Link
+          href={`/udaman/${universe}/series/calculate`}
+          className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-9 shrink-0 items-center rounded-md border px-3 text-sm font-medium"
+        >
+          Reset
+        </Link>
+      </div>
 
       {seriesLinks && Object.keys(seriesLinks).length > 0 && (
         <LinkedExpression

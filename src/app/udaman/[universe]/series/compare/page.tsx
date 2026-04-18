@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { compareSeriesAction } from "@/actions/series-actions";
 import { listTimelineEventsAction } from "@/actions/timeline-events";
 import { CompareSearchInput } from "@/components/compare/compare-search-input";
@@ -48,6 +50,9 @@ export default async function ComparePage({
     end: e.effectiveEndDate,
     name: e.name,
     eventType: e.eventType,
+    description: e.description,
+    startDate: e.startDate,
+    endDate: e.endDate,
   }));
 
   if ("error" in result) {
@@ -59,7 +64,17 @@ export default async function ComparePage({
             Compare two or more series side by side.
           </p>
         </div>
-        <CompareSearchInput currentNames={names} />
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <CompareSearchInput currentNames={names} />
+          </div>
+          <Link
+            href={`/udaman/${universe}/series/compare`}
+            className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-9 shrink-0 items-center rounded-md border px-3 text-sm font-medium"
+          >
+            Reset
+          </Link>
+        </div>
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-medium text-red-800">
             Error loading series
@@ -82,7 +97,17 @@ export default async function ComparePage({
         </p>
       </div>
 
-      <CompareSearchInput currentNames={names} />
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <CompareSearchInput currentNames={names} />
+        </div>
+        <Link
+          href={`/udaman/${universe}/series/compare`}
+          className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-9 shrink-0 items-center rounded-md border px-3 text-sm font-medium"
+        >
+          Reset
+        </Link>
+      </div>
 
       {/* With only 1 series, show recent series as pills to quickly add more */}
       {names.length === 1 && (

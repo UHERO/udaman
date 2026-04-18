@@ -47,6 +47,7 @@ export interface ChartRow {
   yoy: number | null;
   ytd: number | null;
   pop: number | null;
+  cagr: number | null;
   // Overlay fields (populated on demand by computeOverlays)
   linearTrend?: number | null;
   logLinearTrend?: number | null;
@@ -80,6 +81,11 @@ export type TimelineEventForChart = {
   end: string;
   name: string;
   eventType: string;
+  description?: string | null;
+  /** Original start date (YYYY-MM-DD) for edit forms — `start` may be snapped */
+  startDate?: string;
+  /** Original end date (YYYY-MM-DD) for edit forms */
+  endDate?: string | null;
 };
 
 export type Transformation =
@@ -94,7 +100,8 @@ export type Transformation =
   | "yoy"
   | "ytd"
   | "pop"
-  | "levelChange";
+  | "levelChange"
+  | "cagr";
 
 export const formatDate = (d: string) => d;
 
@@ -370,6 +377,7 @@ export function computeOverlays(
   data: ChartRow[],
   overlays: Overlay[],
   window = 12,
+  stdDevMultiplier = 1,
 ): ChartRow[] {
   if (overlays.length === 0) return data;
 
@@ -423,9 +431,9 @@ export function computeOverlays(
           if (data[j].level != null) sumSq += (data[j].level! - mean) ** 2;
         }
         const std = Math.sqrt(sumSq / (count - 1));
-        updated.rollingStdUpper = mean + std;
-        updated.rollingStdLower = mean - std;
-        updated.rollingStdBand = 2 * std;
+        updated.rollingStdUpper = mean + stdDevMultiplier * std;
+        updated.rollingStdLower = mean - stdDevMultiplier * std;
+        updated.rollingStdBand = 2 * stdDevMultiplier * std;
       }
     }
 
@@ -442,6 +450,8 @@ export function applyTransformation(
   transform: Transformation | null,
   indexBaseYear?: number,
   rollingWindow = 12,
+  indexBaseDate?: string,
+  freqCode?: string | null,
 ): ChartRow[] {
   if (!transform) return data;
 
@@ -478,10 +488,16 @@ export function applyTransformation(
       }));
     }
     case "indexToYear": {
-      const year = indexBaseYear ?? 2015;
-      const baseRow = data.find(
-        (r) => r.date.startsWith(String(year)) && r.level != null,
-      );
+      let baseRow: ChartRow | undefined;
+      if (indexBaseDate) {
+        baseRow = data.find((r) => r.date === indexBaseDate && r.level != null);
+      }
+      if (!baseRow) {
+        const year = indexBaseYear ?? 2015;
+        baseRow = data.find(
+          (r) => r.date.startsWith(String(year)) && r.level != null,
+        );
+      }
       if (!baseRow || baseRow.level === null || baseRow.level === 0)
         return data;
       const base = baseRow.level;
@@ -538,6 +554,8 @@ export function applyTransformation(
       return data.map((r) => ({ ...r, level: r.pop }));
     case "levelChange":
       return data.map((r) => ({ ...r, level: r.levelChange }));
+    case "cagr":
+      return data.map((r) => ({ ...r, level: r.cagr }));
   }
 }
 
@@ -547,6 +565,8 @@ export function computeSecondAxis(
   transform: Transformation,
   indexBaseYear?: number,
   rollingWindow = 12,
+  indexBaseDate?: string,
+  freqCode?: string | null,
 ): ChartRow[] {
   const levels = data.map((r) => r.level).filter((v): v is number => v != null);
   if (levels.length === 0) return data;
@@ -582,10 +602,16 @@ export function computeSecondAxis(
       }));
     }
     case "indexToYear": {
-      const year = indexBaseYear ?? 2015;
-      const baseRow = data.find(
-        (r) => r.date.startsWith(String(year)) && r.level != null,
-      );
+      let baseRow: ChartRow | undefined;
+      if (indexBaseDate) {
+        baseRow = data.find((r) => r.date === indexBaseDate && r.level != null);
+      }
+      if (!baseRow) {
+        const year = indexBaseYear ?? 2015;
+        baseRow = data.find(
+          (r) => r.date.startsWith(String(year)) && r.level != null,
+        );
+      }
       if (!baseRow || baseRow.level === null || baseRow.level === 0)
         return data;
       const base = baseRow.level;
@@ -643,6 +669,8 @@ export function computeSecondAxis(
       return data.map((r) => ({ ...r, transformedLevel: r.pop }));
     case "levelChange":
       return data.map((r) => ({ ...r, transformedLevel: r.levelChange }));
+    case "cagr":
+      return data.map((r) => ({ ...r, transformedLevel: r.cagr }));
   }
 }
 
@@ -653,6 +681,8 @@ export function applyTransformationMulti(
   seriesCount: number,
   indexBaseYear?: number,
   rollingWindow = 12,
+  indexBaseDate?: string,
+  freqCode?: string | null,
 ): ChartRow[] {
   if (!transform || seriesCount === 0) return data;
 
@@ -720,13 +750,24 @@ export function applyTransformationMulti(
         break;
       }
       case "indexToYear": {
-        const year = indexBaseYear ?? 2015;
-        const baseRow = rows.find(
-          (r) =>
-            r.date.startsWith(String(year)) &&
-            r[key] != null &&
-            !isNaN(r[key] as number),
-        );
+        let baseRow: ChartRow | undefined;
+        if (indexBaseDate) {
+          baseRow = rows.find(
+            (r) =>
+              r.date === indexBaseDate &&
+              r[key] != null &&
+              !isNaN(r[key] as number),
+          );
+        }
+        if (!baseRow) {
+          const year = indexBaseYear ?? 2015;
+          baseRow = rows.find(
+            (r) =>
+              r.date.startsWith(String(year)) &&
+              r[key] != null &&
+              !isNaN(r[key] as number),
+          );
+        }
         if (!baseRow || baseRow[key] == null || (baseRow[key] as number) === 0)
           continue;
         const base = baseRow[key] as number;
@@ -826,12 +867,82 @@ export function applyTransformationMulti(
         });
         break;
       }
-      case "yoy":
-      case "ytd":
-      case "pop":
-      case "levelChange":
-        // No-op in compare mode — per-series change data not available
+      case "pop": {
+        // Period-over-period: (current - prev) / prev * 100
+        const prev = new Array<number | null>(rows.length);
+        for (let i = 0; i < rows.length; i++) prev[i] = rows[i][key] as number | null;
+        rows = rows.map((row, i) => {
+          if (i === 0 || row[key] == null) return row;
+          const p = prev[i - 1];
+          if (p == null || p === 0) return { ...row, [key]: null };
+          return { ...row, [key]: ((row[key] as number) - p) / Math.abs(p) * 100 };
+        });
         break;
+      }
+      case "levelChange": {
+        const prev = new Array<number | null>(rows.length);
+        for (let i = 0; i < rows.length; i++) prev[i] = rows[i][key] as number | null;
+        rows = rows.map((row, i) => {
+          if (i === 0 || row[key] == null) return row;
+          const p = prev[i - 1];
+          if (p == null) return { ...row, [key]: null };
+          return { ...row, [key]: (row[key] as number) - p };
+        });
+        break;
+      }
+      case "yoy": {
+        // Year-over-year: compare to same period last year
+        const PPY: Record<string, number> = { D: 365, W: 52, M: 12, Q: 4, S: 2, A: 1 };
+        const ppy = PPY[freqCode ?? "M"] ?? 12;
+        const prev = rows.map((r) => r[key] as number | null);
+        rows = rows.map((row, i) => {
+          if (i < ppy || row[key] == null) return row;
+          const p = prev[i - ppy];
+          if (p == null || p === 0) return { ...row, [key]: null };
+          return { ...row, [key]: ((row[key] as number) - p) / Math.abs(p) * 100 };
+        });
+        break;
+      }
+      case "ytd": {
+        // Year-to-date cumulative % change from first obs of the year
+        let yearStart: number | null = null;
+        let currentYear = "";
+        const orig = rows.map((r) => r[key] as number | null);
+        rows = rows.map((row, i) => {
+          if (orig[i] == null) return row;
+          const yr = row.date.slice(0, 4);
+          if (yr !== currentYear) {
+            currentYear = yr;
+            yearStart = orig[i];
+            return { ...row, [key]: null }; // first obs of year has no YTD
+          }
+          if (yearStart == null || yearStart === 0) return { ...row, [key]: null };
+          return { ...row, [key]: ((orig[i] as number) - yearStart) / Math.abs(yearStart) * 100 };
+        });
+        break;
+      }
+      case "cagr": {
+        // Running CAGR from first observation
+        const PPY: Record<string, number> = { D: 365, W: 52, M: 12, Q: 4, S: 2, A: 1 };
+        const ppy = PPY[freqCode ?? "M"] ?? 12;
+        let firstVal: number | null = null;
+        let periodIdx = 0;
+        const orig = rows.map((r) => r[key] as number | null);
+        rows = rows.map((row, i) => {
+          const v = orig[i];
+          if (v == null) return row;
+          if (firstVal == null) {
+            firstVal = v;
+            periodIdx++;
+            return { ...row, [key]: null };
+          }
+          const idx = periodIdx;
+          periodIdx++;
+          if (firstVal <= 0 || v <= 0 || idx === 0) return { ...row, [key]: null };
+          return { ...row, [key]: (Math.pow(v / firstVal, ppy / idx) - 1) * 100 };
+        });
+        break;
+      }
     }
   }
 
@@ -851,6 +962,7 @@ export const TRANSFORMATION_LABELS: Record<Transformation, string> = {
   ytd: "YTD %",
   pop: "PoP %",
   levelChange: "LVL Chg",
+  cagr: "CAGR",
 };
 
 /* ------------------------------------------------------------------ */
@@ -1074,6 +1186,8 @@ interface LevelChartProps {
   rollingWindow?: number;
   /** When indexToYear transform is active, draw a vertical reference line at this year */
   indexBaseYear?: number;
+  /** Exact date for index reference line (preferred over indexBaseYear when provided) */
+  indexDate?: string;
   /** Multi-series compare mode: series names corresponding to series_0, series_1, ... */
   seriesNames?: string[];
   /** 3-state visibility: absent = colored, "gray" = muted, "hidden" = not rendered */
@@ -1092,6 +1206,12 @@ interface LevelChartProps {
   brushStartIndex?: number;
   brushEndIndex?: number;
   onBrushChange?: (range: { startIndex?: number; endIndex?: number }) => void;
+  /** Chart type for left axis: "line" (default) or "column" */
+  leftChartType?: "line" | "column";
+  /** Chart type for right axis: "line" (default) or "column" */
+  rightChartType?: "line" | "column";
+  /** Standard deviation multiplier (1, 2, or 3) for ±σ bands */
+  stdDevMultiplier?: number;
 }
 
 /**
@@ -1127,6 +1247,7 @@ function fillGaps(rows: ChartRow[], freqCode: string | null | undefined): ChartR
         yoy: null,
         ytd: null,
         pop: null,
+        cagr: null,
       });
     }
     result.push(rows[i]);
@@ -1155,15 +1276,19 @@ export function LevelChart({
   brushStartIndex,
   brushEndIndex,
   onBrushChange,
+  leftChartType = "line",
+  rightChartType = "line",
+  indexDate,
+  stdDevMultiplier = 1,
 }: LevelChartProps) {
   const isCompareMode = seriesNames && seriesNames.length >= 1;
 
   const chartData = useMemo(() => {
     const rows = isCompareMode
       ? data
-      : computeOverlays(data, overlays, rollingWindow);
+      : computeOverlays(data, overlays, rollingWindow, stdDevMultiplier);
     return fillGaps(rows, freqCode);
-  }, [data, overlays, rollingWindow, isCompareMode, freqCode]);
+  }, [data, overlays, rollingWindow, stdDevMultiplier, isCompareMode, freqCode]);
 
   const { ticks, tickFormatter } = useMemo(() => {
     const dates = chartData.map((r) => r.date);
@@ -1174,10 +1299,12 @@ export function LevelChart({
 
   if (chartData.length === 0) return null;
 
-  // Find the date string for the index base year reference line
-  const indexBaseDate = indexBaseYear
-    ? chartData.find((r) => r.date.startsWith(String(indexBaseYear)))?.date
-    : undefined;
+  // Find the date string for the index base reference line
+  const indexBaseDate = indexDate
+    ? indexDate
+    : indexBaseYear
+      ? chartData.find((r) => r.date.startsWith(String(indexBaseYear)))?.date
+      : undefined;
 
   // ── Multi-series compare mode ──────────────────────────────────────
   if (isCompareMode) {
@@ -1325,7 +1452,7 @@ export function LevelChart({
               strokeDasharray="4 3"
               strokeWidth={1.5}
               label={{
-                value: String(indexBaseYear),
+                value: indexBaseDate,
                 position: "top",
                 fontSize: 11,
                 fill: "#6366f1",
@@ -1423,29 +1550,49 @@ export function LevelChart({
             />
           }
         />
-        {/* Main level line — rendered first so overlays don't shift its
-             position in the React children array (which would cause remount
-             and replay its entry animation) */}
-        <Line
-          type="monotone"
-          dataKey="level"
-          yAxisId="left"
-          stroke="var(--color-ublue)"
-          strokeWidth={2}
-          dot={false}
-          isAnimationActive={true}
-          animationDuration={400}
-          connectNulls={false}
-        />
-        {/* Second axis: transformed level */}
+        {/* Right axis rendered first so it draws behind the left axis */}
         {hasSecondAxis && (
+          rightChartType === "column" ? (
+            <Bar
+              dataKey="transformedLevel"
+              yAxisId="right"
+              fill="#e11d48"
+              fillOpacity={0.5}
+              isAnimationActive={true}
+              animationDuration={400}
+            />
+          ) : (
+            <Line
+              type="monotone"
+              dataKey="transformedLevel"
+              yAxisId="right"
+              stroke="#e11d48"
+              strokeWidth={1.5}
+              strokeDasharray="6 3"
+              dot={false}
+              isAnimationActive={true}
+              animationDuration={400}
+              connectNulls={false}
+            />
+          )
+        )}
+        {/* Main level — left axis */}
+        {leftChartType === "column" ? (
+          <Bar
+            dataKey="level"
+            yAxisId="left"
+            fill="var(--color-ublue)"
+            fillOpacity={0.7}
+            isAnimationActive={true}
+            animationDuration={400}
+          />
+        ) : (
           <Line
             type="monotone"
-            dataKey="transformedLevel"
-            yAxisId="right"
-            stroke="#e11d48"
-            strokeWidth={1.5}
-            strokeDasharray="6 3"
+            dataKey="level"
+            yAxisId="left"
+            stroke="var(--color-ublue)"
+            strokeWidth={2}
             dot={false}
             isAnimationActive={true}
             animationDuration={400}
@@ -1486,8 +1633,8 @@ export function LevelChart({
         {/* Full-sample ±σ filled band */}
         {stats && overlays.includes("stdDev") && (
           <ReferenceArea
-            y1={stats.mean - stats.standardDeviation}
-            y2={stats.mean + stats.standardDeviation}
+            y1={stats.mean - stdDevMultiplier * stats.standardDeviation}
+            y2={stats.mean + stdDevMultiplier * stats.standardDeviation}
             yAxisId="left"
             fill="#7c3aed"
             fillOpacity={0.08}
@@ -1497,13 +1644,13 @@ export function LevelChart({
         {/* Full-sample ±σ edge lines with labels */}
         {stats && overlays.includes("stdDev") && (
           <ReferenceLine
-            y={stats.mean + stats.standardDeviation}
+            y={stats.mean + stdDevMultiplier * stats.standardDeviation}
             yAxisId="left"
             stroke="#7c3aed"
             strokeDasharray="4 3"
             strokeWidth={1}
             label={{
-              value: `+σ: ${formatLevel(stats.mean + stats.standardDeviation, decimals, unitShortLabel)}`,
+              value: `+${stdDevMultiplier}σ: ${formatLevel(stats.mean + stdDevMultiplier * stats.standardDeviation, decimals, unitShortLabel)}`,
               position: "insideTopRight",
               fontSize: 10,
               fill: "#7c3aed",
@@ -1512,13 +1659,13 @@ export function LevelChart({
         )}
         {stats && overlays.includes("stdDev") && (
           <ReferenceLine
-            y={stats.mean - stats.standardDeviation}
+            y={stats.mean - stdDevMultiplier * stats.standardDeviation}
             yAxisId="left"
             stroke="#7c3aed"
             strokeDasharray="4 3"
             strokeWidth={1}
             label={{
-              value: `-σ: ${formatLevel(stats.mean - stats.standardDeviation, decimals, unitShortLabel)}`,
+              value: `-${stdDevMultiplier}σ: ${formatLevel(stats.mean - stdDevMultiplier * stats.standardDeviation, decimals, unitShortLabel)}`,
               position: "insideBottomRight",
               fontSize: 10,
               fill: "#7c3aed",

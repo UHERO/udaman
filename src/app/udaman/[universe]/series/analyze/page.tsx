@@ -47,6 +47,9 @@ export default async function AnalyzePage({
     end: e.effectiveEndDate,
     name: e.name,
     eventType: e.eventType,
+    description: e.description,
+    startDate: e.startDate,
+    endDate: e.endDate,
   }));
 
   const { series, yoy, levelChange, ytd, pop, siblings, unitLabel, unitShortLabel } =
@@ -62,6 +65,16 @@ export default async function AnalyzePage({
           dataPortalName={series.dataPortalName}
         />
       )}
+
+      <div className="flex items-center gap-3">
+        <AnalyzeSearchInput />
+        <Link
+          href={`/udaman/${universe}/series/analyze`}
+          className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-9 shrink-0 items-center rounded-md border px-3 text-sm font-medium"
+        >
+          Reset
+        </Link>
+      </div>
 
       <div className="flex items-center justify-between gap-4">
         <div>

@@ -236,6 +236,17 @@ export function AnalyzeDataTable({
           />
         ),
       },
+      {
+        accessorKey: "cagr",
+        header: () => <span className="text-end">CAGR %</span>,
+        cell: ({ cell }) => (
+          <FormattedCell
+            n={cell.getValue<number | null>()}
+            unit="perc"
+            colored
+          />
+        ),
+      },
     );
 
     // Add overlay columns

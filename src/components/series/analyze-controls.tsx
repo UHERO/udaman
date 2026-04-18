@@ -1,18 +1,61 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { formatLevel } from "@catalog/utils/format";
 import { formatEventType } from "@catalog/models/timeline-event";
-import { AlertTriangle, ArrowRightLeft, Calendar, X } from "lucide-react";
+import { formatLevel } from "@catalog/utils/format";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRightLeft,
+  BarChart3,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  LineChart,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
 
+import {
+  createTimelineEventAction,
+  deleteTimelineEventAction,
+  updateTimelineEventAction,
+} from "@/actions/timeline-events";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   TooltipContent,
@@ -20,6 +63,7 @@ import {
   TooltipRoot,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 import {
   applyTransformation,
@@ -37,38 +81,6 @@ import {
   type Transformation,
 } from "./analyze-chart";
 import { AnalyzeDataTable } from "./analyze-data-table";
-
-/* ------------------------------------------------------------------ */
-/*  Formula tooltip helper (for non-toggle elements like buttons)      */
-/* ------------------------------------------------------------------ */
-
-function FormulaTooltip({
-  formula,
-  description,
-  children,
-}: {
-  formula: React.ReactNode;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <TooltipRoot>
-      <TooltipTrigger asChild>
-        <span className="inline-flex">{children}</span>
-      </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        sideOffset={6}
-        className="max-w-64 space-y-1 px-3 py-2"
-      >
-        <div className="font-mono text-[11px] leading-relaxed">{formula}</div>
-        {description && (
-          <div className="text-[10px] opacity-70">{description}</div>
-        )}
-      </TooltipContent>
-    </TooltipRoot>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Toggle item with built-in tooltip                                  */
@@ -114,153 +126,24 @@ function TooltipToggleItem({
 /*  Toggle panel sub-components                                        */
 /* ------------------------------------------------------------------ */
 
+function StatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0">
+      <span className="text-muted-foreground text-[10px] leading-tight">
+        {label}
+      </span>
+      <span className="font-mono text-xs leading-tight font-medium">
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function ControlPanel({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col gap-2 py-1">{children}</div>
     </TooltipProvider>
-  );
-}
-
-/** Shared toggle items for Transform and 2nd Axis groups */
-function TransformItems({
-  indexBaseYear,
-  onIndexBaseYearChange,
-  minYear,
-  maxYear,
-  isActive,
-  showChangeTransforms = true,
-}: {
-  indexBaseYear: number;
-  onIndexBaseYearChange: (year: number) => void;
-  minYear: number;
-  maxYear: number;
-  /** Whether the "indexToYear" transform is currently selected */
-  isActive: boolean;
-  /** Show YOY/YTD/PoP/LVL Chg items (hidden in compare mode) */
-  showChangeTransforms?: boolean;
-}) {
-  return (
-    <>
-      <ToggleGroupItem value="none" className="h-7 px-2.5 text-xs">
-        None
-      </ToggleGroupItem>
-      <TooltipToggleItem
-        value="zScore"
-        className="h-7 px-2.5 text-xs"
-        formula={
-          <span>
-            z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
-          </span>
-        }
-        description="Standard score: how many std devs from the mean"
-      >
-        Z-Score
-      </TooltipToggleItem>
-      <TooltipToggleItem
-        value="deviationFromTrend"
-        className="h-7 px-2.5 text-xs"
-        formula={
-          <span>
-            d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
-          </span>
-        }
-        description="Residual from OLS linear trend"
-      >
-        Dev. from Trend
-      </TooltipToggleItem>
-      <TooltipToggleItem
-        value="logLevel"
-        className="h-7 px-2.5 text-xs"
-        formula={
-          <span>
-            y<sub>t</sub> = ln(x<sub>t</sub>), x &gt; 0
-          </span>
-        }
-        description="Natural logarithm of level values"
-      >
-        Log Level
-      </TooltipToggleItem>
-      <TooltipToggleItem
-        value="indexToYear"
-        className="h-7 px-2.5 text-xs"
-        formula={
-          <span>
-            y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100
-          </span>
-        }
-        description="Index all values relative to the first observation in the base year"
-      >
-        Index
-        {isActive && (
-          <input
-            type="number"
-            value={indexBaseYear}
-            min={minYear}
-            max={maxYear}
-            onChange={(e) => {
-              e.stopPropagation();
-              const v = parseInt(e.target.value, 10);
-              if (!isNaN(v)) onIndexBaseYearChange(v);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="border-input bg-background ml-0.5 h-5 w-14 rounded border px-1 text-center font-mono text-[11px]"
-          />
-        )}
-      </TooltipToggleItem>
-      {showChangeTransforms && (
-        <>
-          <TooltipToggleItem
-            value="yoy"
-            className="h-7 px-2.5 text-xs"
-            formula={
-              <span>
-                (x<sub>t</sub> &minus; x<sub>t&minus;4</sub>) / x<sub>t&minus;4</sub> &times; 100
-              </span>
-            }
-            description="Year-over-year percent change"
-          >
-            YOY %
-          </TooltipToggleItem>
-          <TooltipToggleItem
-            value="ytd"
-            className="h-7 px-2.5 text-xs"
-            formula={
-              <span>
-                (x<sub>t</sub> &minus; x<sub>Jan</sub>) / x<sub>Jan</sub> &times; 100
-              </span>
-            }
-            description="Year-to-date percent change from first period of year"
-          >
-            YTD %
-          </TooltipToggleItem>
-          <TooltipToggleItem
-            value="pop"
-            className="h-7 px-2.5 text-xs"
-            formula={
-              <span>
-                (x<sub>t</sub> &minus; x<sub>t&minus;1</sub>) / x<sub>t&minus;1</sub> &times; 100
-              </span>
-            }
-            description="Period-over-period percent change"
-          >
-            PoP %
-          </TooltipToggleItem>
-          <TooltipToggleItem
-            value="levelChange"
-            className="h-7 px-2.5 text-xs"
-            formula={
-              <span>
-                &Delta;x<sub>t</sub> = x<sub>t</sub> &minus; x<sub>t&minus;1</sub>
-              </span>
-            }
-            description="Absolute change from previous period"
-          >
-            LVL Chg
-          </TooltipToggleItem>
-        </>
-      )}
-    </>
   );
 }
 
@@ -276,6 +159,48 @@ const PERIODS_PER_YEAR: Record<string, number> = {
   S: 2,
   A: 1,
 };
+
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** Format a YYYY-MM-DD date string at the series' native frequency resolution */
+function formatFreqDate(
+  dateStr: string,
+  freqCode: string | null | undefined,
+): string {
+  if (!dateStr || dateStr.length < 4) return dateStr;
+  const year = dateStr.slice(0, 4);
+  const month = dateStr.length >= 7 ? parseInt(dateStr.slice(5, 7), 10) : 1;
+  const day = dateStr.length >= 10 ? dateStr.slice(8, 10) : "01";
+
+  switch (freqCode) {
+    case "A":
+      return year;
+    case "S":
+      return `${year} ${month <= 6 ? "H1" : "H2"}`;
+    case "Q":
+      return `${year} Q${Math.ceil(month / 3)}`;
+    case "M":
+      return `${SHORT_MONTHS[month - 1]} ${year}`;
+    case "W":
+    case "D":
+      return `${SHORT_MONTHS[month - 1]} ${parseInt(day, 10)}, ${year}`;
+    default:
+      return `${SHORT_MONTHS[month - 1]} ${year}`;
+  }
+}
 
 /** Date range presets — 1Y only shown for monthly+ series */
 const RANGE_PRESETS = [
@@ -298,8 +223,9 @@ const MANAGED_PARAMS = [
   "secondAxisTransform",
   "barMode",
   "rollingWindow",
-  "indexYear",
+  "indexDate",
   "range",
+  "stdDevMultiplier",
 ] as const;
 
 const VALID_OVERLAYS = new Set<Overlay>([
@@ -325,6 +251,7 @@ const VALID_TRANSFORMATIONS = new Set<Transformation>([
   "ytd",
   "pop",
   "levelChange",
+  "cagr",
 ]);
 
 const VALID_BAR_MODES = new Set<BarMode>(["yoy", "ytd", "levelChange", "pop"]);
@@ -376,8 +303,252 @@ function getRangeStartIndex(chartData: ChartRow[], years: number): number {
   return 0;
 }
 
-/** Standalone Timeline popover — select event types to overlay on charts */
-function TimelinePopover({
+/* ------------------------------------------------------------------ */
+/*  Timeline event form (shared by create + edit in the Sheet)         */
+/* ------------------------------------------------------------------ */
+
+type EventFormData = {
+  name: string;
+  eventType: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+};
+
+const emptyEventForm: EventFormData = {
+  name: "",
+  eventType: "recession",
+  description: "",
+  startDate: "",
+  endDate: "",
+};
+
+/** Combobox that shows existing event types but allows typing a new one */
+function EventTypeCombobox({
+  value,
+  onChange,
+  existingTypes,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  existingTypes: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!search) return existingTypes;
+    const lower = search.toLowerCase();
+    return existingTypes.filter(
+      (t) =>
+        t.toLowerCase().includes(lower) ||
+        formatEventType(t).toLowerCase().includes(lower),
+    );
+  }, [existingTypes, search]);
+
+  const normalizedSearch = search.trim().toLowerCase().replace(/\s+/g, "_");
+  const showCreateOption =
+    search.trim() && !existingTypes.some((t) => t === normalizedSearch);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-8 w-full justify-between text-sm font-normal"
+        >
+          {value ? formatEventType(value) : "Select type..."}
+          <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+        style={{ zIndex: 60 }}
+      >
+        <div className="p-2">
+          <Input
+            ref={inputRef}
+            placeholder="Search or type new..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="max-h-48 overflow-y-auto px-1 pb-1">
+          {filtered.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={cn(
+                "hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm",
+                value === type && "bg-accent",
+              )}
+              onClick={() => {
+                onChange(type);
+                setSearch("");
+                setOpen(false);
+              }}
+            >
+              <Check
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0",
+                  value === type ? "opacity-100" : "opacity-0",
+                )}
+              />
+              {formatEventType(type)}
+              <span className="text-muted-foreground ml-auto font-mono text-[10px]">
+                {type}
+              </span>
+            </button>
+          ))}
+          {showCreateOption && (
+            <button
+              type="button"
+              className="hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
+              onClick={() => {
+                onChange(normalizedSearch);
+                setSearch("");
+                setOpen(false);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5 shrink-0" />
+              Create &quot;{formatEventType(normalizedSearch)}&quot;
+              <span className="text-muted-foreground ml-auto font-mono text-[10px]">
+                {normalizedSearch}
+              </span>
+            </button>
+          )}
+          {filtered.length === 0 && !showCreateOption && (
+            <p className="text-muted-foreground px-2 py-3 text-center text-sm">
+              No types found.
+            </p>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function TimelineEventForm({
+  form,
+  onChange,
+  onSubmit,
+  onCancel,
+  onDelete,
+  isPending,
+  isEdit,
+  existingTypes,
+}: {
+  form: EventFormData;
+  onChange: (f: EventFormData) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  onDelete?: () => void;
+  isPending: boolean;
+  isEdit: boolean;
+  existingTypes: string[];
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="te-name" className="text-xs">
+          Name *
+        </Label>
+        <Input
+          id="te-name"
+          value={form.name}
+          onChange={(e) => onChange({ ...form, name: e.target.value })}
+          placeholder="e.g. Great Recession (2007-09)"
+          className="h-8 text-sm"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label className="text-xs">Event Type *</Label>
+        <EventTypeCombobox
+          value={form.eventType}
+          onChange={(v) => onChange({ ...form, eventType: v })}
+          existingTypes={existingTypes}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-2">
+          <Label htmlFor="te-start" className="text-xs">
+            Start Date *
+          </Label>
+          <Input
+            id="te-start"
+            type="date"
+            value={form.startDate}
+            onChange={(e) => onChange({ ...form, startDate: e.target.value })}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="te-end" className="text-xs">
+            End Date
+          </Label>
+          <Input
+            id="te-end"
+            type="date"
+            value={form.endDate}
+            onChange={(e) => onChange({ ...form, endDate: e.target.value })}
+            className="h-8 text-sm"
+          />
+        </div>
+      </div>
+      <p className="text-muted-foreground -mt-2 text-[10px]">
+        Omit End Date to mark the start of a long running event
+      </p>
+      <div className="grid gap-2">
+        <Label htmlFor="te-desc" className="text-xs">
+          Description
+        </Label>
+        <Textarea
+          id="te-desc"
+          value={form.description}
+          onChange={(e) => onChange({ ...form, description: e.target.value })}
+          rows={2}
+          className="text-sm"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button size="sm" onClick={onSubmit} disabled={isPending}>
+          {isPending ? "Saving..." : isEdit ? "Update" : "Create"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isPending}
+        >
+          Cancel
+        </Button>
+        {isEdit && onDelete && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDelete}
+            disabled={isPending}
+            className="ml-auto text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" />
+            Delete
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Timeline control: popover toggle + management Sheet                */
+/* ------------------------------------------------------------------ */
+
+function TimelineControl({
   timelineEvents,
   selectedEventTypes,
   onSelectedEventTypesChange,
@@ -386,6 +557,14 @@ function TimelinePopover({
   selectedEventTypes: Set<string>;
   onSelectedEventTypesChange: (types: Set<string>) => void;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingEvent, setEditingEvent] =
+    useState<TimelineEventForChart | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [form, setForm] = useState<EventFormData>(emptyEventForm);
+
   const typeCounts = useMemo(() => {
     const map = new Map<string, number>();
     for (const e of timelineEvents) {
@@ -393,6 +572,22 @@ function TimelinePopover({
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [timelineEvents]);
+
+  /** Events grouped by type for the sheet */
+  const eventsByType = useMemo(() => {
+    const map = new Map<string, TimelineEventForChart[]>();
+    for (const e of timelineEvents) {
+      const list = map.get(e.eventType);
+      if (list) list.push(e);
+      else map.set(e.eventType, [e]);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [timelineEvents]);
+
+  const existingTypes = useMemo(
+    () => [...new Set(timelineEvents.map((e) => e.eventType))].sort(),
+    [timelineEvents],
+  );
 
   const toggleType = useCallback(
     (type: string) => {
@@ -404,457 +599,952 @@ function TimelinePopover({
     [selectedEventTypes, onSelectedEventTypesChange],
   );
 
-  if (timelineEvents.length === 0) return null;
+  function openCreate() {
+    setEditingEvent(null);
+    setIsCreating(true);
+    setForm(emptyEventForm);
+  }
+
+  function openEdit(event: TimelineEventForChart) {
+    setEditingEvent(event);
+    setIsCreating(true);
+    setForm({
+      name: event.name,
+      eventType: event.eventType,
+      description: event.description ?? "",
+      startDate: event.startDate ?? event.start,
+      endDate: event.endDate ?? "",
+    });
+  }
+
+  function cancelForm() {
+    setIsCreating(false);
+    setEditingEvent(null);
+    setForm(emptyEventForm);
+  }
+
+  function handleSubmit() {
+    if (!form.name.trim() || !form.startDate) {
+      toast.error("Name and start date are required");
+      return;
+    }
+    if (!form.eventType.trim()) {
+      toast.error("Event type is required");
+      return;
+    }
+    startTransition(async () => {
+      const payload = {
+        name: form.name.trim(),
+        eventType: form.eventType.trim(),
+        description: form.description.trim() || null,
+        startDate: form.startDate,
+        endDate: form.endDate || null,
+      };
+      if (editingEvent) {
+        const result = await updateTimelineEventAction(
+          editingEvent.id,
+          payload,
+        );
+        toast.success(result.message);
+      } else {
+        const result = await createTimelineEventAction(payload);
+        toast.success(result.message);
+      }
+      cancelForm();
+      router.refresh();
+    });
+  }
+
+  function handleDelete() {
+    if (!editingEvent) return;
+    startTransition(async () => {
+      const result = await deleteTimelineEventAction(editingEvent.id);
+      toast.success(result.message);
+      cancelForm();
+      router.refresh();
+    });
+  }
+
+  const showForm = isCreating;
 
   return (
-    <Popover>
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors ${
+              selectedEventTypes.size > 0
+                ? "border-slate-400 bg-slate-100 text-slate-700"
+                : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            Timeline
+            {selectedEventTypes.size > 0 && (
+              <span className="rounded-full bg-slate-500 px-1.5 text-[10px] leading-4 text-white">
+                {selectedEventTypes.size}
+              </span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-0" align="start">
+          <div className="max-h-64 space-y-0.5 overflow-y-auto p-2">
+            {typeCounts.map(([type, count]) => (
+              <button
+                key={type}
+                type="button"
+                className="hover:bg-accent flex w-full items-center gap-2 rounded px-1 py-1.5 text-xs"
+                onClick={() => toggleType(type)}
+              >
+                <Checkbox
+                  checked={selectedEventTypes.has(type)}
+                  className="h-3.5 w-3.5"
+                  tabIndex={-1}
+                />
+                <span>{formatEventType(type)}</span>
+                <span className="text-muted-foreground ml-auto font-mono text-[10px]">
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
+          <Separator />
+          <div className="p-1">
+            <button
+              type="button"
+              className="hover:bg-accent flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium"
+              onClick={() => {
+                setSheetOpen(true);
+              }}
+            >
+              <Pencil className="h-3 w-3" />
+              Add or Edit Events
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Management Sheet */}
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) cancelForm();
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto sm:max-w-md"
+        >
+          <SheetHeader>
+            <SheetTitle>
+              {showForm
+                ? editingEvent
+                  ? "Edit Event"
+                  : "New Event"
+                : "Timeline Events"}
+            </SheetTitle>
+          </SheetHeader>
+
+          {showForm ? (
+            <div className="px-4 pb-4">
+              <button
+                type="button"
+                onClick={cancelForm}
+                className="text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1 text-xs"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                Back to list
+              </button>
+              <TimelineEventForm
+                form={form}
+                onChange={setForm}
+                onSubmit={handleSubmit}
+                onCancel={cancelForm}
+                onDelete={editingEvent ? handleDelete : undefined}
+                isPending={isPending}
+                isEdit={!!editingEvent}
+                existingTypes={existingTypes}
+              />
+            </div>
+          ) : (
+            <div className="px-4 pb-4">
+              <Button size="sm" onClick={openCreate} className="mb-3 w-full">
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add New Event
+              </Button>
+
+              {eventsByType.length === 0 && (
+                <p className="text-muted-foreground py-6 text-center text-sm">
+                  No timeline events yet.
+                </p>
+              )}
+
+              <div className="space-y-1">
+                {eventsByType.map(([type, events]) => (
+                  <Collapsible key={type} defaultOpen={events.length <= 8}>
+                    <CollapsibleTrigger className="hover:bg-accent flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm font-medium">
+                      <ChevronRight className="h-3.5 w-3.5 transition-transform [[data-state=open]>&]:rotate-90" />
+                      {formatEventType(type)}
+                      <span className="text-muted-foreground ml-auto font-mono text-[10px]">
+                        {events.length}
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="ml-2 border-l pl-3">
+                        {events.map((event) => (
+                          <div
+                            key={event.id}
+                            className="hover:bg-accent group flex items-center gap-2 rounded px-2 py-1.5"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-xs font-medium">
+                                {event.name}
+                              </div>
+                              <div className="text-muted-foreground font-mono text-[10px]">
+                                {event.startDate ?? event.start}
+                                {event.endDate ? ` — ${event.endDate}` : ""}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openEdit(event)}
+                              className="text-muted-foreground hover:text-foreground shrink-0 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
+
+/** "More" dropdown for overflow items in overlay/transform rows */
+function MoreDropdown({
+  items,
+  activeValues,
+  onToggle,
+  renderItemExtra,
+}: {
+  items: Array<{
+    value: string;
+    label: string;
+    formula: React.ReactNode;
+    description?: string;
+  }>;
+  activeValues: Set<string>;
+  onToggle: (value: string) => void;
+  /** Render extra inline content (e.g. InlineSelect) after the label when an item is active */
+  renderItemExtra?: (value: string) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const activeCount = items.filter((i) => activeValues.has(i.value)).length;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
-            selectedEventTypes.size > 0
-              ? "border-slate-400 bg-slate-100 text-slate-700"
-              : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-          }`}
+          className={cn(
+            "inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors",
+            activeCount > 0
+              ? "text-blue-700"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+          )}
         >
-          <Calendar className="h-3.5 w-3.5" />
-          Timeline
-          {selectedEventTypes.size > 0 && (
-            <span className="rounded-full bg-slate-500 px-1.5 text-[10px] leading-4 text-white">
-              {selectedEventTypes.size}
+          More
+          <ChevronDown className="h-3 w-3" />
+          {activeCount > 0 && (
+            <span className="rounded-full bg-blue-600 px-1 text-[9px] leading-3 text-white">
+              {activeCount}
             </span>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
-        <div className="max-h-64 space-y-0.5 overflow-y-auto p-2">
-          {typeCounts.map(([type, count]) => (
+      <PopoverContent className="w-52 p-1" align="start">
+        {items.map((item) => (
+          <div key={item.value}>
             <button
-              key={type}
               type="button"
-              className="hover:bg-accent flex w-full items-center gap-2 rounded px-1 py-1.5 text-xs"
-              onClick={() => toggleType(type)}
+              className={cn(
+                "hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs",
+                activeValues.has(item.value) && "bg-accent font-medium",
+              )}
+              onClick={() => onToggle(item.value)}
             >
               <Checkbox
-                checked={selectedEventTypes.has(type)}
+                checked={activeValues.has(item.value)}
                 className="h-3.5 w-3.5"
                 tabIndex={-1}
               />
-              <span>{formatEventType(type)}</span>
-              <span className="text-muted-foreground ml-auto font-mono text-[10px]">
-                {count}
-              </span>
+              {item.label}
+            </button>
+            {activeValues.has(item.value) && renderItemExtra?.(item.value)}
+          </div>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Chart type toggle: Line or Column */
+function ChartTypeToggle({
+  value,
+  onChange,
+}: {
+  value: "line" | "column";
+  onChange: (v: "line" | "column") => void;
+}) {
+  return (
+    <div className="inline-flex rounded-md border">
+      <button
+        type="button"
+        onClick={() => onChange("line")}
+        className={cn(
+          "inline-flex h-6 w-7 items-center justify-center rounded-l-md text-xs transition-colors",
+          value === "line"
+            ? "bg-accent text-accent-foreground"
+            : "text-muted-foreground hover:bg-accent/50",
+        )}
+        title="Line chart"
+      >
+        <LineChart className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("column")}
+        className={cn(
+          "inline-flex h-6 w-7 items-center justify-center rounded-r-md border-l text-xs transition-colors",
+          value === "column"
+            ? "bg-accent text-accent-foreground"
+            : "text-muted-foreground hover:bg-accent/50",
+        )}
+        title="Column chart"
+      >
+        <BarChart3 className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+/** Primary overlay items (shown inline) */
+const PRIMARY_OVERLAYS: Array<{
+  value: Overlay;
+  label: string;
+  formula: React.ReactNode;
+  description: string;
+}> = [
+  {
+    value: "mean",
+    label: "Mean",
+    formula: (
+      <span>
+        x̄ = <sup>1</sup>&frasl;<sub>n</sub> &Sigma; x<sub>i</sub>
+      </span>
+    ),
+    description: "Arithmetic mean of all observations",
+  },
+  {
+    value: "rollingMean",
+    label: "Rolling x̄",
+    formula: (
+      <span>
+        x̄<sub>t</sub> = <sup>1</sup>&frasl;<sub>k</sub> &Sigma;
+        <sub>i=t&minus;k+1</sub>
+        <sup>t</sup> x<sub>i</sub>
+      </span>
+    ),
+    description: "Backward-looking moving average",
+  },
+  {
+    value: "stdDev",
+    label: "±σ",
+    formula: (
+      <span>
+        x̄ &plusmn; &sigma; where &sigma; = &radic;(&Sigma;(x
+        <sub>i</sub> &minus; x̄)&sup2; / (n&minus;1))
+      </span>
+    ),
+    description: "Full-sample mean ± 1 std dev (Bessel-corrected)",
+  },
+];
+
+/** Overflow overlay items (in More dropdown) */
+const MORE_OVERLAYS: Array<{
+  value: string;
+  label: string;
+  formula: React.ReactNode;
+  description: string;
+}> = [
+  {
+    value: "rollingStdDev",
+    label: "Rolling ±σ",
+    formula: (
+      <span>
+        x̄<sub>t</sub> &plusmn; &sigma;<sub>t</sub>
+      </span>
+    ),
+    description: "Rolling mean ± 1 sample std dev",
+  },
+  {
+    value: "linearTrend",
+    label: "Linear",
+    formula: <span>ŷ = &alpha; + &beta;t</span>,
+    description: "OLS linear trend",
+  },
+  {
+    value: "logLinearTrend",
+    label: "Log-Linear",
+    formula: (
+      <span>
+        ŷ = e<sup>&alpha; + &beta;t</sup>
+      </span>
+    ),
+    description: "Exponential trend via log-linear regression",
+  },
+  {
+    value: "hpTrend",
+    label: "HP Trend",
+    formula: (
+      <span>
+        min<sub>&tau;</sub> &Sigma;(y<sub>t</sub> &minus; &tau;
+        <sub>t</sub>)&sup2; + &lambda;&Sigma;(&Delta;&sup2; &tau;
+        <sub>t</sub>)&sup2;
+      </span>
+    ),
+    description: "Hodrick-Prescott filter (λ auto by frequency)",
+  },
+];
+
+/** Primary transform items (shown inline) */
+const PRIMARY_TRANSFORMS: Array<{
+  value: Transformation;
+  label: string;
+  formula: React.ReactNode;
+  description: string;
+}> = [
+  {
+    value: "indexToYear",
+    label: "Index",
+    formula: (
+      <span>
+        y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100
+      </span>
+    ),
+    description:
+      "Index all values relative to the first observation in the base year",
+  },
+  {
+    value: "yoy",
+    label: "YOY %",
+    formula: (
+      <span>
+        (x<sub>t</sub> &minus; x<sub>t&minus;4</sub>) / x<sub>t&minus;4</sub>{" "}
+        &times; 100
+      </span>
+    ),
+    description: "Year-over-year percent change",
+  },
+  {
+    value: "ytd",
+    label: "YTD %",
+    formula: (
+      <span>
+        (x<sub>t</sub> &minus; x<sub>Jan</sub>) / x<sub>Jan</sub> &times; 100
+      </span>
+    ),
+    description: "Year-to-date percent change from first period of year",
+  },
+  {
+    value: "pop",
+    label: "PoP %",
+    formula: (
+      <span>
+        (x<sub>t</sub> &minus; x<sub>t&minus;1</sub>) / x<sub>t&minus;1</sub>{" "}
+        &times; 100
+      </span>
+    ),
+    description: "Period-over-period percent change",
+  },
+  {
+    value: "levelChange",
+    label: "LVL Chg",
+    formula: (
+      <span>
+        &Delta;x<sub>t</sub> = x<sub>t</sub> &minus; x<sub>t&minus;1</sub>
+      </span>
+    ),
+    description: "Absolute change from previous period",
+  },
+  {
+    value: "cagr",
+    label: "CAGR",
+    formula: (
+      <span>
+        ((x<sub>n</sub>/x<sub>1</sub>)<sup>ppy/(n&minus;1)</sup> &minus; 1)
+        &times; 100
+      </span>
+    ),
+    description: "Compound annual growth rate",
+  },
+];
+
+/** Overflow transform items (in More dropdown) */
+const MORE_TRANSFORMS: Array<{
+  value: string;
+  label: string;
+  formula: React.ReactNode;
+  description: string;
+}> = [
+  {
+    value: "zScore",
+    label: "Z-Score",
+    formula: (
+      <span>
+        z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
+      </span>
+    ),
+    description: "Standard score: how many std devs from the mean",
+  },
+  {
+    value: "deviationFromTrend",
+    label: "Dev. from Trend",
+    formula: (
+      <span>
+        d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
+      </span>
+    ),
+    description: "Residual from OLS linear trend",
+  },
+  {
+    value: "logLevel",
+    label: "Log Level",
+    formula: (
+      <span>
+        y<sub>t</sub> = ln(x<sub>t</sub>), x &gt; 0
+      </span>
+    ),
+    description: "Natural logarithm of level values",
+  },
+];
+
+/** Single axis column — controls overlays, transform, and chart type for one axis */
+/** Compact inline select for choosing from a list of values */
+function InlineSelect({
+  value,
+  options,
+  onChange,
+  formatOption,
+  className,
+}: {
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  formatOption?: (v: string) => string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const fmt = formatOption ?? ((v: string) => v);
+
+  const filtered = useMemo(() => {
+    if (!search) return options;
+    const lower = search.toLowerCase();
+    return options.filter(
+      (o) =>
+        o.toLowerCase().includes(lower) || fmt(o).toLowerCase().includes(lower),
+    );
+  }, [options, search, fmt]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className={cn(
+            "border-input bg-background hover:bg-accent inline-flex h-5 items-center gap-0.5 rounded border px-1 font-mono text-[11px] transition-colors",
+            className,
+          )}
+        >
+          {fmt(value)}
+          <ChevronsUpDown className="h-2.5 w-2.5 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-44 p-0"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {options.length > 10 && (
+          <div className="p-1.5">
+            <Input
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-7 text-xs"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+        <div className="max-h-48 overflow-y-auto p-1">
+          {filtered.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              className={cn(
+                "hover:bg-accent flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-xs",
+                value === opt && "bg-accent font-medium",
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(opt);
+                setSearch("");
+                setOpen(false);
+              }}
+            >
+              <Check
+                className={cn(
+                  "h-3 w-3 shrink-0",
+                  value === opt ? "opacity-100" : "opacity-0",
+                )}
+              />
+              {fmt(opt)}
             </button>
           ))}
+          {filtered.length === 0 && (
+            <p className="text-muted-foreground py-2 text-center text-xs">
+              No matches
+            </p>
+          )}
         </div>
       </PopoverContent>
     </Popover>
   );
 }
 
-function OverlaysToggle({
+function AxisColumn({
+  label,
   overlays,
-  onValueChange,
-  disabled,
-  stats,
-  fmtMean,
+  onOverlaysChange,
+  transform,
+  onTransformChange,
+  chartType,
+  onChartTypeChange,
+  indexBaseDate,
+  onIndexBaseDateChange,
+  availableDates,
   rollingWindow,
   onRollingWindowChange,
+  stdDevMultiplier,
+  onStdDevMultiplierChange,
   freqCode,
-  children,
+  stats,
+  fmtMean,
+  showChangeTransforms,
+  showOverlays = true,
+  showChartType = true,
 }: {
+  label: string;
   overlays: Overlay[];
-  onValueChange: (values: string[]) => void;
-  disabled: boolean;
-  stats: { mean: number; median: number | null; standardDeviation: number };
-  fmtMean: (v: number) => string;
+  onOverlaysChange: (overlays: Overlay[]) => void;
+  transform: Transformation | null;
+  onTransformChange: (t: Transformation | null) => void;
+  chartType: "line" | "column";
+  onChartTypeChange: (v: "line" | "column") => void;
+  indexBaseDate: string;
+  onIndexBaseDateChange: (date: string) => void;
+  availableDates: string[];
   rollingWindow: number;
   onRollingWindowChange: (k: number) => void;
+  stdDevMultiplier: number;
+  onStdDevMultiplierChange: (m: number) => void;
   freqCode?: string | null;
-  children?: React.ReactNode;
+  stats?: {
+    mean: number;
+    median: number | null;
+    standardDeviation: number;
+  } | null;
+  fmtMean?: (v: number) => string;
+  showChangeTransforms?: boolean;
+  showOverlays?: boolean;
+  showChartType?: boolean;
 }) {
-  const showWindowInput =
-    !disabled && overlays.some((o) => ROLLING_OVERLAYS.includes(o));
-
-  const dataPPY = PERIODS_PER_YEAR[freqCode ?? "M"] ?? 12;
-  const windowPresets = [
-    { label: "W", ppy: 52 },
-    { label: "M", ppy: 12 },
-    { label: "Q", ppy: 4 },
-    { label: "S", ppy: 2 },
-    { label: "A", ppy: 1 },
-  ]
-    .map((p) => ({ ...p, k: Math.round(dataPPY / p.ppy) }))
-    .filter((p) => p.k >= 2);
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-muted-foreground w-16 shrink-0 text-xs font-medium">
-        Overlays
-      </span>
-      <ToggleGroup
-        type="multiple"
-        value={
-          disabled ? ["none"] : overlays.length === 0 ? ["none"] : overlays
-        }
-        onValueChange={onValueChange}
-        variant="default"
-        size="sm"
-        className="flex-wrap"
-        disabled={disabled}
-      >
-        <ToggleGroupItem value="none" className="h-7 px-2.5 text-xs">
-          None
-        </ToggleGroupItem>
-        <TooltipToggleItem
-          value="mean"
-          className="h-7 px-2.5 text-xs"
-          formula={
-            <span>
-              x̄ = <sup>1</sup>&frasl;<sub>n</sub> &Sigma; x<sub>i</sub>
-            </span>
-          }
-          description="Arithmetic mean of all observations"
-        >
-          <span className="text-muted-foreground">x̄</span>
-          <span className="font-mono">{fmtMean(stats.mean)}</span>
-        </TooltipToggleItem>
-        <TooltipToggleItem
-          value="rollingMean"
-          className="h-7 px-2.5 text-xs"
-          formula={
-            <span>
-              x̄<sub>t</sub> = <sup>1</sup>&frasl;<sub>k</sub> &Sigma;
-              <sub>i=t&minus;k+1</sub>
-              <sup>t</sup> x<sub>i</sub>
-            </span>
-          }
-          description={`Backward-looking moving average (k=${rollingWindow})`}
-        >
-          <span className="text-muted-foreground">Rolling x̄</span>
-        </TooltipToggleItem>
-        <TooltipToggleItem
-          value="stdDev"
-          className="h-7 px-2.5 text-xs"
-          formula={
-            <span>
-              x̄ &plusmn; &sigma; where &sigma; = &radic;(&Sigma;(x
-              <sub>i</sub> &minus; x̄)&sup2; / (n&minus;1))
-            </span>
-          }
-          description="Full-sample mean ± 1 std dev (Bessel-corrected)"
-        >
-          <span className="text-muted-foreground">&plusmn;&sigma;</span>
-        </TooltipToggleItem>
-        <TooltipToggleItem
-          value="rollingStdDev"
-          className="h-7 px-2.5 text-xs"
-          formula={
-            <span>
-              x̄<sub>t</sub> &plusmn; &sigma;<sub>t</sub> where &sigma;
-              <sub>t</sub> = &radic;(
-              <sup>1</sup>&frasl;<sub>k&minus;1</sub> &Sigma;(x
-              <sub>i</sub> &minus; x̄<sub>t</sub>)&sup2;)
-            </span>
-          }
-          description={`Rolling mean ± 1 sample std dev (k=${rollingWindow})`}
-        >
-          <span className="text-muted-foreground">Rolling &plusmn;&sigma;</span>
-        </TooltipToggleItem>
-        <TooltipToggleItem
-          value="linearTrend"
-          className="h-7 px-2.5 text-xs"
-          formula={
-            <span>
-              ŷ = &alpha; + &beta;t where &beta; = (n&Sigma;ty &minus;
-              &Sigma;t&Sigma;y) / (n&Sigma;t&sup2; &minus; (&Sigma;t)&sup2;)
-            </span>
-          }
-          description="OLS linear trend on observation index"
-        >
-          <span className="text-muted-foreground">Linear</span>
-        </TooltipToggleItem>
-        <TooltipToggleItem
-          value="logLinearTrend"
-          className="h-7 px-2.5 text-xs"
-          formula={
-            <span>
-              ŷ = e<sup>&alpha; + &beta;t</sup> &mdash; regress ln(y) on t
-            </span>
-          }
-          description="Exponential trend via log-linear regression"
-        >
-          <span className="text-muted-foreground">Log-Linear</span>
-        </TooltipToggleItem>
-        <TooltipToggleItem
-          value="hpTrend"
-          className="h-7 px-2.5 text-xs"
-          formula={
-            <span>
-              min<sub>&tau;</sub> &Sigma;(y<sub>t</sub> &minus; &tau;
-              <sub>t</sub>)&sup2; + &lambda;&Sigma;(&Delta;&sup2; &tau;
-              <sub>t</sub>)&sup2;
-            </span>
-          }
-          description="Hodrick-Prescott filter (&lambda; auto by frequency)"
-        >
-          <span className="text-muted-foreground">HP Trend</span>
-        </TooltipToggleItem>
-      </ToggleGroup>
-      {children}
-      {showWindowInput && windowPresets.length > 0 && (
-        <div className="ml-auto flex items-center gap-1">
-          <span className="text-muted-foreground text-[10px]">k</span>
-          {windowPresets.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => onRollingWindowChange(p.k)}
-              className={`h-7 rounded-md border px-2 text-xs font-medium transition-colors ${
-                rollingWindow === p.k
-                  ? "border-blue-300 bg-blue-50 text-blue-700"
-                  : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-              }`}
-              title={`k=${p.k}`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+  const overlaySet = useMemo(() => new Set<string>(overlays), [overlays]);
+  const transformSet = useMemo(
+    () => new Set<string>(transform ? [transform] : []),
+    [transform],
   );
-}
 
-function TransformToggle({
-  value,
-  onValueChange,
-  secondAxis,
-  onSecondAxisToggle,
-  secondAxisValue,
-  onSecondAxisValueChange,
-  indexBaseYear,
-  onIndexBaseYearChange,
-  minYear,
-  maxYear,
-}: {
-  value: Transformation | null;
-  onValueChange: (t: Transformation | null) => void;
-  secondAxis: boolean;
-  onSecondAxisToggle: () => void;
-  secondAxisValue: Transformation | null;
-  onSecondAxisValueChange: (t: Transformation | null) => void;
-  indexBaseYear: number;
-  onIndexBaseYearChange: (year: number) => void;
-  minYear: number;
-  maxYear: number;
-}) {
-  /** Enforce single-selection from a type="multiple" toggle group */
-  const makeSingleHandler =
-    (
-      current: Transformation | null,
-      setter: (t: Transformation | null) => void,
-    ) =>
+  const handleOverlayToggle = useCallback(
+    (value: string) => {
+      const v = value as Overlay;
+      if (overlays.includes(v)) {
+        onOverlaysChange(overlays.filter((o) => o !== v));
+      } else {
+        onOverlaysChange([...overlays, v]);
+      }
+    },
+    [overlays, onOverlaysChange],
+  );
+
+  const handleOverlayGroupChange = useCallback(
     (values: string[]) => {
-      if (values.includes("none") && current !== null) {
-        setter(null);
+      if (values.includes("none") && overlays.length > 0) {
+        onOverlaysChange([]);
+        return;
+      }
+      onOverlaysChange(values.filter((v) => v !== "none") as Overlay[]);
+    },
+    [overlays, onOverlaysChange],
+  );
+
+  const handleTransformGroupChange = useCallback(
+    (values: string[]) => {
+      if (values.includes("none") && transform !== null) {
+        onTransformChange(null);
         return;
       }
       const real = values.filter((v) => v !== "none") as Transformation[];
       if (real.length === 0) {
-        setter(null);
+        onTransformChange(null);
         return;
       }
-      setter(real.find((v) => v !== current) ?? real[0]);
-    };
+      onTransformChange(real.find((v) => v !== transform) ?? real[0]);
+    },
+    [transform, onTransformChange],
+  );
+
+  const handleTransformToggle = useCallback(
+    (value: string) => {
+      const v = value as Transformation;
+      if (transform === v) onTransformChange(null);
+      else onTransformChange(v);
+    },
+    [transform, onTransformChange],
+  );
+
+  // Show separate rolling window row only for rollingMean transform
+  // (overlay cases have inline inputs: rollingMean overlay in toggle, rollingStdDev in More dropdown)
+  const showRollingWindowRow =
+    transform === "rollingMean" && !overlays.includes("rollingMean");
+
+  const dataPPY = PERIODS_PER_YEAR[freqCode ?? "M"] ?? 12;
+  const windowPresets = useMemo(
+    () =>
+      [
+        { label: "W", ppy: 52 },
+        { label: "M", ppy: 12 },
+        { label: "Q", ppy: 4 },
+        { label: "S", ppy: 2 },
+        { label: "A", ppy: 1 },
+      ]
+        .map((p) => ({ ...p, k: Math.round(dataPPY / p.ppy) }))
+        .filter((p) => p.k >= 2),
+    [dataPPY],
+  );
+
+  const visibleTransforms =
+    showChangeTransforms !== false
+      ? PRIMARY_TRANSFORMS
+      : PRIMARY_TRANSFORMS.filter(
+          (t) =>
+            !["yoy", "ytd", "pop", "levelChange", "cagr"].includes(t.value),
+        );
 
   return (
-    <div className="flex flex-wrap justify-between gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-muted-foreground w-16 shrink-0 text-xs font-medium">
+    <div className="flex flex-col gap-2">
+      {/* Header: label + chart type toggle */}
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
+          {label}
+        </span>
+        {showChartType && (
+          <ChartTypeToggle value={chartType} onChange={onChartTypeChange} />
+        )}
+      </div>
+
+      {/* Overlays row */}
+      {showOverlays && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-muted-foreground w-14 shrink-0 text-[10px] font-medium">
+            Overlays
+          </span>
+          <ToggleGroup
+            type="multiple"
+            value={overlays.length === 0 ? ["none"] : overlays}
+            onValueChange={handleOverlayGroupChange}
+            variant="default"
+            size="sm"
+          >
+            <ToggleGroupItem value="none" className="h-6 px-2 text-[11px]">
+              None
+            </ToggleGroupItem>
+            {PRIMARY_OVERLAYS.map((item) => (
+              <TooltipToggleItem
+                key={item.value}
+                value={item.value}
+                className="h-6 px-2 text-[11px]"
+                formula={item.formula}
+                description={item.description}
+              >
+                {item.value === "mean" && stats && fmtMean ? (
+                  <>
+                    <span className="text-muted-foreground">x̄</span>
+                    <span className="font-mono">{fmtMean(stats.mean)}</span>
+                  </>
+                ) : item.value === "stdDev" ? (
+                  <>
+                    <span className="text-muted-foreground">
+                      &plusmn;&sigma;
+                    </span>
+                    {overlays.includes("stdDev") && (
+                      <InlineSelect
+                        value={String(stdDevMultiplier)}
+                        options={["1", "2"]}
+                        onChange={(v) =>
+                          onStdDevMultiplierChange(parseInt(v, 10))
+                        }
+                        formatOption={(v) => `${v}σ`}
+                      />
+                    )}
+                  </>
+                ) : item.value === "rollingMean" ? (
+                  <>
+                    <span className="text-muted-foreground">{item.label}</span>
+                    {overlays.includes("rollingMean") &&
+                      windowPresets.length > 0 && (
+                        <InlineSelect
+                          value={String(rollingWindow)}
+                          options={windowPresets.map((p) => String(p.k))}
+                          onChange={(v) =>
+                            onRollingWindowChange(parseInt(v, 10))
+                          }
+                          formatOption={(v) => {
+                            const preset = windowPresets.find(
+                              (p) => String(p.k) === v,
+                            );
+                            return preset
+                              ? `k=${v} (${preset.label})`
+                              : `k=${v}`;
+                          }}
+                        />
+                      )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">{item.label}</span>
+                )}
+              </TooltipToggleItem>
+            ))}
+          </ToggleGroup>
+          <MoreDropdown
+            items={MORE_OVERLAYS}
+            activeValues={overlaySet}
+            onToggle={handleOverlayToggle}
+            renderItemExtra={(value) => {
+              if (value === "rollingStdDev") {
+                return (
+                  <div className="flex items-center gap-2 px-2 pb-1.5 pl-8">
+                    {windowPresets.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground text-[10px]">k</span>
+                        <InlineSelect
+                          value={String(rollingWindow)}
+                          options={windowPresets.map((p) => String(p.k))}
+                          onChange={(v) => onRollingWindowChange(parseInt(v, 10))}
+                          formatOption={(v) => {
+                            const preset = windowPresets.find((p) => String(p.k) === v);
+                            return preset ? `${v} (${preset.label})` : `k=${v}`;
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground text-[10px]">σ</span>
+                      <InlineSelect
+                        value={String(stdDevMultiplier)}
+                        options={["1", "2"]}
+                        onChange={(v) => onStdDevMultiplierChange(parseInt(v, 10))}
+                        formatOption={(v) => `${v}σ`}
+                      />
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+        </div>
+      )}
+
+      {/* Transform row */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-muted-foreground w-14 shrink-0 text-[10px] font-medium">
           Transform
         </span>
         <ToggleGroup
           type="multiple"
-          value={value ? [value] : ["none"]}
-          onValueChange={makeSingleHandler(value, onValueChange)}
+          value={transform ? [transform] : ["none"]}
+          onValueChange={handleTransformGroupChange}
           variant="default"
           size="sm"
         >
-          <TransformItems
-            indexBaseYear={indexBaseYear}
-            onIndexBaseYearChange={onIndexBaseYearChange}
-            minYear={minYear}
-            maxYear={maxYear}
-            isActive={value === "indexToYear"}
-          />
+          <ToggleGroupItem value="none" className="h-6 px-2 text-[11px]">
+            None
+          </ToggleGroupItem>
+          {visibleTransforms.map((item) => (
+            <TooltipToggleItem
+              key={item.value}
+              value={item.value}
+              className="h-6 px-2 text-[11px]"
+              formula={item.formula}
+              description={item.description}
+            >
+              {item.label}
+              {item.value === "indexToYear" &&
+                transform === "indexToYear" &&
+                availableDates.length > 0 && (
+                  <InlineSelect
+                    value={indexBaseDate}
+                    options={availableDates}
+                    onChange={onIndexBaseDateChange}
+                    formatOption={(d) => formatFreqDate(d, freqCode)}
+                  />
+                )}
+            </TooltipToggleItem>
+          ))}
         </ToggleGroup>
+        <MoreDropdown
+          items={MORE_TRANSFORMS}
+          activeValues={transformSet}
+          onToggle={handleTransformToggle}
+        />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {secondAxis && (
-          <ToggleGroup
-            type="multiple"
-            value={secondAxisValue ? [secondAxisValue] : ["none"]}
-            onValueChange={makeSingleHandler(
-              secondAxisValue,
-              onSecondAxisValueChange,
-            )}
-            variant="default"
-            size="sm"
-          >
-            <ToggleGroupItem value="none" className="h-7 px-2.5 text-xs">
-              None
-            </ToggleGroupItem>
-            <TooltipToggleItem
-              value="zScore"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
-                </span>
-              }
-              description="Standard score: how many std devs from the mean"
-            >
-              Z-Score
-            </TooltipToggleItem>
-            <TooltipToggleItem
-              value="deviationFromTrend"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
-                </span>
-              }
-              description="Residual from OLS linear trend"
-            >
-              Dev. from Trend
-            </TooltipToggleItem>
-            <TooltipToggleItem
-              value="logLevel"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  y<sub>t</sub> = ln(x<sub>t</sub>), x &gt; 0
-                </span>
-              }
-              description="Natural logarithm of level values"
-            >
-              Log Level
-            </TooltipToggleItem>
-            <TooltipToggleItem
-              value="indexToYear"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100
-                </span>
-              }
-              description="Index all values relative to the first observation in the base year"
-            >
-              Index
-              {secondAxisValue === "indexToYear" && (
-                <input
-                  type="number"
-                  value={indexBaseYear}
-                  min={minYear}
-                  max={maxYear}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    const v = parseInt(e.target.value, 10);
-                    if (!isNaN(v)) onIndexBaseYearChange(v);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="border-input bg-background ml-0.5 h-5 w-14 rounded border px-1 text-center font-mono text-[11px]"
-                />
-              )}
-            </TooltipToggleItem>
-            <TooltipToggleItem
-              value="yoy"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  (x<sub>t</sub> &minus; x<sub>t&minus;4</sub>) / x<sub>t&minus;4</sub> &times; 100
-                </span>
-              }
-              description="Year-over-year percent change"
-            >
-              YOY %
-            </TooltipToggleItem>
-            <TooltipToggleItem
-              value="ytd"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  (x<sub>t</sub> &minus; x<sub>Jan</sub>) / x<sub>Jan</sub> &times; 100
-                </span>
-              }
-              description="Year-to-date percent change from first period of year"
-            >
-              YTD %
-            </TooltipToggleItem>
-            <TooltipToggleItem
-              value="pop"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  (x<sub>t</sub> &minus; x<sub>t&minus;1</sub>) / x<sub>t&minus;1</sub> &times; 100
-                </span>
-              }
-              description="Period-over-period percent change"
-            >
-              PoP %
-            </TooltipToggleItem>
-            <TooltipToggleItem
-              value="levelChange"
-              className="h-7 px-2.5 text-xs"
-              formula={
-                <span>
-                  &Delta;x<sub>t</sub> = x<sub>t</sub> &minus; x<sub>t&minus;1</sub>
-                </span>
-              }
-              description="Absolute change from previous period"
-            >
-              LVL Chg
-            </TooltipToggleItem>
-          </ToggleGroup>
-        )}
-        <div className="ml-auto">
-          <FormulaTooltip
-            formula={
-              <span>Plot a second transformation on a right Y-axis</span>
-            }
-            description="Disables overlays when active"
-          >
-            <button
-              type="button"
-              onClick={onSecondAxisToggle}
-              className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
-                secondAxis
-                  ? "border-rose-300 bg-rose-50 text-rose-700"
-                  : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-              }`}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="20" x2="18" y2="4" />
-                <polyline points="14 8 18 4 22 8" />
-                <line x1="6" y1="4" x2="6" y2="20" />
-                <polyline points="10 16 6 20 2 16" />
-              </svg>
-              2nd Axis
-            </button>
-          </FormulaTooltip>
+      {/* Rolling window k (shown for rollingMean transform when not available inline) */}
+      {showRollingWindowRow && windowPresets.length > 0 && (
+        <div className="flex items-center gap-1.5 pl-14">
+          <span className="text-muted-foreground text-[10px]">k =</span>
+          <InlineSelect
+            value={String(rollingWindow)}
+            options={windowPresets.map((p) => String(p.k))}
+            onChange={(v) => onRollingWindowChange(parseInt(v, 10))}
+            formatOption={(v) => {
+              const preset = windowPresets.find((p) => String(p.k) === v);
+              return preset ? `${v} (${preset.label})` : v;
+            }}
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -916,8 +1606,10 @@ export function AnalyzeControls({
     setSeriesVisibility((prev) => {
       const next = new Map(prev);
       const current = prev.get(index);
-      if (!current) next.set(index, "gray"); // colored → gray
-      else if (current === "gray") next.set(index, "hidden"); // gray → hidden
+      if (!current)
+        next.set(index, "gray"); // colored → gray
+      else if (current === "gray")
+        next.set(index, "hidden"); // gray → hidden
       else next.delete(index); // hidden → colored
       return next;
     });
@@ -935,21 +1627,31 @@ export function AnalyzeControls({
   const [transformation, setTransformation] = useState<Transformation | null>(
     () => parseTransformation(searchParams.get("transform")),
   );
-  const [secondAxis, setSecondAxis] = useState(
-    () => searchParams.get("secondAxis") === "1",
-  );
-  const [secondAxisTransformation, setSecondAxisTransformation] =
+  // Right axis state (replaces old secondAxis toggle)
+  const [rightOverlays, setRightOverlays] = useState<Overlay[]>([]);
+  const [rightTransformation, setRightTransformation] =
     useState<Transformation | null>(() =>
       parseTransformation(searchParams.get("secondAxisTransform")),
     );
+  // Derive whether right axis is active from its state
+  const secondAxis = rightOverlays.length > 0 || rightTransformation !== null;
+  const secondAxisTransformation = rightTransformation;
   const [rollingWindow, setRollingWindow] = useState(() => {
     const v = parseInt(searchParams.get("rollingWindow") ?? "", 10);
     return !isNaN(v) && v >= 2 ? v : 12;
   });
-  const [indexBaseYear, setIndexBaseYear] = useState(() => {
-    const v = parseInt(searchParams.get("indexYear") ?? "", 10);
-    return !isNaN(v) ? v : 2015;
+  const [indexBaseDate, setIndexBaseDate] = useState(() => {
+    return searchParams.get("indexDate") ?? "";
   });
+  const [stdDevMultiplier, setStdDevMultiplier] = useState(() => {
+    const v = parseInt(searchParams.get("stdDevMultiplier") ?? "", 10);
+    return v >= 1 && v <= 2 ? v : 1;
+  });
+  // Chart type per axis (line or column)
+  const [leftChartType, setLeftChartType] = useState<"line" | "column">("line");
+  const [rightChartType, setRightChartType] = useState<"line" | "column">(
+    "line",
+  );
 
   // Selected events filtered from all timeline events by type
   const selectedEvents = useMemo(
@@ -957,11 +1659,8 @@ export function AnalyzeControls({
     [timelineEvents, selectedEventTypes],
   );
 
-  // When second axis is on, overlays are disabled
-  const effectiveOverlays = useMemo(
-    () => (secondAxis ? [] : overlays),
-    [secondAxis, overlays],
-  );
+  // Left overlays (active when right axis doesn't have a transform that conflicts)
+  const effectiveOverlays = overlays;
 
   // ── Compare mode: merge all series into unified chart rows ─────────
   const compareChartData = useMemo(() => {
@@ -977,6 +1676,7 @@ export function AnalyzeControls({
             yoy: null,
             ytd: null,
             pop: null,
+            cagr: null,
           });
         }
         const row = dateSet.get(date)!;
@@ -1035,14 +1735,17 @@ export function AnalyzeControls({
     return map;
   }, [autoAxisMap, axisOverrides]);
 
-  const toggleSeriesAxis = useCallback((index: number) => {
-    setAxisOverrides((prev) => {
-      const next = new Map(prev);
-      const current = seriesAxisMap.get(index) ?? "left";
-      next.set(index, current === "left" ? "right" : "left");
-      return next;
-    });
-  }, [seriesAxisMap]);
+  const toggleSeriesAxis = useCallback(
+    (index: number) => {
+      setAxisOverrides((prev) => {
+        const next = new Map(prev);
+        const current = seriesAxisMap.get(index) ?? "left";
+        next.set(index, current === "left" ? "right" : "left");
+        return next;
+      });
+    },
+    [seriesAxisMap],
+  );
 
   const hasRightAxis = useMemo(
     () => [...seriesAxisMap.values()].some((v) => v === "right"),
@@ -1059,7 +1762,13 @@ export function AnalyzeControls({
         labels.add(compareSeriesData[i].unitShortLabel ?? "—");
     }
     return [...labels].join(", ") || undefined;
-  }, [hasRightAxis, isCompareMode, compareSeriesData, seriesAxisMap, seriesVisibility]);
+  }, [
+    hasRightAxis,
+    isCompareMode,
+    compareSeriesData,
+    seriesAxisMap,
+    seriesVisibility,
+  ]);
 
   const rightAxisLabel = useMemo(() => {
     if (!hasRightAxis || !isCompareMode) return undefined;
@@ -1070,7 +1779,13 @@ export function AnalyzeControls({
         labels.add(compareSeriesData[i].unitShortLabel ?? "—");
     }
     return [...labels].join(", ") || undefined;
-  }, [hasRightAxis, isCompareMode, compareSeriesData, seriesAxisMap, seriesVisibility]);
+  }, [
+    hasRightAxis,
+    isCompareMode,
+    compareSeriesData,
+    seriesAxisMap,
+    seriesVisibility,
+  ]);
 
   /** Map series index → unit short label for tooltip display */
   const seriesUnitLabels = useMemo(() => {
@@ -1094,6 +1809,7 @@ export function AnalyzeControls({
         yoy: null,
         ytd: null,
         pop: null,
+        cagr: null,
       });
     }
     for (const [date, value] of levelChange) {
@@ -1114,8 +1830,35 @@ export function AnalyzeControls({
         if (existing) existing.pop = value;
       }
     }
-    return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }, [isCompareMode, compareChartData, data, yoy, ytd, levelChange, popData]);
+    const sorted = [...map.values()].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+    // Compute running CAGR: ((current/first)^(ppy/i) - 1) * 100
+    const ppy = PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12;
+    let firstLevel: number | null = null;
+    let periodIndex = 0;
+    for (const row of sorted) {
+      if (row.level == null) continue;
+      if (firstLevel == null) {
+        firstLevel = row.level;
+        row.cagr = null; // no CAGR for first observation
+      } else if (firstLevel > 0 && row.level > 0 && periodIndex > 0) {
+        row.cagr =
+          (Math.pow(row.level / firstLevel, ppy / periodIndex) - 1) * 100;
+      }
+      periodIndex++;
+    }
+    return sorted;
+  }, [
+    isCompareMode,
+    compareChartData,
+    data,
+    yoy,
+    ytd,
+    levelChange,
+    popData,
+    currentFreqCode,
+  ]);
 
   const endIdx = Math.max(0, chartData.length - 1);
   const [rangePreset, setRangePreset] = useState(() => {
@@ -1177,39 +1920,61 @@ export function AnalyzeControls({
           : undefined,
       transform: transformation ?? undefined,
       secondAxis: secondAxis ? "1" : undefined,
-      secondAxisTransform: secondAxis
-        ? (secondAxisTransformation ?? undefined)
-        : undefined,
+      secondAxisTransform: rightTransformation ?? undefined,
       barMode: barMode !== "yoy" ? barMode : undefined,
       rollingWindow: rollingWindow !== 12 ? String(rollingWindow) : undefined,
-      indexYear: indexBaseYear !== 2015 ? String(indexBaseYear) : undefined,
+      indexDate: indexBaseDate || undefined,
       range: rangePreset && rangePreset !== "10Y" ? rangePreset : undefined,
+      stdDevMultiplier:
+        stdDevMultiplier !== 1 ? String(stdDevMultiplier) : undefined,
     });
   }, [
     overlays,
     selectedEventTypes,
     transformation,
     secondAxis,
-    secondAxisTransformation,
+    rightTransformation,
     barMode,
     rollingWindow,
-    indexBaseYear,
+    indexBaseDate,
     rangePreset,
+    stdDevMultiplier,
   ]);
 
-  // ── Min/max year from brush-selected date range ─────────────────────
-  const { minYear, maxYear } = useMemo(() => {
-    if (chartData.length === 0) return { minYear: 2000, maxYear: 2030 };
-    const startDate =
-      chartData[brushRange.startIndex]?.date ?? chartData[0].date;
-    const endDate =
-      chartData[brushRange.endIndex]?.date ??
-      chartData[chartData.length - 1].date;
-    return {
-      minYear: parseInt(startDate.slice(0, 4), 10),
-      maxYear: parseInt(endDate.slice(0, 4), 10),
-    };
-  }, [chartData, brushRange]);
+  // ── Available dates from brush-selected range ─────────────────────
+  const availableDates = useMemo(() => {
+    const sliced = chartData.slice(
+      brushRange.startIndex,
+      brushRange.endIndex + 1,
+    );
+    return sliced
+      .filter((r) => {
+        if (r.level != null) return true;
+        // In compare mode, check series columns
+        if (isCompareMode) {
+          for (let s = 0; s < compareSeriesNames.length; s++) {
+            const v = r[`series_${s}` as keyof typeof r];
+            if (v != null) return true;
+          }
+        }
+        return false;
+      })
+      .map((r) => r.date);
+  }, [chartData, brushRange, isCompareMode, compareSeriesNames.length]);
+
+  // Effective index base date: use user selection, fall back to median
+  const effectiveIndexBaseDate = useMemo(() => {
+    if (indexBaseDate && availableDates.includes(indexBaseDate))
+      return indexBaseDate;
+    if (availableDates.length === 0) return "";
+    return availableDates[Math.floor(availableDates.length / 2)];
+  }, [indexBaseDate, availableDates]);
+
+  // Derive year from date for the transformation functions
+  const indexBaseYear = useMemo(() => {
+    if (!effectiveIndexBaseDate) return 2015;
+    return parseInt(effectiveIndexBaseDate.slice(0, 4), 10);
+  }, [effectiveIndexBaseDate]);
 
   // ── Compare mode: full data with transforms (for chart + brush) ────
   const compareFullData = useMemo(() => {
@@ -1220,6 +1985,8 @@ export function AnalyzeControls({
       compareSeriesNames.length,
       indexBaseYear,
       rollingWindow,
+      effectiveIndexBaseDate,
+      currentFreqCode,
     );
   }, [
     isCompareMode,
@@ -1228,6 +1995,8 @@ export function AnalyzeControls({
     compareSeriesNames.length,
     indexBaseYear,
     rollingWindow,
+    effectiveIndexBaseDate,
+    currentFreqCode,
   ]);
 
   // ── Compare mode: sliced data with transforms (for table) ──────────
@@ -1253,10 +2022,20 @@ export function AnalyzeControls({
         result,
         secondAxisTransformation,
         indexBaseYear,
+        rollingWindow,
+        effectiveIndexBaseDate,
+        currentFreqCode,
       );
     }
     // Apply main transformation (replaces level)
-    result = applyTransformation(result, transformation, indexBaseYear);
+    result = applyTransformation(
+      result,
+      transformation,
+      indexBaseYear,
+      rollingWindow,
+      effectiveIndexBaseDate,
+      currentFreqCode,
+    );
     return result;
   }, [
     isCompareMode,
@@ -1267,6 +2046,9 @@ export function AnalyzeControls({
     secondAxis,
     secondAxisTransformation,
     indexBaseYear,
+    effectiveIndexBaseDate,
+    rollingWindow,
+    currentFreqCode,
   ]);
 
   // ── Compare mode: table data preserving original levels ─────────────
@@ -1283,6 +2065,8 @@ export function AnalyzeControls({
       compareSeriesNames.length,
       indexBaseYear,
       rollingWindow,
+      effectiveIndexBaseDate,
+      currentFreqCode,
     );
     return sliced.map((row, i) => {
       const result = { ...row };
@@ -1301,6 +2085,8 @@ export function AnalyzeControls({
     compareSeriesNames.length,
     indexBaseYear,
     rollingWindow,
+    effectiveIndexBaseDate,
+    currentFreqCode,
   ]);
 
   // Table data — filtered to brush range, with overlays; transforms stored separately
@@ -1312,13 +2098,23 @@ export function AnalyzeControls({
     );
     let rows = computeOverlays(sliced, effectiveOverlays, rollingWindow);
     if (secondAxis && secondAxisTransformation) {
-      rows = computeSecondAxis(rows, secondAxisTransformation, indexBaseYear);
+      rows = computeSecondAxis(
+        rows,
+        secondAxisTransformation,
+        indexBaseYear,
+        rollingWindow,
+        effectiveIndexBaseDate,
+        currentFreqCode,
+      );
     }
     if (transformation) {
       const transformed = applyTransformation(
         rows,
         transformation,
         indexBaseYear,
+        rollingWindow,
+        effectiveIndexBaseDate,
+        currentFreqCode,
       );
       rows = rows.map((row, i) => ({
         ...row,
@@ -1337,21 +2133,9 @@ export function AnalyzeControls({
     secondAxis,
     secondAxisTransformation,
     indexBaseYear,
+    effectiveIndexBaseDate,
+    currentFreqCode,
   ]);
-
-  // Overlay toggle handler: clicking "none" clears all; clicking an overlay removes "none"
-  const handleOverlayChange = useCallback(
-    (values: string[]) => {
-      // User just clicked "none" (it wasn't in the previous selection)
-      if (values.includes("none") && overlays.length > 0) {
-        setOverlays([]);
-        return;
-      }
-      // Otherwise strip "none" and keep the real overlay values
-      setOverlays(values.filter((v) => v !== "none") as Overlay[]);
-    },
-    [overlays],
-  );
 
   // Summary stats for the brush-selected range (first series in compare mode)
   const rangeStats = useMemo(() => {
@@ -1378,8 +2162,38 @@ export function AnalyzeControls({
     let sumSq = 0;
     for (const v of levels) sumSq += (v - mean) ** 2;
     const stdDev = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
-    return { mean, median, stdDev, n };
-  }, [chartData, brushRange, isCompareMode]);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    const total = levels.reduce((a, b) => a + b, 0);
+    const first = levels[0];
+    const last = levels[levels.length - 1];
+    const change = last - first;
+    const pctChange =
+      first !== 0 ? ((last - first) / Math.abs(first)) * 100 : null;
+    // CAGR: ((last/first)^(periodsPerYear / (n-1)) - 1) * 100
+    const ppy = PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12;
+    const cagr =
+      n > 1 && first > 0 && last > 0
+        ? (Math.pow(last / first, ppy / (n - 1)) - 1) * 100
+        : null;
+    // Date range
+    const startDate = sliced[0]?.date ?? "";
+    const endDate = sliced[sliced.length - 1]?.date ?? "";
+    return {
+      mean,
+      median,
+      stdDev,
+      n,
+      min,
+      max,
+      total,
+      change,
+      pctChange,
+      cagr,
+      startDate,
+      endDate,
+    };
+  }, [chartData, brushRange, isCompareMode, currentFreqCode]);
 
   // Stats in the shape expected by OverlaysToggle and LevelChart, derived from selected range
   const chartStats = useMemo(
@@ -1396,79 +2210,110 @@ export function AnalyzeControls({
 
   const fmt = (v: number) => formatLevel(v, decimals, unitShortLabel);
 
-  // ── Compare mode: simplified transform-only toggle ─────────────────
-  const makeTransformHandler =
-    (
-      current: Transformation | null,
-      setter: (t: Transformation | null) => void,
-    ) =>
-    (values: string[]) => {
-      if (values.includes("none") && current !== null) {
-        setter(null);
-        return;
-      }
-      const real = values.filter((v) => v !== "none") as Transformation[];
-      if (real.length === 0) {
-        setter(null);
-        return;
-      }
-      setter(real.find((v) => v !== current) ?? real[0]);
-    };
-
   // ── Compare mode render ────────────────────────────────────────────
   if (isCompareMode) {
     return (
       <div className="flex flex-col gap-3">
         {/* Stats & range bar */}
-        <div className="flex items-start gap-6 py-1">
-          <div className="flex gap-6">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-muted-foreground text-[10px]">
-                Mean ({compareSeriesNames[0]})
-              </span>
-              <span className="font-mono text-sm font-medium">
-                {rangeStats ? fmt(rangeStats.mean) : "—"}
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-muted-foreground text-[10px]">Median</span>
-              <span className="font-mono text-sm font-medium">
-                {rangeStats ? fmt(rangeStats.median) : "—"}
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-muted-foreground text-[10px]">Std Dev</span>
-              <span className="font-mono text-sm font-medium">
-                {rangeStats ? fmt(rangeStats.stdDev) : "—"}
-              </span>
-            </div>
+        <div className="flex items-start justify-between gap-6 py-1">
+          <div className="grid grid-cols-5 gap-x-5 gap-y-1">
+            <StatCell
+              label={`Mean (${compareSeriesNames[0]})`}
+              value={rangeStats ? fmt(rangeStats.mean) : "—"}
+            />
+            <StatCell
+              label="Median"
+              value={rangeStats ? fmt(rangeStats.median) : "—"}
+            />
+            <StatCell
+              label="Std Dev"
+              value={rangeStats ? fmt(rangeStats.stdDev) : "—"}
+            />
+            <StatCell
+              label="Min"
+              value={rangeStats ? fmt(rangeStats.min) : "—"}
+            />
+            <StatCell
+              label="Max"
+              value={rangeStats ? fmt(rangeStats.max) : "—"}
+            />
+            <StatCell
+              label="Total"
+              value={rangeStats ? fmt(rangeStats.total) : "—"}
+            />
+            <StatCell
+              label="Change"
+              value={rangeStats ? fmt(rangeStats.change) : "—"}
+            />
+            <StatCell
+              label="% Change"
+              value={
+                rangeStats?.pctChange != null
+                  ? `${rangeStats.pctChange.toFixed(2)}%`
+                  : "—"
+              }
+            />
+            <StatCell
+              label="CAGR"
+              value={
+                rangeStats?.cagr != null
+                  ? `${rangeStats.cagr.toFixed(2)}%`
+                  : "—"
+              }
+            />
+            <StatCell
+              label="Obs"
+              value={rangeStats ? String(rangeStats.n) : "—"}
+            />
           </div>
           <Separator orientation="vertical" className="h-auto self-stretch" />
           <div className="flex flex-col gap-1">
-            <span className="text-muted-foreground text-xs">Range</span>
-            <div className="flex gap-1">
-              {RANGE_PRESETS.filter(
-                (p) =>
-                  p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
-              ).map((p) => (
-                <button
-                  key={p.label}
-                  type="button"
-                  onClick={() => handlePresetClick(p.years, p.label)}
-                  className={`h-7 rounded-md border px-2.5 text-xs font-medium transition-colors ${
-                    rangePreset === p.label
-                      ? "border-blue-300 bg-blue-50 text-blue-700"
-                      : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                {RANGE_PRESETS.filter(
+                  (p) =>
+                    p.minPPY <=
+                    (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
+                ).map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => handlePresetClick(p.years, p.label)}
+                    className={`h-7 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                      rangePreset === p.label
+                        ? "border-blue-300 bg-blue-50 text-blue-700"
+                        : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
+            {rangeStats && (
+              <span className="text-muted-foreground text-md font-mono">
+                {formatFreqDate(rangeStats.startDate, currentFreqCode)}
+                {" — "}
+                {formatFreqDate(rangeStats.endDate, currentFreqCode)}
+              </span>
+            )}
           </div>
+          {timelineEvents.length > 0 && (
+            <>
+              <Separator
+                orientation="vertical"
+                className="h-auto self-stretch"
+              />
+              <TimelineControl
+                timelineEvents={timelineEvents}
+                selectedEventTypes={selectedEventTypes}
+                onSelectedEventTypesChange={setSelectedEventTypes}
+              />
+            </>
+          )}
           <Separator orientation="vertical" className="h-auto self-stretch" />
           {/* Units for compared series */}
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-32 flex-col gap-1">
             <span className="text-muted-foreground text-xs">Units</span>
             <div className="flex flex-wrap gap-2">
               {compareUnits.map(([label, indices]) => {
@@ -1514,128 +2359,31 @@ export function AnalyzeControls({
               </span>
             </div>
           )}
-          {hasRightAxis && (
-            <div className="flex items-center gap-1.5 text-blue-600">
-              <span className="text-xs">Dual Y-axis active</span>
-            </div>
-          )}
         </div>
 
         <Separator />
 
-        {/* Transform only (no overlays, no 2nd axis) */}
+        {/* Transform */}
         <ControlPanel>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground w-16 shrink-0 text-xs font-medium">
-              Transform
-            </span>
-            <ToggleGroup
-              type="multiple"
-              value={transformation ? [transformation] : ["none"]}
-              onValueChange={makeTransformHandler(
-                transformation,
-                setTransformation,
-              )}
-              variant="default"
-              size="sm"
-              className="flex-wrap"
-            >
-              <TransformItems
-                indexBaseYear={indexBaseYear}
-                onIndexBaseYearChange={setIndexBaseYear}
-                minYear={minYear}
-                maxYear={maxYear}
-                isActive={transformation === "indexToYear"}
-                showChangeTransforms={false}
-              />
-              <TooltipToggleItem
-                value="rollingMean"
-                className="h-7 px-2.5 text-xs"
-                formula={
-                  <span>
-                    x̄<sub>t</sub> = <sup>1</sup>&frasl;<sub>k</sub> &Sigma;
-                    <sub>i=t&minus;k+1</sub>
-                    <sup>t</sup> x<sub>i</sub>
-                  </span>
-                }
-                description={`Backward-looking moving average (k=${rollingWindow})`}
-              >
-                Rolling x̄
-              </TooltipToggleItem>
-              <TooltipToggleItem
-                value="linearTrend"
-                className="h-7 px-2.5 text-xs"
-                formula={<span>ŷ = &alpha; + &beta;t</span>}
-                description="OLS linear trend on observation index"
-              >
-                Linear
-              </TooltipToggleItem>
-              <TooltipToggleItem
-                value="logLinearTrend"
-                className="h-7 px-2.5 text-xs"
-                formula={
-                  <span>
-                    ŷ = e<sup>&alpha; + &beta;t</sup>
-                  </span>
-                }
-                description="Exponential trend via log-linear regression"
-              >
-                Log-Linear
-              </TooltipToggleItem>
-              <TooltipToggleItem
-                value="hpTrend"
-                className="h-7 px-2.5 text-xs"
-                formula={
-                  <span>
-                    min<sub>&tau;</sub> &Sigma;(y<sub>t</sub> &minus; &tau;
-                    <sub>t</sub>)&sup2; + &lambda;&Sigma;(&Delta;&sup2; &tau;
-                    <sub>t</sub>)&sup2;
-                  </span>
-                }
-                description="Hodrick-Prescott filter (λ auto by frequency)"
-              >
-                HP Trend
-              </TooltipToggleItem>
-            </ToggleGroup>
-            <TimelinePopover
-              timelineEvents={timelineEvents}
-              selectedEventTypes={selectedEventTypes}
-              onSelectedEventTypesChange={setSelectedEventTypes}
-            />
-            {transformation === "rollingMean" &&
-              (() => {
-                const dataPPY = PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12;
-                const windowPresets = [
-                  { label: "W", ppy: 52 },
-                  { label: "M", ppy: 12 },
-                  { label: "Q", ppy: 4 },
-                  { label: "S", ppy: 2 },
-                  { label: "A", ppy: 1 },
-                ]
-                  .map((p) => ({ ...p, k: Math.round(dataPPY / p.ppy) }))
-                  .filter((p) => p.k >= 2);
-                return windowPresets.length > 0 ? (
-                  <div className="ml-auto flex items-center gap-1">
-                    <span className="text-muted-foreground text-[10px]">k</span>
-                    {windowPresets.map((p) => (
-                      <button
-                        key={p.label}
-                        type="button"
-                        onClick={() => setRollingWindow(p.k)}
-                        className={`h-7 rounded-md border px-2 text-xs font-medium transition-colors ${
-                          rollingWindow === p.k
-                            ? "border-blue-300 bg-blue-50 text-blue-700"
-                            : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-                        }`}
-                        title={`k=${p.k}`}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-                ) : null;
-              })()}
-          </div>
+          <AxisColumn
+            label="Transform"
+            overlays={[]}
+            onOverlaysChange={() => {}}
+            transform={transformation}
+            onTransformChange={setTransformation}
+            chartType={leftChartType}
+            onChartTypeChange={setLeftChartType}
+            indexBaseDate={effectiveIndexBaseDate}
+            onIndexBaseDateChange={setIndexBaseDate}
+            availableDates={availableDates}
+            rollingWindow={rollingWindow}
+            onRollingWindowChange={setRollingWindow}
+            stdDevMultiplier={stdDevMultiplier}
+            onStdDevMultiplierChange={setStdDevMultiplier}
+            freqCode={currentFreqCode}
+            showOverlays={false}
+            showChartType={false}
+          />
         </ControlPanel>
 
         {/* Two-column axis legend: Left Axis | Right Axis */}
@@ -1679,8 +2427,7 @@ export function AnalyzeControls({
                   onClick={() => cycleVisibility(i)}
                   className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80"
                   style={{
-                    opacity:
-                      vis === "hidden" ? 0.4 : vis === "gray" ? 0.6 : 1,
+                    opacity: vis === "hidden" ? 0.4 : vis === "gray" ? 0.6 : 1,
                   }}
                   title={visTitles[vis ?? "undefined"]}
                 >
@@ -1735,7 +2482,7 @@ export function AnalyzeControls({
           return (
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
+                <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
                   Left Axis{leftAxisLabel ? ` (${leftAxisLabel})` : ""}
                 </span>
                 {leftIndices.length > 0 ? (
@@ -1747,7 +2494,7 @@ export function AnalyzeControls({
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
+                <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
                   Right Axis{rightAxisLabel ? ` (${rightAxisLabel})` : ""}
                 </span>
                 {rightIndices.length > 0 ? (
@@ -1781,6 +2528,11 @@ export function AnalyzeControls({
             indexBaseYear={
               transformation === "indexToYear" ? indexBaseYear : undefined
             }
+            indexDate={
+              transformation === "indexToYear"
+                ? effectiveIndexBaseDate
+                : undefined
+            }
           />
         </div>
 
@@ -1803,56 +2555,106 @@ export function AnalyzeControls({
   return (
     <div className="space-y-3">
       {/* FRED-style control bar */}
-      <div className="flex items-start gap-6 py-1">
+      <div className="flex items-start justify-between gap-6 py-1">
         {/* Col 1: Summary stats for selected range */}
-        <div className="flex gap-6">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground text-[10px]">Mean</span>
-            <span className="font-mono text-sm font-medium">
-              {rangeStats ? fmt(rangeStats.mean) : "—"}
-            </span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground text-[10px]">Median</span>
-            <span className="font-mono text-sm font-medium">
-              {rangeStats ? fmt(rangeStats.median) : "—"}
-            </span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground text-[10px]">Std Dev</span>
-            <span className="font-mono text-sm font-medium">
-              {rangeStats ? fmt(rangeStats.stdDev) : "—"}
-            </span>
-          </div>
+        <div className="grid grid-cols-5 gap-x-5 gap-y-1">
+          <StatCell
+            label="Min"
+            value={rangeStats ? fmt(rangeStats.min) : "—"}
+          />
+          <StatCell
+            label="Max"
+            value={rangeStats ? fmt(rangeStats.max) : "—"}
+          />
+          <StatCell
+            label="Change"
+            value={rangeStats ? fmt(rangeStats.change) : "—"}
+          />
+          <StatCell
+            label="% Change"
+            value={
+              rangeStats?.pctChange != null
+                ? `${rangeStats.pctChange.toFixed(2)}%`
+                : "—"
+            }
+          />
+          <StatCell
+            label="Total"
+            value={rangeStats ? fmt(rangeStats.total) : "—"}
+          />
+          <StatCell
+            label="Mean"
+            value={rangeStats ? fmt(rangeStats.mean) : "—"}
+          />
+          <StatCell
+            label="Median"
+            value={rangeStats ? fmt(rangeStats.median) : "—"}
+          />
+          <StatCell
+            label="Std Dev"
+            value={rangeStats ? fmt(rangeStats.stdDev) : "—"}
+          />
+          <StatCell
+            label="CAGR"
+            value={
+              rangeStats?.cagr != null ? `${rangeStats.cagr.toFixed(2)}%` : "—"
+            }
+          />
+          <StatCell
+            label="Obs"
+            value={rangeStats ? String(rangeStats.n) : "—"}
+          />
         </div>
         <Separator orientation="vertical" className="h-auto self-stretch" />
 
-        {/* Col 2: Range presets */}
+        {/* Col 2: Range presets + date display */}
         <div className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs">Range</span>
-          <div className="flex gap-1">
-            {RANGE_PRESETS.filter(
-              (p) =>
-                p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
-            ).map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                onClick={() => handlePresetClick(p.years, p.label)}
-                className={`h-7 rounded-md border px-2.5 text-xs font-medium transition-colors ${
-                  rangePreset === p.label
-                    ? "border-blue-300 bg-blue-50 text-blue-700"
-                    : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {RANGE_PRESETS.filter(
+                (p) =>
+                  p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
+              ).map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => handlePresetClick(p.years, p.label)}
+                  className={`h-7 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                    rangePreset === p.label
+                      ? "border-blue-300 bg-blue-50 text-blue-700"
+                      : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
+          {rangeStats && (
+            <span className="text-muted-foreground text-md font-mono">
+              {formatFreqDate(rangeStats.startDate, currentFreqCode)}
+              {" — "}
+              {formatFreqDate(rangeStats.endDate, currentFreqCode)}
+            </span>
+          )}
         </div>
+        {/* Col 3: Timeline */}
+        {timelineEvents.length > 0 && (
+          <>
+            <Separator orientation="vertical" className="h-auto self-stretch" />
+            <div className="flex flex-col gap-1">
+              <TimelineControl
+                timelineEvents={timelineEvents}
+                selectedEventTypes={selectedEventTypes}
+                onSelectedEventTypesChange={setSelectedEventTypes}
+              />
+            </div>
+          </>
+        )}
+
         <Separator orientation="vertical" className="h-auto self-stretch" />
 
-        {/* Col 3: Units */}
+        {/* Col 4: Units */}
         <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs">Units</span>
           <span className="text-sm font-medium">{unitLabel || "—"}</span>
@@ -1861,37 +2663,49 @@ export function AnalyzeControls({
 
       <Separator />
 
-      {/* Overlays, Timeline & Transforms toggle groups */}
+      {/* Two-column axis controls: [Left Axis] [Right Axis] */}
       {chartStats && (
         <ControlPanel>
-          <OverlaysToggle
-            overlays={overlays}
-            onValueChange={handleOverlayChange}
-            disabled={secondAxis}
-            stats={chartStats}
-            fmtMean={fmt}
-            rollingWindow={rollingWindow}
-            onRollingWindowChange={setRollingWindow}
-            freqCode={currentFreqCode}
-          >
-            <TimelinePopover
-              timelineEvents={timelineEvents}
-              selectedEventTypes={selectedEventTypes}
-              onSelectedEventTypesChange={setSelectedEventTypes}
+          <div className="grid grid-cols-2 gap-4">
+            <AxisColumn
+              label="Left Axis"
+              overlays={overlays}
+              onOverlaysChange={setOverlays}
+              transform={transformation}
+              onTransformChange={setTransformation}
+              chartType={leftChartType}
+              onChartTypeChange={setLeftChartType}
+              indexBaseDate={effectiveIndexBaseDate}
+              onIndexBaseDateChange={setIndexBaseDate}
+              availableDates={availableDates}
+              rollingWindow={rollingWindow}
+              onRollingWindowChange={setRollingWindow}
+              stdDevMultiplier={stdDevMultiplier}
+              onStdDevMultiplierChange={setStdDevMultiplier}
+              freqCode={currentFreqCode}
+              stats={chartStats}
+              fmtMean={fmt}
             />
-          </OverlaysToggle>
-          <TransformToggle
-            value={transformation}
-            onValueChange={setTransformation}
-            secondAxis={secondAxis}
-            onSecondAxisToggle={() => setSecondAxis((v) => !v)}
-            secondAxisValue={secondAxisTransformation}
-            onSecondAxisValueChange={setSecondAxisTransformation}
-            indexBaseYear={indexBaseYear}
-            onIndexBaseYearChange={setIndexBaseYear}
-            minYear={minYear}
-            maxYear={maxYear}
-          />
+            <AxisColumn
+              label="Right Axis"
+              overlays={rightOverlays}
+              onOverlaysChange={setRightOverlays}
+              transform={rightTransformation}
+              onTransformChange={setRightTransformation}
+              chartType={rightChartType}
+              onChartTypeChange={setRightChartType}
+              indexBaseDate={effectiveIndexBaseDate}
+              onIndexBaseDateChange={setIndexBaseDate}
+              availableDates={availableDates}
+              rollingWindow={rollingWindow}
+              onRollingWindowChange={setRollingWindow}
+              stdDevMultiplier={stdDevMultiplier}
+              onStdDevMultiplierChange={setStdDevMultiplier}
+              freqCode={currentFreqCode}
+              stats={chartStats}
+              fmtMean={fmt}
+            />
+          </div>
         </ControlPanel>
       )}
 
@@ -1917,7 +2731,16 @@ export function AnalyzeControls({
               ? indexBaseYear
               : undefined
           }
+          indexDate={
+            transformation === "indexToYear" ||
+            secondAxisTransformation === "indexToYear"
+              ? effectiveIndexBaseDate
+              : undefined
+          }
           selectedEvents={selectedEvents}
+          leftChartType={leftChartType}
+          rightChartType={rightChartType}
+          stdDevMultiplier={stdDevMultiplier}
         />
       </div>
 
