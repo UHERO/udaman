@@ -50,19 +50,35 @@ class DataFileReader extends ClientDataFileReader {
       throw new Error(`Workbook has no sheets: ${filePath}`);
     }
 
-    // Resolve sheet name
+    // Resolve sheet name — mirrors Rails' case-insensitive + strip matching
     let sheetName = sheetNames[0];
     if (sheetSpec) {
+      const spec = sheetSpec.trim().toLowerCase();
       const numMatch = sheetSpec.match(/^sheet_num:(\d+)$/i);
       if (numMatch) {
         const idx = parseInt(numMatch[1]) - 1;
         if (idx >= 0 && idx < sheetNames.length) sheetName = sheetNames[idx];
-      } else {
-        // Case-insensitive match
-        const found = sheetNames.find(
-          (n) => n.toLowerCase() === sheetSpec.toLowerCase(),
+      } else if (spec.includes("[or]")) {
+        // Fallback options: "HI[or]Hawaii[or]h1" — match first found
+        const candidates = spec.split(/\[or\]/i).map((s) => s.trim());
+        const found = sheetNames.find((n) =>
+          candidates.includes(n.trim().toLowerCase()),
         );
         if (found) sheetName = found;
+        else
+          throw new Error(
+            `No sheet matching "${sheetSpec}" found in [${sheetNames.join(", ")}]`,
+          );
+      } else {
+        // Case-insensitive match with trimmed sheet names
+        const found = sheetNames.find(
+          (n) => n.trim().toLowerCase() === spec,
+        );
+        if (found) sheetName = found;
+        else
+          throw new Error(
+            `No sheet matching "${sheetSpec}" found in [${sheetNames.join(", ")}]`,
+          );
       }
     }
 
