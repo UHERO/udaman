@@ -1494,6 +1494,24 @@ class SeriesCollection {
       inserted++;
     }
 
+    // Mark stale data points from this loader as non-current.
+    // If the new result no longer includes a date this loader previously
+    // produced (e.g. arithmetic now excludes non-overlapping dates),
+    // the old data point should stop being current.
+    const newDates = new Set(cleanData.keys());
+    for (const [dateStr] of ownLatestByDate) {
+      if (!newDates.has(dateStr)) {
+        const current = currentByDate.get(dateStr);
+        if (current && current.dataSourceId === dataSourceId) {
+          await mysql`
+            UPDATE data_points SET current = 0
+            WHERE xseries_id = ${xseriesId} AND date = ${dateStr}
+              AND data_source_id = ${dataSourceId} AND current = 1
+          `;
+        }
+      }
+    }
+
     return { inserted };
   }
 
