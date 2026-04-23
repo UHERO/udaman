@@ -23,6 +23,7 @@ import {
 import {
   deleteSeriesDataPoints,
   resolveSeriesIds,
+  syncPublicDataPoints,
 } from "@/actions/series-actions";
 import { LoaderCreateDialog } from "@/components/loaders/loader-create-dialog";
 import { LoaderEditSheet } from "@/components/loaders/loader-edit-sheet";
@@ -343,6 +344,20 @@ export const LoaderSection = ({
     return () => clearInterval(interval);
   }, [pendingJobs, router]);
 
+  const [isSyncing, startSyncTransition] = useTransition();
+
+  const handleSyncPublic = () =>
+    startSyncTransition(async () => {
+      try {
+        const result = await syncPublicDataPoints(seriesId, universe);
+        toast.success(result.message);
+      } catch (err) {
+        toast.error("Sync failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
+
   const handleLoadAll = async () => {
     try {
       const enabledLoaders = loaders.filter((l) => !l.disabled);
@@ -376,6 +391,10 @@ export const LoaderSection = ({
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
         <Button variant={"link"} onClick={handleLoadAll} disabled={isLoading}>
           {isLoading ? "loading..." : "load all"}
+        </Button>
+        <Separator orientation="vertical" className="bg-primary/60 h-4" />
+        <Button variant={"link"} onClick={handleSyncPublic} disabled={isSyncing}>
+          {isSyncing ? "syncing..." : "sync public"}
         </Button>
       </div>
 

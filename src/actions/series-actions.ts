@@ -132,6 +132,12 @@ export async function deleteSeriesDataPoints(
   return result.data;
 }
 
+export async function syncPublicDataPoints(seriesId: number, universe: string) {
+  await requirePermission("series", "update");
+  await DataPointCollection.updatePublicDataPointsForSeries(seriesId, universe);
+  return { message: "Public data points synced" };
+}
+
 export async function searchSeriesAction(term: string, universe: string) {
   await requirePermission("series", "read");
   return await searchSeries({ term, universe });

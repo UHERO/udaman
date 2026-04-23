@@ -213,7 +213,9 @@ class DataPointCollection {
        SET p.value = d.value,
            p.pseudo_history = COALESCE(d.pseudo_history, 0),
            p.updated_at = COALESCE(d.updated_at, d.created_at)
-       WHERE COALESCE(d.updated_at, d.created_at) > p.updated_at`,
+       WHERE COALESCE(d.updated_at, d.created_at) > p.updated_at
+          OR NOT (p.value <=> d.value)
+          OR p.pseudo_history != COALESCE(d.pseudo_history, 0)`,
       [universe],
     );
     log.info({ universe }, "updatePublicDataPoints: update done");
@@ -246,6 +248,69 @@ class DataPointCollection {
       [universe],
     );
     log.info({ universe }, "updatePublicDataPoints: delete done");
+  }
+
+  /** Update public data points for a single series. */
+  static async updatePublicDataPointsForSeries(
+    seriesId: number,
+    universe: string,
+  ): Promise<void> {
+    log.info({ seriesId, universe }, "updatePublicDataPointsForSeries: starting");
+
+    // 1. UPDATE existing public data points
+    await rawQuery(
+      `UPDATE public_data_points p
+       JOIN (
+         SELECT s.id, s.xseries_id
+         FROM series s
+         JOIN xseries xs ON xs.id = s.xseries_id
+         WHERE s.id = ?
+           AND s.universe = ?
+           AND COALESCE(xs.quarantined, 0) = 0
+       ) sub ON sub.id = p.series_id
+       JOIN data_points d
+         ON d.xseries_id = sub.xseries_id
+         AND d.date = p.date
+         AND d.current = 1
+       SET p.value = d.value,
+           p.pseudo_history = COALESCE(d.pseudo_history, 0),
+           p.updated_at = COALESCE(d.updated_at, d.created_at)
+       WHERE COALESCE(d.updated_at, d.created_at) > p.updated_at
+          OR NOT (p.value <=> d.value)
+          OR p.pseudo_history != COALESCE(d.pseudo_history, 0)`,
+      [seriesId, universe],
+    );
+
+    // 2. INSERT new public data points
+    await rawQuery(
+      `INSERT INTO public_data_points (series_id, date, value, pseudo_history, created_at, updated_at)
+       SELECT s.id, d.date, d.value, COALESCE(d.pseudo_history, 0), d.created_at, COALESCE(d.updated_at, d.created_at)
+       FROM series s
+       JOIN xseries xs ON xs.id = s.xseries_id
+       JOIN data_points d ON d.xseries_id = s.xseries_id
+       LEFT JOIN public_data_points p ON p.series_id = s.id AND p.date = d.date
+       WHERE s.id = ?
+         AND s.universe = ?
+         AND COALESCE(xs.quarantined, 0) = 0
+         AND d.current = 1
+         AND p.created_at IS NULL`,
+      [seriesId, universe],
+    );
+
+    // 3. DELETE stale public data points
+    await rawQuery(
+      `DELETE p
+       FROM public_data_points p
+       JOIN series s ON s.id = p.series_id
+       JOIN xseries xs ON xs.id = s.xseries_id
+       LEFT JOIN data_points d ON d.xseries_id = xs.id AND d.date = p.date AND d.current = 1
+       WHERE s.id = ?
+         AND s.universe = ?
+         AND d.created_at IS NULL`,
+      [seriesId, universe],
+    );
+
+    log.info({ seriesId, universe }, "updatePublicDataPointsForSeries: done");
   }
 
   /**
