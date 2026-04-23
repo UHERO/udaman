@@ -7,16 +7,9 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // Log error client-side; dynamic import avoids pulling in server action
-  // module graph at build time, which breaks global-error prerender.
+  // Server-side errors are logged with full details by onRequestError in
+  // instrumentation.ts. The client only receives a sanitized message.
   if (typeof window !== "undefined") {
-    import("@/actions/app-log").then(({ reportClientError }) => {
-      reportClientError({
-        message: error.message,
-        digest: error.digest,
-        pathname: window.location.pathname,
-      });
-    });
     console.error(error);
   }
 

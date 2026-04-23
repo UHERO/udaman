@@ -128,7 +128,7 @@ class ReloadJobCollection {
         return { success: true, message: "Cache clear queued" };
       }
       case "restart_rest": {
-        await execAsync("sudo systemctl restart rest-api.service");
+        await execAsync("sudo systemctl restart rest-api@default.service");
         return { success: true, message: "REST API restarted" };
       }
       case "restart_dvw": {
