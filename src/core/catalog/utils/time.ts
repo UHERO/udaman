@@ -147,7 +147,15 @@ function formatRuntime(runtimeSeconds: number | null): string {
 function dateTimestamp(seconds: number | undefined | null): string {
   if (seconds === undefined || seconds === null) return "-";
   const date = fromUnixTime(Number(seconds));
-  return format(date, "MMM d, yyyy HH:mm");
+  return date.toLocaleString("en-US", {
+    timeZone: "Pacific/Honolulu",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 /** Ensure datestring is in standard yyyy-mm-dd format. If optional array provided, ensures date exists in array. */

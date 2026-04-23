@@ -7,8 +7,8 @@ import type { DeleteByMode } from "@catalog/collections/series-collection";
 import type { SerializedLoader } from "@catalog/models/loader";
 import Series from "@catalog/models/series";
 import type { Universe } from "@catalog/types/shared";
-import { formatRuntime, uheroDate } from "@catalog/utils/time";
-import { format } from "date-fns";
+import { formatRuntime } from "@catalog/utils/time";
+
 import { Clock10, ClockPlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -419,10 +419,17 @@ const LoaderItem = ({
   const [editOpen, setEditOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
-  const lastRunDate =
-    loader.lastRunAt !== null ? uheroDate(loader.lastRunAt) : "-";
-  const lastRunTime =
-    loader.lastRunAt !== null ? format(loader.lastRunAt, "HH:MM") : "-";
+  const lastRunFormatted = loader.lastRunAt
+    ? new Date(loader.lastRunAt).toLocaleString("en-US", {
+        timeZone: "Pacific/Honolulu",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+    : "-";
   const runtime = formatRuntime(loader.runtime);
 
   const isLoading = isPending || !!jobId;
@@ -612,7 +619,7 @@ const LoaderItem = ({
         </CardDescription>
       </CardContent>
       <CardFooter className="flex flex-row justify-start gap-x-4 text-xs">
-        <span className="text-primary/70 font-normal">{`last run: ${lastRunDate} ${lastRunTime}`}</span>
+        <span className="text-primary/70 font-normal">{`last run: ${lastRunFormatted}`}</span>
         <span className="text-primary/70 font-normal">{`duration: ${runtime}`}</span>
         <span
           className={cn(

@@ -335,7 +335,15 @@ export function ClipboardTable({
                   </TableCell>
                   <TableCell className="text-sm">
                     {row.lastRunAt
-                      ? format(new Date(row.lastRunAt), "yyyy-MM-dd HH:mm")
+                      ? new Date(row.lastRunAt).toLocaleString("en-US", {
+                          timeZone: "Pacific/Honolulu",
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })
                       : "-"}
                   </TableCell>
                 </TableRow>

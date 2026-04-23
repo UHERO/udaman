@@ -1263,6 +1263,13 @@ class SeriesCollection {
         throw new Error("Spaces cannot occur in comma-separated search lists");
       }
 
+      // Exact name match when the term looks like a valid series name
+      if (Series.isValidName(term)) {
+        conditions.push(`series.name ${negated}= ?`);
+        variables.push(term.toUpperCase());
+        continue;
+      }
+
       // Default: regex against name-prefix | portalName | description
       conditions.push(
         `concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) ${negated}regexp ?`,
