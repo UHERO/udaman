@@ -1506,6 +1506,7 @@ class SeriesCollection {
     // produced (e.g. arithmetic now excludes non-overlapping dates),
     // the old data point should stop being current.
     const newDates = new Set(cleanData.keys());
+    let hadStale = false;
     for (const [dateStr] of ownLatestByDate) {
       if (!newDates.has(dateStr)) {
         const current = currentByDate.get(dateStr);
@@ -1515,8 +1516,15 @@ class SeriesCollection {
             WHERE xseries_id = ${xseriesId} AND date = ${dateStr}
               AND data_source_id = ${dataSourceId} AND current = 1
           `;
+          hadStale = true;
         }
       }
+    }
+
+    // Promote the most recent non-current vintage for any dates that lost
+    // their current data point — mirrors Rails DataPoint#delete behavior.
+    if (hadStale) {
+      await this.repairDataPoints({ id: xseriesId });
     }
 
     return { inserted };
