@@ -1,3 +1,6 @@
+import { exec } from "child_process";
+import { promisify } from "util";
+
 import { createLogger } from "@/core/observability/logger";
 import {
   enqueueAdminAction,
@@ -6,6 +9,8 @@ import {
   enqueueUpdatePublic,
 } from "@/core/workers/enqueue";
 import { insertAndGetId, mysql, rawQuery } from "@/lib/mysql/db";
+
+const execAsync = promisify(exec);
 
 import ReloadJob from "../models/reload-job";
 import type { ReloadJobAttrs } from "../models/reload-job";
@@ -123,12 +128,12 @@ class ReloadJobCollection {
         return { success: true, message: "Cache clear queued" };
       }
       case "restart_rest": {
-        await enqueueAdminAction({ action: "restart_rest" });
-        return { success: true, message: "REST API restart queued" };
+        await execAsync("sudo systemctl restart rest-api.service");
+        return { success: true, message: "REST API restarted" };
       }
       case "restart_dvw": {
-        await enqueueAdminAction({ action: "restart_dvw" });
-        return { success: true, message: "DVW API restart queued" };
+        await execAsync("sudo systemctl restart dvw-api.service");
+        return { success: true, message: "DVW API restarted" };
       }
       case "sync_nas": {
         await enqueueAdminAction({ action: "sync_nas" });
