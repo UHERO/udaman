@@ -211,7 +211,7 @@ class DataPointCollection {
          AND d.date = p.date
          AND d.current = 1
        SET p.value = d.value,
-           p.pseudo_history = d.pseudo_history,
+           p.pseudo_history = COALESCE(d.pseudo_history, 0),
            p.updated_at = COALESCE(d.updated_at, d.created_at)
        WHERE COALESCE(d.updated_at, d.created_at) > p.updated_at`,
       [universe],
@@ -221,13 +221,13 @@ class DataPointCollection {
     // 2. INSERT new public data points
     await rawQuery(
       `INSERT INTO public_data_points (series_id, date, value, pseudo_history, created_at, updated_at)
-       SELECT s.id, d.date, d.value, d.pseudo_history, d.created_at, COALESCE(d.updated_at, d.created_at)
+       SELECT s.id, d.date, d.value, COALESCE(d.pseudo_history, 0), d.created_at, COALESCE(d.updated_at, d.created_at)
        FROM series s
        JOIN xseries xs ON xs.id = s.xseries_id
        JOIN data_points d ON d.xseries_id = s.xseries_id
        LEFT JOIN public_data_points p ON p.series_id = s.id AND p.date = d.date
        WHERE s.universe = ?
-         AND NOT xs.quarantined
+         AND COALESCE(xs.quarantined, 0) = 0
          AND d.current = 1
          AND p.created_at IS NULL`,
       [universe],
