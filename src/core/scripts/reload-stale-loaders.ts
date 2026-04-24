@@ -1,14 +1,10 @@
 /**
- * Find loaders with specific colors (pseudo_history / manual historical
- * loaders) where nightly reload is false/null, and reload them.
- *
- * These are typically manual historical data loaders that don't run on
- * the nightly schedule but need a one-off reload (e.g. after a full
- * history fetch is now available via the BLS batch path).
+ * Find enabled loaders that are not on the nightly schedule and have not
+ * run in the last 12 hours, then reload them.
  *
  * Usage:
- *   bun run src/core/scripts/reload-by-color.ts                # dry run — list matching loaders
- *   bun run src/core/scripts/reload-by-color.ts --execute      # actually reload each loader
+ *   bun run src/core/scripts/reload-stale-loaders.ts                # dry run — list matching loaders
+ *   bun run src/core/scripts/reload-stale-loaders.ts --execute      # actually reload each loader
  */
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
@@ -18,21 +14,17 @@ import Loader from "@catalog/models/loader";
 
 const EXECUTE = process.argv.includes("--execute");
 
-const TARGET_COLORS = ["F9FF8B", "FBFFBD", "F0E67F"];
-
 async function main() {
   console.log(
-    `=== Reload loaders by color (${EXECUTE ? "EXECUTE" : "DRY RUN"}) ===\n`,
+    `=== Reload stale loaders (${EXECUTE ? "EXECUTE" : "DRY RUN"}) ===\n`,
   );
-  console.log(`Target colors: ${TARGET_COLORS.join(", ")}`);
-  console.log(`Filter: reload_nightly = false or null, not run in last 12 hours\n`);
+  console.log(`Filter: enabled, not nightly, not run in last 12 hours\n`);
 
   const rows = await mysql<LoaderAttrs & { series_name: string }>`
     SELECT ds.*, s.name AS series_name
     FROM data_sources ds
     JOIN series s ON s.id = ds.series_id
-    WHERE ds.color IN ${mysql(TARGET_COLORS)}
-      AND (ds.reload_nightly = 0 OR ds.reload_nightly IS NULL)
+    WHERE (ds.reload_nightly = 0 OR ds.reload_nightly IS NULL)
       AND ds.disabled = 0
       AND (ds.last_run_at IS NULL OR ds.last_run_at < NOW() - INTERVAL 12 HOUR)
     ORDER BY s.name
@@ -47,7 +39,7 @@ async function main() {
   for (const row of rows) {
     const evalStr = row.eval ? row.eval.slice(0, 80) : "(no eval)";
     console.log(
-      `  Loader #${row.id} | ${(row as { series_name: string }).series_name} | color=${row.color} | ${evalStr}`,
+      `  Loader #${row.id} | ${(row as { series_name: string }).series_name} | ${evalStr}`,
     );
   }
 
