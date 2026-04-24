@@ -612,6 +612,25 @@ class LoaderCollection {
     return rows.length > 0;
   }
 
+  /**
+   * Parse a BLS eval string and extract the BLS series ID and frequency.
+   * Returns null for evals with method chaining or non-BLS evals.
+   *
+   * Matches patterns like:
+   *   Series.load_api_bls("CUSR0000SA0", "M")
+   *   Series.load_api_bls("CUSR0000SA0", "M", 2000, 2024)
+   *   Series.load_api_bls_NEW("LNS12000000", "M")
+   */
+  static parseBlsEval(
+    evalStr: string,
+  ): { blsSeriesId: string; frequency: string } | null {
+    const match = evalStr.match(
+      /^Series\.load_api_bls(?:_NEW)?\("([^"]+)",\s*"([^"]+)"(?:,\s*\d+,\s*\d+)?\)\s*$/,
+    );
+    if (!match) return null;
+    return { blsSeriesId: match[1], frequency: match[2] };
+  }
+
   /** Get summary of load errors grouped by error message */
   static async getLoadErrorSummary(
     universe: Universe,

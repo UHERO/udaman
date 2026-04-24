@@ -76,6 +76,7 @@ const BLS_KEY_ENV_VARS = [
   "API_KEY_2_BLS_V2",
   "API_KEY_3_BLS_V2",
   "API_KEY_4_BLS_V2",
+  "API_KEY_5_BLS_V2",
 ] as const;
 const BLS_MIN_INTERVAL_MS = 200;
 /** Sticky index of the currently-active BLS key. Only advances on failure. */
@@ -210,6 +211,143 @@ export async function fetchSeries(
   return { data, url: lastUrl };
 }
 
+// ─── Batch POST endpoint ─────────────────────────────────────────────
+
+/** Result type for batch BLS fetches: BLS series ID → date→value map */
+export type BlsBatchResult = Map<string, Map<string, number>>;
+
+/**
+ * Fetch multiple BLS series in a single POST request (up to 50 per call).
+ * Uses the v2 POST endpoint which counts as 1 request against the daily quota.
+ *
+ * @param seriesIds - Array of BLS series IDs (max 50)
+ * @param startYear - First year to fetch
+ * @param endYear - Last year to fetch
+ * @returns Map of BLS series ID → date→value map
+ */
+export async function fetchSeriesBatch(
+  seriesIds: string[],
+  startYear: number,
+  endYear: number,
+): Promise<BlsBatchResult> {
+  if (seriesIds.length === 0) return new Map();
+  if (seriesIds.length > 50) {
+    throw new Error(`fetchSeriesBatch: max 50 series per request, got ${seriesIds.length}`);
+  }
+
+  const result: BlsBatchResult = new Map();
+
+  await withKeyRetry(async (apiKey) => {
+    const url = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
+    const body = {
+      seriesid: seriesIds,
+      startyear: String(startYear),
+      endyear: String(endYear),
+      registrationkey: apiKey,
+    };
+
+    log.info(
+      { count: seriesIds.length, startYear, endYear },
+      "BLS batch POST fetch",
+    );
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(120_000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const json = (await response.json()) as BlsBatchResponse;
+
+    if (!/succeeded/i.test(json.status ?? "")) {
+      const msg = Array.isArray(json.message)
+        ? json.message.join(" ")
+        : String(json.message ?? "Unknown error");
+      throwBlsError("BLS batch API error", msg);
+    }
+
+    const seriesList = json.Results?.series ?? [];
+    for (const s of seriesList) {
+      const sid = s.seriesID;
+      if (!sid) continue;
+
+      const data = new Map<string, number>();
+      for (const dp of s.data ?? []) {
+        const date = grokDate(dp.year, dp.period);
+        const value = parseFloat(String(dp.value).replace(/,/g, ""));
+        if (!isNaN(value)) {
+          data.set(date, value);
+        }
+      }
+      result.set(sid, data);
+    }
+  });
+
+  log.info(
+    { seriesCount: result.size, startYear, endYear },
+    "BLS batch fetch complete",
+  );
+  return result;
+}
+
+/**
+ * Fetch full history for a single BLS series by walking backwards in
+ * 20-year chunks until a chunk returns no data.
+ *
+ * Used by the individual reload path (user clicks "Reload").
+ */
+export async function fetchSeriesFullHistory(
+  seriesId: string,
+  _frequency?: string | null,
+): Promise<ApiResult> {
+  const BLS_MAX_SPAN = 20;
+  const currentYear = new Date().getFullYear();
+  const data = new Map<string, number>();
+  let lastUrl = "";
+
+  // Walk backwards from current year
+  let endYear = currentYear;
+  while (endYear > 1900) {
+    const startYear = endYear - BLS_MAX_SPAN + 1;
+    try {
+      const chunk = await fetchSeries(seriesId, _frequency, startYear, endYear);
+      // Merge chunk data
+      for (const [date, value] of chunk.data) {
+        data.set(date, value);
+      }
+      lastUrl = chunk.url;
+
+      // If we got data, try an earlier chunk
+      if (chunk.data.size > 0) {
+        endYear = startYear - 1;
+      } else {
+        break;
+      }
+    } catch (e) {
+      // "No data returned" means we've gone past the series start
+      if (e instanceof Error && /No data returned/i.test(e.message)) {
+        break;
+      }
+      throw e;
+    }
+  }
+
+  if (data.size === 0) {
+    throw new Error(`BLS API: No data returned for ${seriesId} (full history)`);
+  }
+
+  log.info(
+    { seriesId, totalPoints: data.size },
+    "BLS full history fetch complete",
+  );
+  return { data, url: lastUrl };
+}
+
 /** @deprecated Use fetchSeries — this is kept for backwards compat only. */
 export const fetchSeriesV2 = fetchSeries;
 
@@ -227,6 +365,17 @@ interface BlsV1Response {
   Results?: {
     series?: Array<{
       data: BlsDataPoint[];
+    }>;
+  };
+}
+
+interface BlsBatchResponse {
+  status?: string;
+  message?: string | string[];
+  Results?: {
+    series?: Array<{
+      seriesID: string;
+      data?: BlsDataPoint[];
     }>;
   };
 }

@@ -1585,15 +1585,22 @@ class SeriesCollection {
     return result;
   }
 
-  /** Load from the BLS v2 API. */
+  /** Load from the BLS v2 API with full history (walks backwards in 20-year chunks). */
   static async loadApiBls(
     seriesId: string,
     frequency: string,
     startYear?: number,
     endYear?: number,
   ): Promise<Series> {
-    const { fetchSeries } = await import("../utils/api-clients/bls");
-    const { data, url } = await fetchSeries(seriesId, frequency, startYear, endYear);
+    if (startYear !== undefined || endYear !== undefined) {
+      // Explicit year range: use the single-range fetch
+      const { fetchSeries } = await import("../utils/api-clients/bls");
+      const { data, url } = await fetchSeries(seriesId, frequency, startYear, endYear);
+      return this.wrapApiResult(data, url, frequency);
+    }
+    // Default: full history walk
+    const { fetchSeriesFullHistory } = await import("../utils/api-clients/bls");
+    const { data, url } = await fetchSeriesFullHistory(seriesId, frequency);
     return this.wrapApiResult(data, url, frequency);
   }
 
@@ -1902,6 +1909,167 @@ class SeriesCollection {
     }
 
     return Array.from(resultSet);
+  }
+
+  /**
+   * Batch-load BLS series using the POST endpoint (up to 50 per request).
+   * Walks backwards in 20-year chunks for full history. Each loader's data
+   * is scaled and written via updateData(), and loader state is updated.
+   *
+   * @returns Per-loader results with status and inserted count
+   */
+  static async batchLoadApiBls(opts: {
+    loaders: Array<{
+      blsSeriesId: string;
+      frequency: string;
+      loaderId: number;
+      seriesId: number;
+      xseriesId: number;
+      scale: number;
+      pseudoHistory: boolean;
+    }>;
+    job?: { log: (msg: string) => void };
+  }): Promise<Array<{ loaderId: number; status: "success" | "error"; message: string; inserted: number }>> {
+    const { loaders, job } = opts;
+    const { default: LoaderCol } = await import("./loader-collection");
+    const { fetchSeriesBatch } = await import("../utils/api-clients/bls");
+
+    const results: Array<{ loaderId: number; status: "success" | "error"; message: string; inserted: number }> = [];
+
+    // Deduplicate BLS series IDs (multiple loaders may share the same BLS ID)
+    const uniqueBlsIds = [...new Set(loaders.map((l) => l.blsSeriesId))];
+
+    // Group into batches of 50 for the POST endpoint
+    const BLS_BATCH_SIZE = 50;
+    const BLS_MAX_SPAN = 20;
+    const currentYear = new Date().getFullYear();
+
+    // Merged data across all chunks: blsSeriesId → date→value
+    const allData = new Map<string, Map<string, number>>();
+
+    // Walk backwards in 20-year chunks
+    let endYear = currentYear;
+    let activeIds = [...uniqueBlsIds];
+    let totalRequests = 0;
+
+    while (activeIds.length > 0 && endYear > 1900) {
+      const startYear = endYear - BLS_MAX_SPAN + 1;
+      job?.log(`BLS batch: fetching ${activeIds.length} series for ${startYear}–${endYear}`);
+
+      // Split into batches of 50
+      for (let i = 0; i < activeIds.length; i += BLS_BATCH_SIZE) {
+        const batch = activeIds.slice(i, i + BLS_BATCH_SIZE);
+        try {
+          const batchResult = await fetchSeriesBatch(batch, startYear, endYear);
+          totalRequests++;
+
+          for (const [sid, chunkData] of batchResult) {
+            const existing = allData.get(sid) ?? new Map<string, number>();
+            for (const [date, value] of chunkData) {
+              existing.set(date, value);
+            }
+            allData.set(sid, existing);
+          }
+
+          // Track which series returned data in this chunk
+          const emptyInChunk = batch.filter((id) => {
+            const d = batchResult.get(id);
+            return !d || d.size === 0;
+          });
+
+          // Remove series that returned empty from subsequent backward chunks
+          if (emptyInChunk.length > 0) {
+            const emptySet = new Set(emptyInChunk);
+            activeIds = activeIds.filter((id) => !emptySet.has(id));
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          job?.log(`BLS batch error (${startYear}–${endYear}): ${msg}`);
+          log.error({ startYear, endYear, err: msg }, "BLS batch chunk failed");
+          // On error, remove this batch from activeIds to avoid infinite retries
+          const batchSet = new Set(batch);
+          activeIds = activeIds.filter((id) => !batchSet.has(id));
+
+          // Record errors for loaders in this batch
+          for (const loader of loaders) {
+            if (batchSet.has(loader.blsSeriesId)) {
+              results.push({
+                loaderId: loader.loaderId,
+                status: "error",
+                message: msg,
+                inserted: 0,
+              });
+            }
+          }
+        }
+      }
+
+      endYear = endYear - BLS_MAX_SPAN;
+    }
+
+    job?.log(`BLS batch: ${totalRequests} API requests, ${allData.size} series with data`);
+
+    // Now write data for each loader
+    const erroredLoaderIds = new Set(results.map((r) => r.loaderId));
+
+    for (const loader of loaders) {
+      if (erroredLoaderIds.has(loader.loaderId)) continue;
+
+      const t = Date.now();
+      const blsData = allData.get(loader.blsSeriesId);
+
+      if (!blsData || blsData.size === 0) {
+        const msg = `No BLS data returned for ${loader.blsSeriesId}`;
+        job?.log(`Loader ${loader.loaderId}: ${msg}`);
+        results.push({ loaderId: loader.loaderId, status: "error", message: msg, inserted: 0 });
+        await LoaderCol.update(loader.loaderId, {
+          lastRunAt: new Date(),
+          lastError: msg,
+          lastErrorAt: new Date(),
+        });
+        continue;
+      }
+
+      try {
+        // Apply scale
+        const scaledData = new Map<string, number>();
+        const scale = loader.scale;
+        for (const [date, value] of blsData) {
+          scaledData.set(date, value * scale);
+        }
+
+        const updateResult = await SeriesCollection.updateData({
+          xseriesId: loader.xseriesId,
+          data: scaledData,
+          dataSourceId: loader.loaderId,
+          pseudoHistory: loader.pseudoHistory,
+        });
+
+        const runtime = (Date.now() - t) / 1000;
+        const msg = `Loaded ${updateResult.inserted} new points (${blsData.size} total) in ${runtime.toFixed(1)}s`;
+        job?.log(`Loader ${loader.loaderId}: ${msg}`);
+        results.push({ loaderId: loader.loaderId, status: "success", message: msg, inserted: updateResult.inserted });
+
+        await LoaderCol.update(loader.loaderId, {
+          lastRunAt: new Date(),
+          lastError: null,
+          lastErrorAt: null,
+          runtime,
+          description: `loaded data set from <a href="https://api.bls.gov/publicAPI/v2/timeseries/data/${loader.blsSeriesId}">API URL</a> with parameters shown`,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        job?.log(`Loader ${loader.loaderId} write error: ${msg}`);
+        results.push({ loaderId: loader.loaderId, status: "error", message: msg, inserted: 0 });
+        await LoaderCol.update(loader.loaderId, {
+          lastRunAt: new Date(),
+          lastError: msg.slice(0, 254),
+          lastErrorAt: new Date(),
+        });
+      }
+    }
+
+    return results;
   }
 
   /**
