@@ -403,6 +403,12 @@ class LoaderCollection {
           });
           inserted = updateResult.inserted;
 
+          // After clear+reload, some dates may have lost their current
+          // data point — repair to promote the next best vintage.
+          if (clearFirst || loader.clearBeforeLoad) {
+            await SeriesCollection.repairDataPoints({ id: xseriesId });
+          }
+
           // Check for base_year change from rebase
           const baseYear = loader.baseYearFromEval();
           if (baseYear) {

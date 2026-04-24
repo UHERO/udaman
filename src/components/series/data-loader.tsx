@@ -7,7 +7,7 @@ import type { DeleteByMode } from "@catalog/collections/series-collection";
 import type { SerializedLoader } from "@catalog/models/loader";
 import Series from "@catalog/models/series";
 import type { Universe } from "@catalog/types/shared";
-import { formatRuntime } from "@catalog/utils/time";
+import { formatHstTimestamp, formatRuntime } from "@catalog/utils/time";
 
 import { Clock10, ClockPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -438,17 +438,7 @@ const LoaderItem = ({
   const [editOpen, setEditOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
-  const lastRunFormatted = loader.lastRunAt
-    ? new Date(loader.lastRunAt).toLocaleString("en-US", {
-        timeZone: "Pacific/Honolulu",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })
-    : "-";
+  const lastRunFormatted = formatHstTimestamp(loader.lastRunAt);
   const runtime = formatRuntime(loader.runtime);
 
   const isLoading = isPending || !!jobId;

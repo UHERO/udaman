@@ -6,7 +6,9 @@ import {
   format,
   fromUnixTime,
   isAfter,
+  isToday,
   isValid,
+  isYesterday,
   parseISO,
   startOfMonth,
   startOfQuarter,
@@ -187,11 +189,28 @@ function daysBetweenStr(a: string, b: string): number {
   return Math.round((da.getTime() - db.getTime()) / 86400000);
 }
 
+/**
+ * Format a UTC date/string as an HST timestamp with relative day labels.
+ * Returns "Today, HH:mm", "Yesterday, HH:mm", or "yyyy/MM/dd, HH:mm".
+ */
+function formatHstTimestamp(dateInput: Date | string | null): string {
+  if (!dateInput) return "-";
+  const utc = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(utc.getTime())) return "-";
+  // Shift to HST (UTC-10, no DST) so date-fns compares against local "today"
+  const hst = new Date(utc.getTime() - 10 * 60 * 60 * 1000);
+  const time = format(hst, "HH:mm");
+  if (isToday(hst)) return `Today, ${time}`;
+  if (isYesterday(hst)) return `Yesterday, ${time}`;
+  return `${format(hst, "yyyy/MM/dd")}, ${time}`;
+}
+
 export {
   generateDates,
   uheroDate,
   dpAgeCode,
   formatRuntime,
+  formatHstTimestamp,
   dateTimestamp,
   isValidDate,
   addMonthsStr,

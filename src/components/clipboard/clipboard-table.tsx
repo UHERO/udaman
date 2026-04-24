@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ClipboardLoaderRow } from "@catalog/collections/clipboard-collection";
 import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
 import type { ClipboardAction } from "@catalog/controllers/clipboard";
+import { formatHstTimestamp } from "@catalog/utils/time";
 import { format } from "date-fns";
 import {
   ChevronDown,
@@ -334,17 +335,7 @@ export function ClipboardTable({
                     {row.eval}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {row.lastRunAt
-                      ? new Date(row.lastRunAt).toLocaleString("en-US", {
-                          timeZone: "Pacific/Honolulu",
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        })
-                      : "-"}
+                    {formatHstTimestamp(row.lastRunAt)}
                   </TableCell>
                 </TableRow>
               ))
