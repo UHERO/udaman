@@ -36,28 +36,43 @@ export async function createDataLoader(
   const userEmail = session.user!.email ?? null;
 
   log.info({ seriesId, universe }, "createDataLoader action called");
-  const result = await createDataLoaderCtrl({ seriesId, universe, payload });
-  log.info({ seriesId }, "createDataLoader action completed");
+  try {
+    const result = await createDataLoaderCtrl({ seriesId, universe, payload });
+    log.info({ seriesId }, "createDataLoader action completed");
 
-  // Fire-and-forget: record loader action + app log
-  LoaderActionCollection.create({
-    loaderId: result.data.id,
-    seriesId,
-    userId,
-    userEmail,
-    action: "CREATE",
-    priority: result.data.priority,
-    eval: result.data.eval,
-  });
-  AppLogCollection.log({
-    category: "loader",
-    name: "loader.create",
-    userId,
-    subject: "data_sources",
-    subjectId: result.data.id,
-  });
+    // Fire-and-forget: record loader action + app log
+    LoaderActionCollection.create({
+      loaderId: result.data.id,
+      seriesId,
+      userId,
+      userEmail,
+      action: "CREATE",
+      priority: result.data.priority,
+      eval: result.data.eval,
+    });
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.create",
+      userId,
+      subject: "data_sources",
+      subjectId: result.data.id,
+    });
 
-  return { message: result.message, data: result.data };
+    return { message: result.message, data: result.data };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ seriesId, err: message }, "createDataLoader action failed");
+    AppLogCollection.log({
+      level: "error",
+      category: "loader",
+      name: "loader.create",
+      userId,
+      subject: "series",
+      subjectId: seriesId,
+      metadata: { error: message },
+    });
+    throw e;
+  }
 }
 
 export async function reloadLoader(loaderId: number, clearFirst = false) {
@@ -119,22 +134,37 @@ export async function clearLoader(
   const userId = parseInt(session.user!.id!);
 
   log.info({ loaderId, ...opts }, "clearLoader action called");
-  const result = await clearLoaderCtrl({
-    id: loaderId,
-    deleteBy: opts?.deleteBy,
-    date: opts?.date,
-  });
-  log.info({ loaderId }, "clearLoader action completed");
+  try {
+    const result = await clearLoaderCtrl({
+      id: loaderId,
+      deleteBy: opts?.deleteBy,
+      date: opts?.date,
+    });
+    log.info({ loaderId }, "clearLoader action completed");
 
-  AppLogCollection.log({
-    category: "loader",
-    name: "loader.clear",
-    userId,
-    subject: "data_sources",
-    subjectId: loaderId,
-  });
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.clear",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+    });
 
-  return result;
+    return result;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ loaderId, err: message }, "clearLoader action failed");
+    AppLogCollection.log({
+      level: "error",
+      category: "loader",
+      name: "loader.clear",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+      metadata: { error: message },
+    });
+    throw e;
+  }
 }
 
 export async function deleteLoader(loaderId: number) {
@@ -142,18 +172,33 @@ export async function deleteLoader(loaderId: number) {
   const userId = parseInt(session.user!.id!);
 
   log.info({ loaderId }, "deleteLoader action called");
-  const result = await deleteLoaderCtrl({ id: loaderId });
-  log.info({ loaderId }, "deleteLoader action completed");
+  try {
+    const result = await deleteLoaderCtrl({ id: loaderId });
+    log.info({ loaderId }, "deleteLoader action completed");
 
-  AppLogCollection.log({
-    category: "loader",
-    name: "loader.delete",
-    userId,
-    subject: "data_sources",
-    subjectId: loaderId,
-  });
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.delete",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+    });
 
-  return result;
+    return result;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ loaderId, err: message }, "deleteLoader action failed");
+    AppLogCollection.log({
+      level: "error",
+      category: "loader",
+      name: "loader.delete",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+      metadata: { error: message },
+    });
+    throw e;
+  }
 }
 
 export async function disableLoader(loaderId: number) {
@@ -161,18 +206,33 @@ export async function disableLoader(loaderId: number) {
   const userId = parseInt(session.user!.id!);
 
   log.info({ loaderId }, "disableLoader action called");
-  const result = await disableLoaderCtrl({ id: loaderId });
-  log.info({ loaderId }, "disableLoader action completed");
+  try {
+    const result = await disableLoaderCtrl({ id: loaderId });
+    log.info({ loaderId }, "disableLoader action completed");
 
-  AppLogCollection.log({
-    category: "loader",
-    name: "loader.disable",
-    userId,
-    subject: "data_sources",
-    subjectId: loaderId,
-  });
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.disable",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+    });
 
-  return result;
+    return result;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ loaderId, err: message }, "disableLoader action failed");
+    AppLogCollection.log({
+      level: "error",
+      category: "loader",
+      name: "loader.disable",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+      metadata: { error: message },
+    });
+    throw e;
+  }
 }
 
 export async function enableLoader(loaderId: number) {
@@ -180,18 +240,33 @@ export async function enableLoader(loaderId: number) {
   const userId = parseInt(session.user!.id!);
 
   log.info({ loaderId }, "enableLoader action called");
-  const result = await enableLoaderCtrl({ id: loaderId });
-  log.info({ loaderId }, "enableLoader action completed");
+  try {
+    const result = await enableLoaderCtrl({ id: loaderId });
+    log.info({ loaderId }, "enableLoader action completed");
 
-  AppLogCollection.log({
-    category: "loader",
-    name: "loader.enable",
-    userId,
-    subject: "data_sources",
-    subjectId: loaderId,
-  });
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.enable",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+    });
 
-  return result;
+    return result;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ loaderId, err: message }, "enableLoader action failed");
+    AppLogCollection.log({
+      level: "error",
+      category: "loader",
+      name: "loader.enable",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+      metadata: { error: message },
+    });
+    throw e;
+  }
 }
 
 export async function updateDataLoader(
@@ -203,26 +278,41 @@ export async function updateDataLoader(
   const userEmail = session.user!.email ?? null;
 
   log.info({ loaderId }, "updateDataLoader action called");
-  const result = await updateDataLoaderCtrl({ id: loaderId, payload });
-  log.info({ loaderId }, "updateDataLoader action completed");
+  try {
+    const result = await updateDataLoaderCtrl({ id: loaderId, payload });
+    log.info({ loaderId }, "updateDataLoader action completed");
 
-  // Fire-and-forget: record loader action + app log
-  LoaderActionCollection.create({
-    loaderId,
-    seriesId: result.data.seriesId!,
-    userId,
-    userEmail,
-    action: "UPDATE",
-    priority: result.data.priority,
-    eval: result.data.eval,
-  });
-  AppLogCollection.log({
-    category: "loader",
-    name: "loader.update",
-    userId,
-    subject: "data_sources",
-    subjectId: loaderId,
-  });
+    // Fire-and-forget: record loader action + app log
+    LoaderActionCollection.create({
+      loaderId,
+      seriesId: result.data.seriesId!,
+      userId,
+      userEmail,
+      action: "UPDATE",
+      priority: result.data.priority,
+      eval: result.data.eval,
+    });
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.update",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+    });
 
-  return result;
+    return result;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ loaderId, err: message }, "updateDataLoader action failed");
+    AppLogCollection.log({
+      level: "error",
+      category: "loader",
+      name: "loader.update",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+      metadata: { error: message },
+    });
+    throw e;
+  }
 }

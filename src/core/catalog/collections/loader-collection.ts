@@ -187,10 +187,16 @@ class LoaderCollection {
   static async delete(id: number): Promise<void> {
     const loader = await this.getById(id);
     if (loader.seriesId) {
-      await mysql`
-        DELETE FROM data_points
-        WHERE series_id = ${loader.seriesId} AND data_source_id = ${id}
+      const xsRows = await mysql<{ xseries_id: number }>`
+        SELECT xseries_id FROM series WHERE id = ${loader.seriesId} LIMIT 1
       `;
+      const xseriesId = xsRows[0]?.xseries_id;
+      if (xseriesId) {
+        await mysql`
+          DELETE FROM data_points
+          WHERE xseries_id = ${xseriesId} AND data_source_id = ${id}
+        `;
+      }
     }
     await mysql`DELETE FROM data_sources WHERE id = ${id}`;
   }
