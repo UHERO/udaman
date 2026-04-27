@@ -22,9 +22,10 @@ export async function GET(
 
   const name = metadata.s_name ?? `series_${id}`;
 
-  // Build CSV
+  // Build CSV — ascending date order
+  const sorted = [...dataPoints].reverse();
   const header = "Date,Values,LVL,YOY,YTD\n";
-  const rows = dataPoints.map((dp) => {
+  const rows = sorted.map((dp) => {
     const date =
       dp.date instanceof Date
         ? dp.date.toISOString().slice(0, 10)
