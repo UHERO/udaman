@@ -19,7 +19,6 @@ import {
   FileSpreadsheet,
   Globe,
   SearchSlash,
-  Settings,
   Shield,
   TableProperties,
   type LucideIcon,
@@ -141,12 +140,6 @@ export const ROUTES: RouteEntry[] = [
     path: "/forecast/snapshots",
     icon: BookOpen,
     roles: ["internal", "admin", "dev"],
-  },
-  {
-    label: "Feature Toggles",
-    path: "/feature-toggles",
-    icon: Settings,
-    roles: ["admin", "dev"],
   },
   {
     label: "Uploads",

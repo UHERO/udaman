@@ -51,7 +51,6 @@ const COLORS = {
   newForecast: "#1D667F", // ublue
   oldForecast: "#F6A01B", // uorange
   history: "#4BACC6", // uteal
-  yoyBar: "#737373",
 };
 
 /** Detect date frequency from a list of dates */
@@ -177,9 +176,7 @@ function computeYoy(
 }
 
 /** Compute QoQ % change: period-over-period, always lag=1 */
-function computeQoq(
-  values: (number | null | undefined)[],
-): (number | null)[] {
+function computeQoq(values: (number | null | undefined)[]): (number | null)[] {
   return values.map((val, idx) => {
     if (idx < 1) return null;
     const prev = values[idx - 1];
@@ -275,10 +272,16 @@ export function ForecastSnapshotCharts({
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
   const periodsPerYear = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
 
-  const barDataKey =
+  const newPctKey =
     calcMode === "yoy" ? "newYoy" : calcMode === "qoq" ? "newQoq" : "newCagr";
   const oldPctKey =
     calcMode === "yoy" ? "oldYoy" : calcMode === "qoq" ? "oldQoq" : "oldCagr";
+  const histPctKey =
+    calcMode === "yoy"
+      ? "histYoy"
+      : calcMode === "qoq"
+        ? "histQoq"
+        : "histCagr";
   const calcLabel =
     calcMode === "yoy" ? "YoY %" : calcMode === "qoq" ? "QoQ %" : "CAGR %";
 
@@ -288,9 +291,8 @@ export function ForecastSnapshotCharts({
         newForecast: { label: newForecastLabel, color: COLORS.newForecast },
         oldForecast: { label: oldForecastLabel, color: COLORS.oldForecast },
         history: { label: historyLabel, color: COLORS.history },
-        newYoy: { label: calcLabel, color: COLORS.yoyBar },
       }) satisfies ChartConfig,
-    [newForecastLabel, oldForecastLabel, historyLabel, calcLabel],
+    [newForecastLabel, oldForecastLabel, historyLabel],
   );
 
   if (seriesNames.length === 0) {
@@ -437,13 +439,19 @@ export function ForecastSnapshotCharts({
         // Build value arrays aligned to filteredDates for YoY computation
         const newVals = filteredDates.map((d) => newS?.dataHash.get(d) ?? null);
         const oldVals = filteredDates.map((d) => oldS?.dataHash.get(d) ?? null);
+        const histVals = filteredDates.map(
+          (d) => histS?.dataHash.get(d) ?? null,
+        );
 
         const newYoy = computeYoy(newVals, yoyLag);
         const oldYoy = computeYoy(oldVals, yoyLag);
+        const histYoy = computeYoy(histVals, yoyLag);
         const newQoq = computeQoq(newVals);
         const oldQoq = computeQoq(oldVals);
+        const histQoq = computeQoq(histVals);
         const newCagr = computeCagr(newVals, periodsPerYear);
         const oldCagr = computeCagr(oldVals, periodsPerYear);
+        const histCagr = computeCagr(histVals, periodsPerYear);
 
         // Build chart data rows
         const chartData = filteredDates.map((date, idx) => ({
@@ -458,6 +466,9 @@ export function ForecastSnapshotCharts({
           oldQoq: oldQoq[idx] ?? undefined,
           newCagr: newCagr[idx] ?? undefined,
           oldCagr: oldCagr[idx] ?? undefined,
+          histYoy: histYoy[idx] ?? undefined,
+          histQoq: histQoq[idx] ?? undefined,
+          histCagr: histCagr[idx] ?? undefined,
         }));
 
         const hasData = chartData.some(
@@ -508,6 +519,29 @@ export function ForecastSnapshotCharts({
           }
         }
 
+        // Build full-width overlapping bar shapes: each bar expands to
+        // cover the entire category width so the semi-transparent colors
+        // layer on top of each other rather than sitting side-by-side.
+        const barOrder = [
+          ...(histS ? ["hist" as const] : []),
+          ...(oldS ? ["old" as const] : []),
+          "new" as const,
+        ];
+        const barCount = barOrder.length;
+        const fullWidthBar =
+          (index: number, fillOpacity: number) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (props: Record<string, any>) => (
+            <rect
+              x={props.x - index * props.width}
+              y={props.y}
+              width={barCount * props.width}
+              height={props.height}
+              fill={props.fill}
+              fillOpacity={fillOpacity}
+            />
+          );
+
         return (
           <details key={name} className="rounded-md border">
             <summary className="cursor-pointer px-4 py-3 select-none">
@@ -520,6 +554,8 @@ export function ForecastSnapshotCharts({
               <ChartContainer config={chartConfig} className="h-96 w-full">
                 <ComposedChart
                   data={chartData}
+                  barGap={4.4}
+                  barCategoryGap="2%"
                   margin={{ top: 8, right: 48, bottom: 0, left: 8 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -570,7 +606,7 @@ export function ForecastSnapshotCharts({
                           name: newForecastLabel,
                           color: COLORS.newForecast,
                           level: byKey.get("newForecast"),
-                          pct: byKey.get(barDataKey),
+                          pct: byKey.get(newPctKey),
                         });
                       }
                       if (byKey.has("oldForecast")) {
@@ -586,6 +622,7 @@ export function ForecastSnapshotCharts({
                           name: historyLabel,
                           color: COLORS.history,
                           level: byKey.get("history"),
+                          pct: byKey.get(histPctKey),
                         });
                       }
                       if (!rows.length) return null;
@@ -650,13 +687,36 @@ export function ForecastSnapshotCharts({
                     />
                   ))}
 
-                  {/* % change bar columns behind the lines */}
+                  {/* % change bars behind the lines, color-coded to match */}
+                  {histS && (
+                    <Bar
+                      yAxisId="right"
+                      dataKey={histPctKey}
+                      name={`${calcLabel} (hist)`}
+                      fill={COLORS.history}
+                      shape={fullWidthBar(barOrder.indexOf("hist"), 0.2)}
+                      legendType="none"
+                      isAnimationActive={false}
+                    />
+                  )}
+                  {oldS && (
+                    <Bar
+                      yAxisId="right"
+                      dataKey={oldPctKey}
+                      name={`${calcLabel} (old)`}
+                      fill={COLORS.oldForecast}
+                      shape={fullWidthBar(barOrder.indexOf("old"), 0.2)}
+                      legendType="none"
+                      isAnimationActive={false}
+                    />
+                  )}
                   <Bar
                     yAxisId="right"
-                    dataKey={barDataKey}
+                    dataKey={newPctKey}
                     name={`${calcLabel} (new)`}
-                    fill={COLORS.yoyBar}
-                    opacity={0.3}
+                    fill={COLORS.newForecast}
+                    shape={fullWidthBar(barOrder.indexOf("new"), 0.2)}
+                    legendType="none"
                     isAnimationActive={false}
                   />
 
