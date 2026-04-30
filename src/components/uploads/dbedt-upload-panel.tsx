@@ -1,6 +1,9 @@
 "use client";
 
-import { getDbedtUploadStatusAction } from "@/actions/dbedt-upload";
+import {
+  cancelDbedtUploadAction,
+  getDbedtUploadStatusAction,
+} from "@/actions/dbedt-upload";
 
 import type { UploadRecord } from "./types";
 import UploadPanel from "./upload-panel";
@@ -24,6 +27,7 @@ export default function DbedtUploadPanel({
         const result = await getDbedtUploadStatusAction(id);
         return result ?? null;
       }}
+      cancelUpload={cancelDbedtUploadAction}
     />
   );
 }

@@ -169,6 +169,7 @@ export type UploadPanelProps = {
   createWorker: () => Worker;
   initialUploads: UploadRecord[];
   getUploadStatus: (id: number) => Promise<UploadRecord | null>;
+  cancelUpload: (id: number) => Promise<void>;
 };
 
 export default function UploadPanel({
@@ -178,6 +179,7 @@ export default function UploadPanel({
   apiEndpoint,
   createWorker,
   initialUploads,
+  cancelUpload,
 }: UploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
   const [stage, setStage] = useState<Stage>("idle");
@@ -940,6 +942,33 @@ export default function UploadPanel({
                       <td className="px-3 py-1.5 text-center">
                         {u.active ? (
                           <Check className="text-primary mx-auto h-4 w-4" />
+                        ) : u.status === "processing" ? (
+                          <button
+                            type="button"
+                            title="Cancel upload"
+                            className="text-destructive hover:text-destructive/80 mx-auto flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors"
+                            onClick={async () => {
+                              try {
+                                await cancelUpload(u.id);
+                                setUploads((prev) =>
+                                  prev.map((r) =>
+                                    r.id === u.id
+                                      ? {
+                                          ...r,
+                                          status: "fail",
+                                          lastError: "Cancelled by user",
+                                        }
+                                      : r,
+                                  ),
+                                );
+                                toast.success("Upload cancelled");
+                              } catch {
+                                toast.error("Failed to cancel upload");
+                              }
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
                         ) : (
                           <X className="text-muted-foreground mx-auto h-4 w-4" />
                         )}

@@ -19,3 +19,8 @@ export async function getDvwUploadStatusAction(id: number) {
     return null;
   }
 }
+
+export async function cancelDvwUploadAction(id: number) {
+  await requirePermission("upload", "create");
+  await DvwUploadCollection.updateStatus(id, "fail", "Cancelled by user");
+}

@@ -1,6 +1,9 @@
 "use client";
 
-import { getDvwUploadStatusAction } from "@/actions/dvw-upload";
+import {
+  cancelDvwUploadAction,
+  getDvwUploadStatusAction,
+} from "@/actions/dvw-upload";
 
 import type { UploadRecord } from "./types";
 import UploadPanel from "./upload-panel";
@@ -24,6 +27,7 @@ export default function DvwUploadPanel({
         const result = await getDvwUploadStatusAction(id);
         return result ?? null;
       }}
+      cancelUpload={cancelDvwUploadAction}
     />
   );
 }

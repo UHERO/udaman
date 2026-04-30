@@ -19,3 +19,8 @@ export async function getDbedtUploadStatusAction(id: number) {
     return null;
   }
 }
+
+export async function cancelDbedtUploadAction(id: number) {
+  await requirePermission("upload", "create");
+  await DbedtUploadCollection.updateStatus(id, "fail", "Cancelled by user");
+}
