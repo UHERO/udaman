@@ -164,7 +164,7 @@ class ReloadJobCollection {
     // Create new job row
     const insertId = await insertAndGetId(
       `INSERT INTO reload_jobs (user_id, update_public, params, status, created_at)
-       VALUES (?, ?, ?, 'queued', NOW())`,
+       VALUES (?, ?, ?, 'processing', NOW())`,
       [original.user_id, original.update_public ?? 0, original.params],
     );
 
@@ -271,7 +271,7 @@ class ReloadJobCollection {
     try {
       const insertId = await insertAndGetId(
         `INSERT INTO reload_jobs (user_id, update_public, params, status, created_at)
-         VALUES (?, ?, ?, 'queued', NOW())`,
+         VALUES (?, ?, ?, 'processing', NOW())`,
         [1, updatePublic ? 1 : 0, params],
       );
 

@@ -198,7 +198,7 @@ export async function reloadClipboardLoaders({
   // Insert reload_jobs record
   const insertId = await insertAndGetId(
     `INSERT INTO reload_jobs (user_id, params, status, created_at)
-     VALUES (?, ?, 'queued', NOW())`,
+     VALUES (?, ?, 'processing', NOW())`,
     [userId, "reload_loaders"],
   );
 
@@ -263,11 +263,10 @@ export async function doClipboardAction({
     return { message: "Clipboard is empty — no action taken" };
   }
 
-  // Insert reload_jobs record (status = 'queued' prevents the legacy Rails
-  // ReloadJobDaemon — which polls for status IS NULL — from picking it up)
+  // Insert reload_jobs record
   const insertId = await insertAndGetId(
     `INSERT INTO reload_jobs (user_id, params, status, created_at)
-     VALUES (?, ?, 'queued', NOW())`,
+     VALUES (?, ?, 'processing', NOW())`,
     [userId, action],
   );
 
