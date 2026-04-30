@@ -76,9 +76,11 @@ async function handleInit(body: InitBody) {
     );
   }
 
+  let uploadId: number | undefined;
   try {
     // Create upload record
     const upload = await DvwUploadCollection.create(body.filename);
+    uploadId = upload.id;
     log.info({ uploadId: upload.id }, "Created DVW stream upload record");
 
     // Wipe existing DVW data
@@ -96,6 +98,11 @@ async function handleInit(body: InitBody) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message }, "DVW stream init failed");
+    if (uploadId) {
+      await DvwUploadCollection.updateStatus(uploadId, "fail", message).catch(
+        (e) => log.error({ err: e }, "Failed to mark upload as failed"),
+      );
+    }
     return NextResponse.json(
       { success: false, message: `Init failed: ${message}` },
       { status: 500 },
@@ -128,6 +135,10 @@ async function handleChunk(body: ChunkBody) {
       { uploadId: body.uploadId, chunkIndex: body.chunkIndex, err: message },
       "DVW stream chunk failed",
     );
+    await DvwUploadCollection.updateStatus(body.uploadId, "fail", message).catch(
+      (e) => log.error({ err: e }, "Failed to mark upload as failed"),
+    );
+    deleteSession(body.uploadId);
     return NextResponse.json(
       { success: false, message: `Chunk failed: ${message}` },
       { status: 500 },

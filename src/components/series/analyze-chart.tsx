@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { formatLevel } from "@catalog/utils/format";
 import {
   Area,
@@ -1306,6 +1306,50 @@ export function LevelChart({
       ? chartData.find((r) => r.date.startsWith(String(indexBaseYear)))?.date
       : undefined;
 
+  // ── Map brush indices between original data and gap-filled chartData ──
+  const mappedBrushStart = useMemo(() => {
+    if (brushStartIndex == null || data.length === chartData.length) return brushStartIndex;
+    const date = data[brushStartIndex]?.date;
+    if (!date) return brushStartIndex;
+    const idx = chartData.findIndex((r) => r.date >= date);
+    return idx >= 0 ? idx : brushStartIndex;
+  }, [brushStartIndex, data, chartData]);
+
+  const mappedBrushEnd = useMemo(() => {
+    if (brushEndIndex == null || data.length === chartData.length) return brushEndIndex;
+    const date = data[brushEndIndex]?.date;
+    if (!date) return brushEndIndex;
+    for (let i = chartData.length - 1; i >= 0; i--) {
+      if (chartData[i].date <= date) return i;
+    }
+    return brushEndIndex;
+  }, [brushEndIndex, data, chartData]);
+
+  // Reverse-map gap-filled indices back to original data indices for the parent
+  const handleGapAwareBrushChange = useCallback(
+    (range: { startIndex?: number; endIndex?: number }) => {
+      if (!onBrushChange) return;
+      if (data.length === chartData.length) {
+        onBrushChange(range);
+        return;
+      }
+      const mapToOriginal = (gapIdx: number | undefined) => {
+        if (gapIdx == null) return gapIdx;
+        const date = chartData[gapIdx]?.date;
+        if (!date) return gapIdx;
+        for (let i = data.length - 1; i >= 0; i--) {
+          if (data[i].date <= date) return i;
+        }
+        return 0;
+      };
+      onBrushChange({
+        startIndex: mapToOriginal(range.startIndex),
+        endIndex: mapToOriginal(range.endIndex),
+      });
+    },
+    [onBrushChange, data, chartData],
+  );
+
   // ── Multi-series compare mode ──────────────────────────────────────
   if (isCompareMode) {
     const hasRight = seriesAxisMap
@@ -1315,9 +1359,9 @@ export function LevelChart({
     // Use brush range (not full data range) so events outside the visible
     // window don't get rendered and throw off the chart axis.
     const compareFirstDate =
-      chartData[brushStartIndex ?? 0]?.date ?? chartData[0]?.date ?? "";
+      chartData[mappedBrushStart ?? 0]?.date ?? chartData[0]?.date ?? "";
     const compareLastDate =
-      chartData[brushEndIndex ?? chartData.length - 1]?.date ??
+      chartData[mappedBrushEnd ?? chartData.length - 1]?.date ??
       chartData[chartData.length - 1]?.date ??
       "";
     const compareVisibleEvents = selectedEvents.filter(
@@ -1470,15 +1514,15 @@ export function LevelChart({
               strokeOpacity={0.4}
             />
           )}
-          {chartData.length > 24 && onBrushChange && (
+          {onBrushChange && (
             <Brush
               dataKey="date"
               height={30}
               stroke="var(--color-ublue)"
               tickFormatter={formatDate}
-              startIndex={brushStartIndex}
-              endIndex={brushEndIndex}
-              onChange={onBrushChange}
+              startIndex={mappedBrushStart}
+              endIndex={mappedBrushEnd}
+              onChange={handleGapAwareBrushChange}
             />
           )}
         </ComposedChart>

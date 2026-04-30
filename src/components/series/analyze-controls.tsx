@@ -879,13 +879,20 @@ function MoreDropdown({
       <PopoverContent className="w-52 p-1" align="start">
         {items.map((item) => (
           <div key={item.value}>
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               className={cn(
-                "hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs",
+                "hover:bg-accent flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs",
                 activeValues.has(item.value) && "bg-accent font-medium",
               )}
               onClick={() => onToggle(item.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onToggle(item.value);
+                }
+              }}
             >
               <Checkbox
                 checked={activeValues.has(item.value)}
@@ -893,7 +900,7 @@ function MoreDropdown({
                 tabIndex={-1}
               />
               {item.label}
-            </button>
+            </div>
             {activeValues.has(item.value) && renderItemExtra?.(item.value)}
           </div>
         ))}

@@ -61,6 +61,15 @@ class UniverseUploadCollection {
       id,
     ]);
   }
+
+  /** Mark uploads stuck in "processing" for over 30 MINUTEs as failed */
+  static async failStaleUploads(): Promise<number> {
+    const result = await rawQuery<{ affectedRows: number }>(
+      `UPDATE ${this.tableName} SET status = 'fail', last_error = 'Upload timed out', last_error_at = NOW()
+       WHERE status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)`,
+    );
+    return (result as unknown as { affectedRows: number }).affectedRows ?? 0;
+  }
 }
 
 class DbedtUploadCollection extends UniverseUploadCollection {
@@ -117,6 +126,14 @@ class DvwUploadCollection extends UniverseUploadCollection {
         [status, id],
       );
     }
+  }
+
+  static override async failStaleUploads(): Promise<number> {
+    const result = await rawQuery<{ affectedRows: number }>(
+      `UPDATE ${this.tableName} SET series_status = 'fail', last_error = 'Upload timed out', last_error_at = NOW()
+       WHERE series_status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)`,
+    );
+    return (result as unknown as { affectedRows: number }).affectedRows ?? 0;
   }
 }
 

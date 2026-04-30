@@ -74,9 +74,11 @@ async function handleInit(body: InitBody) {
     );
   }
 
+  let uploadId: number | undefined;
   try {
     // Create upload record
     const upload = await DbedtUploadCollection.create(body.filename);
+    uploadId = upload.id;
     log.info({ uploadId: upload.id }, "Created DBEDT stream upload record");
 
     // Wipe existing DBEDT data
@@ -94,6 +96,11 @@ async function handleInit(body: InitBody) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message }, "DBEDT stream init failed");
+    if (uploadId) {
+      await DbedtUploadCollection.updateStatus(uploadId, "fail", message).catch(
+        (e) => log.error({ err: e }, "Failed to mark upload as failed"),
+      );
+    }
     return NextResponse.json(
       { success: false, message: `Init failed: ${message}` },
       { status: 500 },
@@ -125,6 +132,10 @@ async function handleChunk(body: ChunkBody) {
       { uploadId: body.uploadId, chunkIndex: body.chunkIndex, err: message },
       "DBEDT stream chunk failed",
     );
+    await DbedtUploadCollection.updateStatus(body.uploadId, "fail", message).catch(
+      (e) => log.error({ err: e }, "Failed to mark upload as failed"),
+    );
+    deleteSession(body.uploadId);
     return NextResponse.json(
       { success: false, message: `Chunk failed: ${message}` },
       { status: 500 },

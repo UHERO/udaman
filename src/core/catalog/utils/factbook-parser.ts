@@ -95,7 +95,7 @@ export function getFactbookFilePath(): string {
   if (!dir) {
     throw new Error("DATA_DIR env var is not set");
   }
-  return path.join(dir, "factbooktablelong.txt");
+  return path.join(dir, "factbook", "factbooktablelong.txt");
 }
 
 /**

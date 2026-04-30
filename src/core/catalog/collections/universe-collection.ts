@@ -329,7 +329,7 @@ class UniverseCollection {
       await del(
         "geo_trees",
         `DELETE gt FROM geo_trees gt
-         JOIN geographies g ON g.id = gt.geography_id
+         JOIN geographies g ON g.id = gt.parent_id
          WHERE g.universe = ?`,
       );
 
@@ -348,7 +348,19 @@ class UniverseCollection {
          WHERE ds.universe = ?`,
       );
 
-      // 8. reload_job_series, series_reload_logs
+      // 8. reload_jobs (must happen before reload_job_series)
+      progress("Deleting reload_jobs");
+      await del(
+        "reload_jobs",
+        `DELETE rj FROM reload_jobs rj
+         WHERE EXISTS (
+           SELECT 1 FROM reload_job_series rjs
+           JOIN series s ON s.id = rjs.series_id
+           WHERE rjs.reload_job_id = rj.id AND s.universe = ?
+         )`,
+      );
+
+      // 9. reload_job_series, series_reload_logs
       progress("Deleting reload audit tables");
       await del(
         "reload_job_series",
@@ -361,13 +373,6 @@ class UniverseCollection {
         `DELETE srl FROM series_reload_logs srl
          JOIN series s ON s.id = srl.series_id
          WHERE s.universe = ?`,
-      );
-
-      // 9. reload_jobs
-      progress("Deleting reload_jobs");
-      await del(
-        "reload_jobs",
-        `DELETE FROM reload_jobs WHERE universe = ?`,
       );
 
       // 10. Direct universe-scoped tables

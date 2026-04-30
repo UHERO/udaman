@@ -105,6 +105,52 @@ export type UpdateSeriesPayload = {
   mult?: number | null;
 };
 
+// ─── Factbook cache ─────────────────────────────────────────────────
+// Caches the parsed factbook file and derived lookup indexes so that a batch
+// reload of all ~7 000 HHF series only reads the file once.
+
+type FactbookCacheEntry = {
+  year: number;
+  values: Record<string, number | null>;
+};
+
+let _fbCache: {
+  zipIndex: Map<string, FactbookCacheEntry[]>;
+  percentPrefixes: Set<string>;
+  ts: number;
+} | null = null;
+const FB_CACHE_TTL = 5 * 60_000; // 5 minutes
+
+async function getFactbookCache() {
+  const now = Date.now();
+  if (_fbCache && now - _fbCache.ts < FB_CACHE_TTL) return _fbCache;
+
+  const { readFactbookFile, getFactbookFilePath } = await import(
+    "../utils/factbook-parser"
+  );
+  const { rows } = await readFactbookFile(getFactbookFilePath());
+
+  // Build zip → rows index for O(1) lookups
+  const zipIndex = new Map<string, FactbookCacheEntry[]>();
+  for (const row of rows) {
+    let list = zipIndex.get(row.zip);
+    if (!list) {
+      list = [];
+      zipIndex.set(row.zip, list);
+    }
+    list.push({ year: row.year, values: row.values });
+  }
+
+  // Load percent prefixes from DB (measurements with percent=1)
+  const pctRows = await rawQuery<{ prefix: string }>(
+    "SELECT prefix FROM measurements WHERE universe = 'HHF' AND `percent` = 1",
+  );
+  const percentPrefixes = new Set(pctRows.map((r) => r.prefix));
+
+  _fbCache = { zipIndex, percentPrefixes, ts: now };
+  return _fbCache;
+}
+
 // ─── Collection ──────────────────────────────────────────────────────
 
 class SeriesCollection {
@@ -1562,6 +1608,56 @@ class SeriesCollection {
     const result = new Series({ name: description });
     result.data = data;
     if (freq) result.frequency = freq;
+    return result;
+  }
+
+  /**
+   * Load a single measurement×geography time series from the Hawaii Housing
+   * Factbook pipe-separated file.
+   *
+   * Eval syntax: Series.load_from_factbook("PREFIX", "geoHandle")
+   *
+   * - For zipcode geographies the handle IS the factbook zip column value.
+   * - For county/state geographies the FIPS code from the geographies table
+   *   is used to match the factbook zip column.
+   * - Percent measurements (fraction 0–1 in source) are multiplied by 100.
+   *
+   * The parsed file and lookup indexes are cached so that a batch reload of
+   * all ~7 000 HHF series reads the file only once.
+   */
+  static async loadFromFactbook(
+    prefix: string,
+    geoHandle: string,
+  ): Promise<Series> {
+    const cache = await getFactbookCache();
+
+    // Map geography handle → factbook zip value
+    let factbookZip = geoHandle;
+    if (!/^\d{5}$/.test(geoHandle)) {
+      // County or state handle — look up FIPS from geographies table
+      const geoRows = await rawQuery<{ fips: string | null }>(
+        "SELECT fips FROM geographies WHERE universe = 'HHF' AND handle = ? LIMIT 1",
+        [geoHandle],
+      );
+      factbookZip = geoRows[0]?.fips ?? geoHandle;
+    }
+
+    const rows = cache.zipIndex.get(factbookZip) ?? [];
+    const isPercent = cache.percentPrefixes.has(prefix);
+
+    const data = new Map<string, number>();
+    for (const row of rows) {
+      const value = row.values[prefix];
+      if (value == null) continue;
+      const date = `${row.year}-01-01`;
+      data.set(date, isPercent ? value * 100 : value);
+    }
+
+    const result = new Series({
+      name: `Factbook: ${prefix} @ ${geoHandle}`,
+    });
+    result.data = data;
+    result.frequency = "year";
     return result;
   }
 

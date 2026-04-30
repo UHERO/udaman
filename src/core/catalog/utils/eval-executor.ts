@@ -110,6 +110,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
 const ALLOWED_STATIC_METHODS = new Set([
   "loadFromDownload",
   "loadFromFile",
+  "loadFromFactbook",
   "loadApiBls",
   "loadApiBlsV2",
   "loadApiFred",
