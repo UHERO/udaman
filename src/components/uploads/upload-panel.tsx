@@ -179,6 +179,7 @@ export default function UploadPanel({
   apiEndpoint,
   createWorker,
   initialUploads,
+  getUploadStatus,
   cancelUpload,
 }: UploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -494,7 +495,45 @@ export default function UploadPanel({
           uploadId,
         }),
       });
-      finalResult = await finalResp.json();
+
+      const contentType = finalResp.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        // Non-JSON response (e.g. nginx 502 HTML page on timeout).
+        // The server may still be processing — poll DB for actual status.
+        const status = await pollUploadStatus(uploadId);
+        if (status && status.status === "ok") {
+          finalResult = {
+            success: true,
+            message: status.lastError ?? "Upload complete",
+            totalDataPoints: 0,
+          };
+        } else {
+          const msg =
+            status?.status === "fail"
+              ? (status.lastError ?? "Upload failed")
+              : `Gateway timeout (HTTP ${finalResp.status}) — upload may still be processing. Refresh to check status.`;
+          setError(msg);
+          setStage("error");
+          setDialogError(msg);
+          if (status?.status === "fail") {
+            setUploads((prev) =>
+              prev.map((u) =>
+                u.id === uploadId
+                  ? { ...u, status: "fail", lastError: msg }
+                  : u,
+              ),
+            );
+          }
+          reportUploadError("processing", msg, {
+            phase: "finalize",
+            uploadId,
+            httpStatus: finalResp.status,
+          });
+          return;
+        }
+      } else {
+        finalResult = await finalResp.json();
+      }
 
       if (!finalResult.success) {
         const msg =
@@ -565,6 +604,20 @@ export default function UploadPanel({
           : { ...u, active: false },
       ),
     );
+  }
+
+  /** Poll the DB for upload status, retrying a few times for in-flight uploads */
+  async function pollUploadStatus(
+    id: number,
+    retries = 5,
+    delayMs = 5000,
+  ): Promise<UploadRecord | null> {
+    for (let i = 0; i < retries; i++) {
+      const record = await getUploadStatus(id);
+      if (record && record.status !== "processing") return record;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+    return await getUploadStatus(id);
   }
 
   function closeDialog() {
