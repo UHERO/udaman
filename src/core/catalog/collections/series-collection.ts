@@ -18,6 +18,11 @@ import TimeSeriesCollection from "./time-series-collection";
 
 const log = createLogger("catalog.series-collection");
 
+/** Round to 10 decimal places — matches Rails `value.round(10)` for dedup. */
+function round10(v: number): number {
+  return Math.round(v * 1e10) / 1e10;
+}
+
 /** Row shape returned by the summary SELECT (before date enrichment). */
 interface SeriesSummaryRow {
   name: string;
@@ -1540,8 +1545,13 @@ class SeriesCollection {
       // Dedup: if this loader's most recent data point for this date already
       // has the same value, don't insert a new row. But we may still need to
       // reclaim the `current` flag if a lower-priority loader currently holds it.
+      // Round to 10 decimal places before comparing to match Rails behavior
+      // and avoid creating spurious vintages from floating-point drift.
       const ownLatest = ownLatestByDate.get(dateStr);
-      if (ownLatest !== undefined && ownLatest === newValue) {
+      if (
+        ownLatest != null &&
+        round10(ownLatest) === round10(newValue)
+      ) {
         // Already current from this loader — nothing to do
         if (current && current.dataSourceId === dataSourceId) {
           continue;
