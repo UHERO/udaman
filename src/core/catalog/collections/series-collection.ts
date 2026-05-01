@@ -114,6 +114,51 @@ type FactbookCacheEntry = {
   values: Record<string, number | null>;
 };
 
+/**
+ * Resolve a factbook value for a given prefix and row. Handles derived
+ * columns that don't exist as raw columns in the factbook file.
+ */
+function resolveFactbookValue(
+  prefix: string,
+  row: FactbookCacheEntry,
+  isPercent: boolean,
+): number | null {
+  // Derived columns — computed from raw factbook fields
+  const v = row.values;
+  if (prefix === "KEIKI_PERC") {
+    const keiki = v["KEIKI"] ?? safeAdd(v["AGE0004"], v["AGE0517"]);
+    const pop = v["POPULATION"];
+    if (keiki == null || pop == null || pop === 0) return null;
+    return Math.round((keiki / pop) * 100);
+  }
+  if (prefix === "KUPUNA_PERC") {
+    const kupuna =
+      v["KUPUNA"] ?? safeAdd3(v["AGE6574"], v["AGE7584"], v["AGE_85"]);
+    const pop = v["POPULATION"];
+    if (kupuna == null || pop == null || pop === 0) return null;
+    return Math.round((kupuna / pop) * 100);
+  }
+
+  // Standard column — read directly from the row
+  const value = v[prefix];
+  if (value == null) return null;
+  return isPercent ? value * 100 : value;
+}
+
+function safeAdd(a: number | null | undefined, b: number | null | undefined): number | null {
+  if (a == null || b == null) return null;
+  return a + b;
+}
+
+function safeAdd3(
+  a: number | null | undefined,
+  b: number | null | undefined,
+  c: number | null | undefined,
+): number | null {
+  if (a == null || b == null || c == null) return null;
+  return a + b + c;
+}
+
 let _fbCache: {
   zipIndex: Map<string, FactbookCacheEntry[]>;
   percentPrefixes: Set<string>;
@@ -1647,10 +1692,10 @@ class SeriesCollection {
 
     const data = new Map<string, number>();
     for (const row of rows) {
-      const value = row.values[prefix];
+      const value = resolveFactbookValue(prefix, row, isPercent);
       if (value == null) continue;
       const date = `${row.year}-01-01`;
-      data.set(date, isPercent ? value * 100 : value);
+      data.set(date, value);
     }
 
     const result = new Series({

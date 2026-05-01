@@ -99,6 +99,8 @@ const UNIVERSE_STRUCTURE: TopCategory[] = [
       {
         name: "age-structure",
         columns: [
+          "keiki_perc",
+          "kupuna_perc",
           "age>85",
           "age7584",
           "age6574",
@@ -106,8 +108,8 @@ const UNIVERSE_STRUCTURE: TopCategory[] = [
           "age4554",
           "age3544",
           "age2534",
-          "age1824",
-          "age0517",
+          "age1524",
+          "age0514",
           "age0004",
         ],
       },
@@ -215,6 +217,8 @@ const UNIVERSE_STRUCTURE: TopCategory[] = [
 
 // ─── Percent columns (for measurement.percent flag) ──────────────────
 const PERCENT_PREFIXES = new Set([
+  "KEIKI_PERC",
+  "KUPUNA_PERC",
   "ASIAN",
   "WHITE",
   "BLACK",

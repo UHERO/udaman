@@ -3,7 +3,7 @@ const hhf_universe = {
         { amentities: ["poicount_grocery", "poicount_recreation", "poicount_restaurants_bars", "poicount_health"] },
         { jobs: ["jobs_30", "jobs_d30", "jobs_t30", "jobs_d30_perc", "jobs_t30_perc"] }], // jobs_30 = jobs_d30 + jobs_t30
     demographics: [
-        { ageStructure: ["age>85", "age7584", "age6574", "age5564", "age4554", "age3544", "age2534", "age1824", "age0517", "age0004"] },
+        { ageStructure: ["keiki_perc", "kupuna_perc","age>85", "age7584", "age6574", "age5564", "age4554", "age3544", "age2534", "age1824", "age0517", "age0004"] },
         { population: ["population"] },
         { racialDiversity: ["asian", "white", "black", "hawpi"] },
         { householdIncome: ["medhhinc"] },

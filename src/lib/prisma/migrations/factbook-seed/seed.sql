@@ -93,55 +93,65 @@ INSERT INTO categories (universe, name, ancestry, list_order, data_list_id, hidd
   SELECT 'HHF', 'age-structure', @top_ancestry, 0, @dl_id, 0, 0, 0, NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM categories WHERE universe = 'HHF' AND ancestry = @top_ancestry AND name = 'age-structure');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
+  SELECT 'HHF', 'KEIKI_PERC', 'keiki_perc', 1, 1, 'not_applicable', NOW(), NOW()
+  FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'KEIKI_PERC');
+SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'KEIKI_PERC' LIMIT 1);
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 0, 'indent0');
+INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
+  SELECT 'HHF', 'KUPUNA_PERC', 'kupuna_perc', 1, 1, 'not_applicable', NOW(), NOW()
+  FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'KUPUNA_PERC');
+SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'KUPUNA_PERC' LIMIT 1);
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 1, 'indent0');
+INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE_85', 'age>85', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE_85');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE_85' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 0, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 2, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE7584', 'age7584', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE7584');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE7584' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 1, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 3, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE6574', 'age6574', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE6574');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE6574' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 2, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 4, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE5564', 'age5564', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE5564');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE5564' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 3, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 5, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE4554', 'age4554', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE4554');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE4554' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 4, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 6, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE3544', 'age3544', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE3544');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE3544' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 5, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 7, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE2534', 'age2534', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE2534');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE2534' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 6, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 8, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE1824', 'age1824', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE1824');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE1824' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 7, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 9, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE0517', 'age0517', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE0517');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE0517' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 8, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 10, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
   SELECT 'HHF', 'AGE0004', 'age0004', 2, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE0004');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'AGE0004' LIMIT 1);
-INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 9, 'indent0');
+INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 11, 'indent0');
 
 INSERT INTO data_lists (universe, name, created_at, updated_at)
   SELECT 'HHF', 'population', NOW(), NOW()

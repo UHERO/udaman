@@ -577,6 +577,23 @@ export default function UploadPanel({
     }
   }
 
+  function formatDuration(
+    startIso: string | null,
+    endIso: string | null,
+  ): string {
+    if (!startIso || !endIso) return "—";
+    const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+    if (ms < 0) return "—";
+    const totalSeconds = Math.round(ms / 1000);
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes < 60) return `${minutes}m ${seconds}s`;
+    const hours = Math.floor(minutes / 60);
+    const remainMinutes = minutes % 60;
+    return `${hours}h ${remainMinutes}m`;
+  }
+
   function statusBadge(status: string | null) {
     switch (status) {
       case "ok":
@@ -909,6 +926,7 @@ export default function UploadPanel({
                       Filename
                     </th>
                     <th className="px-3 py-2 text-left font-medium">Status</th>
+                    <th className="px-3 py-2 text-right font-medium">Duration</th>
                     <th className="px-3 py-2 text-left font-medium">Message</th>
                     <th className="px-3 py-2 text-center font-medium">
                       Active
@@ -930,6 +948,9 @@ export default function UploadPanel({
                         {u.filename ?? "—"}
                       </td>
                       <td className="px-3 py-1.5">{statusBadge(u.status)}</td>
+                      <td className="px-3 py-1.5 text-right text-xs whitespace-nowrap tabular-nums">
+                        {formatDuration(u.uploadAt, u.lastErrorAt)}
+                      </td>
                       <td className="max-w-xs truncate px-3 py-1.5 text-xs">
                         {u.status === "fail" ? (
                           <span className="text-destructive">

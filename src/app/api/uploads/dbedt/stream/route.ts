@@ -157,7 +157,10 @@ async function handleFinalize(body: FinalizeBody) {
     const dataRows = session.accumulatedRows as DbedtDataRow[];
 
     // Process all accumulated data rows
+    const t0 = performance.now();
     const dataPointCount = await loadDbedtData(dataRows, metaMap);
+    const loadMs = Math.round(performance.now() - t0);
+    log.info({ uploadId: body.uploadId, dataPointCount, loadMs }, "loadDbedtData complete");
 
     // Activate upload
     await DbedtUploadCollection.activate(body.uploadId);
@@ -168,8 +171,10 @@ async function handleFinalize(body: FinalizeBody) {
     );
 
     // Update public data points
-    log.info("Updating DBEDT public data points");
+    const t1 = performance.now();
     await DataPointCollection.updatePublicDataPoints("DBEDT");
+    const publicMs = Math.round(performance.now() - t1);
+    log.info({ uploadId: body.uploadId, publicMs }, "updatePublicDataPoints complete");
 
     // Clear cache (non-fatal)
     try {
@@ -180,8 +185,9 @@ async function handleFinalize(body: FinalizeBody) {
       log.warn({ err: msg }, "Cache clear failed (non-fatal)");
     }
 
+    const totalMs = Math.round(performance.now() - t0);
     log.info(
-      { uploadId: body.uploadId, dataPointCount },
+      { uploadId: body.uploadId, dataPointCount, loadMs, publicMs, totalMs },
       "DBEDT stream upload complete",
     );
 
