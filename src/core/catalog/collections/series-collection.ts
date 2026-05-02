@@ -18,9 +18,9 @@ import TimeSeriesCollection from "./time-series-collection";
 
 const log = createLogger("catalog.series-collection");
 
-/** Round to 10 decimal places — matches Rails `value.round(10)` for dedup. */
-function round10(v: number): number {
-  return Math.round(v * 1e10) / 1e10;
+/** Round to 6 decimal places for storage and dedup comparison. */
+function round6(v: number): number {
+  return Math.round(v * 1e6) / 1e6;
 }
 
 /** Row shape returned by the summary SELECT (before date enrichment). */
@@ -1550,7 +1550,7 @@ class SeriesCollection {
       const ownLatest = ownLatestByDate.get(dateStr);
       if (
         ownLatest != null &&
-        round10(ownLatest) === round10(newValue)
+        round6(ownLatest) === round6(newValue)
       ) {
         // Already current from this loader — nothing to do
         if (current && current.dataSourceId === dataSourceId) {
@@ -1594,10 +1594,11 @@ class SeriesCollection {
         `;
       }
 
-      // Insert new data point
+      // Insert new data point (round to 6 decimal places for storage)
+      const roundedValue = round6(newValue);
       await mysql`
         INSERT INTO data_points (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
-        VALUES (${xseriesId}, ${dateStr}, ${newValue}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
+        VALUES (${xseriesId}, ${dateStr}, ${roundedValue}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
       `;
       inserted++;
     }
