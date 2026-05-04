@@ -81,6 +81,7 @@ export async function wipeDbedtUniverse(): Promise<void> {
        JOIN series s ON s.id = p.series_id
        WHERE s.universe = 'DBEDT'`,
     );
+    await Bun.sleep(100); // let the DB breathe between heavy deletes
 
     log.info("Deleting DBEDT data_points");
     await rawQuery(
@@ -88,6 +89,7 @@ export async function wipeDbedtUniverse(): Promise<void> {
        JOIN series s ON s.xseries_id = d.xseries_id
        WHERE s.universe = 'DBEDT'`,
     );
+    await Bun.sleep(100);
 
     log.info("Deleting DBEDT measurement_series");
     await rawQuery(
@@ -95,6 +97,7 @@ export async function wipeDbedtUniverse(): Promise<void> {
        JOIN measurements m ON m.id = ms.measurement_id
        WHERE m.universe = 'DBEDT'`,
     );
+    await Bun.sleep(50);
 
     log.info("Deleting DBEDT measurements");
     await rawQuery("DELETE FROM measurements WHERE universe = 'DBEDT'");
@@ -236,6 +239,7 @@ export async function loadDbedtData(
   let currentSeries: { id: number; xseriesId: number | null } | null = null;
   let currentDataSourceId: number | null = null;
   let currentMeasurementPrefix: string | null = null;
+  let seriesProcessed = 0;
 
   const dataPoints: {
     xseriesId: number;
@@ -284,6 +288,12 @@ export async function loadDbedtData(
     if (currentSeriesName !== name) {
       currentSeriesName = name;
       currentDataSourceId = null;
+      seriesProcessed++;
+
+      // Throttle every 10 series to avoid flooding the DB
+      if (seriesProcessed % 10 === 0) {
+        await Bun.sleep(50);
+      }
 
       // Resolve source
       const sourceStr = indMeta.source;
@@ -408,6 +418,7 @@ export async function loadDbedtData(
     return true;
   });
 
+  const BATCH_THROTTLE_MS = 50;
   for (let i = 0; i < uniquePoints.length; i += 1000) {
     const batch = uniquePoints.slice(i, i + 1000);
     const placeholders = batch.map(() => "(?, ?, ?, ?, true, NOW())").join(",");
@@ -419,6 +430,10 @@ export async function loadDbedtData(
       `INSERT INTO data_points (xseries_id, data_source_id, \`date\`, \`value\`, \`current\`, created_at) VALUES ${placeholders}`,
       params,
     );
+    // Throttle to avoid overwhelming the DB server
+    if (i + 1000 < uniquePoints.length) {
+      await Bun.sleep(BATCH_THROTTLE_MS);
+    }
   }
 
   log.info({ inserted: uniquePoints.length }, "loadDbedtData: done");

@@ -152,14 +152,23 @@ async function loadDvwDimension(
       `INSERT INTO \`${table}\` (${cols}) VALUES ${placeholders}`,
       params,
     );
+    // Throttle between dimension batches
+    if (i + 1000 < insertRows.length) {
+      await Bun.sleep(50);
+    }
   }
 
   // Resolve parent references
-  for (const [parentHandle, childHandle] of parentSet) {
+  for (let i = 0; i < parentSet.length; i++) {
+    const [parentHandle, childHandle] = parentSet[i];
     await dvwQuery(
       `UPDATE \`${table}\` t1 JOIN \`${table}\` t2 ON t1.module = t2.module SET t2.parent_id = t1.id WHERE t1.handle = ? AND t2.handle = ?`,
       [parentHandle, childHandle],
     );
+    // Throttle every 20 parent resolutions
+    if (i > 0 && i % 20 === 0) {
+      await Bun.sleep(50);
+    }
   }
 
   log.info({ table, inserted: insertRows.length }, "Loaded DVW dimension");
@@ -273,6 +282,7 @@ export async function insertDvwDataChunk(
   rows: DvwDataRow[],
   dimMaps: DvwDimensionMaps,
 ): Promise<number> {
+  const BATCH_THROTTLE_MS = 50;
   let totalInserted = 0;
 
   for (let i = 0; i < rows.length; i += DATA_BATCH_SIZE) {
@@ -287,6 +297,10 @@ export async function insertDvwDataChunk(
       params,
     );
     totalInserted += batch.length;
+    // Throttle to avoid overwhelming the DB server
+    if (i + DATA_BATCH_SIZE < rows.length) {
+      await Bun.sleep(BATCH_THROTTLE_MS);
+    }
   }
 
   return totalInserted;
@@ -319,6 +333,7 @@ async function loadDvwData(
   let batchCount = 0;
   let totalInserted = 0;
 
+  const BATCH_THROTTLE_MS = 50;
   async function flushBatch(): Promise<void> {
     if (batchCount === 0) return;
     const placeholders = Array(batchCount).fill(DATA_PLACEHOLDER).join(",");
@@ -332,6 +347,8 @@ async function loadDvwData(
     }
     batch = [];
     batchCount = 0;
+    // Throttle to avoid overwhelming the DB server
+    await Bun.sleep(BATCH_THROTTLE_MS);
   }
 
   for (const row of dataRows) {
