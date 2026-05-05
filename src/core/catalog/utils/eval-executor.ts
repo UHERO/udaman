@@ -893,6 +893,28 @@ class EvalExecutor {
           return target.divide(idxSeries).multiply(100);
         }
 
+        // Trim: Rails signature is
+        //   trim(start_date = nil, end_date = nil, before: nil, after: nil)
+        // Our parser turns `trim(before: "1987-01-01", after: "2017-12-31")`
+        // into an options arg `{before: ..., after: ...}`. The TS method
+        // takes positional `(startDate?, endDate?)`, so extract the kwargs.
+        if (methodName === "trim") {
+          const args = await resolveArgs(node.args);
+          let startDate: string | undefined;
+          let endDate: string | undefined;
+          for (const a of args) {
+            if (typeof a === "string") {
+              if (startDate === undefined) startDate = a;
+              else if (endDate === undefined) endDate = a;
+            } else if (a && typeof a === "object" && !(a instanceof Series)) {
+              const opts = a as Record<string, string>;
+              if (opts.before) startDate ??= opts.before;
+              if (opts.after) endDate ??= opts.after;
+            }
+          }
+          return target.trim(startDate ?? null, endDate ?? null);
+        }
+
         // Moving average methods: Rails defines these with a `window:`
         // keyword argument, e.g.
         //   backward_looking_moving_average(window: 14)
