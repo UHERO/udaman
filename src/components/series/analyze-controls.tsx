@@ -210,6 +210,8 @@ const RANGE_PRESETS = [
   { label: "20Y", years: 20, minPPY: 0 },
   { label: "MAX", years: Infinity, minPPY: 0 },
 ];
+const DEFAULT_RANGE_PRESET = "5Y";
+const DEFAULT_RANGE_YEARS = 5;
 
 /* ------------------------------------------------------------------ */
 /*  URL sync helpers                                                    */
@@ -1909,7 +1911,7 @@ export function AnalyzeControls({
     // If custom rangeStart/rangeEnd are in URL, no preset is active
     if (searchParams.get("rangeStart") || searchParams.get("rangeEnd"))
       return "";
-    return "10Y";
+    return DEFAULT_RANGE_PRESET;
   });
   const [brushRange, setBrushRange] = useState<{
     startIndex: number;
@@ -1950,8 +1952,41 @@ export function AnalyzeControls({
       }
       return { startIndex, endIndex };
     }
-    return { startIndex: getRangeStartIndex(chartData, 10), endIndex: endIdx };
+    return {
+      startIndex: getRangeStartIndex(chartData, DEFAULT_RANGE_YEARS),
+      endIndex: endIdx,
+    };
   });
+
+  // Fingerprint of the data composition — changes when series are added/removed
+  // or when switching to a different series in analyze mode
+  const chartDataFingerprint = useMemo(() => {
+    if (chartData.length === 0) return "";
+    return `${chartData.length}|${chartData[0].date}|${chartData[chartData.length - 1].date}`;
+  }, [chartData]);
+
+  const prevFingerprint = useRef(chartDataFingerprint);
+  useEffect(() => {
+    if (prevFingerprint.current === chartDataFingerprint) return;
+    prevFingerprint.current = chartDataFingerprint;
+
+    const newEndIdx = Math.max(0, chartData.length - 1);
+    if (rangePreset) {
+      // Re-apply active preset to the new data
+      const preset = RANGE_PRESETS.find((p) => p.label === rangePreset);
+      const years = preset?.years ?? DEFAULT_RANGE_YEARS;
+      setBrushRange({
+        startIndex: getRangeStartIndex(chartData, years),
+        endIndex: newEndIdx,
+      });
+    } else {
+      // Custom range — clamp indices to valid bounds
+      setBrushRange((prev) => ({
+        startIndex: Math.min(prev.startIndex, newEndIdx),
+        endIndex: Math.min(prev.endIndex, newEndIdx),
+      }));
+    }
+  }, [chartDataFingerprint, chartData, rangePreset]);
 
   const handlePresetClick = useCallback(
     (years: number, label: string) => {
@@ -2011,7 +2046,10 @@ export function AnalyzeControls({
       barMode: barMode !== "yoy" ? barMode : undefined,
       rollingWindow: rollingWindow !== 12 ? String(rollingWindow) : undefined,
       indexDate: indexBaseDate || undefined,
-      range: rangePreset && rangePreset !== "10Y" ? rangePreset : undefined,
+      range:
+        rangePreset && rangePreset !== DEFAULT_RANGE_PRESET
+          ? rangePreset
+          : undefined,
       // Custom brush range (only when no preset is active)
       rangeStart: !rangePreset ? brushStartDate : undefined,
       rangeEnd: !rangePreset ? brushEndDate : undefined,

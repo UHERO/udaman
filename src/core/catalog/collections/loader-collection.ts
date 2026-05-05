@@ -403,9 +403,51 @@ class LoaderCollection {
           });
           inserted = updateResult.inserted;
 
-          // After clear+reload, some dates may have lost their current
-          // data point — repair to promote the next best vintage.
-          if (clearFirst || loader.clearBeforeLoad) {
+          // Mark stale dates as non-current: if the eval produced fewer
+          // dates than this loader previously stored (e.g. a source series
+          // has incomplete data), the old data points for missing dates
+          // would otherwise remain as current with stale computed values.
+          const SENTINEL = 1.0e15;
+          const resultDates = new Set<string>();
+          for (const [d, v] of scaledData) {
+            if (typeof v === "number" && isFinite(v) && v !== SENTINEL) {
+              resultDates.add(d);
+            }
+          }
+          const staleRows = await mysql<{ date: Date }>`
+            SELECT DISTINCT date
+            FROM data_points
+            WHERE xseries_id = ${xseriesId}
+              AND data_source_id = ${loader.id}
+              AND current = 1
+          `;
+          let demoted = 0;
+          for (const row of staleRows) {
+            const dateStr =
+              row.date instanceof Date
+                ? row.date.toISOString().slice(0, 10)
+                : String(row.date);
+            if (!resultDates.has(dateStr)) {
+              await mysql`
+                UPDATE data_points SET current = 0
+                WHERE xseries_id = ${xseriesId}
+                  AND data_source_id = ${loader.id}
+                  AND date = ${dateStr}
+                  AND current = 1
+              `;
+              demoted++;
+            }
+          }
+          if (demoted > 0) {
+            log.info(
+              { series: loader.seriesId, demoted },
+              `Demoted ${demoted} stale data points not in eval result`,
+            );
+          }
+
+          // After clear+reload or stale demotion, some dates may have lost
+          // their current data point — repair to promote the next best vintage.
+          if (clearFirst || loader.clearBeforeLoad || demoted > 0) {
             await SeriesCollection.repairDataPoints({ id: xseriesId });
           }
 

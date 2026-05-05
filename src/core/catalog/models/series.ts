@@ -209,6 +209,23 @@ function doArithmetic(a: number, op: string, b: number): number | null {
   return result;
 }
 
+/**
+ * Compute percentage change: ((current - prior) / prior) * 100.
+ * Returns null when prior is null, zero, or near-zero (|prior| < 1e-10)
+ * to avoid astronomical values from floating-point noise.
+ */
+function pctChange(
+  current: number,
+  prior: number | undefined | null,
+): number | null {
+  if (prior == null) return null;
+  if (Math.abs(prior) < 1e-10) {
+    // Near-zero denominator: treat same as zero
+    return current === 0 ? 0 : null;
+  }
+  return ((current - prior) / prior) * 100;
+}
+
 export interface ParsedName {
   prefixFull: string;
   prefix: string;
@@ -786,13 +803,8 @@ class Series {
     for (const [dateStr, value] of this.data) {
       const prevDate = addMonthsStr(dateStr, -12);
       const prevVal = this.data.get(prevDate);
-      if (prevVal == null) continue;
-      if (prevVal === 0 && value !== 0) continue;
-      if (prevVal === 0 && value === 0) {
-        newData.set(dateStr, 0);
-        continue;
-      }
-      newData.set(dateStr, ((value - prevVal) / prevVal) * 100);
+      const pct = pctChange(value, prevVal);
+      if (pct != null) newData.set(dateStr, pct);
     }
     const s = new Series({ name: `Annualized percentage change of ${this}` });
     s.data = newData;
@@ -825,13 +837,8 @@ class Series {
       for (const [dateStr, value] of this.data) {
         const prevDate = addMonthsStr(dateStr, -months);
         const prevVal = this.data.get(prevDate);
-        if (prevVal == null) continue;
-        if (prevVal === 0 && value !== 0) continue;
-        if (prevVal === 0 && value === 0) {
-          newData.set(dateStr, 0);
-          continue;
-        }
-        newData.set(dateStr, ((value - prevVal) / prevVal) * 100);
+        const pct = pctChange(value, prevVal);
+        if (pct != null) newData.set(dateStr, pct);
       }
       const s = new Series({ name: `Period-over-period % change of ${this}` });
       s.data = newData;
@@ -847,12 +854,8 @@ class Series {
     for (let i = 1; i < sorted.length; i++) {
       const [dateStr, value] = sorted[i];
       const prevVal = sorted[i - 1][1];
-      if (prevVal === 0 && value !== 0) continue;
-      if (prevVal === 0 && value === 0) {
-        newData.set(dateStr, 0);
-        continue;
-      }
-      newData.set(dateStr, ((value - prevVal) / prevVal) * 100);
+      const pct = pctChange(value, prevVal);
+      if (pct != null) newData.set(dateStr, pct);
     }
     const s = new Series({ name: `Period-over-period % change of ${this}` });
     s.data = newData;
