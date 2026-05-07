@@ -203,6 +203,24 @@ export async function resolveSeriesIds(
   return SeriesCollection.getIdsByNames(names, universe);
 }
 
+// ─── Alias ──────────────────────────────────────────────────────────
+
+export async function createAlias(
+  seriesId: number,
+  targetUniverse: Universe,
+): Promise<{ message: string } | { error: string }> {
+  await requirePermission("series", "create");
+  try {
+    const alias = await SeriesCollection.createAlias(seriesId, {
+      universe: targetUniverse,
+    });
+    revalidatePath(`/udaman/${targetUniverse}/series`);
+    return { message: `Alias created: ${alias.name} in ${targetUniverse}` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 // ─── Create actions ─────────────────────────────────────────────────
 
 export interface CreateSeriesFormPayload {

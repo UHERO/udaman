@@ -1,5 +1,6 @@
 /**
- * Creates NEEDEDINC series for every zip/county geography in the HHF universe.
+ * Creates or updates NEEDEDINC series for every zip/county geography
+ * in the HHF universe, replacing factbook loaders with eval-based loaders.
  *
  * Source R formulas:
  *   i = (rate/100)/12
@@ -104,7 +105,7 @@ async function main() {
       console.log(`  × ${geos.length} geographies`);
     }
     console.log(
-      `\nWould create up to ${SERIES_DEFS.length * geos.length} series. Run without --dry-run to execute.`,
+      `\nWould create/update up to ${SERIES_DEFS.length * geos.length} series. Run without --dry-run to execute.`,
     );
     process.exit(0);
   }
@@ -112,10 +113,12 @@ async function main() {
   // 4. Create or update series + loaders
   let totalCreated = 0;
   let totalUpdated = 0;
+  let totalErrors = 0;
 
   for (const def of SERIES_DEFS) {
     let created = 0;
     let updated = 0;
+    let errors = 0;
     const measurementId = measurementIds.get(def.prefix)!;
 
     console.log(`\nProcessing ${def.prefix} series...`);
@@ -124,21 +127,55 @@ async function main() {
       const name = `${def.prefix}@${geo.handle}.A`;
       const evalCode = def.evalTemplate(geo.handle);
 
-      // Check if series already exists
-      const existing = await SeriesCollection.findByNameAndUniverse(
-        name,
-        UNIVERSE,
-      );
+      try {
+        // Check if series already exists
+        const existing = await SeriesCollection.findByNameAndUniverse(
+          name,
+          UNIVERSE,
+        );
 
-      if (existing) {
-        // Update existing loader's eval
-        const seriesId = existing.id!;
-        const loaders = await LoaderCollection.getBySeriesId(seriesId);
-        const hhfLoader = loaders.find((l) => l.universe === UNIVERSE);
+        if (existing) {
+          const seriesId = existing.id!;
 
-        if (hhfLoader) {
-          await LoaderCollection.update(hhfLoader.id, { eval: evalCode });
+          // Find and update existing HHF loader, or create one
+          const loaders = await LoaderCollection.getBySeriesId(seriesId);
+          const hhfLoader = loaders.find((l) => l.universe === UNIVERSE);
+
+          if (hhfLoader) {
+            if (hhfLoader.eval !== evalCode) {
+              await LoaderCollection.update(hhfLoader.id, { eval: evalCode });
+              updated++;
+            }
+            // eval already correct — nothing to do
+          } else {
+            await LoaderCollection.create({
+              seriesId,
+              code: evalCode,
+              priority: 0,
+              scale: 1,
+              presaveHook: "",
+              clearBeforeLoad: false,
+              pseudoHistory: false,
+              universe: UNIVERSE,
+            });
+            updated++;
+          }
+
+          // Ensure measurement link exists
+          await MeasurementCollection.addSeries(measurementId, seriesId);
         } else {
+          // Create new series
+          const series = await SeriesCollection.create({
+            universe: UNIVERSE,
+            name,
+            frequency: "year",
+            geographyId: geo.id,
+            decimals: def.decimals,
+          });
+
+          const seriesId = series.id!;
+          await MeasurementCollection.addSeries(measurementId, seriesId);
+
           await LoaderCollection.create({
             seriesId,
             code: evalCode,
@@ -149,56 +186,26 @@ async function main() {
             pseudoHistory: false,
             universe: UNIVERSE,
           });
+
+          created++;
         }
-
-        // Ensure measurement link exists
-        await MeasurementCollection.addSeries(measurementId, seriesId);
-
-        updated++;
-      } else {
-        // Create new series
-        const series = await SeriesCollection.create({
-          universe: UNIVERSE,
-          name,
-          frequency: "year",
-          geographyId: geo.id,
-          decimals: def.decimals,
-        });
-
-        const seriesId = series.id!;
-
-        // Link measurement to series
-        await MeasurementCollection.addSeries(measurementId, seriesId);
-
-        // Create loader with eval
-        await LoaderCollection.create({
-          seriesId,
-          code: evalCode,
-          priority: 0,
-          scale: 1,
-          presaveHook: "",
-          clearBeforeLoad: false,
-          pseudoHistory: false,
-          universe: UNIVERSE,
-        });
-
-        created++;
-      }
-
-      if ((created + updated) % 25 === 0) {
-        console.log(`  ${def.prefix}: ${created} created, ${updated} updated...`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`  ERROR ${name}: ${msg}`);
+        errors++;
       }
     }
 
     console.log(
-      `  ${def.prefix}: ${created} created, ${updated} updated`,
+      `  ${def.prefix}: ${created} created, ${updated} updated, ${errors} errors`,
     );
     totalCreated += created;
     totalUpdated += updated;
+    totalErrors += errors;
   }
 
   console.log(
-    `\nDone. Total created: ${totalCreated}, updated: ${totalUpdated}`,
+    `\nDone. Created: ${totalCreated}, Updated: ${totalUpdated}, Errors: ${totalErrors}`,
   );
   process.exit(0);
 }

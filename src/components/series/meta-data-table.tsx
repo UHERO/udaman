@@ -8,6 +8,7 @@ import { numBool } from "@catalog/utils";
 
 import { cn } from "@/lib/utils";
 
+import { AliasManager } from "../series/alias-manager";
 import { SAIndicator } from "../common";
 import { Table, TableBody, TableCell, TableRow } from "../ui/table";
 
@@ -73,7 +74,14 @@ export function MetaDataTable({
     },
     {
       name: "Aliases",
-      value: metadata.aliases.length > 0 ? metadata.aliases.length : "-",
+      value: (
+        <AliasManager
+          seriesId={metadata.s_id}
+          currentUniverse={metadata.s_universe}
+          isPrimary={metadata.s_id === metadata.xs_primary_series_id}
+          aliases={metadata.aliases}
+        />
+      ),
     },
     {
       name: "Measurements",
