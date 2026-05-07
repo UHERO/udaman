@@ -175,9 +175,12 @@ async function getFactbookCache() {
   const now = Date.now();
   if (_fbCache && now - _fbCache.ts < FB_CACHE_TTL) return _fbCache;
 
-  const { readFactbookFile, getFactbookFilePath } = await import(
-    "../utils/factbook-parser"
-  );
+  const {
+    readFactbookFile,
+    getFactbookFilePath,
+    readFactbookCsv,
+    getFactbookCsvPath,
+  } = await import("../utils/factbook-parser");
   const { rows } = await readFactbookFile(getFactbookFilePath());
 
   // Build zip → rows index for O(1) lookups
@@ -189,6 +192,33 @@ async function getFactbookCache() {
       zipIndex.set(row.zip, list);
     }
     list.push({ year: row.year, values: row.values });
+  }
+
+  // Merge supplemental CSV columns (subsunits, poicount_*, etc.) into the
+  // same cache.  CSV columns that already exist in the txt row are skipped so
+  // the pipe-delimited file remains the authoritative source for shared cols.
+  const csvRows = await readFactbookCsv(getFactbookCsvPath());
+  for (const csvRow of csvRows) {
+    const list = zipIndex.get(csvRow.zip);
+    if (list) {
+      // Find existing entry for this zip+year and merge new keys
+      const entry = list.find((e) => e.year === csvRow.year);
+      if (entry) {
+        for (const [key, val] of Object.entries(csvRow.values)) {
+          if (!(key in entry.values)) {
+            entry.values[key] = val;
+          }
+        }
+      } else {
+        // Year exists only in CSV — add a new entry
+        list.push({ year: csvRow.year, values: csvRow.values });
+      }
+    } else {
+      // Zip exists only in CSV — create a new index entry
+      zipIndex.set(csvRow.zip, [
+        { year: csvRow.year, values: csvRow.values },
+      ]);
+    }
   }
 
   // Load percent prefixes from DB (measurements with percent=1)

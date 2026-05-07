@@ -87,12 +87,12 @@ export function AliasManager({
   const aliasCount = aliases.length;
 
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="flex w-full items-center justify-between">
       <span>{aliasCount > 0 ? aliasCount : "-"}</span>
       {isPrimary && (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-5 w-5">
+            <Button variant="ghost" size="icon" className="text-muted-foreground h-5 w-5">
               <Plus className="h-3 w-3" />
             </Button>
           </SheetTrigger>

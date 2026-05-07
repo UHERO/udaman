@@ -16,7 +16,7 @@
  *
  * Usage: bun run scripts/create-neededinc-series.ts [--dry-run]
  */
-import { mysql } from "@/lib/mysql/db";
+import { mysql, rawQuery } from "@/lib/mysql/db";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
@@ -137,32 +137,17 @@ async function main() {
         if (existing) {
           const seriesId = existing.id!;
 
-          // Find and update existing HHF loader, or create one
-          const loaders = await LoaderCollection.getBySeriesId(seriesId);
-          const hhfLoader = loaders.find((l) => l.universe === UNIVERSE);
-
-          if (hhfLoader) {
-            if (hhfLoader.eval !== evalCode) {
-              await LoaderCollection.update(hhfLoader.id, { eval: evalCode });
-              updated++;
-            }
-            // eval already correct — nothing to do
-          } else {
-            await LoaderCollection.create({
-              seriesId,
-              code: evalCode,
-              priority: 0,
-              scale: 1,
-              presaveHook: "",
-              clearBeforeLoad: false,
-              pseudoHistory: false,
-              universe: UNIVERSE,
-            });
-            updated++;
-          }
+          // Update the HHF loader's eval directly via raw SQL
+          // (`eval` is a MySQL reserved word — use backticks)
+          await rawQuery(
+            "UPDATE data_sources SET `eval` = ?, updated_at = NOW() WHERE series_id = ? AND universe = ?",
+            [evalCode, seriesId, UNIVERSE],
+          );
 
           // Ensure measurement link exists
           await MeasurementCollection.addSeries(measurementId, seriesId);
+
+          updated++;
         } else {
           // Create new series
           const series = await SeriesCollection.create({

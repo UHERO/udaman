@@ -98,6 +98,15 @@ export function getFactbookFilePath(): string {
   return path.join(dir, "factbook", "factbooktablelong.txt");
 }
 
+/** Resolve the on-disk path of the supplemental CSV from DATA_DIR. */
+export function getFactbookCsvPath(): string {
+  const dir = process.env.DATA_DIR;
+  if (!dir) {
+    throw new Error("DATA_DIR env var is not set");
+  }
+  return path.join(dir, "factbook", "factbooktablelong-2026.csv");
+}
+
 /**
  * Parse the header line of a factbook file. Throws if the required dimension
  * columns (zip, zipname, year) are missing.
@@ -242,4 +251,80 @@ export async function previewFactbook(
       .slice(0, 12)
       .map((i) => header.sanitizedColumns[i]),
   };
+}
+
+// ─── CSV supplement ──────────────────────────────────────────────────
+
+const CSV_DIMENSION_COLS = new Set(["year", "zip", "zipname", "county"]);
+
+/**
+ * Read the supplemental factbook CSV file (comma-separated).
+ *
+ * Returns the same FactbookRow[] structure as readFactbookFile so the caller
+ * can merge data from both sources into a single cache.
+ *
+ * If the file doesn't exist, returns an empty array (graceful degradation).
+ */
+export async function readFactbookCsv(filePath: string): Promise<FactbookRow[]> {
+  let text: string;
+  try {
+    text = await readFile(filePath, "utf8");
+  } catch {
+    // File may not exist yet — that's fine, return empty
+    return [];
+  }
+  const lines = text.split(/\r?\n/);
+  if (lines.length === 0) return [];
+
+  const rawColumns = lines[0].split(",").map((c) => c.trim());
+  const sanitizedColumns = rawColumns.map(sanitizePrefix);
+
+  const zipIdx = rawColumns.indexOf("zip");
+  const yearIdx = rawColumns.indexOf("year");
+  if (zipIdx < 0 || yearIdx < 0) return [];
+
+  const zipnameIdx = rawColumns.indexOf("zipname");
+
+  // Measurement columns = everything that isn't a dimension
+  const measurementIndices: number[] = [];
+  for (let i = 0; i < rawColumns.length; i++) {
+    if (!CSV_DIMENSION_COLS.has(rawColumns[i])) {
+      measurementIndices.push(i);
+    }
+  }
+
+  const rows: FactbookRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line || !line.trim()) continue;
+
+    const fields = line.split(",");
+    const zip = (fields[zipIdx] ?? "").trim();
+    const yearStr = (fields[yearIdx] ?? "").trim();
+    if (!zip || !yearStr) continue;
+    const year = parseInt(yearStr, 10);
+    if (!Number.isFinite(year)) continue;
+
+    const zipname = zipnameIdx >= 0 ? (fields[zipnameIdx] ?? "").trim() : "";
+
+    const values: Record<string, number | null> = {};
+    for (const idx of measurementIndices) {
+      const sanitized = sanitizedColumns[idx];
+      const raw = fields[idx];
+      if (raw == null || raw === "") {
+        values[sanitized] = null;
+        continue;
+      }
+      const trimmed = raw.trim();
+      if (trimmed === "" || trimmed.toUpperCase() === "NA" || trimmed === "NULL") {
+        values[sanitized] = null;
+        continue;
+      }
+      const n = Number(trimmed);
+      values[sanitized] = Number.isFinite(n) ? n : null;
+    }
+
+    rows.push({ zip, zipname, year, values });
+  }
+  return rows;
 }
