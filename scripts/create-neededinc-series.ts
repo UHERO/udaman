@@ -109,16 +109,16 @@ async function main() {
     process.exit(0);
   }
 
-  // 4. Create series + loaders
+  // 4. Create or update series + loaders
   let totalCreated = 0;
-  let totalSkipped = 0;
+  let totalUpdated = 0;
 
   for (const def of SERIES_DEFS) {
     let created = 0;
-    let skipped = 0;
+    let updated = 0;
     const measurementId = measurementIds.get(def.prefix)!;
 
-    console.log(`\nCreating ${def.prefix} series...`);
+    console.log(`\nProcessing ${def.prefix} series...`);
 
     for (const geo of geos) {
       const name = `${def.prefix}@${geo.handle}.A`;
@@ -129,52 +129,76 @@ async function main() {
         name,
         UNIVERSE,
       );
+
       if (existing) {
-        skipped++;
-        continue;
+        // Update existing loader's eval
+        const seriesId = existing.id!;
+        const loaders = await LoaderCollection.getBySeriesId(seriesId);
+        const hhfLoader = loaders.find((l) => l.universe === UNIVERSE);
+
+        if (hhfLoader) {
+          await LoaderCollection.update(hhfLoader.id, { eval: evalCode });
+        } else {
+          await LoaderCollection.create({
+            seriesId,
+            code: evalCode,
+            priority: 0,
+            scale: 1,
+            presaveHook: "",
+            clearBeforeLoad: false,
+            pseudoHistory: false,
+            universe: UNIVERSE,
+          });
+        }
+
+        // Ensure measurement link exists
+        await MeasurementCollection.addSeries(measurementId, seriesId);
+
+        updated++;
+      } else {
+        // Create new series
+        const series = await SeriesCollection.create({
+          universe: UNIVERSE,
+          name,
+          frequency: "year",
+          geographyId: geo.id,
+          decimals: def.decimals,
+        });
+
+        const seriesId = series.id!;
+
+        // Link measurement to series
+        await MeasurementCollection.addSeries(measurementId, seriesId);
+
+        // Create loader with eval
+        await LoaderCollection.create({
+          seriesId,
+          code: evalCode,
+          priority: 0,
+          scale: 1,
+          presaveHook: "",
+          clearBeforeLoad: false,
+          pseudoHistory: false,
+          universe: UNIVERSE,
+        });
+
+        created++;
       }
 
-      // Create series
-      const series = await SeriesCollection.create({
-        universe: UNIVERSE,
-        name,
-        frequency: "year",
-        geographyId: geo.id,
-        decimals: def.decimals,
-      });
-
-      const seriesId = series.id!;
-
-      // Link measurement to series
-      await MeasurementCollection.addSeries(measurementId, seriesId);
-
-      // Create loader with eval
-      await LoaderCollection.create({
-        seriesId,
-        code: evalCode,
-        priority: 0,
-        scale: 1,
-        presaveHook: "",
-        clearBeforeLoad: false,
-        pseudoHistory: false,
-        universe: UNIVERSE,
-      });
-
-      created++;
-      if (created % 25 === 0) {
-        console.log(`  ${def.prefix}: created ${created}...`);
+      if ((created + updated) % 25 === 0) {
+        console.log(`  ${def.prefix}: ${created} created, ${updated} updated...`);
       }
     }
 
     console.log(
-      `  ${def.prefix}: created ${created}, skipped ${skipped}`,
+      `  ${def.prefix}: ${created} created, ${updated} updated`,
     );
     totalCreated += created;
-    totalSkipped += skipped;
+    totalUpdated += updated;
   }
 
   console.log(
-    `\nDone. Total created: ${totalCreated}, skipped: ${totalSkipped}`,
+    `\nDone. Total created: ${totalCreated}, updated: ${totalUpdated}`,
   );
   process.exit(0);
 }
