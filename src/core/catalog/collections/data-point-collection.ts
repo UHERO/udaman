@@ -322,9 +322,16 @@ class DataPointCollection {
     if (rows.length === 0) {
       throw new Error("No universes found");
     }
-    for (const { name } of rows) {
-      await this.updatePublicDataPoints(name);
+    const universes = rows.map((r) => r.name);
+    log.info({ universes }, "updatePublicAllUniverses: starting");
+    for (let i = 0; i < universes.length; i++) {
+      log.info(
+        { universe: universes[i], progress: `${i + 1}/${universes.length}` },
+        "updatePublicAllUniverses: processing universe",
+      );
+      await this.updatePublicDataPoints(universes[i]);
     }
+    log.info("updatePublicAllUniverses: done");
   }
 }
 
