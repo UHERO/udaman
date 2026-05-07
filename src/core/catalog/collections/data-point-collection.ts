@@ -318,9 +318,12 @@ class DataPointCollection {
    * Ported from Rails DataPoint.update_public_all_universes.
    */
   static async updatePublicAllUniverses(): Promise<void> {
-    const universes = ["UHERO", "FC", "COH", "CCOM"];
-    for (const u of universes) {
-      await this.updatePublicDataPoints(u);
+    const rows = await mysql<{ name: string }>`SELECT name FROM universes`;
+    if (rows.length === 0) {
+      throw new Error("No universes found");
+    }
+    for (const { name } of rows) {
+      await this.updatePublicDataPoints(name);
     }
   }
 }
