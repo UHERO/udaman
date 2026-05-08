@@ -318,6 +318,7 @@ class DataListCollection {
     const geo = filters.geo ?? "HI";
 
     let saClause = "";
+    let dateClause = "";
     const params: (string | number)[] = [dataListId, freqLong, geo];
 
     if (filters.sa === "sa") {
@@ -328,6 +329,16 @@ class DataListCollection {
         "AND (xs.seasonal_adjustment = 'not_seasonally_adjusted' OR xs.seasonally_adjusted = 0)";
     }
     // "all" or undefined → no SA filter
+
+    // If the data list has a startyear, filter out data points before it
+    const dlRows = await rawQuery<{ startyear: number | null }>(
+      "SELECT startyear FROM data_lists WHERE id = ? LIMIT 1",
+      [dataListId],
+    );
+    if (dlRows[0]?.startyear) {
+      dateClause = "AND (dp.date IS NULL OR dp.date >= ?)";
+      params.push(`${dlRows[0].startyear}-01-01`);
+    }
 
     const sql = `
       SELECT
@@ -350,7 +361,7 @@ class DataListCollection {
       JOIN xseries xs ON xs.id = s.xseries_id
       JOIN geographies g ON g.id = s.geography_id
       LEFT JOIN units u ON u.id = s.unit_id
-      LEFT JOIN data_points dp ON dp.xseries_id = xs.id AND dp.current = 1
+      LEFT JOIN data_points dp ON dp.xseries_id = xs.id AND dp.current = 1 ${dateClause}
       WHERE dlm.data_list_id = ?
         AND xs.frequency = ?
         AND g.handle = ?

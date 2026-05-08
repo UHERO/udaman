@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { splitCSVRow } from "./client-data-file-reader";
+
 /**
  * Parser for the Hawaii Housing Factbook pipe-separated data file.
  *
@@ -276,7 +278,7 @@ export async function readFactbookCsv(filePath: string): Promise<FactbookRow[]> 
   const lines = text.split(/\r?\n/);
   if (lines.length === 0) return [];
 
-  const rawColumns = lines[0].split(",").map((c) => c.trim());
+  const rawColumns = splitCSVRow(lines[0]).map((c) => c.trim());
   const sanitizedColumns = rawColumns.map(sanitizePrefix);
 
   const zipIdx = rawColumns.indexOf("zip");
@@ -298,7 +300,7 @@ export async function readFactbookCsv(filePath: string): Promise<FactbookRow[]> 
     const line = lines[i];
     if (!line || !line.trim()) continue;
 
-    const fields = line.split(",");
+    const fields = splitCSVRow(line);
     const zip = (fields[zipIdx] ?? "").trim();
     const yearStr = (fields[yearIdx] ?? "").trim();
     if (!zip || !yearStr) continue;
