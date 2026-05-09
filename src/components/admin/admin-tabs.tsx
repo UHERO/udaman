@@ -6,6 +6,7 @@ import {
   BarChart3,
   Calendar,
   Globe,
+  KeyRound,
   Maximize2,
   Minimize2,
   ScrollText,
@@ -30,6 +31,7 @@ const TABS: { label: string; icon: LucideIcon; segment: string }[] = [
   { label: "Logs", icon: ScrollText, segment: "logs" },
   { label: "Crawlers", icon: Globe, segment: "crawlers" },
   { label: "Stats", icon: BarChart3, segment: "stats" },
+  { label: "API Keys", icon: KeyRound, segment: "api-keys" },
 ];
 
 export function AdminTabs({

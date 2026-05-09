@@ -120,6 +120,7 @@ export const ROUTES: RouteEntry[] = [
       { label: "Logs", path: "/udaman/admin/logs" },
       { label: "Crawlers", path: "/udaman/admin/crawlers" },
       { label: "Stats", path: "/udaman/admin/stats" },
+      { label: "API Keys", path: "/udaman/admin/api-keys", roles: ["dev"] },
     ],
   },
   {
