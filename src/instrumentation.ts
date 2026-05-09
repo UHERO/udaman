@@ -41,4 +41,28 @@ export const onRequestError: Instrumentation.onRequestError = async (
     },
     `[${request.method}] ${request.path}: ${(error as Error).message}`,
   );
+
+  // Also write to the app_logs table so these errors are visible on /admin/logs.
+  try {
+    const { AppLogCollection } = await import(
+      "@/core/catalog/collections/app-log-collection"
+    );
+    AppLogCollection.log({
+      level: "error",
+      category: "request-error",
+      name: `[${request.method}] ${context.routePath ?? request.path}`,
+      userId: userId ? Number(userId) : undefined,
+      metadata: {
+        message: (error as Error).message,
+        digest: (error as Error & { digest?: string }).digest,
+        method: request.method,
+        path: request.path,
+        routerKind: context.routerKind,
+        routeType: context.routeType,
+        renderSource: context.renderSource,
+      },
+    });
+  } catch {
+    // Never let app_log writes mask the original error.
+  }
 };

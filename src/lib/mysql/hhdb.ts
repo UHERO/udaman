@@ -6,31 +6,63 @@ const log = createLogger("database.hhdb");
 
 let _connection: SQL | null = null;
 
+function createConnection(): SQL {
+  return new SQL({
+    adapter: "mysql",
+    hostname: process.env.HH_DB_HOST ?? "localhost",
+    port: process.env.HH_DB_PORT ?? 3306,
+    database: process.env.HH_DB_NAME ?? "hawaii_housing_database",
+    username: process.env.HH_DB_USER ?? "root",
+    password: process.env.HH_DB_PSWD ?? "",
+  });
+}
+
 function getConnection(): SQL {
   if (!_connection) {
-    _connection = new SQL({
-      adapter: "mysql",
-      hostname: process.env.HH_DB_HOST ?? "localhost",
-      port: process.env.HH_DB_PORT ?? 3306,
-      database: process.env.HH_DB_NAME ?? "hawaii_housing_database",
-      username: process.env.HH_DB_USER ?? "root",
-      password: process.env.HH_DB_PSWD ?? "",
-    });
+    _connection = createConnection();
   }
   return _connection;
 }
 
+/** Reset the cached connection so the next call to getConnection() creates a fresh one. */
+function resetConnection(): void {
+  _connection = null;
+}
+
+function isConnectionError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return (
+    msg.includes("connection closed") ||
+    msg.includes("connection lost") ||
+    msg.includes("connection refused") ||
+    msg.includes("econnreset") ||
+    msg.includes("epipe")
+  );
+}
+
 /** Execute a raw SQL string with positional `?` parameters against the Hawaii Housing database. */
-function rawQuery<T = Record<string, unknown>>(
+async function rawQuery<T = Record<string, unknown>>(
   sql: string,
   params: (string | number | Date | null)[] = [],
 ): Promise<T[]> {
   const start = performance.now();
-  return (getConnection() as any).unsafe(sql, params).then((result: any[]) => {
+  try {
+    const result = await (getConnection() as any).unsafe(sql, params);
     const durationMs = +(performance.now() - start).toFixed(2);
     log.debug({ durationMs, rows: result.length }, "hhdb query");
     return result;
-  });
+  } catch (err) {
+    if (isConnectionError(err)) {
+      log.warn("HHDB connection lost, reconnecting and retrying query");
+      resetConnection();
+      const result = await (getConnection() as any).unsafe(sql, params);
+      const durationMs = +(performance.now() - start).toFixed(2);
+      log.debug({ durationMs, rows: result.length }, "hhdb query (retry)");
+      return result;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -42,15 +74,32 @@ async function insertAndGetId(
   params: unknown[] = [],
 ): Promise<number> {
   const start = performance.now();
-  const connection = getConnection();
-  const [result] = await connection.begin(async (tx: any) => {
-    await tx.unsafe(sql, params);
-    const rows = await tx.unsafe("SELECT LAST_INSERT_ID() as insertId");
-    return [rows[0].insertId as number];
-  });
-  const durationMs = +(performance.now() - start).toFixed(2);
-  log.debug({ durationMs }, sql);
-  return result as number;
+  try {
+    const connection = getConnection();
+    const [result] = await connection.begin(async (tx: any) => {
+      await tx.unsafe(sql, params);
+      const rows = await tx.unsafe("SELECT LAST_INSERT_ID() as insertId");
+      return [rows[0].insertId as number];
+    });
+    const durationMs = +(performance.now() - start).toFixed(2);
+    log.debug({ durationMs }, sql);
+    return result as number;
+  } catch (err) {
+    if (isConnectionError(err)) {
+      log.warn("HHDB connection lost, reconnecting and retrying insert");
+      resetConnection();
+      const connection = getConnection();
+      const [result] = await connection.begin(async (tx: any) => {
+        await tx.unsafe(sql, params);
+        const rows = await tx.unsafe("SELECT LAST_INSERT_ID() as insertId");
+        return [rows[0].insertId as number];
+      });
+      const durationMs = +(performance.now() - start).toFixed(2);
+      log.debug({ durationMs }, `${sql} (retry)`);
+      return result as number;
+    }
+    throw err;
+  }
 }
 
 export { rawQuery, insertAndGetId };
