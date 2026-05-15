@@ -139,6 +139,59 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
+function FreqDateInput({
+  dateStr,
+  freqCode,
+  onCommit,
+}: {
+  dateStr: string;
+  freqCode: string | null | undefined;
+  onCommit: (isoDate: string) => void;
+}) {
+  const formatted = formatDateForInput(dateStr, freqCode);
+  const [value, setValue] = useState(formatted);
+  const [invalid, setInvalid] = useState(false);
+
+  // Sync when the external date changes (e.g. brush drag or preset click)
+  useEffect(() => {
+    setValue(formatDateForInput(dateStr, freqCode));
+    setInvalid(false);
+  }, [dateStr, freqCode]);
+
+  const commit = () => {
+    if (value === formatted) return;
+    const parsed = parseDateFromInput(value, freqCode);
+    if (!parsed) {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    onCommit(parsed);
+  };
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => {
+        setValue(e.target.value);
+        setInvalid(false);
+      }}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        }
+      }}
+      className={cn(
+        "text-muted-foreground w-24 border-b bg-transparent px-0.5 py-0.5 font-mono text-sm outline-none transition-colors",
+        "focus:border-blue-500 focus:text-foreground",
+        invalid ? "border-red-400" : "border-stone-300 dark:border-stone-600",
+      )}
+    />
+  );
+}
+
 function ControlPanel({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={300}>
@@ -200,6 +253,79 @@ function formatFreqDate(
     default:
       return `${SHORT_MONTHS[month - 1]} ${year}`;
   }
+}
+
+/** Format a YYYY-MM-DD date for inline editing based on frequency */
+function formatDateForInput(
+  dateStr: string,
+  freqCode: string | null | undefined,
+): string {
+  if (!dateStr || dateStr.length < 4) return dateStr;
+  const year = dateStr.slice(0, 4);
+  const month = dateStr.length >= 7 ? parseInt(dateStr.slice(5, 7), 10) : 1;
+  const day = dateStr.length >= 10 ? parseInt(dateStr.slice(8, 10), 10) : 1;
+
+  if (freqCode === "A") return year;
+  if (freqCode === "Q") return `${year}Q${Math.ceil(month / 3)}`;
+  return `${year}-${month}-${day}`;
+}
+
+const QUARTER_START_MONTH: Record<number, string> = {
+  1: "01",
+  2: "04",
+  3: "07",
+  4: "10",
+};
+
+/** Parse a user-typed date string back to YYYY-MM-DD */
+function parseDateFromInput(
+  input: string,
+  freqCode: string | null | undefined,
+): string | null {
+  const s = input.trim();
+  if (!s) return null;
+
+  if (freqCode === "A") {
+    const y = parseInt(s, 10);
+    if (isNaN(y) || y < 1900 || y > 2200) return null;
+    return `${y}-01-01`;
+  }
+
+  if (freqCode === "Q") {
+    const m = s.match(/^(\d{4})[Qq]([1-4])$/);
+    if (!m) return null;
+    return `${m[1]}-${QUARTER_START_MONTH[parseInt(m[2], 10)]}-01`;
+  }
+
+  // Monthly and higher: YYYY-M-D
+  const parts = s.split("-");
+  if (parts.length < 2) return null;
+  const y = parseInt(parts[0], 10);
+  const mo = parseInt(parts[1], 10);
+  const d = parts.length >= 3 ? parseInt(parts[2], 10) : 1;
+  if (isNaN(y) || isNaN(mo) || isNaN(d)) return null;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** Find the chart data index whose date is closest to `target` (YYYY-MM-DD) */
+function findClosestDateIndex(
+  data: ChartRow[],
+  target: string,
+  direction: "start" | "end" = "start",
+): number {
+  // For start dates, find the first index >= target
+  // For end dates, find the last index <= target
+  if (direction === "start") {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].date >= target) return i;
+    }
+    return data.length - 1;
+  }
+  for (let i = data.length - 1; i >= 0; i--) {
+    if (data[i].date <= target) return i;
+  }
+  return 0;
 }
 
 /** Date range presets — 1Y only shown for monthly+ series */
@@ -1471,24 +1597,34 @@ function AxisColumn({
                   <div className="flex items-center gap-2 px-2 pb-1.5 pl-8">
                     {windowPresets.length > 0 && (
                       <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground text-[10px]">k</span>
+                        <span className="text-muted-foreground text-[10px]">
+                          k
+                        </span>
                         <InlineSelect
                           value={String(rollingWindow)}
                           options={windowPresets.map((p) => String(p.k))}
-                          onChange={(v) => onRollingWindowChange(parseInt(v, 10))}
+                          onChange={(v) =>
+                            onRollingWindowChange(parseInt(v, 10))
+                          }
                           formatOption={(v) => {
-                            const preset = windowPresets.find((p) => String(p.k) === v);
+                            const preset = windowPresets.find(
+                              (p) => String(p.k) === v,
+                            );
                             return preset ? `${v} (${preset.label})` : `k=${v}`;
                           }}
                         />
                       </div>
                     )}
                     <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground text-[10px]">σ</span>
+                      <span className="text-muted-foreground text-[10px]">
+                        σ
+                      </span>
                       <InlineSelect
                         value={String(stdDevMultiplier)}
                         options={["1", "2"]}
-                        onChange={(v) => onStdDevMultiplierChange(parseInt(v, 10))}
+                        onChange={(v) =>
+                          onStdDevMultiplierChange(parseInt(v, 10))
+                        }
                         formatOption={(v) => `${v}σ`}
                       />
                     </div>
@@ -2026,9 +2162,7 @@ export function AnalyzeControls({
 
   const axesParam = useMemo(() => {
     if (axisOverrides.size === 0) return undefined;
-    return [...axisOverrides.entries()]
-      .map(([i, s]) => `${i}:${s}`)
-      .join(",");
+    return [...axisOverrides.entries()].map(([i, s]) => `${i}:${s}`).join(",");
   }, [axisOverrides]);
 
   // ── Sync chart state → URL search params ────────────────────────────
@@ -2429,11 +2563,33 @@ export function AnalyzeControls({
               </div>
             </div>
             {rangeStats && (
-              <span className="text-muted-foreground text-md font-mono">
-                {formatFreqDate(rangeStats.startDate, currentFreqCode)}
-                {" — "}
-                {formatFreqDate(rangeStats.endDate, currentFreqCode)}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <FreqDateInput
+                  dateStr={rangeStats.startDate}
+                  freqCode={currentFreqCode}
+                  onCommit={(iso) => {
+                    const idx = findClosestDateIndex(chartData, iso, "start");
+                    setBrushRange((prev) => ({
+                      startIndex: Math.min(idx, prev.endIndex),
+                      endIndex: prev.endIndex,
+                    }));
+                    setRangePreset("");
+                  }}
+                />
+                <span className="text-muted-foreground text-sm">—</span>
+                <FreqDateInput
+                  dateStr={rangeStats.endDate}
+                  freqCode={currentFreqCode}
+                  onCommit={(iso) => {
+                    const idx = findClosestDateIndex(chartData, iso, "end");
+                    setBrushRange((prev) => ({
+                      startIndex: prev.startIndex,
+                      endIndex: Math.max(idx, prev.startIndex),
+                    }));
+                    setRangePreset("");
+                  }}
+                />
+              </div>
             )}
           </div>
           {timelineEvents.length > 0 && (
@@ -2693,7 +2849,7 @@ export function AnalyzeControls({
   return (
     <div className="space-y-3">
       {/* FRED-style control bar */}
-      <div className="flex items-start justify-between gap-6 py-1">
+      <div className="flex items-start justify-between py-1 lg:gap-6">
         {/* Col 1: Summary stats for selected range */}
         <div className="grid grid-cols-5 gap-x-5 gap-y-1">
           <StatCell
@@ -2769,11 +2925,33 @@ export function AnalyzeControls({
             </div>
           </div>
           {rangeStats && (
-            <span className="text-muted-foreground text-md font-mono">
-              {formatFreqDate(rangeStats.startDate, currentFreqCode)}
-              {" — "}
-              {formatFreqDate(rangeStats.endDate, currentFreqCode)}
-            </span>
+              <div className="flex items-center gap-1.5">
+                <FreqDateInput
+                  dateStr={rangeStats.startDate}
+                  freqCode={currentFreqCode}
+                  onCommit={(iso) => {
+                    const idx = findClosestDateIndex(chartData, iso, "start");
+                    setBrushRange((prev) => ({
+                      startIndex: Math.min(idx, prev.endIndex),
+                      endIndex: prev.endIndex,
+                    }));
+                    setRangePreset("");
+                  }}
+                />
+                <span className="text-muted-foreground text-sm">—</span>
+                <FreqDateInput
+                  dateStr={rangeStats.endDate}
+                  freqCode={currentFreqCode}
+                  onCommit={(iso) => {
+                    const idx = findClosestDateIndex(chartData, iso, "end");
+                    setBrushRange((prev) => ({
+                      startIndex: prev.startIndex,
+                      endIndex: Math.max(idx, prev.startIndex),
+                    }));
+                    setRangePreset("");
+                  }}
+                />
+              </div>
           )}
         </div>
         {/* Col 3: Timeline */}

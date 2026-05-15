@@ -28,16 +28,18 @@ export const BAR_LABELS: Record<BarMode, string> = {
 };
 
 export const SERIES_COLORS = [
+  // UHERO brand palette
   "var(--color-ublue)",
+  "var(--color-uorange)",
+  "var(--color-ugreen)",
+  "var(--color-upurple)",
+  "var(--color-uteal)",
+  "var(--color-ucyan)",
+  "var(--color-ugray)",
+  // Extended fallbacks
   "#e11d48",
-  "#16a34a",
-  "#f59e0b",
-  "#8b5cf6",
-  "#0d9488",
-  "#ea580c",
   "#6366f1",
   "#d946ef",
-  "#64748b",
 ];
 
 export interface ChartRow {
@@ -1520,8 +1522,8 @@ export function LevelChart({
               height={30}
               stroke="var(--color-ublue)"
               tickFormatter={formatDate}
-              startIndex={mappedBrushStart}
-              endIndex={mappedBrushEnd}
+              startIndex={mappedBrushStart ?? 0}
+              endIndex={mappedBrushEnd ?? chartData.length - 1}
               onChange={handleGapAwareBrushChange}
             />
           )}
@@ -1924,8 +1926,8 @@ export function ChangeChart({
             height={30}
             stroke="var(--color-ublue)"
             tickFormatter={formatDate}
-            startIndex={brushStartIndex}
-            endIndex={brushEndIndex}
+            startIndex={brushStartIndex ?? 0}
+            endIndex={brushEndIndex ?? data.length - 1}
             onChange={onBrushChange}
           />
         )}

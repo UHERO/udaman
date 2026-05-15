@@ -33,6 +33,8 @@ const segmentLabels: Record<string, string> = {
   "no-source": "Missing Metadata",
   "forecast-upload": "Forecast Upload",
   "data-tools": "Data Tools",
+  docs: "Docs",
+  "it-infrastructure": "IT Infrastructure",
   tsd: "TSD Convert & Inspect",
   new: "New",
   edit: "Edit",
