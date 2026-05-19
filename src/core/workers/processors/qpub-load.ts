@@ -6,7 +6,6 @@ import type { Job } from "bullmq";
 import {
   getIslandCode,
   getJsonPath,
-  getScrapePeriod,
   PERIOD_WHERE,
 } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
