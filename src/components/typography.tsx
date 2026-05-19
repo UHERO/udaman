@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Check, Copy, Info } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 export const H1 = ({
@@ -50,7 +51,7 @@ export const P = ({
 }: React.ComponentProps<"p">) => (
   <p
     className={cn(
-      "leading-7 text-stone-600 [&:not(:first-child)]:mt-4 dark:text-stone-300",
+      "leading-7 text-stone-600 dark:text-stone-300 [&:not(:first-child)]:mt-4",
       className,
     )}
     {...props}
@@ -97,7 +98,7 @@ export const DetailBlock = ({
   items,
   ...props
 }: React.ComponentProps<"dl"> & {
-  items: { label: string; value: string }[];
+  items: { label: string; value: string | React.ReactElement }[];
 }) => (
   <dl
     className={cn(
@@ -146,7 +147,7 @@ export const CopyBlock = ({
     >
       <button
         onClick={handleCopy}
-        className="absolute right-2 top-2 cursor-pointer rounded p-1.5 opacity-0 transition-opacity hover:bg-stone-200 group-hover:opacity-100 dark:hover:bg-stone-700"
+        className="absolute top-2 right-2 cursor-pointer rounded p-1.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-stone-200 dark:hover:bg-stone-700"
         aria-label="Copy to clipboard"
       >
         {copied ? (
