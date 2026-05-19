@@ -4,6 +4,23 @@
 -- Regenerated weekly via MariaDB scheduled EVENT
 -- ============================================================================
 
+-- ============================================================================
+-- To update a a single existing frequency count field:
+--
+-- 1. Delete existing data for that field
+-- DELETE FROM freq_properties WHERE column_name = 'latitude';
+
+-- 2. Re-insert (take from same query as original insert)
+-- INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+-- SELECT LEFT(tmk, 1), 'latitude', COALESCE(CAST(latitude AS CHAR), '[NULL]'), COUNT(*)
+-- FROM properties GROUP BY LEFT(tmk, 1), latitude;
+-- INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+-- SELECT '0', 'latitude', COALESCE(CAST(latitude AS CHAR), '[NULL]'), COUNT(*)
+-- FROM properties GROUP BY latitude;
+
+-- Alternatively, rerun entire freq generation with (takes a while)
+-- CALL sp_regenerate_freq_tables();
+-- ============================================================================
 
 -- SET this on server prior to first running
 -- SET GLOBAL event_scheduler = ON;
