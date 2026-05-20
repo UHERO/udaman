@@ -4,19 +4,27 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { Loader2, RefreshCw, RotateCcw } from "lucide-react";
 
 import {
-  getQpubDbStats,
+  getQpubDashboardStats,
   resetFailedRecords,
   type PipelineStatusCounts,
-  type QpubDbStats,
+  type QpubDashboardStats,
+  type FailedRecord,
 } from "@/actions/crawlers";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -27,8 +35,18 @@ function formatTime(d: Date): string {
   return `${hh}:${mm}:${ss}`;
 }
 
-function formatNumber(n: number): string {
+function fmt(n: number): string {
   return n.toLocaleString();
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 // ─── Pipeline status row ────────────────────────────────────────────
@@ -54,57 +72,90 @@ function PipelineRow({
       </div>
       <div className="flex gap-2 text-xs">
         <span className="text-yellow-700">
-          {formatNumber(counts.pending)} pending
+          {fmt(counts.pending)} pending
         </span>
-        <span className="text-green-700">
-          {formatNumber(counts.success)} ok
-        </span>
-        <span className="text-red-700">{formatNumber(counts.failed)} fail</span>
+        <span className="text-green-700">{fmt(counts.success)} ok</span>
+        <span className="text-red-700">{fmt(counts.failed)} fail</span>
       </div>
     </div>
   );
 }
 
-// ─── DB Stats Card ──────────────────────────────────────────────────
+// ─── Stat display ───────────────────────────────────────────────────
 
-function DbStatsCard({
-  stats,
-  lastUpdated,
-}: {
-  stats: QpubDbStats;
-  lastUpdated: Date;
-}) {
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-muted-foreground text-xs">{label}</div>
+      <div className="text-lg font-semibold">{value}</div>
+    </div>
+  );
+}
+
+// ─── Failed records table ───────────────────────────────────────────
+
+function FailedRecordsTable({ records }: { records: FailedRecord[] }) {
+  if (records.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Recent Failures</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-sm">
+            No failed records.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base">Pipeline Status</CardTitle>
-            <CardDescription>
-              From scrape_status table &middot; Updated{" "}
-              {formatTime(lastUpdated)}
-            </CardDescription>
-          </div>
-          <div className="flex gap-4 text-sm">
-            <div className="text-center">
-              <div className="text-2xl font-bold">
-                {formatNumber(stats.scrapedToday)}
-              </div>
-              <div className="text-muted-foreground text-xs">Today</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">
-                {formatNumber(stats.scrapedThisMonth)}
-              </div>
-              <div className="text-muted-foreground text-xs">This Month</div>
-            </div>
-          </div>
-        </div>
+        <CardTitle className="text-base">
+          Recent Failures ({records.length})
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <PipelineRow label="Scrape" counts={stats.scrape} />
-        <PipelineRow label="Parse" counts={stats.parse} />
-        <PipelineRow label="Load" counts={stats.load} />
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>TMK</TableHead>
+              <TableHead>Stage</TableHead>
+              <TableHead>Error</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead className="text-right">Retries</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {records.map((r) => (
+              <TableRow key={r.tmk}>
+                <TableCell className="font-mono text-xs">{r.tmk}</TableCell>
+                <TableCell>
+                  <span
+                    className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
+                      r.stage === "scrape"
+                        ? "bg-blue-100 text-blue-800"
+                        : r.stage === "parse"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {r.stage}
+                  </span>
+                </TableCell>
+                <TableCell className="max-w-60 truncate text-xs">
+                  {r.error || "—"}
+                </TableCell>
+                <TableCell className="text-xs">
+                  {formatDate(r.updatedAt)}
+                </TableCell>
+                <TableCell className="text-right">{r.retryCount}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -113,29 +164,29 @@ function DbStatsCard({
 // ─── Main panel ─────────────────────────────────────────────────────
 
 export default function QpubScraperPanel({
-  initialDbStats,
+  initialStats,
 }: {
-  initialDbStats: QpubDbStats;
+  initialStats: QpubDashboardStats;
 }) {
-  const [dbStats, setDbStats] = useState(initialDbStats);
-  const [lastDbUpdate, setLastDbUpdate] = useState(() => new Date());
+  const [stats, setStats] = useState(initialStats);
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
   const [isPending, startTransition] = useTransition();
   const [isResetting, startResetTransition] = useTransition();
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  const refreshDb = useCallback(() => {
+  const refresh = useCallback(() => {
     startTransition(async () => {
-      const result = await getQpubDbStats();
-      setDbStats(result);
-      setLastDbUpdate(new Date());
+      const result = await getQpubDashboardStats();
+      setStats(result);
+      setLastUpdated(new Date());
     });
   }, []);
 
-  // DB stats poll: every 60s
+  // Poll every 10s
   useEffect(() => {
-    const interval = setInterval(refreshDb, 60_000);
+    const interval = setInterval(refresh, 10_000);
     return () => clearInterval(interval);
-  }, [refreshDb]);
+  }, [refresh]);
 
   function handleResetFailed() {
     if (
@@ -149,7 +200,7 @@ export default function QpubScraperPanel({
     startResetTransition(async () => {
       const count = await resetFailedRecords();
       setResetMessage(`Reset ${count} failed records`);
-      refreshDb();
+      refresh();
     });
   }
 
@@ -158,12 +209,12 @@ export default function QpubScraperPanel({
       {/* Controls bar */}
       <div className="flex items-center justify-end gap-2">
         <span className="text-muted-foreground text-xs">
-          Updated: {formatTime(lastDbUpdate)}
+          Updated {formatTime(lastUpdated)}
         </span>
         <Button
           variant="ghost"
           size="sm"
-          onClick={refreshDb}
+          onClick={refresh}
           disabled={isPending}
         >
           <RefreshCw
@@ -193,8 +244,65 @@ export default function QpubScraperPanel({
         </div>
       )}
 
-      {/* DB pipeline stats */}
-      <DbStatsCard stats={dbStats} lastUpdated={lastDbUpdate} />
+      {/* Top row: Scrape Progress + Last Batch */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* Scrape Progress */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Scrape Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-end gap-3">
+              <span className="text-3xl font-bold">{stats.scrapePercent}%</span>
+              <span className="text-muted-foreground pb-1 text-sm">
+                {fmt(stats.freshScrapes)} / {fmt(stats.totalRecords)} current
+              </span>
+            </div>
+            <div className="bg-muted h-2.5 overflow-hidden rounded-full">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-all"
+                style={{ width: `${stats.scrapePercent}%` }}
+              />
+            </div>
+            <div className="flex gap-4">
+              <Stat label="Today" value={fmt(stats.scrapedToday)} />
+              <Stat label="This Month" value={fmt(stats.scrapedThisMonth)} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Last Batch */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Last Batch (24h)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-3 gap-4">
+              <Stat label="Parsed" value={fmt(stats.parsedLastBatch)} />
+              <Stat label="Loaded" value={fmt(stats.loadedLastBatch)} />
+              <Stat
+                label="Scrape → Load"
+                value={`${stats.scrapeToLoadPercent}%`}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pipeline Status */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Pipeline Status</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <PipelineRow label="Scrape" counts={stats.scrape} />
+          <PipelineRow label="Parse" counts={stats.parse} />
+          <PipelineRow label="Load" counts={stats.load} />
+        </CardContent>
+      </Card>
+
+      {/* Failed Records */}
+      <FailedRecordsTable records={stats.recentFailures} />
     </div>
   );
 }

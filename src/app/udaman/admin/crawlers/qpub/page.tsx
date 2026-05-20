@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { getQpubDbStats } from "@/actions/crawlers";
+import { getQpubDashboardStats } from "@/actions/crawlers";
 import QpubScraperPanel from "@/components/admin/qpub-scraper-panel";
 import { requireAuth } from "@/lib/auth/dal";
 
@@ -11,7 +11,7 @@ export default async function QpubCrawlerPage() {
     notFound();
   }
 
-  const dbStats = await getQpubDbStats();
+  const stats = await getQpubDashboardStats();
 
   return (
     <div className="space-y-4">
@@ -22,7 +22,7 @@ export default async function QpubCrawlerPage() {
         </p>
       </div>
 
-      <QpubScraperPanel initialDbStats={dbStats} />
+      <QpubScraperPanel initialStats={stats} />
     </div>
   );
 }
