@@ -54,6 +54,13 @@ class UniverseUploadCollection {
     }
   }
 
+  static async updateFilename(id: number, filename: string): Promise<void> {
+    await rawQuery(
+      `UPDATE ${this.tableName} SET filename = ? WHERE id = ?`,
+      [filename, id],
+    );
+  }
+
   /** Deactivate all uploads, then activate the specified one */
   static async activate(id: number): Promise<void> {
     await rawQuery(`UPDATE ${this.tableName} SET active = 0`);

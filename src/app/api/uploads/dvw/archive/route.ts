@@ -56,14 +56,9 @@ export async function POST(request: NextRequest) {
     const filePath = join(dir, storedFilename);
     await writeFile(filePath, Buffer.from(arrayBuffer));
 
-    // Update upload record filename
+    // Update upload record with the archived filename so downloads work
     try {
-      const upload = await DvwUploadCollection.getById(uploadId);
-      if (upload && !upload.filename) {
-        // Only update if filename not already set
-        // Use updateStatus to record the filename in last_error field is not ideal,
-        // but the filename was already set during create — this is just archiving
-      }
+      await DvwUploadCollection.updateFilename(uploadId, storedFilename);
     } catch {
       // Non-critical — data is already loaded
     }

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { NextRequest, NextResponse } from "next/server";
+import { DbedtUploadCollection } from "@catalog/collections/universe-upload-collection";
 
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -54,7 +55,15 @@ export async function POST(request: NextRequest) {
     const filePath = join(dir, storedFilename);
     await writeFile(filePath, Buffer.from(arrayBuffer));
 
-    log.info({ uploadId: uploadIdStr, filePath }, "Archived DBEDT XLSX file");
+    // Update upload record with the archived filename so downloads work
+    const uploadId = Number(uploadIdStr);
+    try {
+      await DbedtUploadCollection.updateFilename(uploadId, storedFilename);
+    } catch {
+      // Non-critical — data is already loaded
+    }
+
+    log.info({ uploadId, filePath }, "Archived DBEDT XLSX file");
 
     return NextResponse.json({ success: true, filename: storedFilename });
   } catch (err) {
