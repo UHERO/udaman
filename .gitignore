@@ -26,6 +26,7 @@ build
 dist
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+next-env.d.ts
 
 # Debug
 npm-debug.log*
