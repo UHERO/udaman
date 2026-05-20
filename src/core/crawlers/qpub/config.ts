@@ -35,7 +35,7 @@ function findNASPath(): string {
   }
 
   // Linux / other
-  return "/mnt/UHEROroot/work/scrapes";
+  return "/Volumes/UHEROroot/work/scrapes";
 }
 
 // ─── Island lookup ────────────────────────────────────────────────────
