@@ -1,19 +1,7 @@
 "use server";
 
-import { Queue } from "bullmq";
-
-import type {
-  JobState,
-  SerializedJob,
-  SerializedWorkerInfo,
-} from "@/actions/workers";
-import { redisConnection } from "@/core/workers/connection";
-import { enqueueQpubSeed } from "@/core/workers/enqueue";
 import { requirePermission } from "@/lib/auth/permissions";
 import { rawQuery } from "@/lib/mysql/hhdb";
-
-const QUEUE_NAME = "scraper";
-const PREFIX = "udaman";
 
 // ─── DB Stats types ──────────────────────────────────────────────
 
@@ -29,14 +17,6 @@ export type QpubDbStats = {
   scrape: PipelineStatusCounts;
   parse: PipelineStatusCounts;
   load: PipelineStatusCounts;
-};
-
-// ─── Queue Status types ──────────────────────────────────────────
-
-export type QpubScraperStatus = {
-  jobs: SerializedJob[];
-  counts: Record<string, number>;
-  workers: SerializedWorkerInfo[];
 };
 
 // ─── DB Stats action ─────────────────────────────────────────────
@@ -83,99 +63,32 @@ export async function getQpubDbStats(): Promise<QpubDbStats> {
   };
 }
 
-// ─── Queue Status action ─────────────────────────────────────────
-
-export async function getQpubScraperStatus(): Promise<QpubScraperStatus> {
-  await requirePermission("worker", "read");
-
-  const queue = new Queue(QUEUE_NAME, {
-    connection: redisConnection,
-    prefix: PREFIX,
-  });
-
-  try {
-    const [jobs, counts, workers] = await Promise.all([
-      queue.getJobs(["active", "completed", "failed"], 0, 49),
-      queue.getJobCounts("active", "waiting", "delayed", "completed", "failed"),
-      queue.getWorkers().catch(() => [] as Record<string, string>[]),
-    ]);
-
-    const serializedWorkers: SerializedWorkerInfo[] = workers.map((w) => ({
-      id: w.id ?? "",
-      addr: w.addr ?? "",
-      name: w.name ?? "",
-      age: parseInt(w.age ?? "0", 10),
-      idle: parseInt(w.idle ?? "0", 10),
-      queue: QUEUE_NAME,
-    }));
-
-    const serializedJobs: SerializedJob[] = [];
-    for (const job of jobs) {
-      if (!job.id) continue;
-      const state = await job.getState();
-      serializedJobs.push({
-        id: job.id,
-        queue: QUEUE_NAME,
-        name: job.name,
-        data: job.data as Record<string, unknown>,
-        state: state as JobState,
-        timestamp: job.timestamp,
-        processedOn: job.processedOn ?? null,
-        finishedOn: job.finishedOn ?? null,
-        failedReason: job.failedReason ?? null,
-        attemptsMade: job.attemptsMade,
-        returnvalue: job.returnvalue,
-        stacktrace: job.stacktrace ?? [],
-      });
-    }
-
-    serializedJobs.sort((a, b) => b.timestamp - a.timestamp);
-
-    return { jobs: serializedJobs, counts, workers: serializedWorkers };
-  } finally {
-    await queue.close();
-  }
-}
-
-// ─── Seed & Drain actions ────────────────────────────────────────
-
-export async function seedQpubScraper(): Promise<void> {
-  await requirePermission("worker", "execute");
-  await enqueueQpubSeed();
-}
+// ─── Reset Failed Records ────────────────────────────────────────
 
 /**
- * Wipe all jobs from the scraper queue (waiting, delayed, completed, failed).
- * Active jobs are left to finish. Use this before reseeding with corrected URLs.
+ * Reset all failed scrape/parse/load records so they can be retried.
+ * Returns the number of records reset.
  */
-export async function drainScraperQueue(): Promise<number> {
+export async function resetFailedRecords(): Promise<number> {
   await requirePermission("worker", "execute");
 
-  const queue = new Queue(QUEUE_NAME, {
-    connection: redisConnection,
-    prefix: PREFIX,
-  });
+  const result = await rawQuery<{ affected: number }>(
+    `UPDATE scrape_status
+     SET scrape_status = CASE WHEN scrape_status = 'failed' THEN 'pending' ELSE scrape_status END,
+         parse_status = CASE WHEN parse_status = 'failed' THEN 'pending' ELSE parse_status END,
+         load_status = CASE WHEN load_status = 'failed' THEN 'pending' ELSE load_status END,
+         retry_count = 0,
+         error = NULL
+     WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'`,
+  );
 
-  try {
-    // Get counts before draining so we can report how many were removed
-    const counts = await queue.getJobCounts(
-      "waiting",
-      "delayed",
-      "completed",
-      "failed",
-    );
-    const total =
-      counts.waiting + counts.delayed + counts.completed + counts.failed;
+  // rawQuery returns rows for SELECT; for UPDATE it returns an array with affectedRows info
+  // Use a count query to report how many were affected
+  const countResult = await rawQuery<{ cnt: number }>(
+    `SELECT COUNT(*) AS cnt FROM scrape_status
+     WHERE retry_count = 0 AND error IS NULL
+       AND (scrape_status = 'pending' OR parse_status = 'pending' OR load_status = 'pending')`,
+  );
 
-    // drain() removes all waiting and delayed jobs
-    await queue.drain();
-
-    // clean() removes completed/failed jobs (grace period 0 = all)
-    await queue.clean(0, 0, "completed");
-    await queue.clean(0, 0, "failed");
-
-    return total;
-  } finally {
-    await queue.close();
-  }
+  return Number(countResult[0]?.cnt ?? 0);
 }

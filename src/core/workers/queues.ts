@@ -25,11 +25,7 @@ export const JobName = {
   RELOAD_UIC: "reload.uic",
   DOWNLOAD: "download.file",
   KAUAI_EXPORT: "export.kauai",
-  QPUB_SCRAPE: "scraper.qpub-scrape",
-  QPUB_SEED: "scraper.qpub-seed",
-  QPUB_PARSE: "scraper.qpub-parse",
-  QPUB_LOAD: "scraper.qpub-load",
-  QPUB_REPARSE: "scraper.qpub-reparse",
+  QPUB_REPARSE: "qpub.reparse",
   CLIPBOARD_ACTION: "clipboard.action",
   CLIPBOARD_LOADER_RELOAD: "clipboard.loader-reload",
   UNIVERSE_ARCHIVE: "universe.archive",
@@ -98,24 +94,6 @@ export type DownloadJobData = {
 
 export type KauaiExportJobData = Record<string, never>;
 
-export type QpubScrapeJobData = {
-  tmk: string;
-  url: string;
-  island: string;
-};
-
-export type QpubSeedJobData = Record<string, never>;
-
-export type QpubParseJobData = {
-  tmk: string;
-  island: string;
-};
-
-export type QpubLoadJobData = {
-  tmk: string;
-  island: string;
-};
-
 export type ClipboardActionJobData = {
   reloadJobId: number;
   action:
@@ -167,11 +145,3 @@ const defaultOpts = {
 
 export const defaultQueue = new Queue("default", defaultOpts);
 export const criticalQueue = new Queue("critical", defaultOpts);
-export const scraperQueue = new Queue("scraper", {
-  ...defaultOpts,
-  defaultJobOptions: {
-    ...defaultOpts.defaultJobOptions,
-    attempts: 3,
-    backoff: { type: "exponential", delay: 60_000 },
-  },
-});

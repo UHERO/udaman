@@ -14,6 +14,7 @@ import { processDownload } from "./download";
 import { processDvwUpload } from "./dvw-upload";
 import { processKauaiExport } from "./kauai-export";
 import { processPurgeOldStuff } from "./purge-old";
+import { processQpubReparse } from "./qpub-reparse";
 import { processReloadJob } from "./reload-job";
 import { processSeriesReload } from "./series-reload";
 import { processTargetedReload } from "./targeted-reload";
@@ -47,4 +48,5 @@ export const processors: Record<string, (job: Job) => Promise<string>> = {
   [JobName.CLIPBOARD_LOADER_RELOAD]: processClipboardLoaderReload,
   [JobName.UNIVERSE_ARCHIVE]: processUniverseArchive,
   [JobName.UNIVERSE_PURGE]: processUniversePurge,
+  [JobName.QPUB_REPARSE]: processQpubReparse,
 };

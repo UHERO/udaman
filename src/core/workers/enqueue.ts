@@ -2,7 +2,6 @@ import {
   criticalQueue,
   defaultQueue,
   JobName,
-  scraperQueue,
   type AdminActionJobData,
   type ApiDvwReloadJobData,
   type BatchReloadJobData,
@@ -11,10 +10,7 @@ import {
   type DbedtUploadJobData,
   type DownloadJobData,
   type DvwUploadJobData,
-  type QpubLoadJobData,
-  type QpubParseJobData,
   type QpubReparseJobData,
-  type QpubScrapeJobData,
   type ReloadJobData,
   type SeriesReloadJobData,
   type TargetedReloadJobData,
@@ -86,28 +82,6 @@ export function enqueueKauaiExport() {
   return defaultQueue.add(JobName.KAUAI_EXPORT, {});
 }
 
-export function enqueueQpubScrape(data: QpubScrapeJobData) {
-  return scraperQueue.add(JobName.QPUB_SCRAPE, data, {
-    jobId: `qpub-scrape-${data.tmk}`,
-  });
-}
-
-export function enqueueQpubSeed() {
-  return scraperQueue.add(JobName.QPUB_SEED, {});
-}
-
-export function enqueueQpubParse(data: QpubParseJobData) {
-  return scraperQueue.add(JobName.QPUB_PARSE, data, {
-    jobId: `qpub-parse-${data.tmk}`,
-  });
-}
-
-export function enqueueQpubLoad(data: QpubLoadJobData) {
-  return scraperQueue.add(JobName.QPUB_LOAD, data, {
-    jobId: `qpub-load-${data.tmk}`,
-  });
-}
-
 export function enqueueClipboardAction(data: ClipboardActionJobData) {
   return defaultQueue.add(JobName.CLIPBOARD_ACTION, data, { priority: 1 });
 }
@@ -122,7 +96,7 @@ export function enqueueClipboardLoaderReload(
 
 export function enqueueQpubReparse(data: QpubReparseJobData) {
   const id = [data.table, data.island, data.period].filter(Boolean).join("-");
-  return scraperQueue.add(JobName.QPUB_REPARSE, data, {
+  return defaultQueue.add(JobName.QPUB_REPARSE, data, {
     jobId: `qpub-reparse-${id}`,
     attempts: 1,
   });

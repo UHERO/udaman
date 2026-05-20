@@ -1,8 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import path from "path";
 
-import type { Job } from "bullmq";
-
 import {
   getIslandCode,
   getJsonPath,
@@ -11,8 +9,6 @@ import {
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { parseDollarValue } from "@/core/crawlers/qpub/parse-utils";
 import { insertAndGetId, rawQuery } from "@/lib/mysql/hhdb";
-
-import type { QpubLoadJobData } from "../queues";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -1003,10 +999,11 @@ export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
 
 // ─── Main load processor ─────────────────────────────────────────
 
-export async function processQpubLoad(
-  job: Job<QpubLoadJobData>,
+export async function processLoad(
+  data: { tmk: string },
+  log: (msg: string) => void,
 ): Promise<string> {
-  const { tmk } = job.data;
+  const { tmk } = data;
 
   try {
     // Read JSON from NAS
@@ -1021,23 +1018,25 @@ export async function processQpubLoad(
       throw new Error(`JSON file not found: ${jsonFile}`);
     }
 
-    const data = JSON.parse(readFileSync(jsonFile, "utf-8")) as ParsedProperty;
+    const parsed = JSON.parse(
+      readFileSync(jsonFile, "utf-8"),
+    ) as ParsedProperty;
     const scrapedAt = new Date();
 
     // Load in order (respects FK constraints)
-    await loadProperties(tmk, data, scrapedAt);
-    await loadParcels(tmk, data, scrapedAt);
-    await loadOwners(tmk, data, scrapedAt);
-    await loadCondoProject(tmk, data, scrapedAt);
-    await loadAssessments(tmk, data, scrapedAt);
-    await loadLandClassifications(tmk, data, scrapedAt);
-    await loadResidentialImprovements(tmk, data, scrapedAt);
-    await loadCommercialImprovements(tmk, data, scrapedAt);
-    await loadSales(tmk, data, scrapedAt);
-    await loadPermits(tmk, data, scrapedAt);
-    await loadHistoricalTax(tmk, data, scrapedAt);
-    await loadCurrentTaxBills(tmk, data, scrapedAt);
-    await loadGenericSections(tmk, data, scrapedAt);
+    await loadProperties(tmk, parsed, scrapedAt);
+    await loadParcels(tmk, parsed, scrapedAt);
+    await loadOwners(tmk, parsed, scrapedAt);
+    await loadCondoProject(tmk, parsed, scrapedAt);
+    await loadAssessments(tmk, parsed, scrapedAt);
+    await loadLandClassifications(tmk, parsed, scrapedAt);
+    await loadResidentialImprovements(tmk, parsed, scrapedAt);
+    await loadCommercialImprovements(tmk, parsed, scrapedAt);
+    await loadSales(tmk, parsed, scrapedAt);
+    await loadPermits(tmk, parsed, scrapedAt);
+    await loadHistoricalTax(tmk, parsed, scrapedAt);
+    await loadCurrentTaxBills(tmk, parsed, scrapedAt);
+    await loadGenericSections(tmk, parsed, scrapedAt);
 
     // Update status
     await rawQuery(
@@ -1045,7 +1044,7 @@ export async function processQpubLoad(
       [tmk],
     );
 
-    job.log(`${tmk}: loaded`);
+    log(`${tmk}: loaded`);
     return `${tmk}: loaded`;
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e);

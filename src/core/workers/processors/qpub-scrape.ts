@@ -1,51 +1,27 @@
-import { DelayedError, type Job } from "bullmq";
-
 import {
   closeBrowser,
   getPage,
   releasePage,
 } from "@/core/crawlers/qpub/browser";
-import {
-  getIslandCode,
-  isBlockedTime,
-  isScrapePeriodActive,
-  msUntilUnblocked,
-} from "@/core/crawlers/qpub/config";
+import { getIslandCode } from "@/core/crawlers/qpub/config";
 import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
-import { enqueueQpubParse } from "../enqueue";
-import type { QpubScrapeJobData } from "../queues";
+export type ScrapeResult = {
+  status: "success" | "captcha" | "blocked" | "error";
+  error?: string;
+};
 
-export async function processQpubScrape(
-  job: Job<QpubScrapeJobData>,
-): Promise<string> {
-  const { tmk, url } = job.data;
-
-  // Reject scrape jobs outside active scrape periods (Jan, Feb, Aug blocked)
-  if (!isScrapePeriodActive()) {
-    throw new Error(
-      "Scraping is not allowed during county update months (Jan, Feb, Aug). " +
-        "Active periods: Mar–Jul (period 1) and Sep–Dec (period 2).",
-    );
-  }
-
-  // Pause during blocked hours (backup / night)
-  if (isBlockedTime()) {
-    const delayMs = msUntilUnblocked();
-    job.log(`Blocked time window — delaying ${Math.round(delayMs / 60_000)}m`);
-    // Close browser while we wait to free resources
-    await closeBrowser();
-    await job.moveToDelayed(Date.now() + delayMs, job.token);
-    throw new DelayedError(
-      `Blocked time — retry in ${Math.round(delayMs / 60_000)}m`,
-    );
-  }
+export async function processScrape(
+  data: { tmk: string; url: string; island: string },
+  log: (msg: string) => void,
+): Promise<ScrapeResult> {
+  const { tmk, url } = data;
 
   const page = await getPage();
   try {
     const result = await scrapeTmk(page, tmk, url);
-    job.log(
+    log(
       `${tmk}: ${result.status}${result.error ? ` (${result.error})` : ""}`,
     );
 
@@ -56,9 +32,7 @@ export async function processQpubScrape(
          WHERE tmk = ?`,
         [tmk],
       );
-      // Chain: enqueue parse job after successful scrape
-      const island = job.data.island || getIslandCode(tmk);
-      await enqueueQpubParse({ tmk, island });
+      return { status: "success" };
     } else if (result.status === "captcha" || result.status === "blocked") {
       await rawQuery(
         `UPDATE scrape_status
@@ -66,12 +40,8 @@ export async function processQpubScrape(
          WHERE tmk = ?`,
         [result.error ?? result.status, tmk],
       );
-      // Close browser to get a fresh session on next attempt
       await closeBrowser();
-      // Push job to back of queue (5 min delay) instead of blocking on retries
-      const delayMs = 5 * 60_000;
-      await job.moveToDelayed(Date.now() + delayMs, job.token);
-      throw new DelayedError(`${result.status}: ${result.error ?? "detected"}`);
+      return { status: result.status, error: result.error ?? "detected" };
     } else {
       // error status
       await rawQuery(
@@ -80,10 +50,8 @@ export async function processQpubScrape(
          WHERE tmk = ?`,
         [result.error ?? "Unknown scrape error", tmk],
       );
-      throw new Error(result.error ?? "Unknown scrape error");
+      return { status: "error", error: result.error ?? "Unknown scrape error" };
     }
-
-    return `${tmk}: ${result.status}`;
   } finally {
     await releasePage(page);
   }
