@@ -46,6 +46,7 @@ async function claimItems(): Promise<ClaimedItem[]> {
      FROM scrape_status s
      JOIN properties p ON s.tmk = p.tmk
      WHERE (s.scraped_at < NOW() - INTERVAL ${STALE_MONTHS} MONTH OR s.scraped_at IS NULL)
+       AND s.scrape_status != 'pending'
        AND s.updated_at < NOW() - INTERVAL ${CLAIM_TIMEOUT_MINUTES} MINUTE
        AND s.retry_count < ${MAX_RETRIES}
      ORDER BY s.scraped_at ASC

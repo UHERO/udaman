@@ -187,28 +187,59 @@ export async function getQpubDashboardStats(): Promise<QpubDashboardStats> {
 
 /**
  * Reset all failed scrape/parse/load records so they can be retried.
+ * Scrape failures reset to 'success' (available for re-claiming by staleness).
+ * Parse/load failures reset to 'pending' (batch loader picks up pending/failed).
  * Returns the number of records reset.
  */
 export async function resetFailedRecords(): Promise<number> {
   await requirePermission("worker", "execute");
 
-  await rawQuery(
-    `UPDATE scrape_status
-     SET scrape_status = CASE WHEN scrape_status = 'failed' THEN 'pending' ELSE scrape_status END,
-         parse_status = CASE WHEN parse_status = 'failed' THEN 'pending' ELSE parse_status END,
-         load_status = CASE WHEN load_status = 'failed' THEN 'pending' ELSE load_status END,
-         retry_count = 0,
-         error = NULL
-     WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'`,
-  );
-
   const countResult = await rawQuery<{ cnt: number }>(
     `SELECT COUNT(*) AS cnt FROM scrape_status
-     WHERE retry_count = 0 AND error IS NULL
-       AND (scrape_status = 'pending' OR parse_status = 'pending' OR load_status = 'pending')`,
+     WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'`,
   );
+  const count = Number(countResult[0]?.cnt ?? 0);
+
+  if (count > 0) {
+    await rawQuery(
+      `UPDATE scrape_status
+       SET scrape_status = CASE WHEN scrape_status = 'failed' THEN 'success' ELSE scrape_status END,
+           parse_status = CASE WHEN parse_status = 'failed' THEN 'pending' ELSE parse_status END,
+           load_status = CASE WHEN load_status = 'failed' THEN 'pending' ELSE load_status END,
+           retry_count = 0,
+           error = NULL
+       WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'`,
+    );
+  }
 
   invalidateCache();
+  return count;
+}
 
-  return Number(countResult[0]?.cnt ?? 0);
+// ─── Clear Pending Records ──────────────────────────────────────────
+
+/**
+ * Reset orphaned scrape_status='pending' records back to 'success'.
+ * Pending means "claimed by an active scraper" — this clears records
+ * left in pending by crashed scrapers or the old seed method.
+ * Returns the number of records cleared.
+ */
+export async function clearPendingRecords(): Promise<number> {
+  await requirePermission("worker", "execute");
+
+  const countResult = await rawQuery<{ cnt: number }>(
+    `SELECT COUNT(*) AS cnt FROM scrape_status WHERE scrape_status = 'pending'`,
+  );
+  const count = Number(countResult[0]?.cnt ?? 0);
+
+  if (count > 0) {
+    await rawQuery(
+      `UPDATE scrape_status
+       SET scrape_status = 'success'
+       WHERE scrape_status = 'pending'`,
+    );
+  }
+
+  invalidateCache();
+  return count;
 }

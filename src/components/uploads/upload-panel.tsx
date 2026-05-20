@@ -166,6 +166,7 @@ export type UploadPanelProps = {
   description: string;
   warningText: string;
   apiEndpoint: string;
+  fileDir: string;
   createWorker: () => Worker;
   initialUploads: UploadRecord[];
   getUploadStatus: (id: number) => Promise<UploadRecord | null>;
@@ -177,6 +178,7 @@ export default function UploadPanel({
   description,
   warningText,
   apiEndpoint,
+  fileDir,
   createWorker,
   initialUploads,
   getUploadStatus,
@@ -998,7 +1000,16 @@ export default function UploadPanel({
                         className="max-w-xs truncate px-3 py-1.5 font-mono text-xs"
                         title={u.filename ?? undefined}
                       >
-                        {u.filename ?? "—"}
+                        {u.filename ? (
+                          <a
+                            href={`/api/data-file/${fileDir}/${u.filename}`}
+                            className="text-primary hover:underline"
+                          >
+                            {u.filename}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-3 py-1.5">{statusBadge(u.status)}</td>
                       <td className="px-3 py-1.5 text-right text-xs whitespace-nowrap tabular-nums">

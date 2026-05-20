@@ -19,6 +19,7 @@ export default function DbedtUploadPanel({
       description='Select an Excel file containing "indicator" and "data" sheets.'
       warningText="Caution: All data in the DBEDT Data Warehouse will be replaced with data from this upload."
       apiEndpoint="/api/uploads/dbedt"
+      fileDir="dbedt_files"
       createWorker={() =>
         new Worker(new URL("./dbedt-parse-worker.ts", import.meta.url))
       }

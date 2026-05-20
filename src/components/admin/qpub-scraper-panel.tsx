@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { Eraser, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 
 import {
+  clearPendingRecords,
   getQpubDashboardStats,
   resetFailedRecords,
   type PipelineStatusCounts,
@@ -72,7 +73,7 @@ function PipelineRow({
       </div>
       <div className="flex gap-2 text-xs">
         <span className="text-yellow-700">
-          {fmt(counts.pending)} pending
+          {fmt(counts.pending)} {label === "Scrape" ? "in progress" : "pending"}
         </span>
         <span className="text-green-700">{fmt(counts.success)} ok</span>
         <span className="text-red-700">{fmt(counts.failed)} fail</span>
@@ -172,7 +173,8 @@ export default function QpubScraperPanel({
   const [lastUpdated, setLastUpdated] = useState(() => new Date());
   const [isPending, startTransition] = useTransition();
   const [isResetting, startResetTransition] = useTransition();
-  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [isClearing, startClearTransition] = useTransition();
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     startTransition(async () => {
@@ -196,10 +198,26 @@ export default function QpubScraperPanel({
     ) {
       return;
     }
-    setResetMessage(null);
+    setActionMessage(null);
     startResetTransition(async () => {
       const count = await resetFailedRecords();
-      setResetMessage(`Reset ${count} failed records`);
+      setActionMessage(`Reset ${count} failed records`);
+      refresh();
+    });
+  }
+
+  function handleClearPending() {
+    if (
+      !confirm(
+        "This will reset all pending scrape records back to success. Use this to clear orphaned records from crashed scrapers. Continue?",
+      )
+    ) {
+      return;
+    }
+    setActionMessage(null);
+    startClearTransition(async () => {
+      const count = await clearPendingRecords();
+      setActionMessage(`Cleared ${count} pending records`);
       refresh();
     });
   }
@@ -235,12 +253,25 @@ export default function QpubScraperPanel({
           )}
           Reset Failed
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClearPending}
+          disabled={isClearing || stats.scrape.pending === 0}
+        >
+          {isClearing ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Eraser className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Clear Pending ({fmt(stats.scrape.pending)})
+        </Button>
       </div>
 
-      {/* Reset status message */}
-      {resetMessage && (
+      {/* Action status message */}
+      {actionMessage && (
         <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-          {resetMessage}
+          {actionMessage}
         </div>
       )}
 

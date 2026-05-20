@@ -19,6 +19,7 @@ export default function DvwUploadPanel({
       description='Select an Excel file containing "group", "market", "destination", "category", "indicator", and "data" sheets.'
       warningText="Caution: All data in the DVW Data Warehouse will be replaced with data from this upload."
       apiEndpoint="/api/uploads/dvw"
+      fileDir="dvw_files"
       createWorker={() =>
         new Worker(new URL("./dvw-parse-worker.ts", import.meta.url))
       }
