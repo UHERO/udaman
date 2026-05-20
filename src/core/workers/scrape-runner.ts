@@ -163,38 +163,51 @@ async function run() {
       continue;
     }
 
-    // 6. Process each claimed item
-    for (const item of claimed) {
-      if (!running) break;
-
-      // Re-check time constraints before each scrape
-      if (isBlockedTime() || isPastCutoff()) break;
-
-      const islandCode = item.island_code as IslandCode;
-      if (!(islandCode in ISLANDS)) {
-        log.warn({ tmk: item.tmk, island: islandCode }, "Unknown island code — skipping");
-        continue;
-      }
-
-      const url = buildUrl(item.tmk, islandCode);
-
-      try {
-        const result = await processScrape(
-          { tmk: item.tmk, url, island: islandCode },
-          (msg) => log.info(msg),
-        );
-
-        if (result.status === "captcha" || result.status === "blocked") {
-          log.warn(
-            { tmk: item.tmk, status: result.status },
-            "Captcha/blocked — pausing before next item",
-          );
-          await sleep(CAPTCHA_DELAY_MS);
+    // 6. Scrape all claimed items concurrently (each opens its own browser tab)
+    const scrapeJobs = claimed
+      .filter((item) => {
+        const islandCode = item.island_code as IslandCode;
+        if (!(islandCode in ISLANDS)) {
+          log.warn({ tmk: item.tmk, island: islandCode }, "Unknown island code — skipping");
+          return false;
         }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        log.error({ tmk: item.tmk, error: msg }, "Scrape error");
-      }
+        return true;
+      })
+      .map(async (item) => {
+        const islandCode = item.island_code as IslandCode;
+        const url = buildUrl(item.tmk, islandCode);
+        try {
+          const result = await processScrape(
+            { tmk: item.tmk, url, island: islandCode },
+            (msg) => log.info(msg),
+          );
+          if (result.status === "captcha" || result.status === "blocked") {
+            log.warn(
+              { tmk: item.tmk, status: result.status },
+              "Captcha/blocked detected",
+            );
+            return result;
+          }
+          return result;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          log.error({ tmk: item.tmk, error: msg }, "Scrape error");
+          return null;
+        }
+      });
+
+    const results = await Promise.allSettled(scrapeJobs);
+
+    // If any scrape hit captcha/blocked, pause before the next batch
+    const wasBlocked = results.some(
+      (r) =>
+        r.status === "fulfilled" &&
+        r.value &&
+        (r.value.status === "captcha" || r.value.status === "blocked"),
+    );
+    if (wasBlocked) {
+      log.warn("Captcha/block in batch — pausing before next claim");
+      await sleep(CAPTCHA_DELAY_MS);
     }
   }
 
