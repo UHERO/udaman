@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
   code: z.string().min(2, { message: "Code is required." }),
@@ -120,16 +122,25 @@ export function LoaderCreateDialog({
           <FieldSet>
             <FieldGroup>
               <Field data-invalid={!!form.formState.errors.code}>
-                <FieldLabel htmlFor="create-code">Code</FieldLabel>
-                <Input
+                <div className="flex justify-between">
+                  <FieldLabel htmlFor="create-code">Code </FieldLabel>{" "}
+                  <FieldDescription>
+                    <Link
+                      href={`/udaman/${universe}/docs/loader-actions`}
+                      className="hover:text-blue-800"
+                    >
+                      See docs
+                    </Link>
+                  </FieldDescription>
+                </div>
+                <Textarea
                   id="create-code"
-                  placeholder="enter load statement"
+                  placeholder={`"E_NF@HI.M".ts.yoy`}
+                  className="font-mono text-sm"
+                  rows={3}
                   aria-invalid={!!form.formState.errors.code}
                   {...form.register("code")}
                 />
-                <FieldDescription>
-                  Field will be evaluated as code to load data points
-                </FieldDescription>
                 <FieldError errors={[form.formState.errors.code]} />
               </Field>
 

@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
-import Loader from "@catalog/models/loader";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import type { SerializedLoader } from "@catalog/models/loader";
+import Loader from "@catalog/models/loader";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -36,6 +37,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -66,6 +68,7 @@ export function LoaderEditSheet({
   loader,
 }: LoaderEditSheetProps) {
   const router = useRouter();
+  const { universe } = useParams();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -138,16 +141,26 @@ export function LoaderEditSheet({
           <FieldSet className="m-0 gap-1 p-0">
             <FieldGroup className="gap-2">
               <Field data-invalid={!!form.formState.errors.eval}>
-                <FieldLabel htmlFor="edit-eval">Code</FieldLabel>
-                <Input
+                <div className="flex w-full justify-between">
+                  <FieldLabel htmlFor="edit-eval">Code </FieldLabel>
+                  <FieldDescription>
+                    <Link
+                      href={`/udaman/${universe}/docs/loader-actions`}
+                      className="hover:text-blue-800"
+                    >
+                      See docs
+                    </Link>
+                  </FieldDescription>
+                </div>
+                <Textarea
                   id="edit-eval"
-                  placeholder="enter load statement"
+                  placeholder={`"E_NF@HI.M".ts.yoy`}
+                  className="font-mono text-sm"
+                  rows={3}
                   aria-invalid={!!form.formState.errors.eval}
                   {...form.register("eval")}
                 />
-                <FieldDescription>
-                  Field will be evaluated as code to load data points
-                </FieldDescription>
+
                 <FieldError errors={[form.formState.errors.eval]} />
               </Field>
 

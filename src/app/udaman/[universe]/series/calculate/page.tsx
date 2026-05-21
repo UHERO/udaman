@@ -7,13 +7,6 @@ import { CalculateForm } from "@/components/series/calculate-form";
 import { LinkedExpression } from "@/components/series/linked-expression";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
 
-/** Extract the first valid series name from an expression */
-function extractFirstName(expr: string): string | null {
-  const SERIES_NAME_RE = /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])/i;
-  const match = expr.match(SERIES_NAME_RE);
-  return match ? match[1] : null;
-}
-
 export default async function CalculatePage({
   params,
   searchParams,
@@ -38,14 +31,24 @@ export default async function CalculatePage({
         <CalculateForm />
         <div className="text-muted-foreground space-y-2 text-sm">
           <p>
-            Enter an expression using series names and operators to compute a
-            derived series. For example:
+            Enter an eval expression to compute a derived series. Series names
+            must be quoted and followed by <code>.ts</code> (or{" "}
+            <code>.tsn</code> for nullable). For example:
           </p>
           <ul className="list-inside list-disc space-y-1 font-mono text-xs">
-            <li>E_NF@HI.M + E_NF@MAU.M</li>
-            <li>E_NF@HI.M / E_NF@HI.M.shift_by(12)</li>
-            <li>E_NF@HI.M * 100</li>
+            <li>{`"E_NF@HI.M".ts + "E_NF@MAU.M".ts`}</li>
+            <li>{`"E_NF@HI.M".ts.yoy`}</li>
+            <li>{`"E_NF@HI.M".ts * 1000`}</li>
+            <li>{`"E_NF@HI.M".ts.trim("2010-01-01", "2023-12-01")`}</li>
           </ul>
+          <p>
+            <Link
+              href={`/udaman/${universe}/docs/loader-actions`}
+              className="underline hover:text-blue-800"
+            >
+              Full eval reference
+            </Link>
+          </p>
         </div>
         <RecentSeriesList mode="calculate" />
       </>
@@ -67,8 +70,6 @@ export default async function CalculatePage({
     startDate: e.startDate,
     endDate: e.endDate,
   }));
-  const firstName = extractFirstName(expression);
-
   if ("error" in result) {
     return (
       <>

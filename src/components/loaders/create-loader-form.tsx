@@ -1,6 +1,7 @@
 "use client";
 
 import { Controller, useForm } from "react-hook-form";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 import { H2 } from "../typography";
 
@@ -82,16 +84,26 @@ export function CreateLoaderForm({ universe }: { universe: string }) {
         <FieldSet>
           <FieldGroup>
             <Field data-invalid={!!form.formState.errors.code}>
-              <FieldLabel htmlFor="code">Code</FieldLabel>
-              <Input
+              <div className="flex justify-between">
+                <FieldLabel htmlFor="code">Code </FieldLabel>{" "}
+                <FieldDescription>
+                  <Link
+                    href={`/udaman/${universe}/docs/loader-actions`}
+                    className="hover:text-blue-800"
+                  >
+                    See docs
+                  </Link>
+                </FieldDescription>
+              </div>
+              <Textarea
                 id="code"
-                placeholder="enter load statement"
+                placeholder={`"E_NF@HI.M".ts.yoy`}
+                className="font-mono text-sm"
+                rows={3}
                 aria-invalid={!!form.formState.errors.code}
                 {...form.register("code")}
               />
-              <FieldDescription>
-                Field will be evaluated as code to load data points
-              </FieldDescription>
+
               <FieldError errors={[form.formState.errors.code]} />
             </Field>
 
