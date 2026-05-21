@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Server } from "lucide-react";
+import { FunctionSquare, Server } from "lucide-react";
 
 const docs = [
   {
@@ -8,6 +8,13 @@ const docs = [
       "Shared workstations, networking, and hardware documentation.",
     href: "docs/it-infrastructure",
     icon: Server,
+  },
+  {
+    title: "Loader Actions",
+    description:
+      "Reference for eval expressions: arithmetic, interpolation, API loading, and county sharing methods.",
+    href: "docs/loader-actions",
+    icon: FunctionSquare,
   },
 ];
 

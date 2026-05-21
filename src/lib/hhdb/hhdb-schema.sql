@@ -98,6 +98,7 @@ CREATE TABLE owners (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     owner_name VARCHAR(255) NOT NULL,
     owner_type VARCHAR(50) COMMENT 'Fee Owner, Lessee, etc.',
     owner_address TEXT COMMENT 'Owner mailing address',
@@ -105,6 +106,7 @@ CREATE TABLE owners (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year),
     INDEX idx_owner_name (owner_name(100))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Property owners - multiple owners per property';
 
@@ -115,6 +117,7 @@ CREATE TABLE parcels (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     parcel_number VARCHAR(30),
     location_address VARCHAR(255),
     address_other TEXT,
@@ -134,7 +137,8 @@ CREATE TABLE parcels (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
-    INDEX idx_scraped_at (scraped_at)
+    INDEX idx_scraped_at (scraped_at),
+    INDEX idx_tax_year (tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Annual parcel information observations';
 
 -- ============================================================================
@@ -143,6 +147,7 @@ CREATE TABLE parcels (
 CREATE TABLE assessments (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
     tax_year SMALLINT UNSIGNED NOT NULL,
     property_class VARCHAR(50),
     -- Oahu standard fields (BIGINT for assessed values - range 0 to billions)
@@ -170,6 +175,7 @@ CREATE TABLE assessments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     UNIQUE KEY unique_assessment (tmk, tax_year),
+    INDEX idx_scraped_at (scraped_at),
     INDEX idx_tax_year (tax_year),
     INDEX idx_property_class (property_class)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Property assessments by year - combines current and historical';
@@ -181,12 +187,14 @@ CREATE TABLE land_classifications (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     land_classification VARCHAR(100),
     square_footage VARCHAR(20),
     acreage VARCHAR(20),
     agricultural_use_indicator VARCHAR(10),
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year),
     INDEX idx_classification (land_classification)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Land classification details - multiple per property';
 
@@ -197,6 +205,7 @@ CREATE TABLE residential_improvements (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     -- Fields present on all or most islands
     building_number VARCHAR(10),
     year_built SMALLINT UNSIGNED,
@@ -223,6 +232,7 @@ CREATE TABLE residential_improvements (
     parking_spaces VARCHAR(10),
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year),
     INDEX idx_year_built (year_built),
     INDEX idx_occupancy (occupancy)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Residential improvements - handles "Residential Improvement Information" (Honolulu/Hawaii) and "Improvement Information" (Maui/Kauai)';
@@ -234,6 +244,7 @@ CREATE TABLE residential_additions (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     card VARCHAR(10),
     line VARCHAR(10),
     lower TEXT,
@@ -242,7 +253,8 @@ CREATE TABLE residential_additions (
     third TEXT,
     area VARCHAR(20),
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
-    INDEX idx_tmk (tmk)
+    INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Residential additions/features';
 
 -- ============================================================================
@@ -252,6 +264,7 @@ CREATE TABLE commercial_improvements (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     building_number VARCHAR(10),
     building_card VARCHAR(10),
     year_built SMALLINT UNSIGNED,
@@ -270,6 +283,7 @@ CREATE TABLE commercial_improvements (
     value BIGINT UNSIGNED COMMENT 'Maui - assessed value in whole dollars',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year),
     INDEX idx_year_built (year_built)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Commercial improvement summary';
 
@@ -281,6 +295,7 @@ CREATE TABLE commercial_improvement_details (
     commercial_improvement_id BIGINT UNSIGNED NOT NULL,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     card VARCHAR(10),
     section VARCHAR(50),
     floor VARCHAR(50),
@@ -302,7 +317,8 @@ CREATE TABLE commercial_improvement_details (
     FOREIGN KEY (commercial_improvement_id) REFERENCES commercial_improvements(id) ON DELETE CASCADE,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_commercial_improvement (commercial_improvement_id),
-    INDEX idx_tmk (tmk)
+    INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Detailed commercial improvement data (floors, sections, etc.)';
 
 -- ============================================================================
@@ -312,12 +328,14 @@ CREATE TABLE yard_improvements (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     description VARCHAR(255),
     quantity VARCHAR(20),
     year_built SMALLINT UNSIGNED,
     area VARCHAR(20),
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
-    INDEX idx_tmk (tmk)
+    INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Other building and yard improvements (pools, etc.)';
 
 -- ============================================================================
@@ -368,6 +386,7 @@ CREATE TABLE current_tax_bills (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     tax_period VARCHAR(20),
     description VARCHAR(255),
     original_due_date DATE,
@@ -380,6 +399,7 @@ CREATE TABLE current_tax_bills (
     amount_due DECIMAL(12, 2),
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year),
     INDEX idx_tax_period (tax_period)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Current tax bill information';
 
@@ -390,6 +410,7 @@ CREATE TABLE current_tax_bills (
 CREATE TABLE historical_tax_summary (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
     year SMALLINT UNSIGNED NOT NULL,
     tax DECIMAL(12, 2),
     payments_and_credits DECIMAL(12, 2),
@@ -411,6 +432,7 @@ CREATE TABLE historical_tax_summary (
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     UNIQUE KEY unique_year (tmk, year),
     INDEX idx_tmk (tmk),
+    INDEX idx_scraped_at (scraped_at),
     INDEX idx_year (year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Historical tax summary by year';
 
@@ -419,6 +441,7 @@ CREATE TABLE historical_tax_details (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     historical_tax_summary_id BIGINT UNSIGNED NOT NULL,
     tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
     tax_period VARCHAR(20),
     description VARCHAR(255),
     tax DECIMAL(12, 2),
@@ -437,6 +460,7 @@ CREATE TABLE historical_tax_payments (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     historical_tax_summary_id BIGINT UNSIGNED NOT NULL,
     tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
     payment_sequence VARCHAR(50),
     effective_date DATE,
     tax DECIMAL(12, 2),
@@ -455,6 +479,7 @@ CREATE TABLE historical_tax_credits (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     historical_tax_summary_id BIGINT UNSIGNED NOT NULL,
     tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
     period VARCHAR(20),
     description VARCHAR(255),
     amount DECIMAL(12, 2),
@@ -470,6 +495,7 @@ CREATE TABLE historical_tax_credits (
 CREATE TABLE appeals (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
     year SMALLINT UNSIGNED,
     appeal_type_value VARCHAR(100),
     scheduled_hearing_date_subject_to_change VARCHAR(50),
@@ -493,6 +519,7 @@ CREATE TABLE agricultural_assessments (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     -- County-specific fields (all nullable)
     acres VARCHAR(20) COMMENT 'Maui',
     acres_in_production VARCHAR(20) COMMENT 'Oahu/Big Island',
@@ -502,7 +529,8 @@ CREATE TABLE agricultural_assessments (
     description TEXT COMMENT 'Maui',
     use_description VARCHAR(255) COMMENT 'Big Island',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
-    INDEX idx_tmk (tmk)
+    INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Agricultural assessment details (sparse - not all counties)';
 
 -- ============================================================================
@@ -512,6 +540,7 @@ CREATE TABLE accessory_structures (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
+    tax_year SMALLINT UNSIGNED,
     building_number VARCHAR(10),
     description VARCHAR(255),
     dimensions_units VARCHAR(50),
@@ -519,7 +548,8 @@ CREATE TABLE accessory_structures (
     value BIGINT UNSIGNED COMMENT 'Structure value in whole dollars',
     year_built SMALLINT UNSIGNED,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
-    INDEX idx_tmk (tmk)
+    INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Accessory structures (Maui only)';
 
 -- ============================================================================
@@ -528,6 +558,7 @@ CREATE TABLE accessory_structures (
 CREATE TABLE dedications (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
     tax_year SMALLINT UNSIGNED,
     number_of_dedications VARCHAR(100) COMMENT 'e.g., "RESIDENTIAL USE(1)" or "AG DEDI - 10 YEARS(2) · AG DEDI - 5 YEARS(1)"',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
