@@ -183,11 +183,20 @@ export function isAssessedValueField(fieldName: string): boolean {
     "tax_payer_opinion_of_value",
     "tax_payer_opinion_of_exemptions",
     "permit_amount",
-    "value",
+    "building_value",
   ];
-  return assessedValuePatterns.some(
-    (pattern) =>
-      lowerFieldName === pattern || lowerFieldName.endsWith("_" + pattern),
+
+  // Fields ending in "_value" that are NOT dollar amounts
+  if (lowerFieldName === "appeal_type_value") {
+    return false;
+  }
+
+  return (
+    lowerFieldName === "value" ||
+    assessedValuePatterns.some(
+      (pattern) =>
+        lowerFieldName === pattern || lowerFieldName.endsWith("_" + pattern),
+    )
   );
 }
 

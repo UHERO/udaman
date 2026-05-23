@@ -59,6 +59,26 @@ The original app is a Rails application. Reference Rails code (models, controlle
 - File names are kebab-case: `loader-collection.ts`, `source-detail.ts`
 
 
+## Hawaii Housing Database (QPub)
+
+Separate MariaDB database (`hawaii_housing_database`) storing statewide property data scraped from QPub. See `README.md` for pipeline overview, CLI commands, and operational details. Schema at `src/lib/hhdb/hhdb-schema.sql`, accessed via `rawQuery()` from `src/lib/mysql/hhdb.ts`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/core/workers/scrape-runner.ts` | Scraper loop + nightly trigger |
+| `src/core/workers/qpub-cli.ts` | CLI entry point for manual parse/load |
+| `src/core/workers/processors/qpub-scrape.ts` | Single-property scrape processor |
+| `src/core/workers/processors/qpub-parse.ts` | Single-property parse processor |
+| `src/core/workers/processors/qpub-load.ts` | Load processor with change detection |
+| `src/core/workers/processors/qpub-nightly.ts` | Nightly parse+load of pending records |
+| `src/core/workers/processors/qpub-rebuild.ts` | Full rebuild from HTML (single table or all) |
+| `src/core/crawlers/qpub/config.ts` | NAS paths, island codes, URL builders |
+| `src/core/crawlers/qpub/parse.ts` | HTML → structured JSON parser |
+| `src/lib/hhdb/hhdb-schema.sql` | Database schema |
+| `src/lib/mysql/hhdb.ts` | Database connection + `rawQuery()` |
+
 ## UI Stack
 
 - shadcn/ui components in `src/components/ui/`

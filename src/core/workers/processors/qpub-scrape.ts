@@ -28,7 +28,8 @@ export async function processScrape(
     if (result.status === "success" || result.status === "no_data") {
       await rawQuery(
         `UPDATE scrape_status
-         SET scrape_status='success', scraped_at=NOW(), retry_count=0, error=NULL
+         SET scrape_status='success', scraped_at=NOW(), retry_count=0, error=NULL,
+             parse_status='pending', load_status='pending'
          WHERE tmk = ?`,
         [tmk],
       );

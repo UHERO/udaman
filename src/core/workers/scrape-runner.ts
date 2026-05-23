@@ -15,6 +15,7 @@ import {
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
+import { processNightly } from "./processors/qpub-nightly";
 import { processScrape } from "./processors/qpub-scrape";
 
 const log = createLogger("scrape-runner");
@@ -29,6 +30,35 @@ const RETRY_SLEEP_MS = 30_000;
 const CAPTCHA_DELAY_MS = 5 * 60_000;
 
 let running = true;
+
+/** Track which calendar day we last ran nightly parse+load (YYYY-MM-DD) */
+let lastNightlyDate: string | null = null;
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Run nightly parse+load if we haven't already done so today.
+ * Called when scraping is done for the day (10pm cutoff or no stale records).
+ */
+async function runNightlyIfNeeded(): Promise<void> {
+  const today = todayStr();
+  if (lastNightlyDate === today) {
+    log.info("Nightly parse+load already ran today — skipping");
+    return;
+  }
+
+  try {
+    const result = await processNightly();
+    log.info(result);
+    lastNightlyDate = today;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.error({ error: msg }, "Nightly parse+load failed");
+    // Don't set lastNightlyDate — allow retry on next iteration
+  }
+}
 
 // ─── Claiming ─────────────────────────────────────────────────────────
 
@@ -121,7 +151,8 @@ async function run() {
     // 1. Check if there's anything stale to scrape
     const staleCount = await countStale();
     if (staleCount === 0) {
-      log.info("All records current — sleeping 1 week");
+      log.info("All records current — running nightly then sleeping 1 week");
+      await runNightlyIfNeeded();
       await sleep(WEEKLY_SLEEP_MS);
       continue;
     }
@@ -148,10 +179,11 @@ async function run() {
       continue;
     }
 
-    // 4. Past 10pm cutoff — close browser and sleep until 5am
+    // 4. Past 10pm cutoff — close browser, run nightly, sleep until 5am
     if (isPastCutoff()) {
-      log.info("Past 10pm scrape cutoff — sleeping until 5am");
+      log.info("Past 10pm scrape cutoff — running nightly parse+load");
       await closeBrowser();
+      await runNightlyIfNeeded();
       await sleep(msUntil5am());
       continue;
     }

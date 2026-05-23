@@ -6,8 +6,6 @@ import type { Page } from "playwright-core";
 
 import {
   getHtmlPath,
-  getIslandCode,
-  getResultsPath,
   QPUB_CONFIG,
 } from "./config";
 
@@ -107,34 +105,16 @@ export async function checkPageStatus(page: Page): Promise<PageStatus> {
 
 // ─── Save to NAS ──────────────────────────────────────────────────────
 
-/** Save HTML file + result JSON to the NAS filesystem */
+/** Save HTML file to the NAS filesystem */
 export async function saveHtml(tmk: string, html: string): Promise<void> {
-  const island = getIslandCode(tmk);
   const htmlDir = getHtmlPath(tmk);
-  const resultsDir = getResultsPath(island);
 
-  // Ensure directories exist
   if (!existsSync(htmlDir)) {
     await fs.mkdir(htmlDir, { recursive: true });
   }
-  if (!existsSync(resultsDir)) {
-    await fs.mkdir(resultsDir, { recursive: true });
-  }
 
   const safeName = tmk.replace(/\//g, "-");
-
-  // Save HTML
   await fs.writeFile(path.join(htmlDir, `${safeName}.html`), html);
-
-  // Save result JSON
-  await fs.writeFile(
-    path.join(resultsDir, `${safeName}.json`),
-    JSON.stringify(
-      { tmk, status: "success", scraped_at: new Date().toISOString() },
-      null,
-      2,
-    ),
-  );
 }
 
 // ─── Main scrape function ─────────────────────────────────────────────

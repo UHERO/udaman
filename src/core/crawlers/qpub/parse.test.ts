@@ -191,8 +191,8 @@ describe("parcel_information", () => {
       expect(p.land_area_acres).toBeCloseTo(0.2483, 3);
     });
 
-    it("does not have property_class in parcel info (comes from assessments)", () => {
-      expect(p.property_class).toBeNull();
+    it("copies property_class from most recent assessment to parcel info", () => {
+      expect(p.property_class).toBeTruthy();
     });
   });
 

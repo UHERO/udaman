@@ -1,66 +1,66 @@
 -- ============================================================================
--- Add tax_year to snapshot tables, scraped_at to annual/tax-year tables
--- Ensures all periodic data records have both fields for tracking data
--- validity and preventing duplicates across scrape cycles.
+-- Add last_year_observed to snapshot tables, scraped_at to annual/tax-year tables
+-- Ensures all periodic data records have tracking fields for change detection
+-- and preventing duplicates across scrape cycles.
 -- Columns are nullable; existing records will be backfilled separately.
 -- ============================================================================
 
--- ─── Add tax_year to snapshot tables (already have scraped_at) ──────
+-- ─── Add last_year_observed to snapshot tables (already have scraped_at) ──────
 
 ALTER TABLE owners
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE owners
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE parcels
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE parcels
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE land_classifications
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE land_classifications
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE residential_improvements
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE residential_improvements
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE residential_additions
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE residential_additions
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE commercial_improvements
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE commercial_improvements
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE commercial_improvement_details
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE commercial_improvement_details
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE yard_improvements
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE yard_improvements
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE agricultural_assessments
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE agricultural_assessments
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE accessory_structures
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE accessory_structures
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 ALTER TABLE current_tax_bills
-  ADD COLUMN tax_year SMALLINT UNSIGNED NULL AFTER scraped_at;
+  ADD COLUMN last_year_observed SMALLINT UNSIGNED NULL AFTER scraped_at;
 ALTER TABLE current_tax_bills
-  ADD INDEX idx_tax_year (tax_year);
+  ADD INDEX idx_last_year_observed (last_year_observed);
 
 -- ─── Add scraped_at to annual/tax-year tables ──────────────────────
 

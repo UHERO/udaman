@@ -5,6 +5,8 @@ import { getHtmlPath, getJsonPath } from "@/core/crawlers/qpub/config";
 import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
+import { errorMessage } from "./qpub-load";
+
 export async function processParse(
   data: { tmk: string; island: string },
   log: (msg: string) => void,
@@ -56,10 +58,9 @@ export async function processParse(
     log(`${tmk}: parsed → ${jsonFile}`);
     return `${tmk}: parsed`;
   } catch (e) {
-    const errorMsg = e instanceof Error ? e.message : String(e);
     await rawQuery(
       `UPDATE scrape_status SET parse_status='failed', error=? WHERE tmk=?`,
-      [errorMsg.slice(0, 500), tmk],
+      [errorMessage(e).slice(0, 500), tmk],
     );
     throw e;
   }

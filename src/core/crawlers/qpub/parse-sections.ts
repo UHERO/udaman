@@ -239,20 +239,6 @@ export function parseParcelInformation(
     }
   });
 
-  const SQFT_PER_ACRE = 43560;
-
-  if (result.land_area_approximate_sq_ft && !result.land_area_acres) {
-    const sqft = parseFloat(String(result.land_area_approximate_sq_ft));
-    if (!isNaN(sqft) && sqft > 0) {
-      result.land_area_acres = parseFloat((sqft / SQFT_PER_ACRE).toFixed(4));
-    }
-  } else if (result.land_area_acres && !result.land_area_approximate_sq_ft) {
-    const acres = parseFloat(String(result.land_area_acres));
-    if (!isNaN(acres) && acres > 0) {
-      result.land_area_approximate_sq_ft = Math.round(acres * SQFT_PER_ACRE);
-    }
-  }
-
   return result;
 }
 
@@ -852,6 +838,9 @@ function makeEmptyBuilding(): Record<string, string | null> {
     condo_floor_number: null,
     condo_type: null,
     condo_view: null,
+    condo_style: null,
+    floor_level: null,
+    parking_spaces: null,
   };
 }
 
@@ -932,6 +921,7 @@ function extractBuildingFields(
       }
     });
   }
+
 }
 
 export function parseResidentialImprovementInformation(
@@ -955,9 +945,11 @@ export function parseResidentialImprovementInformation(
     }
   }
 
-  // Parse condo table (Maui "Improvement Information" contains a separate
-  // table.tabular-data with Condo Name, Unit Number, Floor Number, etc.)
-  // Condo fields are attached to the first building record.
+  // Parse condo detail table — sits outside the .block-row divs but still
+  // within the section.  Two known formats:
+  //   Oahu:  "Condo Style", "Floor Level", "Condo View", "# Parking Spaces"
+  //   Maui:  "Condo Name", "Unit Number", "Floor Number", "Condo Type", "Condo View"
+  // Fields are attached to the first building record.
   const condoTable =
     section.querySelector('table[id*="dgCondo"]') ??
     section.querySelector("table.tabular-data:not(.tabular-data-two-column)");
@@ -969,9 +961,18 @@ export function parseResidentialImprovementInformation(
         cleanText(th.textContent).toLowerCase(),
       );
 
-      // Only process if this looks like a condo table
-      if (headers.some((h) => h.includes("condo name"))) {
+      const isCondo = headers.some(
+        (h) =>
+          h.includes("condo") ||
+          h.includes("parking") ||
+          h.includes("floor level"),
+      );
+
+      if (isCondo) {
         const columnMap = headers.map((h) => {
+          if (h.includes("condo style")) return "condo_style";
+          if (h === "floor level") return "floor_level";
+          if (h.includes("parking")) return "parking_spaces";
           if (h.includes("condo name")) return "condo_name";
           if (h.includes("unit number")) return "condo_unit_number";
           if (h.includes("floor number")) return "condo_floor_number";

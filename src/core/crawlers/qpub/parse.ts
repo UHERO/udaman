@@ -10,6 +10,7 @@ import { parse } from "node-html-parser";
 import type { HTMLElement } from "node-html-parser";
 
 import { getIslandCode } from "./config";
+import { normalizeProperty } from "./normalize-property";
 import { SECTION_PARSERS } from "./parse-sections";
 import { cleanText, normalizeNumericValues } from "./parse-utils";
 
@@ -465,6 +466,9 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
       parcel.property_class = "This is a Condo Master.";
     }
   }
+
+  // Cross-section normalization (area derivation, field moves, etc.)
+  normalizeProperty(result);
 
   return normalizeNumericValues(result);
 }

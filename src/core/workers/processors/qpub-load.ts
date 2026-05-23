@@ -1,14 +1,31 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 
 import {
+  getHtmlPath,
   getIslandCode,
   getJsonPath,
-  PERIOD_WHERE,
 } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
+import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { parseDollarValue } from "@/core/crawlers/qpub/parse-utils";
 import { insertAndGetId, rawQuery } from "@/lib/mysql/hhdb";
+
+// ─── Error helper ────────────────────────────────────────────────
+
+/** Extract a readable message from any thrown value (Error, Bun SQL object, string, etc.) */
+export function errorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object") {
+    // Bun SQL errors are plain objects with a message property
+    if ("message" in e && typeof (e as Record<string, unknown>).message === "string") {
+      return (e as Record<string, unknown>).message as string;
+    }
+    try { return JSON.stringify(e); } catch { /* fall through */ }
+  }
+  return String(e);
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -71,33 +88,127 @@ function getAssessmentPropertyClass(data: ParsedProperty): string | null {
   return null;
 }
 
-/**
- * Compute the scrape period for a given date.
- * For use in SQL period-based dedup. Uses the same logic as PERIOD_WHERE:
- * months 1–7 → period 1, months 8–12 → period 2.
- */
-function periodString(date: Date): string {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  return `${year}-${month <= 7 ? "1" : "2"}`;
-}
-
-/** Delete snapshot records matching tmk + scrape period */
-async function deletePeriodSnapshot(
-  tableName: string,
-  tmk: string,
-  scrapedAt: Date,
-): Promise<void> {
-  const period = periodString(scrapedAt);
-  await rawQuery(
-    `DELETE FROM ${tableName} WHERE tmk=? AND ${PERIOD_WHERE} = ?`,
-    [tmk, period],
-  );
-}
-
 /** Format a Date for SQL insertion (YYYY-MM-DD HH:MM:SS) */
 function sqlDate(d: Date): string {
   return d.toISOString().slice(0, 19).replace("T", " ");
+}
+
+/**
+ * Derive the observation year from the max tax_year in the assessment data.
+ * Falls back to current calendar year if no assessments are present.
+ */
+function getMaxTaxYear(data: ParsedProperty): number {
+  const assessInfo = data.assessment_information as Row | undefined;
+  if (!assessInfo) return new Date().getFullYear();
+
+  const current = (assessInfo.current_assessments as Row[]) ?? [];
+  const historical = (assessInfo.historical_assessments as Row[]) ?? [];
+  const all = [...current, ...historical];
+
+  let maxYear = 0;
+  for (const a of all) {
+    const y = int(a.tax_year);
+    if (y && y > maxYear) maxYear = y;
+  }
+
+  return maxYear || new Date().getFullYear();
+}
+
+// ─── Change-detection helper ─────────────────────────────────────
+
+/**
+ * Normalize a value to a string for comparison purposes.
+ * NULL/undefined → "", otherwise trimmed string.
+ */
+function normalizeForCompare(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  return String(v).trim();
+}
+
+/**
+ * Compare two sets of data fields to check if they represent the same data.
+ * Returns true if all fields match.
+ */
+function dataFieldsMatch(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+  fieldNames: string[],
+): boolean {
+  for (const field of fieldNames) {
+    if (normalizeForCompare(existing[field]) !== normalizeForCompare(incoming[field])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Upsert a snapshot record using change detection.
+ *
+ * 1. SELECT most recent record matching tmk + identity fields (highest last_year_observed)
+ * 2. If found and data matches → UPDATE last_year_observed + scraped_at → "updated"
+ * 3. If found but data differs → INSERT new row → "inserted"
+ * 4. If not found → INSERT new row → "inserted"
+ */
+async function upsertSnapshot(opts: {
+  table: string;
+  tmk: string;
+  observedYear: number;
+  scrapedAt: Date;
+  identityFields: Record<string, unknown>;
+  dataFields: Record<string, unknown>;
+}): Promise<"updated" | "inserted"> {
+  const { table, tmk, observedYear, scrapedAt, identityFields, dataFields } = opts;
+  const scrapedAtStr = sqlDate(scrapedAt);
+
+  // Build WHERE clause for identity fields
+  const identityEntries = Object.entries(identityFields);
+  const identityWhere = identityEntries.length > 0
+    ? " AND " + identityEntries.map(([col]) => `${col}=?`).join(" AND ")
+    : "";
+  const identityValues = Object.values(identityFields) as (string | number | Date | null)[];
+
+  // SELECT most recent record matching tmk + identity
+  const existing = await rawQuery<Record<string, unknown>>(
+    `SELECT * FROM ${table} WHERE tmk=?${identityWhere} ORDER BY last_year_observed DESC, id DESC LIMIT 1`,
+    [tmk, ...identityValues],
+  );
+
+  if (existing.length > 0) {
+    const row = existing[0];
+    const dataFieldNames = Object.keys(dataFields);
+
+    if (dataFieldsMatch(row, dataFields, dataFieldNames)) {
+      // Data unchanged → bump last_year_observed + scraped_at
+      await rawQuery(
+        `UPDATE ${table} SET last_year_observed=?, scraped_at=? WHERE id=?`,
+        [observedYear, scrapedAtStr, row.id as number],
+      );
+      return "updated";
+    }
+  }
+
+  // Data changed or no existing record → INSERT new row
+  const allFields: Record<string, unknown> = {
+    tmk,
+    scraped_at: scrapedAtStr,
+    last_year_observed: observedYear,
+    ...identityFields,
+    ...dataFields,
+  };
+  const cols = Object.keys(allFields);
+  const placeholders = cols.map(() => "?").join(", ");
+  const values = cols.map((c) => {
+    const v = allFields[c];
+    if (v === null || v === undefined) return null;
+    return v;
+  });
+
+  await rawQuery(
+    `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${placeholders})`,
+    values as (string | number | Date | null)[],
+  );
+  return "inserted";
 }
 
 // ─── Section loaders ─────────────────────────────────────────────
@@ -177,9 +288,12 @@ export async function loadParcels(
   tmk: string,
   data: ParsedProperty,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   const parcel = data.parcel_information as Row | undefined;
   if (!parcel) return;
+
+  const year = observedYear ?? getMaxTaxYear(data);
 
   // For Maui condo units, project_name is in Improvement Information as "Condo Name"
   const improvInfo =
@@ -193,42 +307,38 @@ export async function loadParcels(
   const propertyClass =
     str(parcel.property_class) ?? getAssessmentPropertyClass(data);
 
-  // Delete same-period records for this TMK
-  await deletePeriodSnapshot("parcels", tmk, scrapedAt);
-
-  await rawQuery(
-    `INSERT INTO parcels (tmk, scraped_at, parcel_number, location_address, address_other,
-       project_name, legal_information, property_class, land_area_sqft, land_area_acres,
-       neighborhood_code, zoning, parcel_note, damage, reentry_zone, zone_color,
-       non_taxable_status, living_units)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      tmk,
-      sqlDate(scrapedAt),
-      str(parcel.parcel_number),
-      str(parcel.location_address),
-      str(parcel.address_other),
-      projectName,
-      str(parcel.legal_information),
-      propertyClass,
-      int(parcel.land_area_approximate_sq_ft),
-      dec(parcel.land_area_acres),
-      str(parcel.neighborhood_code),
-      str(parcel.zoning),
-      str(parcel.parcel_note),
-      str(parcel.damage),
-      str(parcel.reentry_zone),
-      str(parcel.zone_color),
-      str(parcel.non_taxable_status),
-      str(parcel.living_units),
-    ],
-  );
+  await upsertSnapshot({
+    table: "parcels",
+    tmk,
+    observedYear: year,
+    scrapedAt,
+    identityFields: {},
+    dataFields: {
+      parcel_number: str(parcel.parcel_number),
+      location_address: str(parcel.location_address),
+      address_other: str(parcel.address_other),
+      project_name: projectName,
+      legal_information: str(parcel.legal_information),
+      property_class: propertyClass,
+      land_area_sqft: int(parcel.land_area_approximate_sq_ft),
+      land_area_acres: dec(parcel.land_area_acres),
+      neighborhood_code: str(parcel.neighborhood_code),
+      zoning: str(parcel.zoning),
+      parcel_note: str(parcel.parcel_note),
+      damage: str(parcel.damage),
+      reentry_zone: str(parcel.reentry_zone),
+      zone_color: str(parcel.zone_color),
+      non_taxable_status: str(parcel.non_taxable_status),
+      living_units: str(parcel.living_units),
+    },
+  });
 }
 
 export async function loadOwners(
   tmk: string,
   data: ParsedProperty,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   const ownerInfo = data.owner_information as Row | undefined;
   if (!ownerInfo?.all_owners) return;
@@ -236,30 +346,51 @@ export async function loadOwners(
   const owners = ownerInfo.all_owners as Row[];
   if (owners.length === 0) return;
 
-  // Delete same-period records
-  await deletePeriodSnapshot("owners", tmk, scrapedAt);
+  const year = observedYear ?? getMaxTaxYear(data);
+  const scrapedAtStr = sqlDate(scrapedAt);
 
   for (let i = 0; i < owners.length; i++) {
     const o = owners[i];
-    await rawQuery(
-      `INSERT INTO owners (tmk, scraped_at, owner_name, owner_type, owner_address, sequence_order)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        tmk,
-        sqlDate(scrapedAt),
-        str(o.owner_name),
-        str(o.owner_type),
-        str(o.owner_address),
-        i + 1,
-      ],
+    const ownerName = str(o.owner_name);
+    const ownerType = str(o.owner_type);
+
+    // Look up existing by identity: tmk + owner_name + owner_type
+    const existing = await rawQuery<Record<string, unknown>>(
+      `SELECT id, owner_address FROM owners WHERE tmk=? AND owner_name=? AND owner_type=? LIMIT 1`,
+      [tmk, ownerName, ownerType],
     );
+
+    if (existing.length > 0) {
+      // Found → update last_year_observed, scraped_at, sequence_order
+      // Do NOT touch owner_address — preserved from external join
+      await rawQuery(
+        `UPDATE owners SET last_year_observed=?, scraped_at=?, sequence_order=? WHERE id=?`,
+        [year, scrapedAtStr, i + 1, existing[0].id as number],
+      );
+    } else {
+      // Not found → insert new owner
+      await rawQuery(
+        `INSERT INTO owners (tmk, scraped_at, last_year_observed, owner_name, owner_type, owner_address, sequence_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          tmk,
+          scrapedAtStr,
+          year,
+          ownerName,
+          ownerType,
+          str(o.owner_address),
+          i + 1,
+        ],
+      );
+    }
   }
+  // Owners NOT in this scrape keep their old last_year_observed — signals no longer on title
 }
 
 export async function loadAssessments(
   tmk: string,
   data: ParsedProperty,
-  _scrapedAt?: Date,
+  scrapedAt: Date = new Date(),
 ): Promise<void> {
   const assessInfo = data.assessment_information as Row | undefined;
   if (!assessInfo) return;
@@ -270,34 +401,42 @@ export async function loadAssessments(
 
   if (allAssessments.length === 0) return;
 
-  // Collect all tax years being scraped
-  const taxYears = allAssessments
-    .map((a) => int(a.tax_year))
-    .filter((y): y is number => y !== null);
-
-  if (taxYears.length === 0) return;
-
-  // Delete only the years covered by this scrape
-  const placeholders = taxYears.map(() => "?").join(",");
-  await rawQuery(
-    `DELETE FROM assessments WHERE tmk=? AND tax_year IN (${placeholders})`,
-    [tmk, ...taxYears],
-  );
+  const scrapedAtStr = sqlDate(scrapedAt);
 
   for (const a of allAssessments) {
     const taxYear = int(a.tax_year);
     if (!taxYear) continue;
 
+    // INSERT ... ON DUPLICATE KEY UPDATE — handles new year (insert)
+    // and corrections to historical years (update) in one pass
     await rawQuery(
-      `INSERT INTO assessments (tmk, tax_year, property_class,
+      `INSERT INTO assessments (tmk, scraped_at, tax_year, property_class,
          assessed_land_value, assessed_building_value, dedicated_use_value,
          land_exemption, building_exemption,
          net_taxable_land_value, net_taxable_building_value,
          total_property_assessed_value, total_property_exemption, total_net_taxable_value,
          agricultural_land_value, market_land_value, market_building_value, total_market_value)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         scraped_at=VALUES(scraped_at),
+         property_class=VALUES(property_class),
+         assessed_land_value=VALUES(assessed_land_value),
+         assessed_building_value=VALUES(assessed_building_value),
+         dedicated_use_value=VALUES(dedicated_use_value),
+         land_exemption=VALUES(land_exemption),
+         building_exemption=VALUES(building_exemption),
+         net_taxable_land_value=VALUES(net_taxable_land_value),
+         net_taxable_building_value=VALUES(net_taxable_building_value),
+         total_property_assessed_value=VALUES(total_property_assessed_value),
+         total_property_exemption=VALUES(total_property_exemption),
+         total_net_taxable_value=VALUES(total_net_taxable_value),
+         agricultural_land_value=VALUES(agricultural_land_value),
+         market_land_value=VALUES(market_land_value),
+         market_building_value=VALUES(market_building_value),
+         total_market_value=VALUES(total_market_value)`,
       [
         tmk,
+        scrapedAtStr,
         taxYear,
         str(a.property_class),
         int(a.assessed_land_value),
@@ -323,6 +462,7 @@ export async function loadLandClassifications(
   tmk: string,
   data: ParsedProperty,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   const landInfo = data.land_information as Row | undefined;
   if (!landInfo?.land_classifications) return;
@@ -330,21 +470,23 @@ export async function loadLandClassifications(
   const classifications = landInfo.land_classifications as Row[];
   if (classifications.length === 0) return;
 
-  await deletePeriodSnapshot("land_classifications", tmk, scrapedAt);
+  const year = observedYear ?? getMaxTaxYear(data);
 
   for (const c of classifications) {
-    await rawQuery(
-      `INSERT INTO land_classifications (tmk, scraped_at, land_classification, square_footage, acreage, agricultural_use_indicator)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        tmk,
-        sqlDate(scrapedAt),
-        str(c.land_classification),
-        str(c.square_footage),
-        str(c.acreage),
-        str(c.agricultural_use_indicator),
-      ],
-    );
+    await upsertSnapshot({
+      table: "land_classifications",
+      tmk,
+      observedYear: year,
+      scrapedAt,
+      identityFields: {
+        land_classification: str(c.land_classification),
+      },
+      dataFields: {
+        square_footage: str(c.square_footage),
+        acreage: str(c.acreage),
+        agricultural_use_indicator: str(c.agricultural_use_indicator),
+      },
+    });
   }
 }
 
@@ -352,6 +494,7 @@ export async function loadResidentialImprovements(
   tmk: string,
   data: ParsedProperty,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   // Check both section names (Honolulu/Hawaii vs Maui/Kauai)
   const improvInfo =
@@ -362,42 +505,40 @@ export async function loadResidentialImprovements(
   const buildings = (improvInfo.buildings as Row[] | undefined) ?? [];
   if (buildings.length === 0) return;
 
-  await deletePeriodSnapshot("residential_improvements", tmk, scrapedAt);
+  const year = observedYear ?? getMaxTaxYear(data);
 
   for (const b of buildings) {
-    await rawQuery(
-      `INSERT INTO residential_improvements (tmk, scraped_at,
-         building_number, year_built, eff_year_built, living_area,
-         bedrooms, full_bath, half_bath,
-         occupancy, framing, percent_complete, heating_cooling,
-         exterior_wall, roof_material, fireplace, grade, building_value, total_room_count,
-         condo_style, condo_view, floor_level)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tmk,
-        sqlDate(scrapedAt),
-        str(b.building_number),
-        str(b.year_built),
-        str(b.eff_year_built),
-        str(b.living_area),
-        str(b.bedrooms),
-        str(b.full_bath),
-        str(b.half_bath),
-        str(b.occupancy),
-        str(b.framing),
-        str(b.percent_complete),
-        str(b.heating_cooling),
-        str(b.exterior_wall),
-        str(b.roof_material),
-        str(b.fireplace),
-        str(b.grade),
-        str(b.building_value),
-        str(b.total_room_count),
-        str(b.condo_type),
-        str(b.condo_view),
-        str(b.condo_floor_number),
-      ],
-    );
+    await upsertSnapshot({
+      table: "residential_improvements",
+      tmk,
+      observedYear: year,
+      scrapedAt,
+      identityFields: {
+        building_number: str(b.building_number),
+      },
+      dataFields: {
+        year_built: str(b.year_built),
+        eff_year_built: str(b.eff_year_built),
+        living_area: int(b.living_area),
+        bedrooms: int(b.bedrooms),
+        full_bath: int(b.full_bath),
+        half_bath: int(b.half_bath),
+        occupancy: str(b.occupancy),
+        framing: str(b.framing),
+        percent_complete: str(b.percent_complete),
+        heating_cooling: str(b.heating_cooling),
+        exterior_wall: str(b.exterior_wall),
+        roof_material: str(b.roof_material),
+        fireplace: str(b.fireplace),
+        grade: str(b.grade),
+        building_value: str(b.building_value),
+        total_room_count: str(b.total_room_count),
+        condo_style: str(b.condo_style ?? b.condo_type),
+        condo_view: str(b.condo_view),
+        floor_level: str(b.floor_level ?? b.condo_floor_number),
+        parking_spaces: str(b.parking_spaces),
+      },
+    });
   }
 }
 
@@ -405,6 +546,7 @@ export async function loadCommercialImprovements(
   tmk: string,
   data: ParsedProperty,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   const ciInfo = data.commercial_improvement_information as Row | undefined;
   if (!ciInfo) return;
@@ -412,54 +554,95 @@ export async function loadCommercialImprovements(
   const buildings = (ciInfo.buildings as Row[] | undefined) ?? [];
   if (buildings.length === 0) return;
 
-  await deletePeriodSnapshot("commercial_improvement_details", tmk, scrapedAt);
-  await deletePeriodSnapshot("commercial_improvements", tmk, scrapedAt);
-
+  const year = observedYear ?? getMaxTaxYear(data);
   const scrapedAtStr = sqlDate(scrapedAt);
 
   for (const b of buildings) {
-    const improvementId = await insertAndGetId(
-      `INSERT INTO commercial_improvements (tmk, scraped_at,
-         building_number, building_card, year_built, effective_year_built,
-         improvement_name, property_class, structure_type, units, identical_units,
-         gross_building_description, building_type, building_square_footage,
-         percent_complete, value)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tmk,
-        scrapedAtStr,
-        str(b.building_number),
-        str(b.building_card),
-        int(b.year_built),
-        int(b.effective_year_built),
-        str(b.improvement_name),
-        str(b.property_class),
-        str(b.structure_type),
-        str(b.units),
-        str(b.identical_units),
-        str(b.gross_building_description),
-        str(b.building_type),
-        str(b.building_square_footage),
-        str(b.percent_complete),
-        int(b.value),
-      ],
+    const buildingNumber = str(b.building_number);
+    const buildingCard = str(b.building_card);
+
+    // Check for existing parent by identity: tmk + building_number + building_card
+    const existing = await rawQuery<Record<string, unknown>>(
+      `SELECT id, year_built, effective_year_built, improvement_name, property_class,
+              structure_type, units, identical_units, gross_building_description,
+              building_square_footage, building_type, percent_complete, value
+       FROM commercial_improvements
+       WHERE tmk=? AND building_number=? AND building_card=?
+       ORDER BY last_year_observed DESC, id DESC LIMIT 1`,
+      [tmk, buildingNumber, buildingCard],
     );
+
+    const incomingData: Record<string, unknown> = {
+      year_built: int(b.year_built),
+      effective_year_built: int(b.effective_year_built),
+      improvement_name: str(b.improvement_name),
+      property_class: str(b.property_class),
+      structure_type: str(b.structure_type),
+      units: str(b.units),
+      identical_units: str(b.identical_units),
+      gross_building_description: str(b.gross_building_description),
+      building_square_footage: str(b.building_square_footage),
+      building_type: str(b.building_type),
+      percent_complete: str(b.percent_complete),
+      value: int(b.value),
+    };
 
     const floorDetails = (b.floor_details as Row[] | undefined) ?? [];
 
-    if (floorDetails.length > 0) {
+    if (existing.length > 0 && dataFieldsMatch(existing[0], incomingData, Object.keys(incomingData))) {
+      // Data unchanged → bump parent last_year_observed + scraped_at
+      const parentId = existing[0].id as number;
+      await rawQuery(
+        `UPDATE commercial_improvements SET last_year_observed=?, scraped_at=? WHERE id=?`,
+        [year, scrapedAtStr, parentId],
+      );
+      // Also bump children
+      await rawQuery(
+        `UPDATE commercial_improvement_details SET last_year_observed=?, scraped_at=? WHERE commercial_improvement_id=?`,
+        [year, scrapedAtStr, parentId],
+      );
+    } else {
+      // Data changed or not found → INSERT new parent + children
+      const improvementId = await insertAndGetId(
+        `INSERT INTO commercial_improvements (tmk, scraped_at, last_year_observed,
+           building_number, building_card, year_built, effective_year_built,
+           improvement_name, property_class, structure_type, units, identical_units,
+           gross_building_description, building_type, building_square_footage,
+           percent_complete, value)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          tmk,
+          scrapedAtStr,
+          year,
+          buildingNumber,
+          buildingCard,
+          int(b.year_built),
+          int(b.effective_year_built),
+          str(b.improvement_name),
+          str(b.property_class),
+          str(b.structure_type),
+          str(b.units),
+          str(b.identical_units),
+          str(b.gross_building_description),
+          str(b.building_type),
+          str(b.building_square_footage),
+          str(b.percent_complete),
+          int(b.value),
+        ],
+      );
 
       for (const d of floorDetails) {
         await rawQuery(
           `INSERT INTO commercial_improvement_details
-             (commercial_improvement_id, tmk, scraped_at,
+             (commercial_improvement_id, tmk, scraped_at, last_year_observed,
               card, section, floor, \`usage\`, area, perimeter,
               exterior_wall, wall_height, occupancy)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             improvementId,
             tmk,
             scrapedAtStr,
+            year,
             str(d.card),
             str(d.section),
             str(d.floor),
@@ -468,7 +651,7 @@ export async function loadCommercialImprovements(
             str(d.perimeter),
             str(d.exterior_wall),
             str(d.wall_height),
-            str(d.usage),
+            str(d.occupancy),
           ],
         );
       }
@@ -526,7 +709,7 @@ export async function loadSales(
 export async function loadHistoricalTax(
   tmk: string,
   data: ParsedProperty,
-  _scrapedAt?: Date,
+  scrapedAt: Date = new Date(),
 ): Promise<void> {
   const taxInfo = data.historical_tax_information as Row | undefined;
   if (!taxInfo?.tax_summary) return;
@@ -534,19 +717,7 @@ export async function loadHistoricalTax(
   const summaries = taxInfo.tax_summary as Row[];
   if (summaries.length === 0) return;
 
-  // Collect years from this scrape
-  const years = summaries
-    .map((s) => int(s.year))
-    .filter((y): y is number => y !== null);
-
-  if (years.length === 0) return;
-
-  // Delete scraped years (ON DELETE CASCADE handles nested details/payments/credits)
-  const placeholders = years.map(() => "?").join(",");
-  await rawQuery(
-    `DELETE FROM historical_tax_summary WHERE tmk=? AND year IN (${placeholders})`,
-    [tmk, ...years],
-  );
+  const scrapedAtStr = sqlDate(scrapedAt);
 
   for (const summary of summaries) {
     const year = int(summary.year);
@@ -557,17 +728,37 @@ export async function loadHistoricalTax(
     const paymentTotals = (summary.tax_payments_totals ?? {}) as Row;
     const creditTotals = (summary.tax_credits_totals ?? {}) as Row;
 
+    // INSERT ... ON DUPLICATE KEY UPDATE for summary (keyed by tmk + year)
     await rawQuery(
-      `INSERT INTO historical_tax_summary (tmk, year, tax, payments_and_credits,
+      `INSERT INTO historical_tax_summary (tmk, scraped_at, year, tax, payments_and_credits,
          penalty, interest, other, amount_due,
          tax_details_total_tax, tax_details_total_payments_credits,
          tax_details_total_penalty, tax_details_total_interest, tax_details_total_other,
          tax_payments_total_tax, tax_payments_total_penalty,
          tax_payments_total_interest, tax_payments_total_other,
          tax_credits_total_amount)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         scraped_at=VALUES(scraped_at),
+         tax=VALUES(tax),
+         payments_and_credits=VALUES(payments_and_credits),
+         penalty=VALUES(penalty),
+         interest=VALUES(interest),
+         other=VALUES(other),
+         amount_due=VALUES(amount_due),
+         tax_details_total_tax=VALUES(tax_details_total_tax),
+         tax_details_total_payments_credits=VALUES(tax_details_total_payments_credits),
+         tax_details_total_penalty=VALUES(tax_details_total_penalty),
+         tax_details_total_interest=VALUES(tax_details_total_interest),
+         tax_details_total_other=VALUES(tax_details_total_other),
+         tax_payments_total_tax=VALUES(tax_payments_total_tax),
+         tax_payments_total_penalty=VALUES(tax_payments_total_penalty),
+         tax_payments_total_interest=VALUES(tax_payments_total_interest),
+         tax_payments_total_other=VALUES(tax_payments_total_other),
+         tax_credits_total_amount=VALUES(tax_credits_total_amount)`,
       [
         tmk,
+        scrapedAtStr,
         year,
         dec(summary.tax),
         dec(summary.payments_and_credits),
@@ -588,22 +779,37 @@ export async function loadHistoricalTax(
       ],
     );
 
-    // Get inserted summary ID — Bun SQL returns the result set, use a separate query
+    // Get summary ID (may be existing or newly inserted)
     const [{ id: summaryId }] = await rawQuery<{ id: number }>(
       `SELECT id FROM historical_tax_summary WHERE tmk=? AND year=? LIMIT 1`,
       [tmk, year],
+    );
+
+    // Delete children and re-insert (always loaded as complete set per year)
+    await rawQuery(
+      `DELETE FROM historical_tax_details WHERE historical_tax_summary_id=?`,
+      [summaryId],
+    );
+    await rawQuery(
+      `DELETE FROM historical_tax_payments WHERE historical_tax_summary_id=?`,
+      [summaryId],
+    );
+    await rawQuery(
+      `DELETE FROM historical_tax_credits WHERE historical_tax_summary_id=?`,
+      [summaryId],
     );
 
     // Insert tax details
     const taxDetails = (summary.tax_details ?? []) as Row[];
     for (const d of taxDetails) {
       await rawQuery(
-        `INSERT INTO historical_tax_details (historical_tax_summary_id, tmk,
+        `INSERT INTO historical_tax_details (historical_tax_summary_id, tmk, scraped_at,
            tax_period, description, tax, payments_credits, penalty, interest, other)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           summaryId,
           tmk,
+          scrapedAtStr,
           str(d.tax_period),
           str(d.description),
           dec(d.tax),
@@ -619,12 +825,13 @@ export async function loadHistoricalTax(
     const taxPayments = (summary.tax_payments ?? []) as Row[];
     for (const p of taxPayments) {
       await rawQuery(
-        `INSERT INTO historical_tax_payments (historical_tax_summary_id, tmk,
+        `INSERT INTO historical_tax_payments (historical_tax_summary_id, tmk, scraped_at,
            payment_sequence, effective_date, tax, penalty, interest, other)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           summaryId,
           tmk,
+          scrapedAtStr,
           str(p.payment_sequence),
           parseDateValue(str(p.effective_date)),
           dec(p.tax),
@@ -639,10 +846,10 @@ export async function loadHistoricalTax(
     const taxCredits = (summary.tax_credits ?? []) as Row[];
     for (const c of taxCredits) {
       await rawQuery(
-        `INSERT INTO historical_tax_credits (historical_tax_summary_id, tmk,
+        `INSERT INTO historical_tax_credits (historical_tax_summary_id, tmk, scraped_at,
            period, description, amount)
-         VALUES (?, ?, ?, ?, ?)`,
-        [summaryId, tmk, str(c.period), str(c.description), dec(c.amount)],
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [summaryId, tmk, scrapedAtStr, str(c.period), str(c.description), dec(c.amount)],
       );
     }
   }
@@ -688,6 +895,7 @@ export async function loadCurrentTaxBills(
   tmk: string,
   data: ParsedProperty,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   const taxBillInfo = data.current_tax_bill_information as Row | undefined;
   if (!taxBillInfo) return;
@@ -695,32 +903,29 @@ export async function loadCurrentTaxBills(
   const bills = (taxBillInfo.table_data ?? []) as Row[];
   if (bills.length === 0) return;
 
-  await deletePeriodSnapshot("current_tax_bills", tmk, scrapedAt);
-
-  const scrapedAtStr = sqlDate(scrapedAt);
+  const year = observedYear ?? getMaxTaxYear(data);
 
   for (const b of bills) {
-    await rawQuery(
-      `INSERT INTO current_tax_bills (tmk, scraped_at,
-         tax_period, description, original_due_date,
-         taxes_assessment, tax_credits, net_tax,
-         penalty, interest, other, amount_due)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tmk,
-        scrapedAtStr,
-        str(b.tax_period),
-        str(b.description),
-        parseDateValue(str(b.original_due_date)),
-        dec(b.taxes_assessment) ?? dec(b.taxes),
-        dec(b.tax_credits) ?? dec(b.credits),
-        dec(b.net_tax),
-        dec(b.penalty),
-        dec(b.interest),
-        dec(b.other),
-        dec(b.amount_due),
-      ],
-    );
+    await upsertSnapshot({
+      table: "current_tax_bills",
+      tmk,
+      observedYear: year,
+      scrapedAt,
+      identityFields: {
+        tax_period: str(b.tax_period),
+      },
+      dataFields: {
+        description: str(b.description),
+        original_due_date: parseDateValue(str(b.original_due_date)),
+        taxes_assessment: dec(b.taxes_assessment) ?? dec(b.taxes),
+        tax_credits: dec(b.tax_credits) ?? dec(b.credits),
+        net_tax: dec(b.net_tax),
+        penalty: dec(b.penalty),
+        interest: dec(b.interest),
+        other: dec(b.other),
+        amount_due: dec(b.amount_due),
+      },
+    });
   }
 }
 
@@ -823,11 +1028,22 @@ export async function loadCondoProject(
 
 // ─── Generic snapshot loaders ────────────────────────────────────
 
+/** Identity field definitions for generic snapshot tables */
+const GENERIC_IDENTITY_FIELDS: Record<string, string[]> = {
+  yard_improvements: ["description", "year_built"],
+  residential_additions: ["card", "line"],
+  agricultural_assessments: [], // compare all data fields
+  accessory_structures: ["building_number", "description"],
+  appeals: ["year", "appeal_type_value"],
+  dedications: ["tax_year"],
+};
+
 async function loadGenericSnapshot(
   tmk: string,
   tableName: string,
   rows: Row[],
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   if (rows.length === 0) return;
 
@@ -838,19 +1054,13 @@ async function loadGenericSnapshot(
   );
   const columnNames = new Set(columns.map((c) => c.Field));
 
-  // Delete same-period records
-  if (columnNames.has("scraped_at")) {
-    await deletePeriodSnapshot(tableName, tmk, scrapedAt);
-  }
-
+  const hasLastYearObserved = columnNames.has("last_year_observed");
   const scrapedAtStr = sqlDate(scrapedAt);
+  const identityFieldDefs = GENERIC_IDENTITY_FIELDS[tableName] ?? [];
 
   for (const row of rows) {
     // Match row fields to DB columns
-    const matched: Record<string, unknown> = { tmk };
-    if (columnNames.has("scraped_at")) {
-      matched.scraped_at = scrapedAtStr;
-    }
+    const matched: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(row)) {
       const snakeKey = key
@@ -862,25 +1072,64 @@ async function loadGenericSnapshot(
         snakeKey !== "id" &&
         snakeKey !== "tmk" &&
         snakeKey !== "created_at" &&
-        snakeKey !== "scraped_at"
+        snakeKey !== "scraped_at" &&
+        snakeKey !== "last_year_observed"
       ) {
         matched[snakeKey] = value;
       }
     }
 
-    const fields = Object.keys(matched);
-    const placeholders = fields.map(() => "?").join(", ");
-    const values = fields.map((f) => {
-      const v = matched[f];
-      if (v instanceof Date) return v;
-      if (v === null || v === undefined) return null;
-      return String(v);
-    });
+    if (hasLastYearObserved && observedYear) {
+      // Use change-detection pattern
+      const identityFields: Record<string, unknown> = {};
+      const dataFields: Record<string, unknown> = {};
 
-    await rawQuery(
-      `INSERT INTO ${tableName} (${fields.join(", ")}) VALUES (${placeholders})`,
-      values,
-    );
+      if (identityFieldDefs.length === 0) {
+        // No explicit identity fields — all matched fields are both identity and data
+        // (e.g. agricultural_assessments: compare everything)
+        for (const [k, v] of Object.entries(matched)) {
+          dataFields[k] = v === null || v === undefined ? null : String(v);
+        }
+      } else {
+        for (const [k, v] of Object.entries(matched)) {
+          const val = v === null || v === undefined ? null : String(v);
+          if (identityFieldDefs.includes(k)) {
+            identityFields[k] = val;
+          } else {
+            dataFields[k] = val;
+          }
+        }
+      }
+
+      await upsertSnapshot({
+        table: tableName,
+        tmk,
+        observedYear,
+        scrapedAt,
+        identityFields,
+        dataFields,
+      });
+    } else {
+      // Fallback: simple insert (for tables without last_year_observed)
+      const allFields: Record<string, unknown> = { tmk, ...matched };
+      if (columnNames.has("scraped_at")) {
+        allFields.scraped_at = scrapedAtStr;
+      }
+
+      const fields = Object.keys(allFields);
+      const placeholders = fields.map(() => "?").join(", ");
+      const values = fields.map((f) => {
+        const v = allFields[f];
+        if (v instanceof Date) return v;
+        if (v === null || v === undefined) return null;
+        return String(v);
+      });
+
+      await rawQuery(
+        `INSERT INTO ${tableName} (${fields.join(", ")}) VALUES (${placeholders})`,
+        values,
+      );
+    }
   }
 }
 
@@ -898,6 +1147,7 @@ async function loadGenericSections(
   tmk: string,
   data: ParsedProperty,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   for (const [sectionName, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
     const sectionData = data[sectionName] as Row | undefined;
@@ -909,7 +1159,7 @@ async function loadGenericSections(
       (Array.isArray(sectionData) ? sectionData : [sectionData]);
 
     try {
-      await loadGenericSnapshot(tmk, tableName, rows, scrapedAt);
+      await loadGenericSnapshot(tmk, tableName, rows, scrapedAt, observedYear);
     } catch {
       // Skip sections that fail to load generically — not all sections map cleanly
     }
@@ -926,6 +1176,7 @@ export async function loadGenericForTable(
   sectionName: string,
   tableName: string,
   scrapedAt: Date = new Date(),
+  observedYear?: number,
 ): Promise<void> {
   const sectionData = data[sectionName] as Row | undefined;
   if (!sectionData) return;
@@ -934,7 +1185,7 @@ export async function loadGenericForTable(
     (sectionData.table_data as Row[] | undefined) ??
     (Array.isArray(sectionData) ? sectionData : [sectionData]);
 
-  await loadGenericSnapshot(tmk, tableName, rows, scrapedAt);
+  await loadGenericSnapshot(tmk, tableName, rows, scrapedAt, observedYear);
 }
 
 // ─── TABLE_LOADERS map ──────────────────────────────────────────
@@ -943,6 +1194,7 @@ export type TableLoaderFn = (
   tmk: string,
   data: ParsedProperty,
   scrapedAt?: Date,
+  observedYear?: number,
 ) => Promise<void>;
 
 /** Map of table name → load function, used by reparse processor */
@@ -959,42 +1211,46 @@ export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
   historical_tax: loadHistoricalTax,
   current_tax_bills: loadCurrentTaxBills,
   condominium: loadCondoProject,
-  yard_improvements: (tmk, data, s) =>
+  yard_improvements: (tmk, data, s, y) =>
     loadGenericForTable(
       tmk,
       data,
       "yard_improvement_information",
       "yard_improvements",
       s,
+      y,
     ),
-  residential_additions: (tmk, data, s) =>
+  residential_additions: (tmk, data, s, y) =>
     loadGenericForTable(
       tmk,
       data,
       "residential_addition_information",
       "residential_additions",
       s,
+      y,
     ),
-  agricultural_assessments: (tmk, data, s) =>
+  agricultural_assessments: (tmk, data, s, y) =>
     loadGenericForTable(
       tmk,
       data,
       "agricultural_assessment_information",
       "agricultural_assessments",
       s,
+      y,
     ),
-  accessory_structures: (tmk, data, s) =>
+  accessory_structures: (tmk, data, s, y) =>
     loadGenericForTable(
       tmk,
       data,
       "accessory_structure_information",
       "accessory_structures",
       s,
+      y,
     ),
-  appeals: (tmk, data, s) =>
-    loadGenericForTable(tmk, data, "appeal_information", "appeals", s),
-  dedications: (tmk, data, s) =>
-    loadGenericForTable(tmk, data, "dedication_information", "dedications", s),
+  appeals: (tmk, data, s, y) =>
+    loadGenericForTable(tmk, data, "appeal_information", "appeals", s, y),
+  dedications: (tmk, data, s, y) =>
+    loadGenericForTable(tmk, data, "dedication_information", "dedications", s, y),
 };
 
 // ─── Main load processor ─────────────────────────────────────────
@@ -1006,37 +1262,69 @@ export async function processLoad(
   const { tmk } = data;
 
   try {
-    // Read JSON from NAS
+    // Read JSON from NAS — if missing, re-parse from HTML
     const jsonDir = getJsonPath(tmk);
     const jsonFile = path.join(jsonDir, `${tmk}.json`);
 
-    if (!existsSync(jsonFile)) {
-      await rawQuery(
-        `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
-        [`JSON file not found: ${jsonFile}`, tmk],
-      );
-      throw new Error(`JSON file not found: ${jsonFile}`);
+    let parsed: ParsedProperty;
+
+    if (existsSync(jsonFile)) {
+      parsed = JSON.parse(readFileSync(jsonFile, "utf-8")) as ParsedProperty;
+    } else {
+      // JSON missing — try to parse from HTML
+      const htmlDir = getHtmlPath(tmk);
+      const htmlFile = path.join(htmlDir, `${tmk}.html`);
+
+      if (!existsSync(htmlFile)) {
+        await rawQuery(
+          `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
+          [`No JSON or HTML file found for ${tmk}`, tmk],
+        );
+        throw new Error(`No JSON or HTML file found for ${tmk}`);
+      }
+
+      const html = readFileSync(htmlFile, "utf-8");
+      parsed = parsePropertyHTML(html, tmk);
+
+      if (parsed.status !== "success" && parsed.status !== "condo_project") {
+        await rawQuery(
+          `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
+          [`Parse status: ${parsed.status}`, tmk],
+        );
+        throw new Error(`Parse status: ${parsed.status}`);
+      }
+
+      // Write JSON so future loads don't need to re-parse
+      if (!existsSync(jsonDir)) {
+        mkdirSync(jsonDir, { recursive: true });
+      }
+      writeFileSync(jsonFile, JSON.stringify(parsed, null, 2));
     }
 
-    const parsed = JSON.parse(
-      readFileSync(jsonFile, "utf-8"),
-    ) as ParsedProperty;
-    const scrapedAt = new Date();
+    // Read scraped_at from scrape_status (when HTML was actually fetched)
+    const [ssRow] = await rawQuery<{ scraped_at: string }>(
+      `SELECT scraped_at FROM scrape_status WHERE tmk=?`,
+      [tmk],
+    );
+    const scrapedAt = ssRow?.scraped_at ? new Date(ssRow.scraped_at) : new Date();
+
+    // Derive observation year from the most recent assessment on the page
+    const observedYear = getMaxTaxYear(parsed);
 
     // Load in order (respects FK constraints)
     await loadProperties(tmk, parsed, scrapedAt);
-    await loadParcels(tmk, parsed, scrapedAt);
-    await loadOwners(tmk, parsed, scrapedAt);
+    await loadParcels(tmk, parsed, scrapedAt, observedYear);
+    await loadOwners(tmk, parsed, scrapedAt, observedYear);
     await loadCondoProject(tmk, parsed, scrapedAt);
     await loadAssessments(tmk, parsed, scrapedAt);
-    await loadLandClassifications(tmk, parsed, scrapedAt);
-    await loadResidentialImprovements(tmk, parsed, scrapedAt);
-    await loadCommercialImprovements(tmk, parsed, scrapedAt);
+    await loadLandClassifications(tmk, parsed, scrapedAt, observedYear);
+    await loadResidentialImprovements(tmk, parsed, scrapedAt, observedYear);
+    await loadCommercialImprovements(tmk, parsed, scrapedAt, observedYear);
     await loadSales(tmk, parsed, scrapedAt);
     await loadPermits(tmk, parsed, scrapedAt);
     await loadHistoricalTax(tmk, parsed, scrapedAt);
-    await loadCurrentTaxBills(tmk, parsed, scrapedAt);
-    await loadGenericSections(tmk, parsed, scrapedAt);
+    await loadCurrentTaxBills(tmk, parsed, scrapedAt, observedYear);
+    await loadGenericSections(tmk, parsed, scrapedAt, observedYear);
 
     // Update status
     await rawQuery(
@@ -1047,7 +1335,7 @@ export async function processLoad(
     log(`${tmk}: loaded`);
     return `${tmk}: loaded`;
   } catch (e) {
-    const errorMsg = e instanceof Error ? e.message : String(e);
+    const errorMsg = errorMessage(e);
     await rawQuery(
       `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
       [errorMsg.slice(0, 500), tmk],

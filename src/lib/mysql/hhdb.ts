@@ -67,7 +67,11 @@ async function rawQuery<T = Record<string, unknown>>(
 
 /**
  * Execute an INSERT statement and return LAST_INSERT_ID(), guaranteed to
- * run on the same pooled connection so the ID is correct.
+ * run on the same connection so the ID is correct.
+ *
+ * Uses sequential queries instead of an explicit transaction because
+ * LAST_INSERT_ID() is session-scoped in MySQL/MariaDB — it persists until
+ * the next INSERT on the same connection, so a transaction isn't required.
  */
 async function insertAndGetId(
   sql: string,
@@ -75,28 +79,24 @@ async function insertAndGetId(
 ): Promise<number> {
   const start = performance.now();
   try {
-    const connection = getConnection();
-    const [result] = await connection.begin(async (tx: any) => {
-      await tx.unsafe(sql, params);
-      const rows = await tx.unsafe("SELECT LAST_INSERT_ID() as insertId");
-      return [rows[0].insertId as number];
-    });
+    const conn = getConnection() as any;
+    await conn.unsafe(sql, params);
+    const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
+    const id = Number(rows[0].insertId);
     const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs }, sql);
-    return result as number;
+    log.debug({ durationMs, insertId: id }, sql);
+    return id;
   } catch (err) {
     if (isConnectionError(err)) {
       log.warn("HHDB connection lost, reconnecting and retrying insert");
       resetConnection();
-      const connection = getConnection();
-      const [result] = await connection.begin(async (tx: any) => {
-        await tx.unsafe(sql, params);
-        const rows = await tx.unsafe("SELECT LAST_INSERT_ID() as insertId");
-        return [rows[0].insertId as number];
-      });
+      const conn = getConnection() as any;
+      await conn.unsafe(sql, params);
+      const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
+      const id = Number(rows[0].insertId);
       const durationMs = +(performance.now() - start).toFixed(2);
-      log.debug({ durationMs }, `${sql} (retry)`);
-      return result as number;
+      log.debug({ durationMs, insertId: id }, `${sql} (retry)`);
+      return id;
     }
     throw err;
   }
