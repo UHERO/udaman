@@ -10,6 +10,6 @@ import { rebuildTable } from "./qpub-rebuild";
 export async function processQpubReparse(
   job: Job<QpubReparseJobData>,
 ): Promise<string> {
-  const { table, island, period, batchSize = 500 } = job.data;
-  return rebuildTable(table, { island, period, batchSize });
+  const { table, island, period } = job.data;
+  return rebuildTable(table, { island, period });
 }

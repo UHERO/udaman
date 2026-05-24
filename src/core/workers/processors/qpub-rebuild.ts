@@ -10,25 +10,55 @@ import {
 import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { createLogger } from "@/core/observability/logger";
 
-import { TABLE_LOADERS, errorMessage, processLoad } from "./qpub-load";
+import { TABLE_LOADERS, processLoad } from "./qpub-load";
+import { runPipeline } from "./qpub-pipeline";
 
 const log = createLogger("qpub-rebuild");
-
-export type RebuildProgress = {
-  processed: number;
-  loaded: number;
-  skipped: number;
-  errors: number;
-};
 
 export type RebuildOptions = {
   /** Filter by island code ('1','2','3','4') */
   island?: string;
   /** NAS period dir (e.g., '2026-1'). Default: all available periods */
   period?: string;
-  /** Progress log interval (default: 500) */
-  batchSize?: number;
 };
+
+/** Collect all HTML file paths into a list and build a tmk → filePath map */
+function collectFiles(
+  period?: string,
+  island?: string,
+): Map<string, string> {
+  const fileMap = new Map<string, string>();
+  for (const filePath of listHtmlFiles(period, island)) {
+    const tmk = tmkFromFilePath(filePath);
+    fileMap.set(tmk, filePath);
+  }
+  return fileMap;
+}
+
+/** Parse HTML, write JSON, return parsed data. Returns null if not parseable. */
+function parseAndWriteJson(
+  tmk: string,
+  filePath: string,
+): ReturnType<typeof parsePropertyHTML> | null {
+  const html = readFileSync(filePath, "utf-8");
+  const parsed = parsePropertyHTML(html, tmk);
+
+  if (parsed.status !== "success" && parsed.status !== "condo_project") {
+    return null;
+  }
+
+  // Write JSON to NAS (keeps JSON current with latest parse logic)
+  const jsonDir = getJsonPath(tmk);
+  if (!existsSync(jsonDir)) {
+    mkdirSync(jsonDir, { recursive: true });
+  }
+  writeFileSync(
+    path.join(jsonDir, `${tmk}.json`),
+    JSON.stringify(parsed, null, 2),
+  );
+
+  return parsed;
+}
 
 /**
  * Rebuild a single table by re-parsing all HTML files on NAS and loading
@@ -38,7 +68,7 @@ export async function rebuildTable(
   table: string,
   opts: RebuildOptions = {},
 ): Promise<string> {
-  const { island, period, batchSize = 500 } = opts;
+  const { island, period } = opts;
 
   const loader = TABLE_LOADERS[table];
   if (!loader) {
@@ -48,52 +78,31 @@ export async function rebuildTable(
 
   log.info({ table, island, period }, "Rebuild table started");
 
-  const progress: RebuildProgress = { processed: 0, loaded: 0, skipped: 0, errors: 0 };
+  const fileMap = collectFiles(period, island);
+  const tmks = Array.from(fileMap.keys());
 
-  for (const filePath of listHtmlFiles(period, island)) {
-    progress.processed++;
+  const result = await runPipeline({
+    label: `Rebuild ${table}`,
+    tmks,
+    processFn: async (tmk) => {
+      const filePath = fileMap.get(tmk)!;
+      const parsed = parseAndWriteJson(tmk, filePath);
 
-    try {
-      const tmk = tmkFromFilePath(filePath);
-      const html = readFileSync(filePath, "utf-8");
-      const parsed = parsePropertyHTML(html, tmk);
-
-      // Skip non-success and non-condo_project pages
-      if (parsed.status !== "success" && parsed.status !== "condo_project") {
-        progress.skipped++;
-        continue;
-      }
+      if (!parsed) return "skipped";
 
       // For the condominium loader, only process condo_project pages
       if (table === "condominium" && parsed.status !== "condo_project") {
-        progress.skipped++;
-        continue;
+        return "skipped";
       }
-
-      // Write JSON to NAS (keeps JSON current with latest parse logic)
-      const jsonDir = getJsonPath(tmk);
-      if (!existsSync(jsonDir)) {
-        mkdirSync(jsonDir, { recursive: true });
-      }
-      writeFileSync(
-        path.join(jsonDir, `${tmk}.json`),
-        JSON.stringify(parsed, null, 2),
-      );
 
       const fileMtime = getFileMtime(filePath);
       await loader(tmk, parsed, fileMtime);
-      progress.loaded++;
-    } catch (e) {
-      progress.errors++;
-      log.error({ file: filePath, error: errorMessage(e) }, "Rebuild error");
-    }
+      return "done";
+    },
+    log,
+  });
 
-    if (progress.processed % batchSize === 0) {
-      log.info(progress, "Rebuild progress");
-    }
-  }
-
-  const summary = `Rebuild ${table}: ${progress.processed} processed, ${progress.loaded} loaded, ${progress.skipped} skipped, ${progress.errors} errors`;
+  const summary = `Rebuild ${table}: ${result.done} done, ${result.skipped} skipped, ${result.failed} failed (${result.total} total)`;
   log.info(summary);
   return summary;
 }
@@ -105,53 +114,34 @@ export async function rebuildTable(
 export async function rebuildAll(
   opts: RebuildOptions = {},
 ): Promise<string> {
-  const { island, period, batchSize = 500 } = opts;
+  const { island, period } = opts;
 
   log.info({ island, period }, "Rebuild all started");
 
-  const progress: RebuildProgress = { processed: 0, loaded: 0, skipped: 0, errors: 0 };
+  const fileMap = collectFiles(period, island);
+  const tmks = Array.from(fileMap.keys());
 
-  for (const filePath of listHtmlFiles(period, island)) {
-    progress.processed++;
+  const result = await runPipeline({
+    label: "Rebuild all",
+    tmks,
+    processFn: async (tmk) => {
+      const filePath = fileMap.get(tmk)!;
+      const parsed = parseAndWriteJson(tmk, filePath);
 
-    try {
-      const tmk = tmkFromFilePath(filePath);
-      const html = readFileSync(filePath, "utf-8");
-      const parsed = parsePropertyHTML(html, tmk);
-
-      if (parsed.status !== "success" && parsed.status !== "condo_project") {
-        progress.skipped++;
-        continue;
-      }
-
-      // Write JSON
-      const jsonDir = getJsonPath(tmk);
-      if (!existsSync(jsonDir)) {
-        mkdirSync(jsonDir, { recursive: true });
-      }
-      writeFileSync(
-        path.join(jsonDir, `${tmk}.json`),
-        JSON.stringify(parsed, null, 2),
-      );
+      if (!parsed) return "skipped";
 
       // Load all tables via processLoad (reads JSON back, loads in FK order)
-      const fileMtime = getFileMtime(filePath);
       await processLoad(
         { tmk },
         (msg) => log.debug(msg),
+        { skipStatusUpdate: true },
       );
-      progress.loaded++;
-    } catch (e) {
-      progress.errors++;
-      log.error({ file: filePath, error: errorMessage(e) }, "Rebuild error");
-    }
+      return "done";
+    },
+    log,
+  });
 
-    if (progress.processed % batchSize === 0) {
-      log.info(progress, "Rebuild progress");
-    }
-  }
-
-  const summary = `Rebuild all: ${progress.processed} processed, ${progress.loaded} loaded, ${progress.skipped} skipped, ${progress.errors} errors`;
+  const summary = `Rebuild all: ${result.done} done, ${result.skipped} skipped, ${result.failed} failed (${result.total} total)`;
   log.info(summary);
   return summary;
 }

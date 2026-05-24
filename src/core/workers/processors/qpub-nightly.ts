@@ -3,12 +3,14 @@ import { rawQuery } from "@/lib/mysql/hhdb";
 
 import { errorMessage, processLoad } from "./qpub-load";
 import { processParse } from "./qpub-parse";
+import { runPipeline } from "./qpub-pipeline";
 
 const log = createLogger("qpub-nightly");
 
 type StatusRow = {
   tmk: string;
   island_code: string;
+  parse_status: string;
 };
 
 // ─── Repair phase ──────────────────────────────────────────────────────
@@ -58,82 +60,6 @@ async function repairStatusRecords(): Promise<void> {
   }
 }
 
-// ─── Parse phase ───────────────────────────────────────────────────────
-
-async function parseAll(): Promise<{ parsed: number; failed: number }> {
-  const rows = await rawQuery<StatusRow>(
-    `SELECT s.tmk, p.island_code
-     FROM scrape_status s
-     JOIN properties p ON s.tmk = p.tmk
-     WHERE s.scrape_status = 'success'
-       AND (s.parse_status = 'pending' OR s.parse_status = 'failed')`,
-  );
-
-  log.info({ count: rows.length }, "Parse phase: records to process");
-
-  if (rows.length === 0) return { parsed: 0, failed: 0 };
-
-  let parsed = 0;
-  let failed = 0;
-
-  for (const row of rows) {
-    try {
-      await processParse(
-        { tmk: row.tmk, island: row.island_code },
-        (msg) => log.info(msg),
-      );
-      parsed++;
-    } catch (e) {
-      failed++;
-      log.error({ tmk: row.tmk, error: errorMessage(e) }, "Parse failed");
-    }
-
-    if ((parsed + failed) % 100 === 0) {
-      log.info({ parsed, failed, total: rows.length }, "Parse progress");
-    }
-  }
-
-  return { parsed, failed };
-}
-
-// ─── Load phase ────────────────────────────────────────────────────────
-
-async function loadAll(): Promise<{ loaded: number; failed: number }> {
-  const rows = await rawQuery<StatusRow>(
-    `SELECT s.tmk, p.island_code
-     FROM scrape_status s
-     JOIN properties p ON s.tmk = p.tmk
-     WHERE s.parse_status = 'success'
-       AND (s.load_status = 'pending' OR s.load_status = 'failed')`,
-  );
-
-  log.info({ count: rows.length }, "Load phase: records to process");
-
-  if (rows.length === 0) return { loaded: 0, failed: 0 };
-
-  let loaded = 0;
-  let failed = 0;
-
-  for (const row of rows) {
-    try {
-      await processLoad(
-        { tmk: row.tmk },
-        (msg) => log.info(msg),
-      );
-      loaded++;
-    } catch (e) {
-      failed++;
-      log.error({ tmk: row.tmk, error: errorMessage(e) }, "Load failed");
-    }
-
-    if ((loaded + failed) % 100 === 0) {
-      log.info({ loaded, failed, total: rows.length }, "Load progress");
-    }
-  }
-
-  return { loaded, failed };
-}
-
 // ─── Main entry point ──────────────────────────────────────────────────
 
 /**
@@ -146,16 +72,61 @@ export async function processNightly(): Promise<string> {
 
   await repairStatusRecords();
 
-  const parseResult = await parseAll();
-  log.info(parseResult, "Parse phase complete");
+  // Query TMKs needing work: scrape succeeded but parse or load still pending/failed
+  const rows = await rawQuery<StatusRow>(
+    `SELECT s.tmk, p.island_code, s.parse_status
+     FROM scrape_status s
+     JOIN properties p ON s.tmk = p.tmk
+     WHERE s.scrape_status = 'success'
+       AND (s.parse_status IN ('pending','failed') OR s.load_status IN ('pending','failed'))`,
+  );
 
-  const loadResult = await loadAll();
-  log.info(loadResult, "Load phase complete");
+  // Build a tmk → island_code map for processParse
+  const islandMap = new Map<string, string>();
+  const parseStatusMap = new Map<string, string>();
+  for (const row of rows) {
+    islandMap.set(row.tmk, row.island_code);
+    parseStatusMap.set(row.tmk, row.parse_status);
+  }
+
+  const tmks = rows.map((r) => r.tmk);
+
+  const result = await runPipeline({
+    label: "Nightly",
+    tmks,
+    processFn: async (tmk) => {
+      const island = islandMap.get(tmk)!;
+      const parseStatus = parseStatusMap.get(tmk)!;
+
+      // Parse if needed
+      if (parseStatus !== "success") {
+        try {
+          await processParse(
+            { tmk, island },
+            (msg) => log.info(msg),
+          );
+        } catch (e) {
+          // Parse failed — can't load, propagate error
+          throw new Error(`Parse failed: ${errorMessage(e)}`);
+        }
+      }
+
+      // Load with skipStatusUpdate — pipeline handles batch status updates
+      await processLoad(
+        { tmk },
+        (msg) => log.debug(msg),
+        { skipStatusUpdate: true },
+      );
+
+      return "done";
+    },
+    log,
+  });
 
   const summary = [
     `Nightly complete:`,
-    `parsed ${parseResult.parsed} (${parseResult.failed} failed),`,
-    `loaded ${loadResult.loaded} (${loadResult.failed} failed)`,
+    `${result.done} done, ${result.skipped} skipped, ${result.failed} failed`,
+    `(${result.total} total)`,
   ].join(" ");
 
   log.info(summary);

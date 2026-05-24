@@ -1258,8 +1258,10 @@ export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
 export async function processLoad(
   data: { tmk: string },
   log: (msg: string) => void,
+  opts?: { skipStatusUpdate?: boolean },
 ): Promise<string> {
   const { tmk } = data;
+  const skipStatus = opts?.skipStatusUpdate === true;
 
   try {
     // Read JSON from NAS — if missing, re-parse from HTML
@@ -1276,10 +1278,12 @@ export async function processLoad(
       const htmlFile = path.join(htmlDir, `${tmk}.html`);
 
       if (!existsSync(htmlFile)) {
-        await rawQuery(
-          `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
-          [`No JSON or HTML file found for ${tmk}`, tmk],
-        );
+        if (!skipStatus) {
+          await rawQuery(
+            `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
+            [`No JSON or HTML file found for ${tmk}`, tmk],
+          );
+        }
         throw new Error(`No JSON or HTML file found for ${tmk}`);
       }
 
@@ -1287,10 +1291,12 @@ export async function processLoad(
       parsed = parsePropertyHTML(html, tmk);
 
       if (parsed.status !== "success" && parsed.status !== "condo_project") {
-        await rawQuery(
-          `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
-          [`Parse status: ${parsed.status}`, tmk],
-        );
+        if (!skipStatus) {
+          await rawQuery(
+            `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
+            [`Parse status: ${parsed.status}`, tmk],
+          );
+        }
         throw new Error(`Parse status: ${parsed.status}`);
       }
 
@@ -1327,19 +1333,23 @@ export async function processLoad(
     await loadGenericSections(tmk, parsed, scrapedAt, observedYear);
 
     // Update status
-    await rawQuery(
-      `UPDATE scrape_status SET load_status='success', loaded_at=NOW(), error=NULL WHERE tmk=?`,
-      [tmk],
-    );
+    if (!skipStatus) {
+      await rawQuery(
+        `UPDATE scrape_status SET load_status='success', loaded_at=NOW(), error=NULL WHERE tmk=?`,
+        [tmk],
+      );
+    }
 
     log(`${tmk}: loaded`);
     return `${tmk}: loaded`;
   } catch (e) {
-    const errorMsg = errorMessage(e);
-    await rawQuery(
-      `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
-      [errorMsg.slice(0, 500), tmk],
-    );
+    if (!skipStatus) {
+      const errorMsg = errorMessage(e);
+      await rawQuery(
+        `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
+        [errorMsg.slice(0, 500), tmk],
+      );
+    }
     throw e;
   }
 }
