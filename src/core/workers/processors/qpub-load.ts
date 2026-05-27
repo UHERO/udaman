@@ -30,7 +30,7 @@ export function errorMessage(e: unknown): string {
 // ─── Helpers ─────────────────────────────────────────────────────
 
 /** Parse a date string like "01/15/2024" or "2024-01-15" into a Date-compatible string, or null */
-function parseDateValue(value: string | null | undefined): string | null {
+export function parseDateValue(value: string | null | undefined): string | null {
   if (!value) return null;
   const s = value.trim();
   if (!s) return null;
@@ -50,30 +50,30 @@ function parseDateValue(value: string | null | undefined): string | null {
 }
 
 /** Get string or null, trimmed */
-function str(v: unknown): string | null {
+export function str(v: unknown): string | null {
   if (v === null || v === undefined) return null;
   const s = String(v).trim();
   return s || null;
 }
 
 /** Get integer or null */
-function int(v: unknown): number | null {
+export function int(v: unknown): number | null {
   if (v === null || v === undefined) return null;
   const n = parseDollarValue(v as string | number, true);
   return n;
 }
 
 /** Get decimal or null */
-function dec(v: unknown): number | null {
+export function dec(v: unknown): number | null {
   if (v === null || v === undefined) return null;
   const n = parseDollarValue(v as string | number, false);
   return n;
 }
 
-type Row = Record<string, unknown>;
+export type Row = Record<string, unknown>;
 
 /** Extract property_class from the most recent assessment record. */
-function getAssessmentPropertyClass(data: ParsedProperty): string | null {
+export function getAssessmentPropertyClass(data: ParsedProperty): string | null {
   const assessInfo = data.assessment_information as Row | undefined;
   if (!assessInfo) return null;
   const current = (assessInfo.current_assessments as Row[] | undefined) ?? [];
@@ -89,7 +89,7 @@ function getAssessmentPropertyClass(data: ParsedProperty): string | null {
 }
 
 /** Format a Date for SQL insertion (YYYY-MM-DD HH:MM:SS) */
-function sqlDate(d: Date): string {
+export function sqlDate(d: Date): string {
   return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
@@ -97,7 +97,7 @@ function sqlDate(d: Date): string {
  * Derive the observation year from the max tax_year in the assessment data.
  * Falls back to current calendar year if no assessments are present.
  */
-function getMaxTaxYear(data: ParsedProperty): number {
+export function getMaxTaxYear(data: ParsedProperty): number {
   const assessInfo = data.assessment_information as Row | undefined;
   if (!assessInfo) return new Date().getFullYear();
 
@@ -932,7 +932,7 @@ export async function loadCurrentTaxBills(
 // ─── Condominium Project ─────────────────────────────────────────
 
 /** Derive a unit TMK from parent TMK + unit parcel number (last 4 chars = CPR) */
-function unitParcelToTmk(parentTmk: string, unitParcel: string): string {
+export function unitParcelToTmk(parentTmk: string, unitParcel: string): string {
   const parts = parentTmk.split("-");
   // Replace the last segment (CPR) with the unit's last 4 characters
   parts[parts.length - 1] = unitParcel.slice(-4);
@@ -1134,7 +1134,7 @@ async function loadGenericSnapshot(
 }
 
 // Section name → DB table mapping for generic loading
-const GENERIC_SECTION_MAP: Record<string, string> = {
+export const GENERIC_SECTION_MAP: Record<string, string> = {
   yard_improvement_information: "yard_improvements",
   residential_addition_information: "residential_additions",
   agricultural_assessment_information: "agricultural_assessments",

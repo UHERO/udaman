@@ -22,6 +22,7 @@ Commands:
 Options:
   --island <code>               Filter by island (1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai)
   --period <period>             Filter by NAS period dir (e.g., 2026-1)
+  --force-parse                 Force re-parse even when JSON is newer than HTML
 
 Valid tables:
   ${tables}
@@ -37,22 +38,25 @@ function parseArgs() {
   let table: string | undefined;
   let island: string | undefined;
   let period: string | undefined;
+  let forceParse = false;
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "--island" && args[i + 1]) {
       island = args[++i];
     } else if (args[i] === "--period" && args[i + 1]) {
       period = args[++i];
+    } else if (args[i] === "--force-parse") {
+      forceParse = true;
     } else if (!table && command === "rebuild-table") {
       table = args[i];
     }
   }
 
-  return { command, table, island, period };
+  return { command, table, island, period, forceParse };
 }
 
 async function run() {
-  const { command, table, island, period } = parseArgs();
+  const { command, table, island, period, forceParse } = parseArgs();
 
   switch (command) {
     case "nightly": {
@@ -66,13 +70,13 @@ async function run() {
         console.error("Error: rebuild-table requires a table name");
         usage();
       }
-      const result = await rebuildTable(table, { island, period });
+      const result = await rebuildTable(table, { island, period, forceParse });
       log.info(result);
       break;
     }
 
     case "rebuild-all": {
-      const result = await rebuildAll({ island, period });
+      const result = await rebuildAll({ island, period, forceParse });
       log.info(result);
       break;
     }
