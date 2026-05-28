@@ -1,9 +1,5 @@
 import { SQL } from "bun";
 
-import { createLogger } from "@/core/observability/logger";
-
-const log = createLogger("database.hhdb-local");
-
 let _connection: SQL | null = null;
 
 function createConnection(): SQL {
@@ -45,20 +41,12 @@ async function localRawQuery<T = Record<string, unknown>>(
   sql: string,
   params: (string | number | Date | null)[] = [],
 ): Promise<T[]> {
-  const start = performance.now();
   try {
-    const result = await (getConnection() as any).unsafe(sql, params);
-    const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, rows: result.length }, "hhdb-local query");
-    return result;
+    return await (getConnection() as any).unsafe(sql, params);
   } catch (err) {
     if (isConnectionError(err)) {
-      log.warn("HHDB-local connection lost, reconnecting and retrying query");
       resetConnection();
-      const result = await (getConnection() as any).unsafe(sql, params);
-      const durationMs = +(performance.now() - start).toFixed(2);
-      log.debug({ durationMs, rows: result.length }, "hhdb-local query (retry)");
-      return result;
+      return await (getConnection() as any).unsafe(sql, params);
     }
     throw err;
   }
@@ -72,26 +60,18 @@ async function localInsertAndGetId(
   sql: string,
   params: unknown[] = [],
 ): Promise<number> {
-  const start = performance.now();
   try {
     const conn = getConnection() as any;
     await conn.unsafe(sql, params);
     const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
-    const id = Number(rows[0].insertId);
-    const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, insertId: id }, sql);
-    return id;
+    return Number(rows[0].insertId);
   } catch (err) {
     if (isConnectionError(err)) {
-      log.warn("HHDB-local connection lost, reconnecting and retrying insert");
       resetConnection();
       const conn = getConnection() as any;
       await conn.unsafe(sql, params);
       const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
-      const id = Number(rows[0].insertId);
-      const durationMs = +(performance.now() - start).toFixed(2);
-      log.debug({ durationMs, insertId: id }, `${sql} (retry)`);
-      return id;
+      return Number(rows[0].insertId);
     }
     throw err;
   }

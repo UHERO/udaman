@@ -13,7 +13,6 @@ import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 import { localRawQuery, localInsertAndGetId, closeLocalConnection } from "@/lib/mysql/hhdb-local";
 
-import { progressSummary } from "./qpub-pipeline";
 import { getMaxTaxYear, errorMessage, TABLE_LOADERS, GENERIC_SECTION_MAP } from "./qpub-load";
 import {
   batchLoadTable,
@@ -265,15 +264,25 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   const startMs = Date.now();
   const allErrors: Array<{ tmk: string; error: string }> = [];
 
+  const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
+  const tableCount = REBUILD_TABLE_ORDER.length;
+
   try {
     // Step 2: Load one table at a time across all TMK batches
-    for (const table of REBUILD_TABLE_ORDER) {
+    for (let tableIdx = 0; tableIdx < tableCount; tableIdx++) {
+      const table = REBUILD_TABLE_ORDER[tableIdx];
       const tableStartMs = Date.now();
       let tableDone = 0;
       let tableFailed = 0;
 
+      log.info(
+        { table, tableNum: tableIdx + 1, tableCount },
+        `Rebuild: starting ${table} (${tableIdx + 1}/${tableCount})`,
+      );
+
       for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
         const batchTmks = tmks.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
         // Parse batch (first table pass creates JSON cache, rest read from it)
         const { items, parseErrors } = parseBatch(batchTmks, fileMap, forceParse);
@@ -292,12 +301,21 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
           }
           tableDone += loadResult.succeeded;
         }
+
+        // Log every 10 batches or the last batch
+        if (batchNum % 10 === 0 || batchNum === totalBatches) {
+          const pct = ((tableDone / total) * 100).toFixed(1);
+          log.info(
+            { table, batch: `${batchNum}/${totalBatches}`, loaded: tableDone, failed: tableFailed, pct: `${pct}%` },
+            `Rebuild ${table}: batch ${batchNum}/${totalBatches} — ${tableDone.toLocaleString()} rows (${pct}%)`,
+          );
+        }
       }
 
       const tableElapsed = ((Date.now() - tableStartMs) / 1000).toFixed(1);
       log.info(
-        { table, done: tableDone, failed: tableFailed, elapsed: `${tableElapsed}s` },
-        `Rebuild: ${table} complete`,
+        { table, done: tableDone, failed: tableFailed, elapsed: `${tableElapsed}s`, tableNum: tableIdx + 1, tableCount },
+        `Rebuild: ${table} complete — ${tableDone.toLocaleString()} rows in ${tableElapsed}s (${tableIdx + 1}/${tableCount})`,
       );
     }
   } finally {
@@ -367,10 +385,13 @@ export async function rebuildTable(
   const allParseErrors: Array<{ tmk: string; error: string }> = [];
   const allLoadErrors: Array<{ tmk: string; error: string }> = [];
 
+  const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
+
   try {
     // Step 2: Load batches into local DB
     for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
       const batchTmks = tmks.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
       // Parse batch
       const { items, parseErrors } = parseBatch(batchTmks, fileMap, forceParse);
@@ -397,11 +418,15 @@ export async function rebuildTable(
       skipped += batchSkipped;
       failed += parseErrors.length + loadResult.errors.length;
 
-      // Log progress
-      log.info(
-        progressSummary(done + skipped, failed, total, startMs),
-        `Rebuild ${table}: load progress`,
-      );
+      // Log every 10 batches or the last batch
+      if (batchNum % 10 === 0 || batchNum === totalBatches) {
+        const pct = (((done + skipped) / total) * 100).toFixed(1);
+        const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+        log.info(
+          { table, batch: `${batchNum}/${totalBatches}`, done, skipped, failed, pct: `${pct}%`, elapsed: `${elapsedSec}s` },
+          `Rebuild ${table}: batch ${batchNum}/${totalBatches} — ${done.toLocaleString()} loaded, ${skipped} skipped (${pct}%, ${elapsedSec}s)`,
+        );
+      }
     }
   } finally {
     await enableChecks(LOCAL_DB);
