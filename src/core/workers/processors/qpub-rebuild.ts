@@ -14,9 +14,8 @@ import { rawQuery } from "@/lib/mysql/hhdb";
 import { localRawQuery, localInsertAndGetId, closeLocalConnection } from "@/lib/mysql/hhdb-local";
 
 import { progressSummary } from "./qpub-pipeline";
-import { getMaxTaxYear, errorMessage, TABLE_LOADERS } from "./qpub-load";
+import { getMaxTaxYear, errorMessage, TABLE_LOADERS, GENERIC_SECTION_MAP } from "./qpub-load";
 import {
-  batchLoadAll,
   batchLoadTable,
   clearColumnCache,
   type BatchItem,
@@ -207,16 +206,43 @@ function parseBatch(
   return { items, parseErrors };
 }
 
+// ─── Table Order ─────────────────────────────────────────────────────
+
+/**
+ * FK-safe table order for full rebuild.
+ * Properties first (FK parent), condominium second (creates unit stub
+ * properties), then everything else. Generic sections last.
+ */
+const REBUILD_TABLE_ORDER: string[] = [
+  "properties",
+  "condominium",
+  "parcels",
+  "owners",
+  "assessments",
+  "land_classifications",
+  "residential_improvements",
+  "commercial_improvements",
+  "sales",
+  "permits",
+  "historical_tax",
+  "current_tax_bills",
+  // Generic sections
+  ...Object.values(GENERIC_SECTION_MAP),
+];
+
 // ─── Main Entry Points ──────────────────────────────────────────────
 
 /**
- * Rebuild all tables using batch-major processing.
- * Loads into local DB first, then syncs to remote.
+ * Rebuild all tables using table-major processing.
+ * Iterates one table at a time across all TMK batches, keeping the InnoDB
+ * buffer pool focused on a single table's indexes. The first table pass
+ * (properties) parses HTML → writes JSON cache; subsequent tables read
+ * from cache so re-parsing is just JSON.parse from disk.
  */
 export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   const { island, period, forceParse = false } = opts;
 
-  log.info({ island, period, forceParse }, "Rebuild all (batch) started");
+  log.info({ island, period, forceParse }, "Rebuild all (table-major) started");
 
   const fileMap = collectFiles(period, island);
   const tmks = Array.from(fileMap.keys());
@@ -237,35 +263,41 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   await disableChecks(LOCAL_DB);
 
   const startMs = Date.now();
-  let done = 0;
-  let failed = 0;
-  const allParseErrors: Array<{ tmk: string; error: string }> = [];
-  const allLoadErrors: Array<{ tmk: string; error: string }> = [];
+  const allErrors: Array<{ tmk: string; error: string }> = [];
 
   try {
-    // Step 2: Load all batches into local DB
-    for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
-      const batchTmks = tmks.slice(i, i + BATCH_SIZE);
+    // Step 2: Load one table at a time across all TMK batches
+    for (const table of REBUILD_TABLE_ORDER) {
+      const tableStartMs = Date.now();
+      let tableDone = 0;
+      let tableFailed = 0;
 
-      // Parse batch
-      const { items, parseErrors } = parseBatch(batchTmks, fileMap, forceParse);
-      allParseErrors.push(...parseErrors);
+      for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
+        const batchTmks = tmks.slice(i, i + BATCH_SIZE);
 
-      // Load batch into LOCAL database
-      let loadResult: BatchResult = { succeeded: 0, failed: 0, errors: [] };
-      if (items.length > 0) {
-        loadResult = await batchLoadAll(items, log, LOCAL_DB);
+        // Parse batch (first table pass creates JSON cache, rest read from it)
+        const { items, parseErrors } = parseBatch(batchTmks, fileMap, forceParse);
+
+        // Only record parse errors once (during properties pass)
+        if (table === "properties") {
+          allErrors.push(...parseErrors);
+        }
+
+        // Load this table for the batch
+        if (items.length > 0) {
+          const loadResult = await batchLoadTable(table, items, log, LOCAL_DB);
+          if (loadResult.errors.length > 0) {
+            allErrors.push(...loadResult.errors);
+            tableFailed += loadResult.errors.length;
+          }
+          tableDone += loadResult.succeeded;
+        }
       }
 
-      allLoadErrors.push(...loadResult.errors);
-
-      done += items.length - loadResult.errors.length;
-      failed += parseErrors.length + loadResult.errors.length;
-
-      // Log progress
+      const tableElapsed = ((Date.now() - tableStartMs) / 1000).toFixed(1);
       log.info(
-        progressSummary(done, failed, total, startMs),
-        "Rebuild all: load progress",
+        { table, done: tableDone, failed: tableFailed, elapsed: `${tableElapsed}s` },
+        `Rebuild: ${table} complete`,
       );
     }
   } finally {
@@ -278,7 +310,6 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   await syncToRemote(log);
 
   // Step 4: Update scrape_status on remote
-  const allErrors = [...allParseErrors, ...allLoadErrors];
   const failedTmks = new Set(allErrors.map((e) => e.tmk));
   const succeededTmks = tmks.filter((t) => !failedTmks.has(t));
 
@@ -287,7 +318,8 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
     await flushFailed(allErrors);
   }
 
-  const summary = `Rebuild all: ${succeededTmks.length} done, ${failedTmks.size} failed (${total} total)`;
+  const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  const summary = `Rebuild all: ${succeededTmks.length} done, ${failedTmks.size} failed (${total} total, ${elapsed}s)`;
   log.info(summary);
   return summary;
 }
