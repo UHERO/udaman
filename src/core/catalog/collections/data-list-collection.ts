@@ -319,7 +319,6 @@ class DataListCollection {
 
     let saClause = "";
     let dateClause = "";
-    const params: (string | number)[] = [dataListId, freqLong, geo];
 
     if (filters.sa === "sa") {
       saClause =
@@ -330,15 +329,20 @@ class DataListCollection {
     }
     // "all" or undefined → no SA filter
 
-    // If the data list has a startyear, filter out data points before it
+    // If the data list has a startyear, filter out data points before it.
+    // The dateClause ? appears in the LEFT JOIN ON (before the WHERE ?s),
+    // so its parameter must come first in the array.
     const dlRows = await rawQuery<{ startyear: number | null }>(
       "SELECT startyear FROM data_lists WHERE id = ? LIMIT 1",
       [dataListId],
     );
+
+    const params: (string | number)[] = [];
     if (dlRows[0]?.startyear) {
       dateClause = "AND (dp.date IS NULL OR dp.date >= ?)";
       params.push(`${dlRows[0].startyear}-01-01`);
     }
+    params.push(dataListId, freqLong, geo);
 
     const sql = `
       SELECT
