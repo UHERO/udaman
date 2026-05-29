@@ -25,6 +25,9 @@ const APP_DEFAULTS: Record<string, string> = {
   analytics: "/",
 };
 
+/** Top-level routes that live outside /udaman/{universe} */
+const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs"];
+
 /**
  * Extract the app name from the request Host header.
  * Handles both staging (`stage-udaman.uhero.hawaii.edu`)
@@ -116,6 +119,25 @@ export async function proxy(request: NextRequest) {
 
     // ── App-specific logic (udaman: auth + universe normalization) ──
     if (app === "udaman") {
+      // Top-level app routes (/admin, /hhdb, /docs) — rewrite directly
+      const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
+
+      if (isTopLevel) {
+        // Auth check
+        if (!hasSessionCookie(request)) {
+          return NextResponse.redirect(new URL("/", request.url));
+        }
+
+        // Route-level access check (pathname is already the internal path)
+        const denied = await checkRouteAccess(request, pathname, "/");
+        if (denied) return denied;
+
+        // No rewrite needed — these are already top-level Next.js routes
+        const response = NextResponse.next();
+        response.headers.set("x-pathname", pathname);
+        return response;
+      }
+
       // Root → redirect to a role+universe-aware landing page, or login if no session
       if (pathname === "/") {
         if (hasSessionCookie(request)) {
@@ -180,8 +202,12 @@ export async function proxy(request: NextRequest) {
   }
 
   // ── Direct access (no subdomain / localhost dev) ──────────────────
-  // Original behavior: protect /udaman routes
-  if (!pathname.startsWith("/udaman") || pathname === "/udaman") {
+  const protectedPrefixes = ["/udaman", "/admin", "/hhdb", "/docs"];
+  const isProtected = protectedPrefixes.some(
+    (p) => pathname.startsWith(p) && pathname !== "/udaman",
+  );
+
+  if (!isProtected) {
     return NextResponse.next();
   }
 
@@ -189,6 +215,29 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/udaman", request.url));
   }
 
+  // Top-level routes: /admin, /hhdb, /docs
+  const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
+  if (isTopLevel) {
+    const token = await getToken({
+      req: request,
+      secret: process.env.AUTH_SECRET,
+    });
+    const role = (token?.role as string) ?? "external";
+    const userUniverse = (token?.universe as string) ?? "UHERO";
+
+    if (!isRouteAllowed(role, userUniverse, pathname)) {
+      const universe = userUniverse.toLowerCase();
+      return NextResponse.redirect(
+        new URL(`/udaman/${universe}`, request.url),
+      );
+    }
+
+    const response = NextResponse.next();
+    response.headers.set("x-pathname", pathname);
+    return response;
+  }
+
+  // /udaman/... routes
   // Normalize universe: /udaman/UHERO/... → /udaman/uhero/...
   const match = pathname.match(/^\/udaman\/([^/]+)(\/.*)?$/);
   if (match) {

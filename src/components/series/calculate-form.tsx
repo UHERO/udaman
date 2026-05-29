@@ -22,7 +22,7 @@ export function CalculateForm({ initialExpression }: CalculateFormProps) {
     if (!trimmed) return;
 
     router.push(
-      `/udaman/${universe}/series/calculate?eval=${encodeURIComponent(trimmed)}`,
+      `/udaman/${universe}/analyze?eval=${encodeURIComponent(trimmed)}`,
     );
   };
 

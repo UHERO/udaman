@@ -1,36 +1,14 @@
-import {
-  getQuarantinedSeries,
-  getSeriesWithNullField,
-} from "@/actions/series-actions";
 import { SeriesLayout } from "@/components/series/series-layout";
-import { SeriesTabs } from "@/components/series/series-tabs";
-import { getCurrentUserContext } from "@/lib/auth/dal";
+import { WidthToggleBar } from "@/components/width-toggle-bar";
 
 export default async function Layout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ universe: string }>;
 }) {
-  const { universe } = await params;
-  const { role, universe: userUniverse } = await getCurrentUserContext();
-
-  const [noSourceResult, quarantineResult] = await Promise.all([
-    getSeriesWithNullField(universe, "source_id", 1, 1),
-    getQuarantinedSeries(universe, 1, 1),
-  ]);
-
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <SeriesTabs
-        role={role}
-        universe={userUniverse}
-        badgeCounts={{
-          noSource: noSourceResult.totalCount,
-          quarantine: quarantineResult.totalCount,
-        }}
-      />
+      <WidthToggleBar />
       <SeriesLayout>{children}</SeriesLayout>
     </div>
   );

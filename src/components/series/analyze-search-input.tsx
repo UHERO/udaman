@@ -29,7 +29,7 @@ export function AnalyzeSearchInput() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
-  const base = `/udaman/${universe}/series/analyze`;
+  const base = `/udaman/${universe}/analyze`;
 
   function navigateToSeries(id: number) {
     router.push(`${base}?id=${id}`);

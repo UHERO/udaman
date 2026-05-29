@@ -88,7 +88,7 @@ export function CreateLoaderForm({ universe }: { universe: string }) {
                 <FieldLabel htmlFor="code">Code </FieldLabel>{" "}
                 <FieldDescription>
                   <Link
-                    href={`/udaman/${universe}/docs/loader-actions`}
+                    href="/docs/loader-actions"
                     className="hover:text-blue-800"
                   >
                     See docs

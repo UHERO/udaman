@@ -17,7 +17,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useAppPathname } from "@/hooks/use-app-pathname";
+import { usePathname } from "next/navigation";
+
 import { useFullWidth } from "@/hooks/use-full-width";
 import { getVisibleChildren } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
@@ -41,15 +42,15 @@ export function AdminTabs({
   role: string;
   universe: string;
 }) {
-  const pathname = useAppPathname();
-  const base = "/udaman/admin";
+  const pathname = usePathname();
+  const base = "/admin";
 
-  const visibleChildren = getVisibleChildren(role, universe, "/udaman/admin");
+  const visibleChildren = getVisibleChildren(role, universe, "/admin");
   const visibleTabs = TABS.filter((tab) =>
     visibleChildren.some((child) =>
       tab.segment === ""
-        ? child.path === "/udaman/admin"
-        : child.path === `/udaman/admin/${tab.segment}`,
+        ? child.path === "/admin"
+        : child.path === `/admin/${tab.segment}`,
     ),
   );
 

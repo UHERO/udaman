@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { SummaryViewType } from "@catalog/types/hhdb";
 import { getFieldsForViewType } from "@catalog/types/hhdb-data-dictionary";
+import { Maximize2, Minimize2 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { useFullWidth } from "@/hooks/use-full-width";
 import { cn } from "@/lib/utils";
 
 const VIEW_TABS: {
@@ -30,9 +33,12 @@ export function HhdbTableLayout({
   children,
   warningBanner,
 }: HhdbTableLayoutProps) {
-  const { universe, field } = useParams();
   const pathname = usePathname();
-  const basePath = `/udaman/${universe}/hhdb/tables/${segment}`;
+  const basePath = `/hhdb/tables/${segment}`;
+  // Extract field from URL: /hhdb/tables/{segment}/{view}/{field}
+  const segments = pathname.split("/");
+  const fieldIdx = segments.indexOf(segment);
+  const field = fieldIdx >= 0 && segments.length > fieldIdx + 3 ? segments[fieldIdx + 3] : undefined;
   const currentField = typeof field === "string" ? field : undefined;
 
   const viewTabs = VIEW_TABS.filter(
@@ -55,6 +61,8 @@ export function HhdbTableLayout({
   // All non-Table tab hrefs for checking if Table tab should be active
   const nonTableHrefs = viewTabs.map((t) => t.href);
 
+  const { fullWidth, toggleWidth } = useFullWidth();
+
   return (
     <div>
       <h1 className="text-3xl font-bold">
@@ -65,31 +73,47 @@ export function HhdbTableLayout({
           </span>
         )}
       </h1>
-      <div className="mb-4" />
       {warningBanner}
-      <div className="mb-4 flex gap-1 border-b">
-        {tabs.map((tab) => {
-          const isActive =
-            tab.label === "Table"
-              ? pathname === basePath ||
-                (pathname.startsWith(basePath) &&
-                  !nonTableHrefs.some((h) => pathname.startsWith(h)))
-              : pathname.startsWith(tab.href);
-          return (
-            <Link
-              key={tab.label}
-              href={tab.href}
-              className={cn(
-                "border-b-2 px-4 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground border-transparent",
-              )}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
+      <div className="mb-4 flex items-center border-b">
+        <div className="flex min-w-0 flex-1 gap-1">
+          {tabs.map((tab) => {
+            const isActive =
+              tab.label === "Table"
+                ? pathname === basePath ||
+                  (pathname.startsWith(basePath) &&
+                    !nonTableHrefs.some((h) => pathname.startsWith(h)))
+                : pathname.startsWith(tab.href);
+            return (
+              <Link
+                key={tab.label}
+                href={tab.href}
+                className={cn(
+                  "border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground border-transparent",
+                )}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="flex shrink-0 items-center px-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={toggleWidth}
+            title={fullWidth ? "Constrain width" : "Full width"}
+          >
+            {fullWidth ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
       {children}
     </div>

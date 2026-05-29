@@ -145,7 +145,7 @@ export function LoaderEditSheet({
                   <FieldLabel htmlFor="edit-eval">Code </FieldLabel>
                   <FieldDescription>
                     <Link
-                      href={`/udaman/${universe}/docs/loader-actions`}
+                      href="/docs/loader-actions"
                       className="hover:text-blue-800"
                     >
                       See docs

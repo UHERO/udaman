@@ -1,27 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useAppPathname } from "@/hooks/use-app-pathname";
+import { cn } from "@/lib/utils";
 
 export function NavMain({
   items,
+  label = "UDAMAN",
 }: {
   items: {
     title: string;
@@ -33,25 +27,32 @@ export function NavMain({
       url: string;
     }[];
   }[];
+  label?: string;
 }) {
   const pathname = useAppPathname();
 
+  // Use longest-prefix matching so `/hhdb` doesn't highlight when
+  // the user is on `/hhdb/tables/properties`.
+  const activeUrl = items
+    .map((item) => item.url)
+    .filter((url) => pathname === url || pathname.startsWith(url + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>UDAMAN</SidebarGroupLabel>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) =>
-          item.items ? (
-            <CollapsibleSection
-              key={item.title}
-              item={item}
-              pathname={pathname}
-            />
-          ) : (
+        {items.map((item) => {
+          const active = item.url === activeUrl;
+          return (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith(item.url)}
+                isActive={active}
+                className={cn(
+                  active &&
+                    "relative bg-ublue/10 text-ublue before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-full before:bg-ublue hover:bg-ublue/15 hover:text-ublue [&>svg]:text-ublue",
+                )}
               >
                 <Link href={item.url}>
                   {item.icon && <item.icon />}
@@ -59,60 +60,9 @@ export function NavMain({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          ),
-        )}
+          );
+        })}
       </SidebarMenu>
     </SidebarGroup>
-  );
-}
-
-function CollapsibleSection({
-  item,
-  pathname,
-}: {
-  item: {
-    title: string;
-    url: string;
-    icon?: LucideIcon;
-    items?: { title: string; url: string }[];
-  };
-  pathname: string;
-}) {
-  const hasActiveChild = item.items?.some((sub) =>
-    pathname.startsWith(sub.url),
-  );
-
-  return (
-    <Collapsible
-      asChild
-      defaultOpen={hasActiveChild}
-      className="group/collapsible"
-    >
-      <SidebarMenuItem>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={item.title}>
-            {item.icon && <item.icon />}
-            <span>{item.title}</span>
-            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            {item.items?.map((subItem) => (
-              <SidebarMenuSubItem key={subItem.title}>
-                <SidebarMenuSubButton
-                  asChild
-                  isActive={pathname.startsWith(subItem.url)}
-                >
-                  <Link href={subItem.url}>
-                    <span>{subItem.title}</span>
-                  </Link>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </SidebarMenuItem>
-    </Collapsible>
   );
 }

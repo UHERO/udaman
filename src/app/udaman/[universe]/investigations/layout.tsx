@@ -1,0 +1,37 @@
+import {
+  getQuarantinedSeries,
+  getSeriesWithNullField,
+} from "@/actions/series-actions";
+import { InvestigationsTabs } from "@/components/investigations/investigations-tabs";
+import { SeriesLayout } from "@/components/series/series-layout";
+import { getCurrentUserContext } from "@/lib/auth/dal";
+
+export default async function Layout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ universe: string }>;
+}) {
+  const { universe } = await params;
+  const { role, universe: userUniverse } = await getCurrentUserContext();
+
+  const [noSourceResult, quarantineResult] = await Promise.all([
+    getSeriesWithNullField(universe, "source_id", 1, 1),
+    getQuarantinedSeries(universe, 1, 1),
+  ]);
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <InvestigationsTabs
+        role={role}
+        universe={userUniverse}
+        badgeCounts={{
+          noSource: noSourceResult.totalCount,
+          quarantine: quarantineResult.totalCount,
+        }}
+      />
+      <SeriesLayout>{children}</SeriesLayout>
+    </div>
+  );
+}

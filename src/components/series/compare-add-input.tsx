@@ -23,7 +23,7 @@ export function CompareAddInput({ currentNames }: CompareAddInputProps) {
 
     const updated = [...currentNames, trimmed];
     router.push(
-      `/udaman/${universe}/series/compare?names=${encodeURIComponent(updated.join(","))}`,
+      `/udaman/${universe}/analyze?names=${encodeURIComponent(updated.join(","))}`,
     );
     setValue("");
   };

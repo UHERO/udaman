@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Building,
@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useAppPathname } from "@/hooks/use-app-pathname";
 import { useFullWidth } from "@/hooks/use-full-width";
 import { cn } from "@/lib/utils";
 
@@ -83,9 +82,8 @@ const TABS = [
 const SCROLL_AMOUNT = 200;
 
 export function HhdbTabs() {
-  const { universe } = useParams();
-  const pathname = useAppPathname();
-  const base = `/udaman/${universe}/hhdb`;
+  const pathname = usePathname();
+  const base = "/hhdb";
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);

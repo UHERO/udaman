@@ -54,7 +54,7 @@ export function CompareSuggestions({
     if (!names) return;
     const expr = names.join(",");
     router.push(
-      `/udaman/${universe}/series/compare?names=${encodeURIComponent(expr)}`,
+      `/udaman/${universe}/analyze?names=${encodeURIComponent(expr)}`,
     );
   };
 

@@ -5,7 +5,7 @@ import GeographyCollection from "@catalog/collections/geography-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
-import type { DeleteByMode } from "@catalog/collections/series-collection";
+import type { DeleteByMode, SeriesListPreset } from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 import EvalExecutor from "@catalog/utils/eval-executor";
 
@@ -25,17 +25,20 @@ export async function getSeries({
   offset,
   limit,
   universe,
+  preset,
 }: {
   offset?: number;
   limit?: number;
   universe: Universe;
+  preset?: SeriesListPreset;
 }) {
-  logControllerCall("series", "getSeries", { offset, limit, universe });
-  log.info({ offset, limit, universe }, "fetching series summary list");
+  logControllerCall("series", "getSeries", { offset, limit, universe, preset });
+  log.info({ offset, limit, universe, preset }, "fetching series summary list");
   const data = await SeriesCollection.getSummaryList({
     offset,
     limit,
     universe,
+    preset,
   });
   log.info({ count: data.length, universe }, "series summary list fetched");
   return { data, offset, limit };

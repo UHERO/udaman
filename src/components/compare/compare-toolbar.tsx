@@ -37,7 +37,7 @@ export function CompareToolbar({
   const builderRef = useRef<BuilderHandle>(null);
 
   const handleReset = () => {
-    router.push(`/udaman/${universe}/series/compare`);
+    router.push(`/udaman/${universe}/analyze`);
   };
 
   const handleCompare = async () => {

@@ -25,7 +25,7 @@ export function ClipboardButtons({ seriesIds }: ClipboardButtonsProps) {
       try {
         const result = await addMultipleSeriesToClipboard(seriesIds);
         toast.success(result.message);
-        router.push(`/udaman/${universe}/series/clipboard`);
+        router.push(`/udaman/${universe}/clipboard`);
       } catch (err) {
         toast.error("Failed to add to clipboard", {
           description: err instanceof Error ? err.message : "Unknown error",
@@ -40,7 +40,7 @@ export function ClipboardButtons({ seriesIds }: ClipboardButtonsProps) {
         await clearClipboard();
         const result = await addMultipleSeriesToClipboard(seriesIds);
         toast.success(`Clipboard replaced: ${result.count} series`);
-        router.push(`/udaman/${universe}/series/clipboard`);
+        router.push(`/udaman/${universe}/clipboard`);
       } catch (err) {
         toast.error("Failed to replace clipboard", {
           description: err instanceof Error ? err.message : "Unknown error",

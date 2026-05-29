@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { SeriesListPreset } from "@catalog/collections/series-collection";
 import type { Universe } from "@catalog/types/shared";
 import { Plus } from "lucide-react";
 
@@ -7,6 +8,10 @@ import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { ClipboardButtons } from "@/components/series/clipboard-buttons";
 import { SeriesListTable } from "@/components/series/series-list-table";
+import {
+  PRESET_LABELS,
+  SeriesListPresetSelect,
+} from "@/components/series/series-list-preset-select";
 import { Button } from "@/components/ui/button";
 import { isDbedt, isFsonly } from "@/lib/auth/authorization";
 import { getCurrentUserContext } from "@/lib/auth/dal";
@@ -16,7 +21,7 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ universe: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; list?: string }>;
 }) {
   const { universe } = await params;
   const u = universe as Universe;
@@ -52,11 +57,12 @@ export default async function Page({
     );
   }
 
-  const { q } = await searchParams;
+  const { q, list } = await searchParams;
+  const preset = (list ?? "recent-created") as SeriesListPreset;
 
   const data = await (q
     ? searchSeriesAction(q, u)
-    : getSeries({ universe: u }));
+    : getSeries({ universe: u, preset }));
 
   const count = data.length ?? 0;
   const isSearch = Boolean(q);
@@ -66,10 +72,13 @@ export default async function Page({
       <div>
         <h1 className="text-3xl font-bold">Data Series</h1>
         <p className="text-muted-foreground text-sm">
-          {isSearch ? `Search: ${count} results` : `${count} series`}
+          {isSearch
+            ? `Search: ${count} results`
+            : `${PRESET_LABELS[preset] ?? "Recently Created"} — ${count} series`}
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
+        {!isSearch && <SeriesListPresetSelect />}
         <ClipboardButtons seriesIds={data.map((s) => s.id)} />
         <CalculateForm />
         <Button className="cursor-pointer" asChild>

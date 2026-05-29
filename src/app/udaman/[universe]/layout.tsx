@@ -61,7 +61,7 @@ export default async function UniverseLayout({
 
   return (
     <SidebarProvider data-universe={universe.toUpperCase()}>
-      <AppSidebar user={user} universes={universeOptions} />
+      <AppSidebar user={user} mode="udaman" universes={universeOptions} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex w-full items-center justify-start gap-2 px-4">
