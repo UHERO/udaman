@@ -1,3 +1,15 @@
+/**
+ * QPub Rebuild — 3-Phase Pipeline
+ *
+ * Phase 1: Parse — HTML → JSON files (per property, cached on NAS)
+ * Phase 2: Extract — JSON → flat JSONL files (one per DB table)
+ * Phase 3: Load — Stream INSERT SQL through mariadb CLI into local DB
+ * Sync: Dump local DB → pipe to remote
+ *
+ * Each phase can be run independently via CLI, or all together via
+ * rebuild-all / rebuild-table.
+ */
+
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import path from "path";
 
@@ -11,16 +23,17 @@ import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { localRawQuery, localInsertAndGetId, closeLocalConnection } from "@/lib/mysql/hhdb-local";
 
-import { getMaxTaxYear, errorMessage, TABLE_LOADERS, GENERIC_SECTION_MAP } from "./qpub-load";
+import { getMaxTaxYear, errorMessage, TABLE_LOADERS } from "./qpub-load";
 import {
-  batchLoadTable,
-  clearColumnCache,
-  type BatchItem,
-  type BatchResult,
-  type DbConnection,
-} from "./qpub-batch-load";
+  type ExtractItem,
+  extractBatch,
+  initStagingDir,
+  resetIdCounters,
+  loadGenericColumnCache,
+  DEFAULT_STAGING_DIR,
+} from "./qpub-extract";
+import { loadFromFiles, loadTableFromFiles } from "./qpub-file-load";
 import { prepareLocalDb, syncToRemote, syncTableToRemote } from "./qpub-db-sync";
 
 const log = createLogger("qpub-rebuild");
@@ -41,16 +54,22 @@ export type RebuildOptions = {
 const BATCH_SIZE = 500;
 const STATUS_CHUNK_SIZE = 1000;
 
-// ─── DB Connections ─────────────────────────────────────────────────
+// ─── Local DB Config ────────────────────────────────────────────────
 
-const LOCAL_DB: DbConnection = {
-  query: localRawQuery,
-  insertAndGetId: localInsertAndGetId,
-};
+const LOCAL_DB_HOST = process.env.HH_LOCAL_DB_HOST ?? "localhost";
+const LOCAL_DB_PORT = process.env.HH_LOCAL_DB_PORT ?? "3306";
+const LOCAL_DB_USER = process.env.HH_LOCAL_DB_USER ?? "root";
+const LOCAL_DB_PSWD = process.env.HH_LOCAL_DB_PSWD ?? "";
+const LOCAL_DB_NAME = process.env.HH_LOCAL_DB_NAME ?? "hawaii_housing_rebuild";
+
+function localAuthArgs(): string[] {
+  const args = [`--host=${LOCAL_DB_HOST}`, `--port=${LOCAL_DB_PORT}`, `--user=${LOCAL_DB_USER}`];
+  if (LOCAL_DB_PSWD) args.push(`--password=${LOCAL_DB_PSWD}`);
+  return args;
+}
 
 // ─── File Collection ────────────────────────────────────────────────
 
-/** Collect all HTML file paths into a tmk → filePath map */
 function collectFiles(period?: string, island?: string): Map<string, string> {
   const fileMap = new Map<string, string>();
   for (const filePath of listHtmlFiles(period, island)) {
@@ -60,13 +79,9 @@ function collectFiles(period?: string, island?: string): Map<string, string> {
   return fileMap;
 }
 
-// ─── Parse Phase ────────────────────────────────────────────────────
+// ─── Parse Helpers ──────────────────────────────────────────────────
 
-/** Parse HTML, write JSON, return parsed data. Returns null if not parseable. */
-function parseAndWriteJson(
-  tmk: string,
-  filePath: string,
-): ParsedProperty | null {
+function parseAndWriteJson(tmk: string, filePath: string): ParsedProperty | null {
   const html = readFileSync(filePath, "utf-8");
   const parsed = parsePropertyHTML(html, tmk);
 
@@ -74,7 +89,6 @@ function parseAndWriteJson(
     return null;
   }
 
-  // Write JSON to NAS (keeps JSON current with latest parse logic)
   const jsonDir = getJsonPath(tmk);
   if (!existsSync(jsonDir)) {
     mkdirSync(jsonDir, { recursive: true });
@@ -87,15 +101,7 @@ function parseAndWriteJson(
   return parsed;
 }
 
-/**
- * Parse or read cached JSON. Skip re-parse when JSON is newer than HTML
- * unless forceParse is true.
- */
-function parseOrReadCached(
-  tmk: string,
-  htmlPath: string,
-  forceParse: boolean,
-): ParsedProperty | null {
+function parseOrReadCached(tmk: string, htmlPath: string, forceParse: boolean): ParsedProperty | null {
   if (!forceParse) {
     const jsonDir = getJsonPath(tmk);
     const jsonFile = path.join(jsonDir, `${tmk}.json`);
@@ -106,7 +112,6 @@ function parseOrReadCached(
         const htmlMtime = statSync(htmlPath).mtimeMs;
 
         if (jsonMtime > htmlMtime) {
-          // JSON is newer — read cached
           const data = JSON.parse(readFileSync(jsonFile, "utf-8")) as ParsedProperty;
           if (data.status === "success" || data.status === "condo_project") {
             return data;
@@ -123,7 +128,6 @@ function parseOrReadCached(
 
 // ─── Status Helpers (always on remote) ──────────────────────────────
 
-/** Bulk-set load_status='pending' for all TMKs */
 async function setAllPending(tmks: string[]): Promise<void> {
   for (let i = 0; i < tmks.length; i += STATUS_CHUNK_SIZE) {
     const batch = tmks.slice(i, i + STATUS_CHUNK_SIZE);
@@ -135,7 +139,6 @@ async function setAllPending(tmks: string[]): Promise<void> {
   }
 }
 
-/** Batch-update succeeded TMKs */
 async function flushSuccess(tmks: string[]): Promise<void> {
   if (tmks.length === 0) return;
   for (let i = 0; i < tmks.length; i += STATUS_CHUNK_SIZE) {
@@ -148,7 +151,6 @@ async function flushSuccess(tmks: string[]): Promise<void> {
   }
 }
 
-/** Batch-update failed TMKs */
 async function flushFailed(failures: Array<{ tmk: string; error: string }>): Promise<void> {
   for (const { tmk, error } of failures) {
     await rawQuery(
@@ -158,30 +160,14 @@ async function flushFailed(failures: Array<{ tmk: string; error: string }>): Pro
   }
 }
 
-// ─── FK/Unique Check Control ────────────────────────────────────────
+// ─── Batch Parse + Extract ──────────────────────────────────────────
 
-async function disableChecks(db: DbConnection): Promise<void> {
-  await db.query("SET FOREIGN_KEY_CHECKS=0", []);
-  await db.query("SET UNIQUE_CHECKS=0", []);
-}
-
-async function enableChecks(db: DbConnection): Promise<void> {
-  await db.query("SET FOREIGN_KEY_CHECKS=1", []);
-  await db.query("SET UNIQUE_CHECKS=1", []);
-}
-
-// ─── Batch Processing ───────────────────────────────────────────────
-
-/**
- * Parse a batch of TMKs and return BatchItems ready for loading.
- * Items that fail to parse are collected into the errors array.
- */
-function parseBatch(
+function parseBatchToItems(
   tmks: string[],
   fileMap: Map<string, string>,
   forceParse: boolean,
-): { items: BatchItem[]; parseErrors: Array<{ tmk: string; error: string }> } {
-  const items: BatchItem[] = [];
+): { items: ExtractItem[]; parseErrors: Array<{ tmk: string; error: string }> } {
+  const items: ExtractItem[] = [];
   const parseErrors: Array<{ tmk: string; error: string }> = [];
 
   for (const tmk of tmks) {
@@ -195,7 +181,6 @@ function parseBatch(
 
       const scrapedAt = getFileMtime(filePath);
       const observedYear = getMaxTaxYear(parsed);
-
       items.push({ tmk, data: parsed, scrapedAt, observedYear });
     } catch (e) {
       parseErrors.push({ tmk, error: errorMessage(e) });
@@ -205,43 +190,136 @@ function parseBatch(
   return { items, parseErrors };
 }
 
-// ─── Table Order ─────────────────────────────────────────────────────
+// ─── Individual Phase Functions ─────────────────────────────────────
 
 /**
- * FK-safe table order for full rebuild.
- * Properties first (FK parent), condominium second (creates unit stub
- * properties), then everything else. Generic sections last.
+ * Phase 1+2: Parse HTML → JSON, then extract JSON → JSONL table files.
+ * Returns the list of errors encountered during parsing.
  */
-const REBUILD_TABLE_ORDER: string[] = [
-  "properties",
-  "condominium",
-  "parcels",
-  "owners",
-  "assessments",
-  "land_classifications",
-  "residential_improvements",
-  "commercial_improvements",
-  "sales",
-  "permits",
-  "historical_tax",
-  "current_tax_bills",
-  // Generic sections
-  ...Object.values(GENERIC_SECTION_MAP),
-];
+export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<string> {
+  const { island, period, forceParse = false } = opts;
 
-// ─── Main Entry Points ──────────────────────────────────────────────
+  log.info({ island, period, forceParse }, "Parse+Extract started");
+
+  const fileMap = collectFiles(period, island);
+  const tmks = Array.from(fileMap.keys());
+  const total = tmks.length;
+
+  if (total === 0) {
+    log.info("Parse+Extract: no files found");
+    return "Parse+Extract: no files found";
+  }
+
+  const startMs = Date.now();
+  let errorCount = 0;
+
+  // Prepare local DB (needed for generic section column detection)
+  await prepareLocalDb(log);
+
+  const stagingDir = DEFAULT_STAGING_DIR;
+  initStagingDir(stagingDir);
+  resetIdCounters();
+
+  await loadGenericColumnCache(localAuthArgs(), LOCAL_DB_NAME);
+
+  const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
+
+  for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
+    const batchTmks = tmks.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    errorCount += parseErrors.length;
+
+    if (items.length > 0) {
+      extractBatch(items, stagingDir);
+    }
+
+    if (batchNum % 10 === 0 || batchNum === totalBatches) {
+      const processed = Math.min(i + BATCH_SIZE, total);
+      const pct = ((processed / total) * 100).toFixed(1);
+      const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+      log.info(
+        { batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        `Parse+Extract: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
+      );
+    }
+  }
+
+  const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  const summary = `Parse+Extract: ${total - errorCount} extracted, ${errorCount} errors (${total} total, ${elapsed}s). Files at ${stagingDir}`;
+  log.info(summary);
+  return summary;
+}
 
 /**
- * Rebuild all tables using table-major processing.
- * Iterates one table at a time across all TMK batches, keeping the InnoDB
- * buffer pool focused on a single table's indexes. The first table pass
- * (properties) parses HTML → writes JSON cache; subsequent tables read
- * from cache so re-parsing is just JSON.parse from disk.
+ * Phase 3: Load extracted JSONL files into local database via mariadb CLI.
+ * Assumes parse+extract has already been run and files exist in staging dir.
+ */
+export async function runLoad(opts: { table?: string } = {}): Promise<string> {
+  const stagingDir = DEFAULT_STAGING_DIR;
+
+  if (!existsSync(stagingDir)) {
+    throw new Error(`Staging directory ${stagingDir} does not exist. Run parse+extract first.`);
+  }
+
+  // Prepare local DB (clean slate)
+  await prepareLocalDb(log);
+
+  const startMs = Date.now();
+
+  if (opts.table) {
+    log.info({ table: opts.table }, "Loading single table from extracted files");
+    await loadTableFromFiles(opts.table, stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+  } else {
+    log.info("Loading all tables from extracted files");
+    await loadFromFiles(stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+  }
+
+  const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  const summary = `Load: complete (${elapsed}s). Data in local DB ${LOCAL_DB_NAME}`;
+  log.info(summary);
+  return summary;
+}
+
+/**
+ * Sync: Dump local database to remote, then update scrape_status.
+ */
+export async function runSync(opts: { table?: string; island?: string; period?: string } = {}): Promise<string> {
+  const startMs = Date.now();
+
+  if (opts.table) {
+    log.info({ table: opts.table }, "Syncing table to remote");
+    await syncTableToRemote(opts.table, log);
+  } else {
+    log.info("Syncing all tables to remote");
+    await syncToRemote(log);
+  }
+
+  // Update scrape_status — mark all matching TMKs as success
+  // (errors were already tracked during parse+extract)
+  const fileMap = collectFiles(opts.period, opts.island);
+  const tmks = Array.from(fileMap.keys());
+
+  if (tmks.length > 0) {
+    await flushSuccess(tmks);
+  }
+
+  const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  const summary = `Sync: complete (${elapsed}s). ${tmks.length} TMKs marked as success`;
+  log.info(summary);
+  return summary;
+}
+
+// ─── Combined Entry Points ──────────────────────────────────────────
+
+/**
+ * Rebuild all tables using the full 3-phase pipeline.
  */
 export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   const { island, period, forceParse = false } = opts;
 
-  log.info({ island, period, forceParse }, "Rebuild all (table-major) started");
+  log.info({ island, period, forceParse }, "Rebuild all (pipeline) started");
 
   const fileMap = collectFiles(period, island);
   const tmks = Array.from(fileMap.keys());
@@ -252,82 +330,65 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
     return "Rebuild all: no files found";
   }
 
-  // Step 1: Prepare local database
+  const startMs = Date.now();
+  const allErrors: Array<{ tmk: string; error: string }> = [];
+
+  // Phase 0: Prepare local DB and staging directory
   await prepareLocalDb(log);
 
   log.info({ total }, "Setting all TMKs to pending");
   await setAllPending(tmks);
 
-  clearColumnCache();
-  await disableChecks(LOCAL_DB);
+  const stagingDir = DEFAULT_STAGING_DIR;
+  initStagingDir(stagingDir);
+  resetIdCounters();
 
-  const startMs = Date.now();
-  const allErrors: Array<{ tmk: string; error: string }> = [];
+  await loadGenericColumnCache(localAuthArgs(), LOCAL_DB_NAME);
 
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
-  const tableCount = REBUILD_TABLE_ORDER.length;
 
-  try {
-    // Step 2: Load one table at a time across all TMK batches
-    for (let tableIdx = 0; tableIdx < tableCount; tableIdx++) {
-      const table = REBUILD_TABLE_ORDER[tableIdx];
-      const tableStartMs = Date.now();
-      let tableDone = 0;
-      let tableFailed = 0;
+  // Phase 1+2: Parse and Extract
+  log.info({ total, batchSize: BATCH_SIZE, totalBatches }, "Phase 1+2: Parse + Extract");
 
+  for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
+    const batchTmks = tmks.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    allErrors.push(...parseErrors);
+
+    if (items.length > 0) {
+      extractBatch(items, stagingDir);
+    }
+
+    if (batchNum % 10 === 0 || batchNum === totalBatches) {
+      const processed = Math.min(i + BATCH_SIZE, total);
+      const pct = ((processed / total) * 100).toFixed(1);
+      const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
       log.info(
-        { table, tableNum: tableIdx + 1, tableCount },
-        `Rebuild: starting ${table} (${tableIdx + 1}/${tableCount})`,
-      );
-
-      for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
-        const batchTmks = tmks.slice(i, i + BATCH_SIZE);
-        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-
-        // Parse batch (first table pass creates JSON cache, rest read from it)
-        const { items, parseErrors } = parseBatch(batchTmks, fileMap, forceParse);
-
-        // Only record parse errors once (during properties pass)
-        if (table === "properties") {
-          allErrors.push(...parseErrors);
-        }
-
-        // Load this table for the batch
-        if (items.length > 0) {
-          const loadResult = await batchLoadTable(table, items, log, LOCAL_DB);
-          if (loadResult.errors.length > 0) {
-            allErrors.push(...loadResult.errors);
-            tableFailed += loadResult.errors.length;
-          }
-          tableDone += loadResult.succeeded;
-        }
-
-        // Log every 10 batches or the last batch
-        if (batchNum % 10 === 0 || batchNum === totalBatches) {
-          const pct = ((tableDone / total) * 100).toFixed(1);
-          log.info(
-            { table, batch: `${batchNum}/${totalBatches}`, loaded: tableDone, failed: tableFailed, pct: `${pct}%` },
-            `Rebuild ${table}: batch ${batchNum}/${totalBatches} — ${tableDone.toLocaleString()} rows (${pct}%)`,
-          );
-        }
-      }
-
-      const tableElapsed = ((Date.now() - tableStartMs) / 1000).toFixed(1);
-      log.info(
-        { table, done: tableDone, failed: tableFailed, elapsed: `${tableElapsed}s`, tableNum: tableIdx + 1, tableCount },
-        `Rebuild: ${table} complete — ${tableDone.toLocaleString()} rows in ${tableElapsed}s (${tableIdx + 1}/${tableCount})`,
+        { batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        `Parse+Extract: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
       );
     }
-  } finally {
-    await enableChecks(LOCAL_DB);
-    closeLocalConnection();
   }
 
-  // Step 3: Sync local DB to remote
-  log.info("Load phase complete, syncing to remote");
+  const parseElapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  log.info({ elapsed: `${parseElapsed}s`, errors: allErrors.length }, "Phase 1+2 complete");
+
+  // Phase 3: Load into local DB via mariadb CLI
+  log.info("Phase 3: Loading extracted files into local database");
+  const loadStartMs = Date.now();
+
+  await loadFromFiles(stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+
+  const loadElapsed = ((Date.now() - loadStartMs) / 1000).toFixed(1);
+  log.info({ elapsed: `${loadElapsed}s` }, "Phase 3 complete");
+
+  // Sync: Dump local → remote
+  log.info("Syncing local database to remote");
   await syncToRemote(log);
 
-  // Step 4: Update scrape_status on remote
+  // Update scrape_status on remote
   const failedTmks = new Set(allErrors.map((e) => e.tmk));
   const succeededTmks = tmks.filter((t) => !failedTmks.has(t));
 
@@ -343,8 +404,7 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
 }
 
 /**
- * Rebuild a single table using batch-major processing.
- * Loads into local DB first, then syncs the specific table(s) to remote.
+ * Rebuild a single table using the full 3-phase pipeline.
  */
 export async function rebuildTable(
   table: string,
@@ -352,13 +412,12 @@ export async function rebuildTable(
 ): Promise<string> {
   const { island, period, forceParse = false } = opts;
 
-  // Validate table name
   if (!TABLE_LOADERS[table]) {
     const valid = Object.keys(TABLE_LOADERS).join(", ");
     throw new Error(`Unknown table "${table}". Valid tables: ${valid}`);
   }
 
-  log.info({ table, island, period, forceParse }, "Rebuild table (batch) started");
+  log.info({ table, island, period, forceParse }, "Rebuild table (pipeline) started");
 
   const fileMap = collectFiles(period, island);
   const tmks = Array.from(fileMap.keys());
@@ -369,76 +428,68 @@ export async function rebuildTable(
     return `Rebuild ${table}: no files found`;
   }
 
-  // Step 1: Prepare local database
+  const startMs = Date.now();
+  const allErrors: Array<{ tmk: string; error: string }> = [];
+
   await prepareLocalDb(log);
 
   log.info({ total, table }, "Setting all TMKs to pending");
   await setAllPending(tmks);
 
-  clearColumnCache();
-  await disableChecks(LOCAL_DB);
+  const stagingDir = DEFAULT_STAGING_DIR;
+  initStagingDir(stagingDir);
+  resetIdCounters();
 
-  const startMs = Date.now();
-  let done = 0;
-  let failed = 0;
-  let skipped = 0;
-  const allParseErrors: Array<{ tmk: string; error: string }> = [];
-  const allLoadErrors: Array<{ tmk: string; error: string }> = [];
+  await loadGenericColumnCache(localAuthArgs(), LOCAL_DB_NAME);
 
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 
-  try {
-    // Step 2: Load batches into local DB
-    for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
-      const batchTmks = tmks.slice(i, i + BATCH_SIZE);
-      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+  // Phase 1+2: Parse and Extract
+  log.info({ total, table, batchSize: BATCH_SIZE, totalBatches }, "Phase 1+2: Parse + Extract");
 
-      // Parse batch
-      const { items, parseErrors } = parseBatch(batchTmks, fileMap, forceParse);
-      allParseErrors.push(...parseErrors);
+  for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
+    const batchTmks = tmks.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-      // For condominium table, only process condo_project pages
-      const loadItems = table === "condominium"
-        ? items.filter((item) => item.data.status === "condo_project")
-        : items;
-      const batchSkipped = items.length - loadItems.length;
+    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    allErrors.push(...parseErrors);
 
-      // Load batch for this specific table into LOCAL database
-      // Properties are always loaded too (FK parent)
-      let loadResult: BatchResult = { succeeded: 0, failed: 0, errors: [] };
-      if (loadItems.length > 0) {
-        // Load properties first for FK integrity
-        await batchLoadTable("properties", loadItems, log, LOCAL_DB);
-        loadResult = await batchLoadTable(table, loadItems, log, LOCAL_DB);
-      }
+    const extractItems = table === "condominium"
+      ? items.filter((item) => item.data.status === "condo_project")
+      : items;
 
-      allLoadErrors.push(...loadResult.errors);
-
-      done += loadResult.succeeded;
-      skipped += batchSkipped;
-      failed += parseErrors.length + loadResult.errors.length;
-
-      // Log every 10 batches or the last batch
-      if (batchNum % 10 === 0 || batchNum === totalBatches) {
-        const pct = (((done + skipped) / total) * 100).toFixed(1);
-        const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
-        log.info(
-          { table, batch: `${batchNum}/${totalBatches}`, done, skipped, failed, pct: `${pct}%`, elapsed: `${elapsedSec}s` },
-          `Rebuild ${table}: batch ${batchNum}/${totalBatches} — ${done.toLocaleString()} loaded, ${skipped} skipped (${pct}%, ${elapsedSec}s)`,
-        );
-      }
+    if (extractItems.length > 0) {
+      extractBatch(extractItems, stagingDir);
     }
-  } finally {
-    await enableChecks(LOCAL_DB);
-    closeLocalConnection();
+
+    if (batchNum % 10 === 0 || batchNum === totalBatches) {
+      const processed = Math.min(i + BATCH_SIZE, total);
+      const pct = ((processed / total) * 100).toFixed(1);
+      const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+      log.info(
+        { table, batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        `Parse+Extract ${table}: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
+      );
+    }
   }
 
-  // Step 3: Sync table(s) to remote
-  log.info({ table }, "Load phase complete, syncing to remote");
+  const parseElapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  log.info({ table, elapsed: `${parseElapsed}s`, errors: allErrors.length }, "Phase 1+2 complete");
+
+  // Phase 3: Load into local DB
+  log.info({ table }, "Phase 3: Loading extracted files into local database");
+  const loadStartMs = Date.now();
+
+  await loadTableFromFiles(table, stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+
+  const loadElapsed = ((Date.now() - loadStartMs) / 1000).toFixed(1);
+  log.info({ table, elapsed: `${loadElapsed}s` }, "Phase 3 complete");
+
+  // Sync
+  log.info({ table }, "Syncing table to remote");
   await syncTableToRemote(table, log);
 
-  // Step 4: Update scrape_status on remote
-  const allErrors = [...allParseErrors, ...allLoadErrors];
+  // Update scrape_status
   const failedTmks = new Set(allErrors.map((e) => e.tmk));
   const succeededTmks = tmks.filter((t) => !failedTmks.has(t));
 
@@ -447,7 +498,8 @@ export async function rebuildTable(
     await flushFailed(allErrors);
   }
 
-  const summary = `Rebuild ${table}: ${done} done, ${skipped} skipped, ${failedTmks.size} failed (${total} total)`;
+  const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  const summary = `Rebuild ${table}: ${succeededTmks.length} done, ${failedTmks.size} failed (${total} total, ${elapsed}s)`;
   log.info(summary);
   return summary;
 }
