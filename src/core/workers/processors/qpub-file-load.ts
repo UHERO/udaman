@@ -93,10 +93,15 @@ class SqlWriter {
   }
 
   /** Write SQL to mariadb stdin. Silently stops if pipe is already broken. */
-  write(sql: string): void {
+  async write(sql: string): Promise<void> {
     if (this.broken) return;
     try {
-      this.stdin.write(sql);
+      const result = this.stdin.write(sql);
+      // Bun's FileSink.write() returns Promise on backpressure — must await
+      // to catch EPIPE when mariadb exits mid-stream
+      if (result instanceof Promise) {
+        await result;
+      }
     } catch (e) {
       this.broken = true;
       this.brokenError = e instanceof Error ? e.message : String(e);
@@ -161,14 +166,14 @@ async function streamJsonlFile(
     buffer.push(JSON.parse(line) as SqlValue[]);
 
     if (buffer.length >= INSERT_CHUNK) {
-      writer.write(buildInsert(table, columns, buffer, opts));
+      await writer.write(buildInsert(table, columns, buffer, opts));
       totalRows += buffer.length;
       buffer = [];
     }
   }
 
   if (buffer.length > 0 && !writer.isBroken) {
-    writer.write(buildInsert(table, columns, buffer, opts));
+    await writer.write(buildInsert(table, columns, buffer, opts));
     totalRows += buffer.length;
   }
 
@@ -213,14 +218,14 @@ async function streamGenericJsonlFile(
     buffer.push(JSON.parse(line) as SqlValue[]);
 
     if (buffer.length >= INSERT_CHUNK) {
-      writer.write(buildInsert(table, columns, buffer));
+      await writer.write(buildInsert(table, columns, buffer));
       totalRows += buffer.length;
       buffer = [];
     }
   }
 
   if (buffer.length > 0 && columns && !writer.isBroken) {
-    writer.write(buildInsert(table, columns, buffer));
+    await writer.write(buildInsert(table, columns, buffer));
     totalRows += buffer.length;
   }
 
@@ -306,9 +311,9 @@ export async function loadFromFiles(
 ): Promise<void> {
   const writer = new SqlWriter(["mariadb", ...localAuthArgs, dbName]);
 
-  writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
-  writer.write("SET UNIQUE_CHECKS=0;\n");
-  writer.write("SET autocommit=0;\n");
+  await writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
+  await writer.write("SET UNIQUE_CHECKS=0;\n");
+  await writer.write("SET autocommit=0;\n");
 
   let totalRows = 0;
 
@@ -336,7 +341,7 @@ export async function loadFromFiles(
     totalRows += rows;
 
     if (rows > 0 && !writer.isBroken) {
-      writer.write("COMMIT;\nSET autocommit=0;\n");
+      await writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
@@ -348,14 +353,14 @@ export async function loadFromFiles(
     totalRows += rows;
 
     if (rows > 0 && !writer.isBroken) {
-      writer.write("COMMIT;\nSET autocommit=0;\n");
+      await writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
   if (!writer.isBroken) {
-    writer.write("COMMIT;\n");
-    writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
-    writer.write("SET UNIQUE_CHECKS=1;\n");
+    await writer.write("COMMIT;\n");
+    await writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
+    await writer.write("SET UNIQUE_CHECKS=1;\n");
   }
 
   log.info({ totalRows }, `Streamed ${totalRows.toLocaleString()} total rows to mariadb CLI`);
@@ -378,9 +383,9 @@ export async function loadTableFromFiles(
 ): Promise<void> {
   const writer = new SqlWriter(["mariadb", ...localAuthArgs, dbName]);
 
-  writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
-  writer.write("SET UNIQUE_CHECKS=0;\n");
-  writer.write("SET autocommit=0;\n");
+  await writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
+  await writer.write("SET UNIQUE_CHECKS=0;\n");
+  await writer.write("SET autocommit=0;\n");
 
   // Always load properties first (FK parent)
   const propFile = path.join(stagingDir, "properties.jsonl");
@@ -389,7 +394,7 @@ export async function loadTableFromFiles(
     { onDuplicate: ON_DUPLICATE.properties },
   );
   if (propRows > 0 && !writer.isBroken) {
-    writer.write("COMMIT;\nSET autocommit=0;\n");
+    await writer.write("COMMIT;\nSET autocommit=0;\n");
   }
 
   // Load condo stub properties if doing condominium table
@@ -400,7 +405,7 @@ export async function loadTableFromFiles(
       { insertIgnore: true },
     );
     if (stubRows > 0 && !writer.isBroken) {
-      writer.write("COMMIT;\nSET autocommit=0;\n");
+      await writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
@@ -423,14 +428,14 @@ export async function loadTableFromFiles(
     }
 
     if (rows > 0 && !writer.isBroken) {
-      writer.write("COMMIT;\nSET autocommit=0;\n");
+      await writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
   if (!writer.isBroken) {
-    writer.write("COMMIT;\n");
-    writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
-    writer.write("SET UNIQUE_CHECKS=1;\n");
+    await writer.write("COMMIT;\n");
+    await writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
+    await writer.write("SET UNIQUE_CHECKS=1;\n");
   }
 
   await writer.finish();
