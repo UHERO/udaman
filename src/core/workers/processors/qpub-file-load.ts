@@ -46,9 +46,6 @@ function columnName(col: string): string {
 
 const INSERT_CHUNK = 2000;
 
-/**
- * Build a single INSERT statement from a chunk of rows.
- */
 function buildInsert(
   table: string,
   columns: string[],
@@ -69,19 +66,84 @@ function buildInsert(
   return `${prefix}\n${valueParts.join(",\n")}${suffix};\n`;
 }
 
+// ─── SqlWriter — wraps mariadb stdin with error handling ────────────
+
 /**
- * Stream a JSONL file through stdin, writing INSERT chunks as we go.
- * Reads the file line-by-line so memory usage stays constant regardless of file size.
+ * Wraps a mariadb CLI process. Captures stderr in the background so
+ * that when the pipe breaks we can report the actual mariadb error,
+ * not just "EPIPE".
+ */
+class SqlWriter {
+  private proc: ReturnType<typeof Bun.spawn>;
+  private stderrPromise: Promise<string>;
+  private broken = false;
+  private brokenError: string | null = null;
+
+  constructor(args: string[]) {
+    this.proc = Bun.spawn(args, {
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    // Start reading stderr immediately in background
+    this.stderrPromise = new Response(this.proc.stderr).text();
+  }
+
+  /** Write SQL to mariadb stdin. Silently stops if pipe is already broken. */
+  write(sql: string): void {
+    if (this.broken) return;
+    try {
+      this.proc.stdin.write(sql);
+    } catch (e) {
+      this.broken = true;
+      this.brokenError = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  /** Returns true if the pipe broke during writes. */
+  get isBroken(): boolean {
+    return this.broken;
+  }
+
+  /**
+   * Close stdin and wait for mariadb to exit.
+   * Throws with the actual mariadb error message if it failed.
+   */
+  async finish(): Promise<void> {
+    if (!this.broken) {
+      try {
+        this.proc.stdin.end();
+      } catch {
+        this.broken = true;
+      }
+    }
+
+    const exitCode = await this.proc.exited;
+    const stderr = (await this.stderrPromise).trim();
+
+    if (exitCode !== 0 || this.broken) {
+      const detail = stderr || this.brokenError || "unknown error";
+      throw new Error(`mariadb failed (exit ${exitCode}): ${detail}`);
+    }
+  }
+}
+
+// ─── Streaming File Loaders ─────────────────────────────────────────
+
+/**
+ * Stream a JSONL file through the writer, sending INSERT chunks as we go.
+ * Reads line-by-line so memory stays constant regardless of file size.
+ * Stops early if the pipe breaks.
  */
 async function streamJsonlFile(
   filePath: string,
   table: string,
   columns: string[],
-  stdin: { write(data: string | Uint8Array): number | Promise<number> },
+  writer: SqlWriter,
   log: Logger,
   opts?: { onDuplicate?: string; insertIgnore?: boolean },
 ): Promise<number> {
-  if (!existsSync(filePath)) return 0;
+  if (!existsSync(filePath) || writer.isBroken) return 0;
 
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: "utf-8" }),
@@ -92,19 +154,18 @@ async function streamJsonlFile(
   let totalRows = 0;
 
   for await (const line of rl) {
-    if (!line) continue;
+    if (!line || writer.isBroken) continue;
     buffer.push(JSON.parse(line) as SqlValue[]);
 
     if (buffer.length >= INSERT_CHUNK) {
-      stdin.write(buildInsert(table, columns, buffer, opts));
+      writer.write(buildInsert(table, columns, buffer, opts));
       totalRows += buffer.length;
       buffer = [];
     }
   }
 
-  // Flush remaining
-  if (buffer.length > 0) {
-    stdin.write(buildInsert(table, columns, buffer, opts));
+  if (buffer.length > 0 && !writer.isBroken) {
+    writer.write(buildInsert(table, columns, buffer, opts));
     totalRows += buffer.length;
   }
 
@@ -124,10 +185,10 @@ async function streamJsonlFile(
 async function streamGenericJsonlFile(
   filePath: string,
   table: string,
-  stdin: { write(data: string | Uint8Array): number | Promise<number> },
+  writer: SqlWriter,
   log: Logger,
 ): Promise<number> {
-  if (!existsSync(filePath)) return 0;
+  if (!existsSync(filePath) || writer.isBroken) return 0;
 
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: "utf-8" }),
@@ -139,10 +200,9 @@ async function streamGenericJsonlFile(
   let totalRows = 0;
 
   for await (const line of rl) {
-    if (!line) continue;
+    if (!line || writer.isBroken) continue;
 
     if (!columns) {
-      // First line is column names
       columns = JSON.parse(line) as string[];
       continue;
     }
@@ -150,14 +210,14 @@ async function streamGenericJsonlFile(
     buffer.push(JSON.parse(line) as SqlValue[]);
 
     if (buffer.length >= INSERT_CHUNK) {
-      stdin.write(buildInsert(table, columns, buffer));
+      writer.write(buildInsert(table, columns, buffer));
       totalRows += buffer.length;
       buffer = [];
     }
   }
 
-  if (buffer.length > 0 && columns) {
-    stdin.write(buildInsert(table, columns, buffer));
+  if (buffer.length > 0 && columns && !writer.isBroken) {
+    writer.write(buildInsert(table, columns, buffer));
     totalRows += buffer.length;
   }
 
@@ -241,23 +301,18 @@ export async function loadFromFiles(
   dbName: string,
   log: Logger,
 ): Promise<void> {
-  const proc = Bun.spawn(
-    ["mariadb", ...localAuthArgs, dbName],
-    { stdin: "pipe", stdout: "pipe", stderr: "pipe" },
-  );
+  const writer = new SqlWriter(["mariadb", ...localAuthArgs, dbName]);
 
-  const stdin = proc.stdin;
-
-  stdin.write("SET FOREIGN_KEY_CHECKS=0;\n");
-  stdin.write("SET UNIQUE_CHECKS=0;\n");
-  stdin.write("SET autocommit=0;\n");
+  writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
+  writer.write("SET UNIQUE_CHECKS=0;\n");
+  writer.write("SET autocommit=0;\n");
 
   let totalRows = 0;
 
-  // Load standard tables in order
   for (const table of LOAD_ORDER) {
-    const filePath = path.join(stagingDir, `${table}.jsonl`);
+    if (writer.isBroken) break;
 
+    const filePath = path.join(stagingDir, `${table}.jsonl`);
     const isStubProperties = table === "condo_stub_properties";
     const actualTable = isStubProperties ? "properties" : table;
     const columns = isStubProperties
@@ -270,44 +325,40 @@ export async function loadFromFiles(
     }
 
     const onDuplicate = ON_DUPLICATE[actualTable];
-    const rows = await streamJsonlFile(filePath, actualTable, columns, stdin, log, {
+    const rows = await streamJsonlFile(filePath, actualTable, columns, writer, log, {
       onDuplicate,
       insertIgnore: isStubProperties,
     });
 
     totalRows += rows;
 
-    // Commit periodically to avoid huge undo logs
-    if (rows > 0) {
-      stdin.write("COMMIT;\n");
-      stdin.write("SET autocommit=0;\n");
+    if (rows > 0 && !writer.isBroken) {
+      writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
-  // Load generic section tables
   for (const [, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
+    if (writer.isBroken) break;
+
     const filePath = path.join(stagingDir, `${tableName}.jsonl`);
-    const rows = await streamGenericJsonlFile(filePath, tableName, stdin, log);
+    const rows = await streamGenericJsonlFile(filePath, tableName, writer, log);
     totalRows += rows;
 
-    if (rows > 0) {
-      stdin.write("COMMIT;\n");
-      stdin.write("SET autocommit=0;\n");
+    if (rows > 0 && !writer.isBroken) {
+      writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
-  stdin.write("COMMIT;\n");
-  stdin.write("SET FOREIGN_KEY_CHECKS=1;\n");
-  stdin.write("SET UNIQUE_CHECKS=1;\n");
-  stdin.end();
+  if (!writer.isBroken) {
+    writer.write("COMMIT;\n");
+    writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
+    writer.write("SET UNIQUE_CHECKS=1;\n");
+  }
 
   log.info({ totalRows }, `Streamed ${totalRows.toLocaleString()} total rows to mariadb CLI`);
 
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`mariadb load failed (exit ${exitCode}): ${stderr}`);
-  }
+  // finish() closes stdin, waits for exit, and throws with stderr on failure
+  await writer.finish();
 
   log.info("Load into local database complete");
 }
@@ -322,71 +373,64 @@ export async function loadTableFromFiles(
   dbName: string,
   log: Logger,
 ): Promise<void> {
-  const proc = Bun.spawn(
-    ["mariadb", ...localAuthArgs, dbName],
-    { stdin: "pipe", stdout: "pipe", stderr: "pipe" },
-  );
+  const writer = new SqlWriter(["mariadb", ...localAuthArgs, dbName]);
 
-  const stdin = proc.stdin;
-
-  stdin.write("SET FOREIGN_KEY_CHECKS=0;\n");
-  stdin.write("SET UNIQUE_CHECKS=0;\n");
-  stdin.write("SET autocommit=0;\n");
+  writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
+  writer.write("SET UNIQUE_CHECKS=0;\n");
+  writer.write("SET autocommit=0;\n");
 
   // Always load properties first (FK parent)
   const propFile = path.join(stagingDir, "properties.jsonl");
   const propRows = await streamJsonlFile(
-    propFile, "properties", TABLE_COLUMNS.properties, stdin, log,
+    propFile, "properties", TABLE_COLUMNS.properties, writer, log,
     { onDuplicate: ON_DUPLICATE.properties },
   );
-  if (propRows > 0) {
-    stdin.write("COMMIT;\nSET autocommit=0;\n");
+  if (propRows > 0 && !writer.isBroken) {
+    writer.write("COMMIT;\nSET autocommit=0;\n");
   }
 
   // Load condo stub properties if doing condominium table
-  if (table === "condominium") {
+  if (table === "condominium" && !writer.isBroken) {
     const stubFile = path.join(stagingDir, "condo_stub_properties.jsonl");
     const stubRows = await streamJsonlFile(
-      stubFile, "properties", TABLE_COLUMNS.condo_stub_properties, stdin, log,
+      stubFile, "properties", TABLE_COLUMNS.condo_stub_properties, writer, log,
       { insertIgnore: true },
     );
-    if (stubRows > 0) {
-      stdin.write("COMMIT;\nSET autocommit=0;\n");
+    if (stubRows > 0 && !writer.isBroken) {
+      writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
-  // Determine which files to load for this table
   const tableFiles = resolveTableFiles(table);
 
   for (const tf of tableFiles) {
+    if (writer.isBroken) break;
+
     const filePath = path.join(stagingDir, `${tf}.jsonl`);
     const isGeneric = Object.values(GENERIC_SECTION_MAP).includes(tf);
 
     let rows: number;
     if (isGeneric) {
-      rows = await streamGenericJsonlFile(filePath, tf, stdin, log);
+      rows = await streamGenericJsonlFile(filePath, tf, writer, log);
     } else {
       const columns = TABLE_COLUMNS[tf];
       if (!columns) continue;
       const onDuplicate = ON_DUPLICATE[tf];
-      rows = await streamJsonlFile(filePath, tf, columns, stdin, log, { onDuplicate });
+      rows = await streamJsonlFile(filePath, tf, columns, writer, log, { onDuplicate });
     }
 
-    if (rows > 0) {
-      stdin.write("COMMIT;\nSET autocommit=0;\n");
+    if (rows > 0 && !writer.isBroken) {
+      writer.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
-  stdin.write("COMMIT;\n");
-  stdin.write("SET FOREIGN_KEY_CHECKS=1;\n");
-  stdin.write("SET UNIQUE_CHECKS=1;\n");
-  stdin.end();
-
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`mariadb load failed (exit ${exitCode}): ${stderr}`);
+  if (!writer.isBroken) {
+    writer.write("COMMIT;\n");
+    writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
+    writer.write("SET UNIQUE_CHECKS=1;\n");
   }
+
+  await writer.finish();
 
   log.info({ table }, `Load of ${table} into local database complete`);
 }
