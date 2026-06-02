@@ -5,15 +5,20 @@
  * INSERT SQL through the `mariadb` CLI. This uses a single CLI
  * connection — no connection pool issues with SET FOREIGN_KEY_CHECKS=0.
  *
+ * SQL is streamed incrementally — we never hold more than one INSERT
+ * chunk (~2000 rows) in memory at a time, handling tables with millions
+ * of rows without issue.
+ *
  * Tables are loaded in FK-safe order: properties first, then children.
  */
 
-import { existsSync, readFileSync } from "fs";
+import { createReadStream, existsSync } from "fs";
+import { createInterface } from "readline";
 import path from "path";
 
 import type { Logger } from "@/core/observability/logger";
 
-import { TABLE_COLUMNS, DEFAULT_STAGING_DIR } from "./qpub-extract";
+import { TABLE_COLUMNS } from "./qpub-extract";
 import { GENERIC_SECTION_MAP } from "./qpub-load";
 
 // ─── SQL Escaping ───────────────────────────────────────────────────
@@ -23,7 +28,6 @@ type SqlValue = string | number | null;
 function escapeSqlValue(v: SqlValue): string {
   if (v === null) return "NULL";
   if (typeof v === "number") return String(v);
-  // Escape backslashes, single quotes, and other special chars
   return "'" + String(v)
     .replace(/\\/g, "\\\\")
     .replace(/'/g, "\\'")
@@ -34,49 +38,141 @@ function escapeSqlValue(v: SqlValue): string {
 }
 
 function columnName(col: string): string {
-  // Backtick-quote reserved words
   if (col === "usage") return "`usage`";
   return col;
 }
 
-// ─── INSERT Generation ──────────────────────────────────────────────
+// ─── Streaming INSERT Writer ────────────────────────────────────────
 
 const INSERT_CHUNK = 2000;
 
 /**
- * Generate INSERT SQL from JSONL rows.
- * Yields chunks of INSERT statements (each up to INSERT_CHUNK rows).
+ * Build a single INSERT statement from a chunk of rows.
  */
-function* generateInserts(
+function buildInsert(
   table: string,
   columns: string[],
   rows: SqlValue[][],
   opts?: { onDuplicate?: string; insertIgnore?: boolean },
-): Generator<string> {
-  if (rows.length === 0) return;
-
+): string {
   const colList = columns.map(columnName).join(", ");
   const prefix = opts?.insertIgnore
     ? `INSERT IGNORE INTO ${table} (${colList}) VALUES`
     : `INSERT INTO ${table} (${colList}) VALUES`;
   const suffix = opts?.onDuplicate ? ` ON DUPLICATE KEY UPDATE ${opts.onDuplicate}` : "";
 
-  for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
-    const chunk = rows.slice(i, i + INSERT_CHUNK);
-    const valueParts = chunk.map((row) => {
-      const vals = row.map(escapeSqlValue).join(",");
-      return `(${vals})`;
-    });
-    yield `${prefix}\n${valueParts.join(",\n")}${suffix};\n`;
+  const valueParts = rows.map((row) => {
+    const vals = row.map(escapeSqlValue).join(",");
+    return `(${vals})`;
+  });
+
+  return `${prefix}\n${valueParts.join(",\n")}${suffix};\n`;
+}
+
+/**
+ * Stream a JSONL file through stdin, writing INSERT chunks as we go.
+ * Reads the file line-by-line so memory usage stays constant regardless of file size.
+ */
+async function streamJsonlFile(
+  filePath: string,
+  table: string,
+  columns: string[],
+  stdin: { write(data: string | Uint8Array): number | Promise<number> },
+  log: Logger,
+  opts?: { onDuplicate?: string; insertIgnore?: boolean },
+): Promise<number> {
+  if (!existsSync(filePath)) return 0;
+
+  const rl = createInterface({
+    input: createReadStream(filePath, { encoding: "utf-8" }),
+    crlfDelay: Infinity,
+  });
+
+  let buffer: SqlValue[][] = [];
+  let totalRows = 0;
+
+  for await (const line of rl) {
+    if (!line) continue;
+    buffer.push(JSON.parse(line) as SqlValue[]);
+
+    if (buffer.length >= INSERT_CHUNK) {
+      stdin.write(buildInsert(table, columns, buffer, opts));
+      totalRows += buffer.length;
+      buffer = [];
+    }
   }
+
+  // Flush remaining
+  if (buffer.length > 0) {
+    stdin.write(buildInsert(table, columns, buffer, opts));
+    totalRows += buffer.length;
+  }
+
+  if (totalRows > 0) {
+    log.info(
+      { table, rows: totalRows },
+      `Loaded ${table}: ${totalRows.toLocaleString()} rows`,
+    );
+  }
+
+  return totalRows;
+}
+
+/**
+ * Stream a generic section JSONL file (first line is column header).
+ */
+async function streamGenericJsonlFile(
+  filePath: string,
+  table: string,
+  stdin: { write(data: string | Uint8Array): number | Promise<number> },
+  log: Logger,
+): Promise<number> {
+  if (!existsSync(filePath)) return 0;
+
+  const rl = createInterface({
+    input: createReadStream(filePath, { encoding: "utf-8" }),
+    crlfDelay: Infinity,
+  });
+
+  let columns: string[] | null = null;
+  let buffer: SqlValue[][] = [];
+  let totalRows = 0;
+
+  for await (const line of rl) {
+    if (!line) continue;
+
+    if (!columns) {
+      // First line is column names
+      columns = JSON.parse(line) as string[];
+      continue;
+    }
+
+    buffer.push(JSON.parse(line) as SqlValue[]);
+
+    if (buffer.length >= INSERT_CHUNK) {
+      stdin.write(buildInsert(table, columns, buffer));
+      totalRows += buffer.length;
+      buffer = [];
+    }
+  }
+
+  if (buffer.length > 0 && columns) {
+    stdin.write(buildInsert(table, columns, buffer));
+    totalRows += buffer.length;
+  }
+
+  if (totalRows > 0) {
+    log.info(
+      { table, rows: totalRows },
+      `Loaded ${table}: ${totalRows.toLocaleString()} rows`,
+    );
+  }
+
+  return totalRows;
 }
 
 // ─── Table Load Order ───────────────────────────────────────────────
 
-/**
- * FK-safe table load order. Properties first (FK parent for everything),
- * condo stub properties second (INSERT IGNORE), then the rest.
- */
 const LOAD_ORDER: string[] = [
   "properties",
   "condo_stub_properties",
@@ -133,24 +229,11 @@ const ON_DUPLICATE: Record<string, string> = {
   condominium_units: "unit_number=VALUES(unit_number), owner_name=VALUES(owner_name)",
 };
 
-// ─── File Reading ───────────────────────────────────────────────────
-
-/**
- * Read a JSONL file and return parsed rows.
- * For generic sections, the first line is a column header.
- */
-function readJsonlFile(filePath: string): SqlValue[][] {
-  if (!existsSync(filePath)) return [];
-  const content = readFileSync(filePath, "utf-8").trim();
-  if (!content) return [];
-  return content.split("\n").map((line) => JSON.parse(line) as SqlValue[]);
-}
-
 // ─── Main Load Function ─────────────────────────────────────────────
 
 /**
  * Load all extracted table files into the local database via mariadb CLI.
- * Uses a single connection with FK_CHECKS=0 throughout.
+ * Streams SQL incrementally — constant memory regardless of table size.
  */
 export async function loadFromFiles(
   stagingDir: string,
@@ -158,87 +241,67 @@ export async function loadFromFiles(
   dbName: string,
   log: Logger,
 ): Promise<void> {
-  // Build all SQL into a single stream piped to mariadb CLI
-  const sqlParts: string[] = [];
+  const proc = Bun.spawn(
+    ["mariadb", ...localAuthArgs, dbName],
+    { stdin: "pipe", stdout: "pipe", stderr: "pipe" },
+  );
 
-  sqlParts.push("SET FOREIGN_KEY_CHECKS=0;\n");
-  sqlParts.push("SET UNIQUE_CHECKS=0;\n");
-  sqlParts.push("SET autocommit=0;\n");
+  const stdin = proc.stdin;
+
+  stdin.write("SET FOREIGN_KEY_CHECKS=0;\n");
+  stdin.write("SET UNIQUE_CHECKS=0;\n");
+  stdin.write("SET autocommit=0;\n");
 
   let totalRows = 0;
 
   // Load standard tables in order
   for (const table of LOAD_ORDER) {
     const filePath = path.join(stagingDir, `${table}.jsonl`);
-    const rows = readJsonlFile(filePath);
-    if (rows.length === 0) continue;
 
-    // Determine columns
-    let columns: string[];
-    if (table === "condo_stub_properties") {
-      columns = TABLE_COLUMNS.condo_stub_properties;
-    } else {
-      columns = TABLE_COLUMNS[table];
-    }
+    const isStubProperties = table === "condo_stub_properties";
+    const actualTable = isStubProperties ? "properties" : table;
+    const columns = isStubProperties
+      ? TABLE_COLUMNS.condo_stub_properties
+      : TABLE_COLUMNS[table];
 
     if (!columns) {
       log.warn({ table }, `No column definition for table ${table}, skipping`);
       continue;
     }
 
-    // Determine insert strategy
-    const isStubProperties = table === "condo_stub_properties";
-    const actualTable = isStubProperties ? "properties" : table;
     const onDuplicate = ON_DUPLICATE[actualTable];
-
-    for (const sql of generateInserts(actualTable, columns, rows, {
+    const rows = await streamJsonlFile(filePath, actualTable, columns, stdin, log, {
       onDuplicate,
       insertIgnore: isStubProperties,
-    })) {
-      sqlParts.push(sql);
-    }
+    });
 
-    totalRows += rows.length;
-    log.info({ table: actualTable, rows: rows.length }, `Prepared ${actualTable}: ${rows.length.toLocaleString()} rows`);
+    totalRows += rows;
+
+    // Commit periodically to avoid huge undo logs
+    if (rows > 0) {
+      stdin.write("COMMIT;\n");
+      stdin.write("SET autocommit=0;\n");
+    }
   }
 
   // Load generic section tables
   for (const [, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
     const filePath = path.join(stagingDir, `${tableName}.jsonl`);
-    if (!existsSync(filePath)) continue;
+    const rows = await streamGenericJsonlFile(filePath, tableName, stdin, log);
+    totalRows += rows;
 
-    const content = readFileSync(filePath, "utf-8").trim();
-    if (!content) continue;
-
-    const lines = content.split("\n");
-    if (lines.length < 2) continue; // Need at least header + 1 row
-
-    // First line is column names
-    const columns = JSON.parse(lines[0]) as string[];
-    const rows = lines.slice(1).map((line) => JSON.parse(line) as SqlValue[]);
-
-    if (rows.length === 0) continue;
-
-    for (const sql of generateInserts(tableName, columns, rows)) {
-      sqlParts.push(sql);
+    if (rows > 0) {
+      stdin.write("COMMIT;\n");
+      stdin.write("SET autocommit=0;\n");
     }
-
-    totalRows += rows.length;
-    log.info({ table: tableName, rows: rows.length }, `Prepared ${tableName}: ${rows.length.toLocaleString()} rows`);
   }
 
-  sqlParts.push("COMMIT;\n");
-  sqlParts.push("SET FOREIGN_KEY_CHECKS=1;\n");
-  sqlParts.push("SET UNIQUE_CHECKS=1;\n");
+  stdin.write("COMMIT;\n");
+  stdin.write("SET FOREIGN_KEY_CHECKS=1;\n");
+  stdin.write("SET UNIQUE_CHECKS=1;\n");
+  stdin.end();
 
-  log.info({ totalRows }, `Streaming ${totalRows.toLocaleString()} total rows to mariadb CLI`);
-
-  // Pipe all SQL through mariadb CLI
-  const allSql = sqlParts.join("");
-  const proc = Bun.spawn(
-    ["mariadb", ...localAuthArgs, dbName],
-    { stdin: new Blob([allSql]), stdout: "pipe", stderr: "pipe" },
-  );
+  log.info({ totalRows }, `Streamed ${totalRows.toLocaleString()} total rows to mariadb CLI`);
 
   const exitCode = await proc.exited;
   if (exitCode !== 0) {
@@ -259,34 +322,36 @@ export async function loadTableFromFiles(
   dbName: string,
   log: Logger,
 ): Promise<void> {
-  const sqlParts: string[] = [];
+  const proc = Bun.spawn(
+    ["mariadb", ...localAuthArgs, dbName],
+    { stdin: "pipe", stdout: "pipe", stderr: "pipe" },
+  );
 
-  sqlParts.push("SET FOREIGN_KEY_CHECKS=0;\n");
-  sqlParts.push("SET UNIQUE_CHECKS=0;\n");
-  sqlParts.push("SET autocommit=0;\n");
+  const stdin = proc.stdin;
+
+  stdin.write("SET FOREIGN_KEY_CHECKS=0;\n");
+  stdin.write("SET UNIQUE_CHECKS=0;\n");
+  stdin.write("SET autocommit=0;\n");
 
   // Always load properties first (FK parent)
   const propFile = path.join(stagingDir, "properties.jsonl");
-  const propRows = readJsonlFile(propFile);
-  if (propRows.length > 0) {
-    for (const sql of generateInserts("properties", TABLE_COLUMNS.properties, propRows, {
-      onDuplicate: ON_DUPLICATE.properties,
-    })) {
-      sqlParts.push(sql);
-    }
-    log.info({ rows: propRows.length }, `Prepared properties: ${propRows.length.toLocaleString()} rows`);
+  const propRows = await streamJsonlFile(
+    propFile, "properties", TABLE_COLUMNS.properties, stdin, log,
+    { onDuplicate: ON_DUPLICATE.properties },
+  );
+  if (propRows > 0) {
+    stdin.write("COMMIT;\nSET autocommit=0;\n");
   }
 
   // Load condo stub properties if doing condominium table
   if (table === "condominium") {
     const stubFile = path.join(stagingDir, "condo_stub_properties.jsonl");
-    const stubRows = readJsonlFile(stubFile);
-    if (stubRows.length > 0) {
-      for (const sql of generateInserts("properties", TABLE_COLUMNS.condo_stub_properties, stubRows, {
-        insertIgnore: true,
-      })) {
-        sqlParts.push(sql);
-      }
+    const stubRows = await streamJsonlFile(
+      stubFile, "properties", TABLE_COLUMNS.condo_stub_properties, stdin, log,
+      { insertIgnore: true },
+    );
+    if (stubRows > 0) {
+      stdin.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
@@ -295,45 +360,27 @@ export async function loadTableFromFiles(
 
   for (const tf of tableFiles) {
     const filePath = path.join(stagingDir, `${tf}.jsonl`);
-
-    // Check if this is a generic section with header line
     const isGeneric = Object.values(GENERIC_SECTION_MAP).includes(tf);
 
+    let rows: number;
     if (isGeneric) {
-      if (!existsSync(filePath)) continue;
-      const content = readFileSync(filePath, "utf-8").trim();
-      if (!content) continue;
-      const lines = content.split("\n");
-      if (lines.length < 2) continue;
-      const columns = JSON.parse(lines[0]) as string[];
-      const rows = lines.slice(1).map((line) => JSON.parse(line) as SqlValue[]);
-      if (rows.length === 0) continue;
-      for (const sql of generateInserts(tf, columns, rows)) {
-        sqlParts.push(sql);
-      }
-      log.info({ table: tf, rows: rows.length }, `Prepared ${tf}: ${rows.length.toLocaleString()} rows`);
+      rows = await streamGenericJsonlFile(filePath, tf, stdin, log);
     } else {
-      const rows = readJsonlFile(filePath);
-      if (rows.length === 0) continue;
       const columns = TABLE_COLUMNS[tf];
       if (!columns) continue;
       const onDuplicate = ON_DUPLICATE[tf];
-      for (const sql of generateInserts(tf, columns, rows, { onDuplicate })) {
-        sqlParts.push(sql);
-      }
-      log.info({ table: tf, rows: rows.length }, `Prepared ${tf}: ${rows.length.toLocaleString()} rows`);
+      rows = await streamJsonlFile(filePath, tf, columns, stdin, log, { onDuplicate });
+    }
+
+    if (rows > 0) {
+      stdin.write("COMMIT;\nSET autocommit=0;\n");
     }
   }
 
-  sqlParts.push("COMMIT;\n");
-  sqlParts.push("SET FOREIGN_KEY_CHECKS=1;\n");
-  sqlParts.push("SET UNIQUE_CHECKS=1;\n");
-
-  const allSql = sqlParts.join("");
-  const proc = Bun.spawn(
-    ["mariadb", ...localAuthArgs, dbName],
-    { stdin: new Blob([allSql]), stdout: "pipe", stderr: "pipe" },
-  );
+  stdin.write("COMMIT;\n");
+  stdin.write("SET FOREIGN_KEY_CHECKS=1;\n");
+  stdin.write("SET UNIQUE_CHECKS=1;\n");
+  stdin.end();
 
   const exitCode = await proc.exited;
   if (exitCode !== 0) {
@@ -346,7 +393,6 @@ export async function loadTableFromFiles(
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-/** Resolve a logical table name to the JSONL file names to load */
 function resolveTableFiles(table: string): string[] {
   switch (table) {
     case "commercial_improvements":
@@ -356,7 +402,6 @@ function resolveTableFiles(table: string): string[] {
     case "condominium":
       return ["condominium_projects", "condominium_units"];
     default: {
-      // Check if it's a generic section
       const genericEntry = Object.entries(GENERIC_SECTION_MAP).find(([, t]) => t === table);
       if (genericEntry) return [genericEntry[1]];
       return [table];
