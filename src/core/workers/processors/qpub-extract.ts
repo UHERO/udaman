@@ -144,6 +144,34 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
   // Stub properties for condo units (INSERT IGNORE)
   condo_stub_properties: ["tmk", "island_code"],
   condominium_units: ["tmk", "parent_tmk", "unit_number", "owner_name"],
+  // Generic section tables (fixed column definitions)
+  yard_improvements: [
+    "tmk", "scraped_at", "last_year_observed",
+    "description", "quantity", "year_built", "area",
+  ],
+  residential_additions: [
+    "tmk", "scraped_at", "last_year_observed",
+    "card", "line", "lower", "first", "second", "third", "area",
+  ],
+  agricultural_assessments: [
+    "tmk", "scraped_at", "last_year_observed",
+    "acres", "acres_in_production", "agricultural_type",
+    "agricultural_value", "assessed_value", "description", "use_description",
+  ],
+  accessory_structures: [
+    "tmk", "scraped_at", "last_year_observed",
+    "building_number", "description", "dimensions_units",
+    "percent_complete", "value", "year_built",
+  ],
+  appeals: [
+    "tmk", "scraped_at", "year",
+    "appeal_type_value", "scheduled_hearing_date_subject_to_change", "status",
+    "date_settled", "final_value", "tax_payer_opinion_of_value",
+    "tax_payer_opinion_of_property_class", "tax_payer_opinion_of_exemptions",
+  ],
+  dedications: [
+    "tmk", "scraped_at", "tax_year", "number_of_dedications",
+  ],
 };
 
 // ─── Counters for auto-increment IDs ───────────────────────────────
@@ -504,18 +532,21 @@ function extractCondominium(items: ExtractItem[]): {
 }
 
 /**
- * Extract a generic section. Column detection is based on the known
- * schema columns passed in.
+ * Extract a generic section using the fixed column list from TABLE_COLUMNS.
+ * Every row is mapped to the same column order — missing fields get null.
  */
 function extractGenericSection(
   items: ExtractItem[],
   sectionName: string,
-  knownColumns: Set<string>,
-): { columns: string[]; rows: SqlValue[][] } {
-  const hasLastYearObserved = knownColumns.has("last_year_observed");
-  const excludedCols = new Set(["id", "created_at"]);
+  tableName: string,
+): SqlValue[][] {
+  const columns = TABLE_COLUMNS[tableName];
+  if (!columns) return [];
+
+  const columnSet = new Set(columns);
+  const hasScrapedAt = columnSet.has("scraped_at");
+  const hasLastYearObserved = columnSet.has("last_year_observed");
   const allRows: SqlValue[][] = [];
-  let detectedCols: string[] | null = null;
 
   for (const { tmk, data, scrapedAt, observedYear } of items) {
     const sectionData = data[sectionName] as Row | undefined;
@@ -527,7 +558,7 @@ function extractGenericSection(
 
     for (const row of rows) {
       const matched: Record<string, SqlValue> = { tmk };
-      if (knownColumns.has("scraped_at")) matched.scraped_at = sqlDate(scrapedAt);
+      if (hasScrapedAt) matched.scraped_at = sqlDate(scrapedAt);
       if (hasLastYearObserved) matched.last_year_observed = observedYear;
 
       for (const [key, value] of Object.entries(row)) {
@@ -535,22 +566,18 @@ function extractGenericSection(
           .toLowerCase()
           .replace(/[^\w\s]/g, "")
           .replace(/\s+/g, "_");
-        if (knownColumns.has(snakeKey) && !excludedCols.has(snakeKey) &&
+        if (columnSet.has(snakeKey) &&
             snakeKey !== "tmk" && snakeKey !== "scraped_at" && snakeKey !== "last_year_observed") {
           matched[snakeKey] = value === null || value === undefined ? null : String(value);
         }
       }
 
-      if (!detectedCols) {
-        detectedCols = Object.keys(matched);
-      }
-
-      const rowValues = (detectedCols ?? Object.keys(matched)).map((col) => matched[col] ?? null);
-      allRows.push(rowValues);
+      // Map to fixed column order — missing columns get null
+      allRows.push(columns.map((col) => matched[col] ?? null));
     }
   }
 
-  return { columns: detectedCols ?? [], rows: allRows };
+  return allRows;
 }
 
 // ─── File Writers ───────────────────────────────────────────────────
@@ -566,37 +593,6 @@ function tablePath(stagingDir: string, table: string): string {
 }
 
 // ─── Main Extract ───────────────────────────────────────────────────
-
-/** Known columns for generic section tables (populated once at extract start) */
-let genericColumnCache: Map<string, Set<string>> | null = null;
-
-/**
- * Populate generic section column cache by querying the local DB.
- * Must be called before extracting generic sections.
- */
-export async function loadGenericColumnCache(localAuthArgs: string[], dbName: string): Promise<void> {
-  genericColumnCache = new Map();
-
-  for (const [, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
-    try {
-      const proc = Bun.spawn(
-        ["mariadb", ...localAuthArgs, dbName, "-N", "-e", `SHOW COLUMNS FROM ${tableName}`],
-        { stdout: "pipe", stderr: "pipe" },
-      );
-      const output = await new Response(proc.stdout).text();
-      await proc.exited;
-
-      const columns = new Set<string>();
-      for (const line of output.trim().split("\n")) {
-        const field = line.split("\t")[0];
-        if (field) columns.add(field);
-      }
-      genericColumnCache.set(tableName, columns);
-    } catch {
-      // Table might not exist yet
-    }
-  }
-}
 
 /**
  * Extract a batch of items and append rows to table JSONL files.
@@ -635,23 +631,11 @@ export function extractBatch(items: ExtractItem[], stagingDir: string): void {
   appendRows(tablePath(stagingDir, "condo_stub_properties"), condo.stubProperties);
   appendRows(tablePath(stagingDir, "condominium_units"), condo.units);
 
-  // Generic sections
-  if (genericColumnCache) {
-    for (const [sectionName, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
-      const knownColumns = genericColumnCache.get(tableName);
-      if (!knownColumns || knownColumns.size === 0) continue;
-
-      const { columns, rows } = extractGenericSection(items, sectionName, knownColumns);
-      if (rows.length === 0) continue;
-
-      // Write column header on first write
-      const fp = tablePath(stagingDir, tableName);
-      if (!existsSync(fp) || Bun.file(fp).size === 0) {
-        // First line is the column names
-        writeFileSync(fp, JSON.stringify(columns) + "\n");
-      }
-      appendRows(fp, rows);
-    }
+  // Generic sections (use fixed columns from TABLE_COLUMNS)
+  for (const [sectionName, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
+    if (!TABLE_COLUMNS[tableName]) continue;
+    const rows = extractGenericSection(items, sectionName, tableName);
+    appendRows(tablePath(stagingDir, tableName), rows);
   }
 }
 
@@ -670,6 +654,8 @@ export function initStagingDir(stagingDir: string): void {
     "sales", "permits", "current_tax_bills",
     "historical_tax_summary", "historical_tax_details", "historical_tax_payments", "historical_tax_credits",
     "condominium_projects", "condo_stub_properties", "condominium_units",
+    "yard_improvements", "residential_additions", "agricultural_assessments",
+    "accessory_structures", "appeals", "dedications",
   ];
 
   for (const table of allTables) {

@@ -30,7 +30,6 @@ import {
   extractBatch,
   initStagingDir,
   resetIdCounters,
-  loadGenericColumnCache,
   DEFAULT_STAGING_DIR,
 } from "./qpub-extract";
 import { loadFromFiles, loadTableFromFiles } from "./qpub-file-load";
@@ -213,14 +212,11 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
   const startMs = Date.now();
   let errorCount = 0;
 
-  // Prepare local DB (needed for generic section column detection)
   await prepareLocalDb(log);
 
   const stagingDir = DEFAULT_STAGING_DIR;
   initStagingDir(stagingDir);
   resetIdCounters();
-
-  await loadGenericColumnCache(localAuthArgs(), LOCAL_DB_NAME);
 
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 
@@ -343,8 +339,6 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   initStagingDir(stagingDir);
   resetIdCounters();
 
-  await loadGenericColumnCache(localAuthArgs(), LOCAL_DB_NAME);
-
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 
   // Phase 1+2: Parse and Extract
@@ -439,8 +433,6 @@ export async function rebuildTable(
   const stagingDir = DEFAULT_STAGING_DIR;
   initStagingDir(stagingDir);
   resetIdCounters();
-
-  await loadGenericColumnCache(localAuthArgs(), LOCAL_DB_NAME);
 
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 

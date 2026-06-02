@@ -19,7 +19,6 @@ import path from "path";
 import type { Logger } from "@/core/observability/logger";
 
 import { TABLE_COLUMNS } from "./qpub-extract";
-import { GENERIC_SECTION_MAP } from "./qpub-load";
 
 // ─── SQL Escaping ───────────────────────────────────────────────────
 
@@ -187,58 +186,6 @@ async function streamJsonlFile(
   return totalRows;
 }
 
-/**
- * Stream a generic section JSONL file (first line is column header).
- */
-async function streamGenericJsonlFile(
-  filePath: string,
-  table: string,
-  writer: SqlWriter,
-  log: Logger,
-): Promise<number> {
-  if (!existsSync(filePath) || writer.isBroken) return 0;
-
-  const rl = createInterface({
-    input: createReadStream(filePath, { encoding: "utf-8" }),
-    crlfDelay: Infinity,
-  });
-
-  let columns: string[] | null = null;
-  let buffer: SqlValue[][] = [];
-  let totalRows = 0;
-
-  for await (const line of rl) {
-    if (!line || writer.isBroken) continue;
-
-    if (!columns) {
-      columns = JSON.parse(line) as string[];
-      continue;
-    }
-
-    buffer.push(JSON.parse(line) as SqlValue[]);
-
-    if (buffer.length >= INSERT_CHUNK) {
-      await writer.write(buildInsert(table, columns, buffer));
-      totalRows += buffer.length;
-      buffer = [];
-    }
-  }
-
-  if (buffer.length > 0 && columns && !writer.isBroken) {
-    await writer.write(buildInsert(table, columns, buffer));
-    totalRows += buffer.length;
-  }
-
-  if (totalRows > 0) {
-    log.info(
-      { table, rows: totalRows },
-      `Loaded ${table}: ${totalRows.toLocaleString()} rows`,
-    );
-  }
-
-  return totalRows;
-}
-
 // ─── Table Load Order ───────────────────────────────────────────────
 
 const LOAD_ORDER: string[] = [
@@ -260,6 +207,12 @@ const LOAD_ORDER: string[] = [
   "historical_tax_details",
   "historical_tax_payments",
   "historical_tax_credits",
+  "yard_improvements",
+  "residential_additions",
+  "agricultural_assessments",
+  "accessory_structures",
+  "appeals",
+  "dedications",
 ];
 
 // ─── ON DUPLICATE KEY UPDATE clauses ────────────────────────────────
@@ -347,18 +300,6 @@ export async function loadFromFiles(
     }
   }
 
-  for (const [, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
-    if (writer.isBroken) break;
-
-    const filePath = path.join(stagingDir, `${tableName}.jsonl`);
-    const rows = await streamGenericJsonlFile(filePath, tableName, writer, log);
-    totalRows += rows;
-
-    if (rows > 0 && !writer.isBroken) {
-      await writer.write("COMMIT;\nSET autocommit=0;\n");
-    }
-  }
-
   if (!writer.isBroken) {
     await writer.write("COMMIT;\n");
     await writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
@@ -419,17 +360,10 @@ export async function loadTableFromFiles(
     if (writer.isBroken) break;
 
     const filePath = path.join(stagingDir, `${tf}.jsonl`);
-    const isGeneric = Object.values(GENERIC_SECTION_MAP).includes(tf);
-
-    let rows: number;
-    if (isGeneric) {
-      rows = await streamGenericJsonlFile(filePath, tf, writer, log);
-    } else {
-      const columns = TABLE_COLUMNS[tf];
-      if (!columns) continue;
-      const onDuplicate = ON_DUPLICATE[tf];
-      rows = await streamJsonlFile(filePath, tf, columns, writer, log, { onDuplicate });
-    }
+    const columns = TABLE_COLUMNS[tf];
+    if (!columns) continue;
+    const onDuplicate = ON_DUPLICATE[tf];
+    const rows = await streamJsonlFile(filePath, tf, columns, writer, log, { onDuplicate });
 
     if (rows > 0 && !writer.isBroken) {
       await writer.write("COMMIT;\nSET autocommit=0;\n");
@@ -457,10 +391,7 @@ function resolveTableFiles(table: string): string[] {
       return ["historical_tax_summary", "historical_tax_details", "historical_tax_payments", "historical_tax_credits"];
     case "condominium":
       return ["condominium_projects", "condominium_units"];
-    default: {
-      const genericEntry = Object.entries(GENERIC_SECTION_MAP).find(([, t]) => t === table);
-      if (genericEntry) return [genericEntry[1]];
+    default:
       return [table];
-    }
   }
 }
