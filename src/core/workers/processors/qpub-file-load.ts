@@ -311,6 +311,8 @@ export async function loadFromFiles(
 ): Promise<void> {
   const writer = new SqlWriter(["mariadb", ...localAuthArgs, dbName]);
 
+  // Disable strict mode so any remaining oversized scraped values truncate instead of aborting
+  await writer.write("SET SESSION sql_mode='';\n");
   await writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
   await writer.write("SET UNIQUE_CHECKS=0;\n");
   await writer.write("SET autocommit=0;\n");
@@ -383,6 +385,8 @@ export async function loadTableFromFiles(
 ): Promise<void> {
   const writer = new SqlWriter(["mariadb", ...localAuthArgs, dbName]);
 
+  // Disable strict mode so any remaining oversized scraped values truncate instead of aborting
+  await writer.write("SET SESSION sql_mode='';\n");
   await writer.write("SET FOREIGN_KEY_CHECKS=0;\n");
   await writer.write("SET UNIQUE_CHECKS=0;\n");
   await writer.write("SET autocommit=0;\n");

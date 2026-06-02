@@ -64,7 +64,7 @@ CREATE TABLE properties (
     address_other TEXT COMMENT 'Additional addresses for multi-unit properties',
     project_name VARCHAR(255),
     legal_information TEXT,
-    property_class VARCHAR(255),
+    property_class TEXT,
     land_area_sqft BIGINT UNSIGNED COMMENT 'Land area in square feet (whole number)',
     land_area_acres DECIMAL(12, 4) COMMENT 'Land area in acres (up to 99,999,999.9999 acres, 4 decimal precision)',
     neighborhood_code VARCHAR(20) COMMENT 'County-specific neighborhood/district code',
@@ -86,7 +86,7 @@ CREATE TABLE properties (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_island (island_code),
-    INDEX idx_property_class (property_class),
+    INDEX idx_property_class (property_class(100)),
     INDEX idx_location (location_address(100)),
     INDEX idx_zip (zip)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Primary property table - one record per TMK';
@@ -123,7 +123,7 @@ CREATE TABLE parcels (
     address_other TEXT,
     project_name VARCHAR(255),
     legal_information TEXT,
-    property_class VARCHAR(255),
+    property_class TEXT,
     land_area_sqft BIGINT UNSIGNED,
     land_area_acres DECIMAL(12, 4),
     neighborhood_code VARCHAR(20),
@@ -149,7 +149,7 @@ CREATE TABLE assessments (
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME,
     tax_year SMALLINT UNSIGNED NOT NULL,
-    property_class VARCHAR(255),
+    property_class TEXT,
     -- Oahu standard fields (BIGINT for assessed values - range 0 to billions)
     assessed_land_value BIGINT UNSIGNED,
     assessed_building_value BIGINT UNSIGNED,
@@ -177,7 +177,7 @@ CREATE TABLE assessments (
     UNIQUE KEY unique_assessment (tmk, tax_year),
     INDEX idx_scraped_at (scraped_at),
     INDEX idx_tax_year (tax_year),
-    INDEX idx_property_class (property_class)
+    INDEX idx_property_class (property_class(100))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Property assessments by year - combines current and historical';
 
 -- ============================================================================
@@ -270,7 +270,7 @@ CREATE TABLE commercial_improvements (
     year_built SMALLINT UNSIGNED,
     effective_year_built SMALLINT UNSIGNED,
     improvement_name VARCHAR(255),
-    property_class VARCHAR(255),
+    property_class TEXT,
     structure_type VARCHAR(100),
     units VARCHAR(20),
     identical_units VARCHAR(20),
@@ -504,7 +504,7 @@ CREATE TABLE appeals (
     date_settled DATE,
     final_value BIGINT UNSIGNED COMMENT 'Final assessed value in whole dollars',
     tax_payer_opinion_of_value BIGINT UNSIGNED COMMENT 'Taxpayer opinion value in whole dollars',
-    tax_payer_opinion_of_property_class VARCHAR(255),
+    tax_payer_opinion_of_property_class TEXT,
     tax_payer_opinion_of_exemptions BIGINT UNSIGNED COMMENT 'Taxpayer exemption amount in whole dollars',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
