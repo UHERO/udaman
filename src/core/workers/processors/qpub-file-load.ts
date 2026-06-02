@@ -75,6 +75,7 @@ function buildInsert(
  */
 class SqlWriter {
   private proc: ReturnType<typeof Bun.spawn>;
+  private stdin: ReturnType<typeof Bun.spawn>["stdin"] & { write: Function; end: Function };
   private stderrPromise: Promise<string>;
   private broken = false;
   private brokenError: string | null = null;
@@ -85,15 +86,17 @@ class SqlWriter {
       stdout: "pipe",
       stderr: "pipe",
     });
+    // Cast stdin — we know it's a FileSink because we passed stdin: "pipe"
+    this.stdin = this.proc.stdin as any;
     // Start reading stderr immediately in background
-    this.stderrPromise = new Response(this.proc.stderr).text();
+    this.stderrPromise = new Response(this.proc.stderr as ReadableStream).text();
   }
 
   /** Write SQL to mariadb stdin. Silently stops if pipe is already broken. */
   write(sql: string): void {
     if (this.broken) return;
     try {
-      this.proc.stdin.write(sql);
+      this.stdin.write(sql);
     } catch (e) {
       this.broken = true;
       this.brokenError = e instanceof Error ? e.message : String(e);
@@ -112,7 +115,7 @@ class SqlWriter {
   async finish(): Promise<void> {
     if (!this.broken) {
       try {
-        this.proc.stdin.end();
+        this.stdin.end();
       } catch {
         this.broken = true;
       }
