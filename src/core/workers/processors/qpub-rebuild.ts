@@ -210,7 +210,7 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
   }
 
   const startMs = Date.now();
-  let errorCount = 0;
+  const allErrors: Array<{ tmk: string; error: string }> = [];
 
   await prepareLocalDb(log);
 
@@ -225,7 +225,7 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
     const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
-    errorCount += parseErrors.length;
+    allErrors.push(...parseErrors);
 
     if (items.length > 0) {
       extractBatch(items, stagingDir);
@@ -242,7 +242,21 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
     }
   }
 
+  // Write errors file and log summary breakdown
+  if (allErrors.length > 0) {
+    const errorsFile = path.join(stagingDir, "errors.jsonl");
+    const lines = allErrors.map((e) => JSON.stringify(e)).join("\n") + "\n";
+    writeFileSync(errorsFile, lines);
+
+    const counts: Record<string, number> = {};
+    for (const { error } of allErrors) {
+      counts[error] = (counts[error] ?? 0) + 1;
+    }
+    log.info({ errorBreakdown: counts }, `Parse errors: ${allErrors.length} total`);
+  }
+
   const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+  const errorCount = allErrors.length;
   const summary = `Parse+Extract: ${total - errorCount} extracted, ${errorCount} errors (${total} total, ${elapsed}s). Files at ${stagingDir}`;
   log.info(summary);
   return summary;
