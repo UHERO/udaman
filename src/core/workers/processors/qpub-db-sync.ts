@@ -117,7 +117,7 @@ export async function syncToRemote(log: Logger): Promise<void> {
       "--single-transaction",
       "--quick",
       "--skip-lock-tables",
-      "--skip-definer",
+
       "--no-create-db",
       LOCAL_DB_NAME,
     ],
@@ -173,7 +173,7 @@ export async function syncTableToRemote(table: string, log: Logger): Promise<voi
       "--single-transaction",
       "--quick",
       "--skip-lock-tables",
-      "--skip-definer",
+
       "--no-create-db",
       LOCAL_DB_NAME,
       "--tables",
