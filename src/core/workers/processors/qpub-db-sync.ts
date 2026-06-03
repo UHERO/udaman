@@ -30,6 +30,20 @@ const REMOTE_DB_USER = process.env.HH_DB_USER ?? "root";
 const REMOTE_DB_PSWD = process.env.HH_DB_PSWD ?? "";
 const REMOTE_DB_NAME = process.env.HH_DB_NAME ?? "hawaii_housing_database";
 
+// ─── Tables to dump (explicit list — never dump views) ──────────
+
+const ALL_DATA_TABLES: string[] = [
+  "properties",
+  "condominium_projects", "condominium_units",
+  "parcels", "owners", "assessments", "land_classifications",
+  "residential_improvements",
+  "commercial_improvements", "commercial_improvement_details",
+  "sales", "permits", "current_tax_bills",
+  "historical_tax_summary", "historical_tax_details", "historical_tax_payments", "historical_tax_credits",
+  "yard_improvements", "residential_additions", "agricultural_assessments",
+  "accessory_structures", "appeals", "dedications",
+];
+
 // ─── Table groups for single-table sync ──────────────────────────
 
 /** Tables with FK children that must be dumped together */
@@ -109,7 +123,7 @@ export async function prepareLocalDb(log: Logger): Promise<void> {
 export async function syncToRemote(log: Logger): Promise<void> {
   log.info("Syncing local rebuild database to remote");
 
-  // Dump from local, pipe into remote — no intermediate file
+  // Dump explicit tables from local — avoids dumping views
   const dumpProc = Bun.spawn(
     [
       "mariadb-dump",
@@ -117,9 +131,10 @@ export async function syncToRemote(log: Logger): Promise<void> {
       "--single-transaction",
       "--quick",
       "--skip-lock-tables",
-
       "--no-create-db",
       LOCAL_DB_NAME,
+      "--tables",
+      ...ALL_DATA_TABLES,
     ],
     { stdout: "pipe", stderr: "pipe" },
   );
