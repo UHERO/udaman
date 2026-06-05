@@ -24,6 +24,7 @@ export default async function Layout({
       title={config.title}
       segment={table}
       fieldsTable={config.fieldsTable}
+      exploration={config.exploration}
       rowCount={rowCount}
       warningBanner={
         config.warning ? (

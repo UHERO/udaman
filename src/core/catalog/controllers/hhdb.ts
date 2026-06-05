@@ -466,3 +466,56 @@ export async function getProfileTextDrilldown(
   log.info({ table, column }, "fetching hhdb text drilldown");
   return HhdbProfileCollection.getTextDrilldown(table, column);
 }
+
+// --- Exploration: Out-of-State Ownership ---
+
+export async function getOutOfStateRatioByQuarter(islandCode?: string) {
+  log.info({ islandCode }, "fetching out-of-state ratio by quarter");
+  const data = await HhdbDashboardCollection.getOutOfStateRatioByQuarter(islandCode);
+  log.info({ count: data.length }, "out-of-state ratio fetched");
+  return data;
+}
+
+export async function getOutOfStateTopStates(startYear?: number, endYear?: number) {
+  log.info({ startYear, endYear }, "fetching out-of-state top states");
+  const data = await HhdbDashboardCollection.getOutOfStateTopStates(startYear, endYear);
+  log.info({ count: data.length }, "out-of-state top states fetched");
+  return data;
+}
+
+export async function getOutOfStateTopZips(state?: string, startYear?: number, endYear?: number) {
+  log.info({ state, startYear, endYear }, "fetching out-of-state top zips");
+  const data = await HhdbDashboardCollection.getOutOfStateTopZips(state, startYear, endYear);
+  log.info({ count: data.length }, "out-of-state top zips fetched");
+  return data;
+}
+
+// --- Exploration: Ownership Concentration ---
+
+export async function getOwnershipDistribution(islandCode?: string) {
+  log.info({ islandCode }, "fetching ownership distribution");
+  const data = await HhdbDashboardCollection.getOwnershipDistribution(islandCode);
+  log.info({ count: data.length }, "ownership distribution fetched");
+  return data;
+}
+
+export async function getOwnershipLorenzCurve(islandCode?: string) {
+  log.info({ islandCode }, "fetching ownership Lorenz curve");
+  const data = await HhdbDashboardCollection.getOwnershipLorenzCurve(islandCode);
+  log.info({ points: data.points.length, gini: data.gini }, "ownership Lorenz curve fetched");
+  return data;
+}
+
+export async function getTopOwners(limit?: number, islandCode?: string) {
+  log.info({ limit, islandCode }, "fetching top owners");
+  const data = await HhdbDashboardCollection.getTopOwners(limit, islandCode);
+  log.info({ count: data.length }, "top owners fetched");
+  return data;
+}
+
+export async function getConcentrationByIsland() {
+  log.info("fetching concentration by island");
+  const data = await HhdbDashboardCollection.getConcentrationByIsland();
+  log.info({ count: data.length }, "concentration by island fetched");
+  return data;
+}

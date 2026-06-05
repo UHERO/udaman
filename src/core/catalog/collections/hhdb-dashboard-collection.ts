@@ -34,6 +34,130 @@ export interface CondoAreaRow {
   median_living_area: number;
 }
 
+// --- Out-of-State Ownership ---
+
+export interface OutOfStateRatioRow {
+  year: number;
+  quarter: number;
+  period: string;
+  total_transactions: number;
+  out_of_state_count: number;
+  ratio: number;
+}
+
+export interface OutOfStateByStateRow {
+  mailing_state: string;
+  transaction_count: number;
+  pct: number;
+}
+
+export interface OutOfStateByZipRow {
+  mailing_zip_code: string;
+  mailing_state: string;
+  mailing_city: string;
+  transaction_count: number;
+  avg_conveyance: number;
+}
+
+// --- Ownership Concentration ---
+
+export interface OwnershipDistributionRow {
+  bucket: string;
+  owner_count: number;
+  property_count: number;
+  pct_of_properties: number;
+}
+
+export interface OwnershipLorenzPoint {
+  cumulative_owner_pct: number;
+  cumulative_property_pct: number;
+}
+
+export interface OwnershipLorenzResult {
+  points: OwnershipLorenzPoint[];
+  gini: number;
+}
+
+export interface TopOwnerRow {
+  owner_name: string;
+  property_count: number;
+  island_codes: string;
+}
+
+export interface ConcentrationByIslandRow {
+  island_code: string;
+  island_name: string;
+  gini: number;
+  top10_pct: number;
+  single_owner_pct: number;
+}
+
+/**
+ * Maps canonical owner names to known aliases/variations.
+ * Aliases are matched as prefixes (startsWith) to catch truncated names.
+ */
+const OWNER_ALIASES: [string, string[]][] = [
+  [
+    "KAMEHAMEHA SCHOOLS",
+    [
+      "B P BISHOP ESTATE",
+      "BP BISHOP ESTATE",
+      "BERNICE PAUAHI BISHOP",
+      "KAMEHAMEHA SCHOOL",
+    ],
+  ],
+  [
+    "DEPT OF HAWAIIAN HOME LANDS",
+    [
+      "HAWAIIAN HOME LANDS",
+      "DEPARTMENT OF HAWAIIAN HOME",
+      "DEPT OF HAWAIIAN HOME",
+      "HAWAIIAN HOMELANDS",
+    ],
+  ],
+  [
+    "STATE OF HAWAII",
+    [
+      "STATE OF HAWAII",
+    ],
+  ],
+  [
+    "CITY & COUNTY OF HONOLULU",
+    [
+      "CITY & COUNTY OF HONOLULU",
+      "CITY AND COUNTY OF HONOLULU",
+      "CITY&COUNTY OF HONOLULU",
+    ],
+  ],
+  [
+    "COUNTY OF MAUI",
+    [
+      "COUNTY OF MAUI",
+    ],
+  ],
+  [
+    "COUNTY OF HAWAII",
+    [
+      "COUNTY OF HAWAII",
+    ],
+  ],
+  [
+    "COUNTY OF KAUAI",
+    [
+      "COUNTY OF KAUAI",
+    ],
+  ],
+  [
+    "UNITED STATES OF AMERICA",
+    [
+      "UNITED STATES OF AMERICA",
+      "UNITED STATES GOVERNMENT",
+      "US GOVERNMENT",
+      "U S OF AMERICA",
+    ],
+  ],
+];
+
 export default class HhdbDashboardCollection {
   /** Average assessed value by property class over time */
   static async getMedianAssessedByClass(): Promise<MedianAssessedRow[]> {
@@ -155,5 +279,463 @@ export default class HhdbDashboardCollection {
       year_built: Number(r.year_built),
       median_living_area: Number(r.median_living_area),
     }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Out-of-State Ownership
+  // ---------------------------------------------------------------------------
+
+  /** Out-of-state buyer ratio by quarter */
+  static async getOutOfStateRatioByQuarter(
+    islandCode?: string,
+  ): Promise<OutOfStateRatioRow[]> {
+    const islandJoin = islandCode
+      ? "JOIN properties p ON t.tmk = p.tmk"
+      : "";
+    const islandWhere = islandCode
+      ? "AND p.island_code = ?"
+      : "";
+    const params: (string | number)[] = [];
+    if (islandCode) params.push(islandCode);
+
+    const rows = await rawQuery<{
+      year: number;
+      quarter: number;
+      total_transactions: number;
+      out_of_state_count: number;
+    }>(
+      `SELECT
+        YEAR(t.rec_date) as year,
+        QUARTER(t.rec_date) as quarter,
+        COUNT(*) as total_transactions,
+        SUM(CASE WHEN t.mailing_state != 'HI' THEN 1 ELSE 0 END) as out_of_state_count
+      FROM tg_transactions t
+      ${islandJoin}
+      WHERE t.conveyance_amount > 0
+        AND t.mailing_state IS NOT NULL
+        AND t.mailing_state != ''
+        AND t.rec_date IS NOT NULL
+        ${islandWhere}
+      GROUP BY YEAR(t.rec_date), QUARTER(t.rec_date)
+      HAVING COUNT(*) >= 5
+      ORDER BY year, quarter`,
+      params,
+    );
+
+    return rows.map((r) => ({
+      year: Number(r.year),
+      quarter: Number(r.quarter),
+      period: `${r.year}-Q${r.quarter}`,
+      total_transactions: Number(r.total_transactions),
+      out_of_state_count: Number(r.out_of_state_count),
+      ratio: Number(r.out_of_state_count) / Number(r.total_transactions),
+    }));
+  }
+
+  /** Top 20 source states for out-of-state buyers */
+  static async getOutOfStateTopStates(
+    startYear?: number,
+    endYear?: number,
+  ): Promise<OutOfStateByStateRow[]> {
+    const conditions: string[] = [
+      "mailing_state != 'HI'",
+      "mailing_state IS NOT NULL",
+      "mailing_state != ''",
+      "conveyance_amount > 0",
+    ];
+    const params: (string | number)[] = [];
+    if (startYear) {
+      conditions.push("YEAR(rec_date) >= ?");
+      params.push(startYear);
+    }
+    if (endYear) {
+      conditions.push("YEAR(rec_date) <= ?");
+      params.push(endYear);
+    }
+
+    const rows = await rawQuery<{
+      mailing_state: string;
+      transaction_count: number;
+    }>(
+      `SELECT
+        mailing_state,
+        COUNT(*) as transaction_count
+      FROM tg_transactions
+      WHERE ${conditions.join(" AND ")}
+      GROUP BY mailing_state
+      ORDER BY transaction_count DESC
+      LIMIT 20`,
+      params,
+    );
+
+    const total = rows.reduce((sum, r) => sum + Number(r.transaction_count), 0);
+    return rows.map((r) => ({
+      mailing_state: String(r.mailing_state),
+      transaction_count: Number(r.transaction_count),
+      pct: total > 0 ? Number(r.transaction_count) / total : 0,
+    }));
+  }
+
+  /** Top 30 source zip codes, optionally filtered by state */
+  static async getOutOfStateTopZips(
+    state?: string,
+    startYear?: number,
+    endYear?: number,
+  ): Promise<OutOfStateByZipRow[]> {
+    const conditions: string[] = [
+      "mailing_state != 'HI'",
+      "mailing_state IS NOT NULL",
+      "mailing_state != ''",
+      "mailing_zip_code IS NOT NULL",
+      "mailing_zip_code != ''",
+      "conveyance_amount > 0",
+    ];
+    const params: (string | number)[] = [];
+    if (state) {
+      conditions.push("mailing_state = ?");
+      params.push(state);
+    }
+    if (startYear) {
+      conditions.push("YEAR(rec_date) >= ?");
+      params.push(startYear);
+    }
+    if (endYear) {
+      conditions.push("YEAR(rec_date) <= ?");
+      params.push(endYear);
+    }
+
+    const rows = await rawQuery<{
+      mailing_zip_code: string;
+      mailing_state: string;
+      mailing_city: string;
+      transaction_count: number;
+      avg_conveyance: number;
+    }>(
+      `SELECT
+        mailing_zip_code,
+        mailing_state,
+        MAX(mailing_city) as mailing_city,
+        COUNT(*) as transaction_count,
+        AVG(conveyance_amount) as avg_conveyance
+      FROM tg_transactions
+      WHERE ${conditions.join(" AND ")}
+      GROUP BY mailing_zip_code, mailing_state
+      ORDER BY transaction_count DESC
+      LIMIT 30`,
+      params,
+    );
+
+    return rows.map((r) => ({
+      mailing_zip_code: String(r.mailing_zip_code),
+      mailing_state: String(r.mailing_state),
+      mailing_city: String(r.mailing_city ?? ""),
+      transaction_count: Number(r.transaction_count),
+      avg_conveyance: Number(r.avg_conveyance),
+    }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ownership Concentration
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Normalize known owner name variations to a canonical form.
+   * Many large institutional owners appear under slightly different names
+   * (e.g. truncated, with/without "TTEES", legacy vs current name).
+   */
+  private static normalizeOwnerName(name: string): string {
+    const upper = name.trim().toUpperCase();
+    for (const [canonical, aliases] of OWNER_ALIASES) {
+      if (upper === canonical || aliases.some((a) => upper.startsWith(a) || upper === a)) {
+        return canonical;
+      }
+    }
+    return name.trim();
+  }
+
+  /**
+   * Re-aggregate owner rows after name normalization.
+   * Merges property counts for owners that map to the same canonical name.
+   */
+  private static mergeOwnerRows(
+    rows: { owner_name: string; property_count: number }[],
+  ): { owner_name: string; property_count: number }[] {
+    const merged = new Map<string, number>();
+    for (const r of rows) {
+      const canonical = this.normalizeOwnerName(String(r.owner_name));
+      merged.set(canonical, (merged.get(canonical) ?? 0) + Number(r.property_count));
+    }
+    return [...merged.entries()].map(([owner_name, property_count]) => ({
+      owner_name,
+      property_count,
+    }));
+  }
+
+  /** Ownership distribution by bucket */
+  static async getOwnershipDistribution(
+    islandCode?: string,
+  ): Promise<OwnershipDistributionRow[]> {
+    const islandJoin = islandCode
+      ? "JOIN properties p ON o.tmk = p.tmk"
+      : "";
+    const islandWhere = islandCode
+      ? "AND p.island_code = ?"
+      : "";
+    const params: (string | number)[] = [];
+    if (islandCode) params.push(islandCode);
+
+    const rawRows = await rawQuery<{
+      owner_name: string;
+      property_count: number;
+    }>(
+      `SELECT
+        o.owner_name,
+        COUNT(DISTINCT o.tmk) as property_count
+      FROM owners o
+      ${islandJoin}
+      WHERE o.owner_name IS NOT NULL AND o.owner_name != ''
+        ${islandWhere}
+      GROUP BY o.owner_name`,
+      params,
+    );
+    const rows = this.mergeOwnerRows(rawRows);
+
+    const buckets: {
+      label: string;
+      min: number;
+      max: number;
+    }[] = [
+      { label: "1", min: 1, max: 1 },
+      { label: "2-3", min: 2, max: 3 },
+      { label: "4-9", min: 4, max: 9 },
+      { label: "10-24", min: 10, max: 24 },
+      { label: "25-99", min: 25, max: 99 },
+      { label: "100+", min: 100, max: Infinity },
+    ];
+
+    const totalProperties = rows.reduce(
+      (sum, r) => sum + Number(r.property_count),
+      0,
+    );
+
+    return buckets.map((b) => {
+      const matching = rows.filter((r) => {
+        const count = Number(r.property_count);
+        return count >= b.min && count <= b.max;
+      });
+      const ownerCount = matching.length;
+      const propertyCount = matching.reduce(
+        (sum, r) => sum + Number(r.property_count),
+        0,
+      );
+      return {
+        bucket: b.label,
+        owner_count: ownerCount,
+        property_count: propertyCount,
+        pct_of_properties:
+          totalProperties > 0 ? propertyCount / totalProperties : 0,
+      };
+    });
+  }
+
+  /** Lorenz curve + Gini coefficient for ownership concentration */
+  static async getOwnershipLorenzCurve(
+    islandCode?: string,
+  ): Promise<OwnershipLorenzResult> {
+    const islandJoin = islandCode
+      ? "JOIN properties p ON o.tmk = p.tmk"
+      : "";
+    const islandWhere = islandCode
+      ? "AND p.island_code = ?"
+      : "";
+    const params: (string | number)[] = [];
+    if (islandCode) params.push(islandCode);
+
+    const rawRows = await rawQuery<{
+      owner_name: string;
+      property_count: number;
+    }>(
+      `SELECT
+        o.owner_name,
+        COUNT(DISTINCT o.tmk) as property_count
+      FROM owners o
+      ${islandJoin}
+      WHERE o.owner_name IS NOT NULL AND o.owner_name != ''
+        ${islandWhere}
+      GROUP BY o.owner_name`,
+      params,
+    );
+    const rows = this.mergeOwnerRows(rawRows);
+    rows.sort((a, b) => a.property_count - b.property_count);
+
+    const counts = rows.map((r) => r.property_count);
+    const totalOwners = counts.length;
+    const totalProperties = counts.reduce((a, b) => a + b, 0);
+
+    if (totalOwners === 0) {
+      return { points: [], gini: 0 };
+    }
+
+    // Generate ~100 points for a smooth curve
+    const numPoints = Math.min(100, totalOwners);
+    const points: OwnershipLorenzPoint[] = [
+      { cumulative_owner_pct: 0, cumulative_property_pct: 0 },
+    ];
+
+    let cumulativeProperties = 0;
+    let giniArea = 0;
+
+    for (let i = 0; i < totalOwners; i++) {
+      cumulativeProperties += counts[i];
+      const ownerPct = (i + 1) / totalOwners;
+      const propertyPct = cumulativeProperties / totalProperties;
+
+      // Gini calculation: area under Lorenz curve
+      giniArea += propertyPct / totalOwners;
+
+      // Sample points for the curve
+      if (
+        i === totalOwners - 1 ||
+        Math.floor((i * numPoints) / totalOwners) !==
+          Math.floor(((i + 1) * numPoints) / totalOwners)
+      ) {
+        points.push({
+          cumulative_owner_pct: Math.round(ownerPct * 10000) / 10000,
+          cumulative_property_pct: Math.round(propertyPct * 10000) / 10000,
+        });
+      }
+    }
+
+    // Gini = 1 - 2 * area under Lorenz curve
+    const gini = Math.round((1 - 2 * giniArea) * 10000) / 10000;
+
+    return { points, gini };
+  }
+
+  /** Top multi-property owners */
+  static async getTopOwners(
+    limit = 25,
+    islandCode?: string,
+  ): Promise<TopOwnerRow[]> {
+    const islandJoin = islandCode
+      ? "JOIN properties p ON o.tmk = p.tmk"
+      : "";
+    const islandWhere = islandCode
+      ? "AND p.island_code = ?"
+      : "";
+    const params: (string | number)[] = [];
+    if (islandCode) params.push(islandCode);
+
+    // Fetch without LIMIT so we can merge aliases before cutting
+    const rawRows = await rawQuery<{
+      owner_name: string;
+      property_count: number;
+      island_codes: string;
+    }>(
+      `SELECT
+        o.owner_name,
+        COUNT(DISTINCT o.tmk) as property_count,
+        GROUP_CONCAT(DISTINCT LEFT(o.tmk, 1) ORDER BY LEFT(o.tmk, 1)) as island_codes
+      FROM owners o
+      ${islandJoin}
+      WHERE o.owner_name IS NOT NULL AND o.owner_name != ''
+        ${islandWhere}
+      GROUP BY o.owner_name
+      HAVING COUNT(DISTINCT o.tmk) > 1
+      ORDER BY property_count DESC`,
+      params,
+    );
+
+    // Merge aliases, combining property counts and island code sets
+    const merged = new Map<string, { count: number; islands: Set<string> }>();
+    for (const r of rawRows) {
+      const canonical = this.normalizeOwnerName(String(r.owner_name));
+      const existing = merged.get(canonical) ?? { count: 0, islands: new Set() };
+      existing.count += Number(r.property_count);
+      for (const code of String(r.island_codes ?? "").split(",")) {
+        if (code) existing.islands.add(code);
+      }
+      merged.set(canonical, existing);
+    }
+
+    return [...merged.entries()]
+      .map(([name, { count, islands }]) => ({
+        owner_name: name,
+        property_count: count,
+        island_codes: [...islands].sort().join(","),
+      }))
+      .sort((a, b) => b.property_count - a.property_count)
+      .slice(0, limit);
+  }
+
+  /** Concentration metrics by island */
+  static async getConcentrationByIsland(): Promise<ConcentrationByIslandRow[]> {
+    const islandNames: Record<string, string> = {
+      "1": "Hawaii",
+      "2": "Maui",
+      "3": "Oahu",
+      "4": "Kauai",
+      "5": "Molokai",
+      "6": "Lanai",
+    };
+
+    const results: ConcentrationByIslandRow[] = [];
+
+    for (const [code, name] of Object.entries(islandNames)) {
+      const rawRows = await rawQuery<{
+        owner_name: string;
+        property_count: number;
+      }>(
+        `SELECT
+          o.owner_name,
+          COUNT(DISTINCT o.tmk) as property_count
+        FROM owners o
+        JOIN properties p ON o.tmk = p.tmk
+        WHERE o.owner_name IS NOT NULL AND o.owner_name != ''
+          AND p.island_code = ?
+        GROUP BY o.owner_name`,
+        [code],
+      );
+
+      if (rawRows.length === 0) continue;
+
+      const rows = this.mergeOwnerRows(rawRows);
+      rows.sort((a, b) => a.property_count - b.property_count);
+      const counts = rows.map((r) => r.property_count);
+      const totalOwners = counts.length;
+      const totalProperties = counts.reduce((a, b) => a + b, 0);
+
+      // Gini
+      let giniArea = 0;
+      let cumProperties = 0;
+      for (const c of counts) {
+        cumProperties += c;
+        giniArea += cumProperties / totalProperties / totalOwners;
+      }
+      const gini = Math.round((1 - 2 * giniArea) * 10000) / 10000;
+
+      // Top 10% of owners' share
+      const top10Count = Math.max(1, Math.floor(totalOwners * 0.1));
+      const top10Properties = counts
+        .slice(-top10Count)
+        .reduce((a, b) => a + b, 0);
+      const top10Pct =
+        Math.round((top10Properties / totalProperties) * 10000) / 10000;
+
+      // Single-owner %
+      const singleOwners = counts.filter((c) => c === 1).length;
+      const singleOwnerPct =
+        Math.round((singleOwners / totalOwners) * 10000) / 10000;
+
+      results.push({
+        island_code: code,
+        island_name: name,
+        gini,
+        top10_pct: top10Pct,
+        single_owner_pct: singleOwnerPct,
+      });
+    }
+
+    return results;
   }
 }

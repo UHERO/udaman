@@ -11,6 +11,8 @@ export interface HhdbTableConfig {
   fieldsTable: string | null;
   defaultSort: string;
   warning?: string;
+  /** Enable the Exploration tab with analytical visualizations. */
+  exploration?: boolean;
 }
 
 export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
@@ -63,6 +65,7 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Owners",
     fieldsTable: "owners",
     defaultSort: "tmk",
+    exploration: true,
   },
   appeals: {
     title: "Appeals",
@@ -134,6 +137,12 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Yard Improvements",
     fieldsTable: "yard_improvements",
     defaultSort: "tmk",
+  },
+  transactions: {
+    title: "Transactions (TG)",
+    fieldsTable: null,
+    defaultSort: "id",
+    exploration: true,
   },
 };
 

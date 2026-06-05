@@ -189,6 +189,7 @@ const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
     icon: PlusSquare,
   },
   { title: "Yard Impr.", url: "/hhdb/tables/yard-improvements", icon: TreePine },
+  { title: "Transactions", url: "/hhdb/tables/transactions", icon: ScrollText },
 ];
 
 const DOCS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [

@@ -20,6 +20,7 @@ interface HhdbTableLayoutProps {
   title: string;
   segment: string;
   fieldsTable: string | null;
+  exploration?: boolean;
   rowCount?: number | null;
   children: React.ReactNode;
   warningBanner?: React.ReactNode;
@@ -29,6 +30,7 @@ export function HhdbTableLayout({
   title,
   segment,
   fieldsTable,
+  exploration,
   rowCount,
   children,
   warningBanner,
@@ -56,10 +58,14 @@ export function HhdbTableLayout({
     return { label: vt.label, href: base };
   });
 
-  const tabs = [{ label: "Table", href: basePath }, ...viewTabs];
+  const explorationTab = exploration
+    ? [{ label: "Exploration", href: `${basePath}/exploration` }]
+    : [];
+
+  const tabs = [{ label: "Table", href: basePath }, ...viewTabs, ...explorationTab];
 
   // All non-Table tab hrefs for checking if Table tab should be active
-  const nonTableHrefs = viewTabs.map((t) => t.href);
+  const nonTableHrefs = [...viewTabs, ...explorationTab].map((t) => t.href);
 
   const { fullWidth, toggleWidth } = useFullWidth();
 
