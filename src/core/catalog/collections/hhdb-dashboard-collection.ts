@@ -305,18 +305,18 @@ export default class HhdbDashboardCollection {
       out_of_state_count: number;
     }>(
       `SELECT
-        YEAR(t.rec_date) as year,
-        QUARTER(t.rec_date) as quarter,
+        YEAR(t.recDate) as year,
+        QUARTER(t.recDate) as quarter,
         COUNT(*) as total_transactions,
-        SUM(CASE WHEN t.mailing_state != 'HI' THEN 1 ELSE 0 END) as out_of_state_count
+        SUM(CASE WHEN t.mailingState != 'HI' THEN 1 ELSE 0 END) as out_of_state_count
       FROM tg_transactions t
       ${islandJoin}
-      WHERE t.conveyance_amount > 0
-        AND t.mailing_state IS NOT NULL
-        AND t.mailing_state != ''
-        AND t.rec_date IS NOT NULL
+      WHERE t.conveyanceAmount > 0
+        AND t.mailingState IS NOT NULL
+        AND t.mailingState != ''
+        AND t.recDate IS NOT NULL
         ${islandWhere}
-      GROUP BY YEAR(t.rec_date), QUARTER(t.rec_date)
+      GROUP BY YEAR(t.recDate), QUARTER(t.recDate)
       HAVING COUNT(*) >= 5
       ORDER BY year, quarter`,
       params,
@@ -338,31 +338,31 @@ export default class HhdbDashboardCollection {
     endYear?: number,
   ): Promise<OutOfStateByStateRow[]> {
     const conditions: string[] = [
-      "mailing_state != 'HI'",
-      "mailing_state IS NOT NULL",
-      "mailing_state != ''",
-      "conveyance_amount > 0",
+      "mailingState != 'HI'",
+      "mailingState IS NOT NULL",
+      "mailingState != ''",
+      "conveyanceAmount > 0",
     ];
     const params: (string | number)[] = [];
     if (startYear) {
-      conditions.push("YEAR(rec_date) >= ?");
+      conditions.push("YEAR(recDate) >= ?");
       params.push(startYear);
     }
     if (endYear) {
-      conditions.push("YEAR(rec_date) <= ?");
+      conditions.push("YEAR(recDate) <= ?");
       params.push(endYear);
     }
 
     const rows = await rawQuery<{
-      mailing_state: string;
+      mailingState: string;
       transaction_count: number;
     }>(
       `SELECT
-        mailing_state,
+        mailingState,
         COUNT(*) as transaction_count
       FROM tg_transactions
       WHERE ${conditions.join(" AND ")}
-      GROUP BY mailing_state
+      GROUP BY mailingState
       ORDER BY transaction_count DESC
       LIMIT 20`,
       params,
@@ -370,7 +370,7 @@ export default class HhdbDashboardCollection {
 
     const total = rows.reduce((sum, r) => sum + Number(r.transaction_count), 0);
     return rows.map((r) => ({
-      mailing_state: String(r.mailing_state),
+      mailing_state: String(r.mailingState),
       transaction_count: Number(r.transaction_count),
       pct: total > 0 ? Number(r.transaction_count) / total : 0,
     }));
@@ -383,52 +383,52 @@ export default class HhdbDashboardCollection {
     endYear?: number,
   ): Promise<OutOfStateByZipRow[]> {
     const conditions: string[] = [
-      "mailing_state != 'HI'",
-      "mailing_state IS NOT NULL",
-      "mailing_state != ''",
-      "mailing_zip_code IS NOT NULL",
-      "mailing_zip_code != ''",
-      "conveyance_amount > 0",
+      "mailingState != 'HI'",
+      "mailingState IS NOT NULL",
+      "mailingState != ''",
+      "mailingZipCode IS NOT NULL",
+      "mailingZipCode != ''",
+      "conveyanceAmount > 0",
     ];
     const params: (string | number)[] = [];
     if (state) {
-      conditions.push("mailing_state = ?");
+      conditions.push("mailingState = ?");
       params.push(state);
     }
     if (startYear) {
-      conditions.push("YEAR(rec_date) >= ?");
+      conditions.push("YEAR(recDate) >= ?");
       params.push(startYear);
     }
     if (endYear) {
-      conditions.push("YEAR(rec_date) <= ?");
+      conditions.push("YEAR(recDate) <= ?");
       params.push(endYear);
     }
 
     const rows = await rawQuery<{
-      mailing_zip_code: string;
-      mailing_state: string;
-      mailing_city: string;
+      mailingZipCode: string;
+      mailingState: string;
+      mailingCity: string;
       transaction_count: number;
       avg_conveyance: number;
     }>(
       `SELECT
-        mailing_zip_code,
-        mailing_state,
-        MAX(mailing_city) as mailing_city,
+        mailingZipCode,
+        mailingState,
+        MAX(mailingCity) as mailingCity,
         COUNT(*) as transaction_count,
-        AVG(conveyance_amount) as avg_conveyance
+        AVG(conveyanceAmount) as avg_conveyance
       FROM tg_transactions
       WHERE ${conditions.join(" AND ")}
-      GROUP BY mailing_zip_code, mailing_state
+      GROUP BY mailingZipCode, mailingState
       ORDER BY transaction_count DESC
       LIMIT 30`,
       params,
     );
 
     return rows.map((r) => ({
-      mailing_zip_code: String(r.mailing_zip_code),
-      mailing_state: String(r.mailing_state),
-      mailing_city: String(r.mailing_city ?? ""),
+      mailing_zip_code: String(r.mailingZipCode),
+      mailing_state: String(r.mailingState),
+      mailing_city: String(r.mailingCity ?? ""),
       transaction_count: Number(r.transaction_count),
       avg_conveyance: Number(r.avg_conveyance),
     }));

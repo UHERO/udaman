@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type { SummaryViewType } from "@catalog/types/hhdb";
 import { getFieldsForViewType } from "@catalog/types/hhdb-data-dictionary";
 import { Maximize2, Minimize2 } from "lucide-react";
 
+import { getHhdbTableCount } from "@/actions/hhdb";
 import { Button } from "@/components/ui/button";
 import { useFullWidth } from "@/hooks/use-full-width";
 import { cn } from "@/lib/utils";
@@ -21,7 +23,6 @@ interface HhdbTableLayoutProps {
   segment: string;
   fieldsTable: string | null;
   exploration?: boolean;
-  rowCount?: number | null;
   children: React.ReactNode;
   warningBanner?: React.ReactNode;
 }
@@ -31,10 +32,16 @@ export function HhdbTableLayout({
   segment,
   fieldsTable,
   exploration,
-  rowCount,
   children,
   warningBanner,
 }: HhdbTableLayoutProps) {
+  const [rowCount, setRowCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (fieldsTable) {
+      getHhdbTableCount(fieldsTable).then(setRowCount);
+    }
+  }, [fieldsTable]);
   const pathname = usePathname();
   const basePath = `/hhdb/tables/${segment}`;
   // Extract field from URL: /hhdb/tables/{segment}/{view}/{field}

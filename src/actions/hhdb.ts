@@ -2,6 +2,7 @@
 
 import {
   getAccessoryStructuresJSON as getAccessoryStructuresCtrl,
+  getTableCount as getTableCountCtrl,
   getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
   getAppealsJSON as getAppealsCtrl,
   getAssessmentsJSON as getAssessmentsCtrl,
@@ -329,4 +330,11 @@ export async function getHhdbTopOwners(limit?: number, islandCode?: string) {
 export async function getHhdbConcentrationByIsland() {
   await requirePermission("hhdb", "read");
   return cachedDashboard("concentrationByIsland", getConcentrationByIslandCtrl);
+}
+
+export async function getHhdbTableCount(
+  table: string,
+): Promise<number | null> {
+  await requirePermission("hhdb", "read");
+  return getTableCountCtrl(table);
 }
