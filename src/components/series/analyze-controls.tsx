@@ -1727,6 +1727,7 @@ interface AnalyzeControlsProps {
   onVisibilityChange?: (id: string, visibility: AnalyzerEntry["visibility"]) => void;
   onAxisChange?: (id: string, axis: "left" | "right") => void;
   onRemove?: (id: string) => void;
+  onAddCompareYoY?: (id: string) => void;
 }
 
 export function AnalyzeControls({
@@ -1746,6 +1747,7 @@ export function AnalyzeControls({
   onVisibilityChange,
   onAxisChange,
   onRemove,
+  onAddCompareYoY,
 }: AnalyzeControlsProps) {
 
   const searchParams = useSearchParams();
@@ -2504,6 +2506,15 @@ export function AnalyzeControls({
                     onVisibilityChange={onVisibilityChange ?? (() => {})}
                     onAxisChange={onAxisChange ?? (() => {})}
                     onRemove={onRemove ?? (() => {})}
+                    onCompareYoY={
+                      onAddCompareYoY
+                        ? (id: string) => {
+                            setRightChartType("column");
+                            setRightTransformation("yoy");
+                            onAddCompareYoY(id);
+                          }
+                        : undefined
+                    }
                   />
                 ))}
               </div>

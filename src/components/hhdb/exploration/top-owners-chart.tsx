@@ -75,11 +75,11 @@ export function TopOwnersChart() {
       </CardHeader>
       <CardContent>
         {!data ? (
-          <div className="flex h-[500px] items-center justify-center">
+          <div className="flex h-[800px] items-center justify-center">
             <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="h-[500px] w-full">
+          <ChartContainer config={chartConfig} className="h-[800px] w-full">
             <BarChart
               data={data.map((d) => ({
                 ...d,

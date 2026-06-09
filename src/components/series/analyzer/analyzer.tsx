@@ -221,6 +221,31 @@ export function Analyzer({
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
+  const handleAddCompareYoY = useCallback(
+    (id: string) => {
+      const source = entries.find((e) => e.id === id);
+      if (!source) return;
+
+      const newEntry: AnalyzerEntry = {
+        id: crypto.randomUUID(),
+        expression: source.expression,
+        name: source.name,
+        data: [],
+        unitShortLabel: null,
+        decimals: 1,
+        frequencyCode: null,
+        visibility: "gray",
+        axis: "right",
+        loading: true,
+        error: null,
+      };
+
+      setEntries((prev) => [...prev, newEntry]);
+      evaluateEntry(newEntry.id, newEntry.expression);
+    },
+    [entries, evaluateEntry],
+  );
+
   // ── Derive state for AnalyzeControls ─────────────────────────────────
   const compareSeries = useMemo(() => {
     const loaded = entries.filter((e) => e.data.length > 0);
@@ -377,6 +402,7 @@ export function Analyzer({
           onVisibilityChange={handleVisibilityChange}
           onAxisChange={handleAxisChange}
           onRemove={handleRemove}
+          onAddCompareYoY={handleAddCompareYoY}
         />
       )}
     </div>

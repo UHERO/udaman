@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowRightLeft, Eye, EyeOff, Loader2, X } from "lucide-react";
+import { ArrowRightLeft, ChartColumn, Eye, EyeOff, Loader2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,6 +23,7 @@ interface AnalyzerSeriesRowProps {
   onVisibilityChange: (id: string, visibility: AnalyzerEntry["visibility"]) => void;
   onAxisChange: (id: string, axis: "left" | "right") => void;
   onRemove: (id: string) => void;
+  onCompareYoY?: (id: string) => void;
 }
 
 /** Convert expression to a user-friendly display string.
@@ -51,6 +52,7 @@ export function AnalyzerSeriesRow({
   onVisibilityChange,
   onAxisChange,
   onRemove,
+  onCompareYoY,
 }: AnalyzerSeriesRowProps) {
   const [draft, setDraft] = useState(() => exprToEditable(entry.expression));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -180,6 +182,22 @@ export function AnalyzerSeriesRow({
           Move to {entry.axis === "left" ? "right" : "left"} axis
         </TooltipContent>
       </Tooltip>
+
+      {onCompareYoY && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0"
+              onClick={() => onCompareYoY(entry.id)}
+            >
+              <ChartColumn className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Compare YoY</TooltipContent>
+        </Tooltip>
+      )}
 
       <Tooltip>
         <TooltipTrigger asChild>
