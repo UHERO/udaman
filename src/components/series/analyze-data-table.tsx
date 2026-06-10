@@ -60,6 +60,10 @@ interface AnalyzeDataTableProps {
   secondAxisTransformation?: Transformation | null;
   /** Multi-series compare mode: series names corresponding to series_0, series_1, ... */
   seriesNames?: string[];
+  /** Right-axis transformation (for per-axis transform labels) */
+  rightTransformation?: Transformation | null;
+  /** Map of series index → axis assignment */
+  seriesAxisMap?: Map<number, "left" | "right">;
 }
 
 const changeColor = (n: number) => {
@@ -77,6 +81,8 @@ export function AnalyzeDataTable({
   secondAxis = false,
   secondAxisTransformation = null,
   seriesNames,
+  rightTransformation = null,
+  seriesAxisMap,
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
@@ -155,10 +161,13 @@ export function AnalyzeDataTable({
         });
       }
 
-      // Add transform columns for each series
-      if (activeTransformation) {
-        const transformLabel = TRANSFORMATION_LABELS[activeTransformation];
+      // Add transform columns for each series (per-axis transforms)
+      if (activeTransformation || rightTransformation) {
         for (let i = 0; i < seriesNames.length; i++) {
+          const isRight = seriesAxisMap?.get(i) === "right";
+          const tx = isRight ? rightTransformation : activeTransformation;
+          if (!tx) continue;
+          const transformLabel = TRANSFORMATION_LABELS[tx];
           const tKey = `transformed_${i}`;
           const name = seriesNames[i];
           const color = SERIES_COLORS[i % SERIES_COLORS.length];
@@ -320,6 +329,8 @@ export function AnalyzeDataTable({
     seriesNames,
     activeOverlays,
     activeTransformation,
+    rightTransformation,
+    seriesAxisMap,
     secondAxis,
     secondAxisTransformation,
     decimals,
@@ -339,10 +350,15 @@ export function AnalyzeDataTable({
           label = seriesNames[Number(seriesMatch[1])] ?? key;
         } else {
           const transformMatch = key.match(/^transformed_(\d+)$/);
-          if (transformMatch && activeTransformation) {
-            const transformLabel = TRANSFORMATION_LABELS[activeTransformation];
-            const name = seriesNames[Number(transformMatch[1])] ?? "";
-            label = `${transformLabel} (${name})`;
+          if (transformMatch) {
+            const idx = Number(transformMatch[1]);
+            const isRight = seriesAxisMap?.get(idx) === "right";
+            const tx = isRight ? rightTransformation : activeTransformation;
+            if (tx) {
+              const transformLabel = TRANSFORMATION_LABELS[tx];
+              const name = seriesNames[idx] ?? "";
+              label = `${transformLabel} (${name})`;
+            }
           }
         }
       }
@@ -367,7 +383,7 @@ export function AnalyzeDataTable({
     navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [rows, columns, isCompareMode, seriesNames, activeTransformation]);
+  }, [rows, columns, isCompareMode, seriesNames, activeTransformation, rightTransformation, seriesAxisMap]);
 
   const table = useReactTable({
     data: rows,

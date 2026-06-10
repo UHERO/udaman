@@ -2209,22 +2209,48 @@ export function AnalyzeControls({
       brushRange.startIndex,
       brushRange.endIndex + 1,
     );
-    if (!transformation) return sliced;
-    const transformed = applyTransformationMulti(
-      sliced,
-      transformation,
-      compareSeriesNames.length,
-      indexBaseYear,
-      rollingWindow,
-      effectiveIndexBaseDate,
-      currentFreqCode,
-    );
-    return sliced.map((row, i) => {
+    if (!transformation && !rightTransformation) return sliced;
+
+    // Apply transforms to FULL data so lookback periods (YoY, etc.) work
+    const leftTransformed = transformation
+      ? applyTransformationMulti(
+          chartData,
+          transformation,
+          compareSeriesNames.length,
+          indexBaseYear,
+          rollingWindow,
+          effectiveIndexBaseDate,
+          currentFreqCode,
+        )
+      : null;
+
+    const rightTransformed =
+      rightTransformation && rightTransformation !== transformation
+        ? applyTransformationMulti(
+            chartData,
+            rightTransformation,
+            compareSeriesNames.length,
+            indexBaseYear,
+            rollingWindow,
+            effectiveIndexBaseDate,
+            currentFreqCode,
+          )
+        : null;
+
+    return sliced.map((row, ri) => {
+      const fullIndex = brushRange.startIndex + ri;
       const result = { ...row };
       for (let s = 0; s < compareSeriesNames.length; s++) {
         const sKey = `series_${s}` as const;
-        (result as unknown as Record<string, unknown>)[`transformed_${s}`] =
-          transformed[i][sKey];
+        const isRight = seriesAxisMap.get(s) === "right";
+        const source = isRight
+          ? (rightTransformed ?? leftTransformed)
+          : leftTransformed;
+        const tx = isRight ? rightTransformation : transformation;
+        if (source && tx) {
+          (result as unknown as Record<string, unknown>)[`transformed_${s}`] =
+            source[fullIndex][sKey];
+        }
       }
       return result;
     });
@@ -2232,7 +2258,9 @@ export function AnalyzeControls({
     chartData,
     brushRange,
     transformation,
+    rightTransformation,
     compareSeriesNames.length,
+    seriesAxisMap,
     indexBaseYear,
     rollingWindow,
     effectiveIndexBaseDate,
@@ -2626,6 +2654,8 @@ export function AnalyzeControls({
           unitShortLabel={unitShortLabel}
           seriesNames={compareSeriesNames}
           activeTransformation={transformation}
+          rightTransformation={rightTransformation}
+          seriesAxisMap={seriesAxisMap}
         />
       </div>
   );
