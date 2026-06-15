@@ -126,7 +126,7 @@ export function LoaderCreateDialog({
                   <FieldLabel htmlFor="create-code">Code </FieldLabel>{" "}
                   <FieldDescription>
                     <Link
-                      href={`/udaman/${universe}/docs/loader-actions`}
+                      href="/docs/loader-actions"
                       className="hover:text-blue-800"
                     >
                       See docs

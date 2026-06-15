@@ -43,6 +43,23 @@ interface DateRangeRow {
   max_date: Date | null;
 }
 
+// ─── Preset types ────────────────────────────────────────────────────
+
+export type SeriesListPreset =
+  | "recent-created"
+  | "recent-updated"
+  | "recent-bls"
+  | "recent-fred"
+  | "recent-bea"
+  | "recent-hiwi";
+
+const SOURCE_PATTERNS: Record<string, string> = {
+  "recent-bls": "bls",
+  "recent-fred": "fred",
+  "recent-bea": "bea",
+  "recent-hiwi": "hiwi",
+};
+
 // ─── Payload types ───────────────────────────────────────────────────
 
 export type DeleteByMode =
@@ -554,12 +571,31 @@ class SeriesCollection {
     offset,
     limit,
     universe,
+    preset = "recent-created",
   }: {
     offset?: number;
     limit?: number;
     universe: Universe;
+    preset?: SeriesListPreset;
   }) {
-    const mainRows = await mysql<SeriesSummaryRow>`
+    const sourcePattern = SOURCE_PATTERNS[preset];
+    const params: (string | number)[] = [universe];
+
+    let joinClause = "";
+    let whereExtra = "";
+    let orderBy = "s.created_at DESC";
+
+    if (sourcePattern) {
+      joinClause =
+        "INNER JOIN data_sources ds ON ds.series_id = s.id AND NOT(ds.disabled)";
+      whereExtra = "AND ds.eval REGEXP ?";
+      params.push(sourcePattern);
+      orderBy = "s.updated_at DESC";
+    } else if (preset === "recent-updated") {
+      orderBy = "s.updated_at DESC";
+    }
+
+    const sql = `
       SELECT
         s.name as name,
         s.id as id,
@@ -574,10 +610,14 @@ class SeriesCollection {
       INNER JOIN xseries xs ON xs.id = s.xseries_id
       LEFT JOIN units u ON u.id = s.unit_id
       LEFT JOIN sources src ON src.id = s.source_id
-      WHERE s.universe = ${universe}
-      ORDER BY s.created_at DESC
+      ${joinClause}
+      WHERE s.universe = ?
+      ${whereExtra}
+      ORDER BY ${orderBy}
       LIMIT 40
     `;
+
+    const mainRows = await rawQuery<SeriesSummaryRow>(sql, params);
 
     const xseriesIds = mainRows.map((row) => row.xseriesId);
 

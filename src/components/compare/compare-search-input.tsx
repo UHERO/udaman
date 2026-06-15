@@ -39,7 +39,7 @@ export function CompareSearchInput({ currentNames }: CompareSearchInputProps) {
   function navigateWithNames(namesToAdd: string[]) {
     const updated = [...currentNames, ...namesToAdd];
     router.push(
-      `/udaman/${universe}/series/compare?names=${encodeURIComponent(updated.join(","))}`,
+      `/udaman/${universe}/analyze?names=${encodeURIComponent(updated.join(","))}`,
     );
     // Keep the term so the user can refine or re-search
     setError(null);

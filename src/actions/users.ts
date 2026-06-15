@@ -76,7 +76,7 @@ export async function createUserAction(payload: {
   try {
     const currentUserId = await getCurrentUserId();
     const result = await createUserCtrl(payload);
-    revalidatePath("/udaman/admin/users");
+    revalidatePath("/admin/users");
     log.info({ id: result.data.id }, "createUserAction completed");
 
     AppLogCollection.log({

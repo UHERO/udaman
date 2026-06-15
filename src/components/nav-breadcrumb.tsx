@@ -40,6 +40,19 @@ const segmentLabels: Record<string, string> = {
   edit: "Edit",
   duplicate: "Duplicate",
   create: "Create",
+  // Admin segments
+  "feature-toggles": "Feature Toggles",
+  workers: "Workers",
+  schedules: "Schedules",
+  users: "Users",
+  logs: "Logs",
+  crawlers: "Crawlers",
+  stats: "Stats",
+  "api-keys": "API Keys",
+  // HHDB segments
+  tables: "Tables",
+  profile: "Profile",
+  summary: "Summary",
 };
 
 /** Fallback: convert kebab-case segment to Title Case */
@@ -50,25 +63,67 @@ function formatSegment(segment: string): string {
     .join(" ");
 }
 
-export function NavBreadcrumb() {
-  const pathname = usePathname();
+type AppPrefix = {
+  rootLabel: string;
+  rootHref: string;
+  crumbSegments: string[];
+  basePath: string;
+};
 
-  // Strip /udaman/[universe] prefix, split remaining segments
+function parsePathname(pathname: string): AppPrefix {
+  if (pathname.startsWith("/admin")) {
+    const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
+    return {
+      rootLabel: "Admin",
+      rootHref: "/admin",
+      crumbSegments: segments,
+      basePath: "/admin",
+    };
+  }
+  if (pathname.startsWith("/hhdb")) {
+    const segments = pathname.replace(/^\/hhdb\/?/, "").split("/").filter(Boolean);
+    return {
+      rootLabel: "HHDB",
+      rootHref: "/hhdb",
+      crumbSegments: segments,
+      basePath: "/hhdb",
+    };
+  }
+  if (pathname.startsWith("/docs")) {
+    const segments = pathname.replace(/^\/docs\/?/, "").split("/").filter(Boolean);
+    return {
+      rootLabel: "Docs",
+      rootHref: "/docs",
+      crumbSegments: segments,
+      basePath: "/docs",
+    };
+  }
+
+  // Default: /udaman/[universe]/...
   const segments = pathname
     .replace(/^\/udaman\/?/, "")
     .split("/")
     .filter(Boolean);
-
   const universe = segments[0];
-  // Everything after the universe becomes breadcrumb items
-  const crumbSegments = segments.slice(1);
+  return {
+    rootLabel: "UDAMAN",
+    rootHref: `/udaman/${universe}`,
+    crumbSegments: segments.slice(1),
+    basePath: `/udaman/${universe}`,
+  };
+}
+
+export function NavBreadcrumb() {
+  const pathname = usePathname();
+  const { rootLabel, rootHref, crumbSegments, basePath } =
+    parsePathname(pathname);
 
   if (crumbSegments.length === 0) {
     return (
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage>Home</BreadcrumbPage>
+            <BreadcrumbPage>{rootLabel}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -77,7 +132,7 @@ export function NavBreadcrumb() {
 
   const crumbs = crumbSegments.map((segment, i) => ({
     label: segmentLabels[segment] ?? formatSegment(segment),
-    href: `/udaman/${universe}/${crumbSegments.slice(0, i + 1).join("/")}`,
+    href: `${basePath}/${crumbSegments.slice(0, i + 1).join("/")}`,
   }));
 
   return (
@@ -85,7 +140,7 @@ export function NavBreadcrumb() {
       <BreadcrumbList>
         <BreadcrumbItem className="hidden md:block">
           <BreadcrumbLink asChild>
-            <Link href={`/udaman/${universe}`}>Home</Link>
+            <Link href={rootHref}>{rootLabel}</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
         {crumbs.map((crumb, i) => {

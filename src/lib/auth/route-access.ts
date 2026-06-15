@@ -16,8 +16,10 @@ import {
   BookOpen,
   Building2,
   ChartLine,
+  ClipboardList,
   FileSpreadsheet,
   Globe,
+  LineChart,
   SearchSlash,
   Shield,
   TableProperties,
@@ -40,11 +42,15 @@ export type RouteEntry = {
   roles: Role[];
   universes?: string[];
   children?: RouteChild[];
+  /** Where this route appears in the UI: "rail" (app rail) or "sidebar" (default) */
+  location?: "rail" | "sidebar";
 };
 
 /**
- * Master route manifest. Paths are relative to `/udaman/{universe}`
- * unless they start with `/udaman/` (absolute within the app).
+ * Master route manifest.
+ *
+ * Sidebar routes: paths are relative to `/udaman/{universe}`.
+ * Rail routes: paths are absolute top-level (e.g. `/admin`, `/hhdb`, `/docs`).
  */
 export const ROUTES: RouteEntry[] = [
   {
@@ -52,15 +58,18 @@ export const ROUTES: RouteEntry[] = [
     path: "/series",
     icon: TableProperties,
     roles: ["internal", "admin", "dev"],
-    children: [
-      { label: "Series List", path: "/series" },
-      { label: "Analyze", path: "/series/analyze" },
-      { label: "Compare", path: "/series/compare" },
-      { label: "Calculate", path: "/series/calculate" },
-      { label: "Clipboard", path: "/series/clipboard" },
-      { label: "Missing Metadata", path: "/series/no-source" },
-      { label: "Quarantine", path: "/series/quarantine" },
-    ],
+  },
+  {
+    label: "Analyze",
+    path: "/analyze",
+    icon: LineChart,
+    roles: ["internal", "admin", "dev"],
+  },
+  {
+    label: "Clipboard",
+    path: "/clipboard",
+    icon: ClipboardList,
+    roles: ["internal", "admin", "dev"],
   },
   {
     label: "Data Portal Catalog",
@@ -105,36 +114,10 @@ export const ROUTES: RouteEntry[] = [
     path: "/investigations",
     icon: SearchSlash,
     roles: ["internal", "admin", "dev"],
-  },
-  {
-    label: "Admin",
-    path: "/udaman/admin",
-    icon: Shield,
-    roles: ["admin", "dev"],
     children: [
-      { label: "Permissions", path: "/udaman/admin" },
-      { label: "Feature Toggles", path: "/udaman/admin/feature-toggles" },
-      { label: "Workers", path: "/udaman/admin/workers" },
-      { label: "Schedules", path: "/udaman/admin/schedules" },
-      { label: "Users", path: "/udaman/admin/users" },
-      { label: "Logs", path: "/udaman/admin/logs" },
-      { label: "Crawlers", path: "/udaman/admin/crawlers" },
-      { label: "Stats", path: "/udaman/admin/stats" },
-      { label: "API Keys", path: "/udaman/admin/api-keys", roles: ["dev"] },
+      { label: "Missing Metadata", path: "/investigations/no-source" },
+      { label: "Quarantine", path: "/investigations/quarantine" },
     ],
-  },
-  {
-    label: "Housing Database",
-    path: "/hhdb",
-    icon: Building2,
-    roles: ["internal", "admin", "dev"],
-    universes: ["UHERO"],
-  },
-  {
-    label: "Docs",
-    path: "/docs",
-    icon: BookOpen,
-    roles: ["internal", "admin", "dev"],
   },
   {
     label: "Forecast Snapshots",
@@ -171,12 +154,39 @@ export const ROUTES: RouteEntry[] = [
       },
     ],
   },
+  // ── Rail routes (top-level, absolute paths) ──
   {
-    label: "Web Crawlers",
-    path: "/udaman/admin/crawlers",
-    icon: Globe,
+    label: "Admin",
+    path: "/admin",
+    icon: Shield,
     roles: ["admin", "dev"],
-    children: [{ label: "qPub", path: "/udaman/admin/crawlers/qpub" }],
+    location: "rail",
+    children: [
+      { label: "Permissions", path: "/admin" },
+      { label: "Feature Toggles", path: "/admin/feature-toggles" },
+      { label: "Workers", path: "/admin/workers" },
+      { label: "Schedules", path: "/admin/schedules" },
+      { label: "Users", path: "/admin/users" },
+      { label: "Logs", path: "/admin/logs" },
+      { label: "Crawlers", path: "/admin/crawlers" },
+      { label: "Stats", path: "/admin/stats" },
+      { label: "API Keys", path: "/admin/api-keys", roles: ["dev"] },
+    ],
+  },
+  {
+    label: "Housing Database",
+    path: "/hhdb",
+    icon: Building2,
+    roles: ["internal", "admin", "dev"],
+    universes: ["UHERO"],
+    location: "rail",
+  },
+  {
+    label: "Docs",
+    path: "/docs",
+    icon: BookOpen,
+    roles: ["internal", "admin", "dev"],
+    location: "rail",
   },
 ];
 
@@ -253,7 +263,7 @@ export function getVisibleChildren(
  * Check if a pathname is allowed for a given role+universe.
  * Used by middleware for route enforcement.
  *
- * `pathname` is the full URL path, e.g. `/udaman/uhero/series` or `/udaman/admin/investigations`.
+ * `pathname` is the full URL path, e.g. `/udaman/uhero/series`, `/admin/users`, `/hhdb`.
  *
  * The `universes` scoping on routes is checked against the universe segment of
  * the URL (current context), not the user's session universe. This lets a
@@ -261,10 +271,43 @@ export function getVisibleChildren(
  */
 export function isRouteAllowed(
   userRole: string,
-  _userUniverse: string,
+  userUniverse: string,
   pathname: string,
 ): boolean {
-  // Strip the /udaman/{universe} prefix to get the route-relative path
+  // ── Top-level routes: /admin/..., /hhdb/..., /docs/... ──
+  const topLevelPrefixes = ["/admin", "/hhdb", "/docs"];
+  for (const prefix of topLevelPrefixes) {
+    if (pathname === prefix || pathname.startsWith(prefix + "/")) {
+      for (const entry of ROUTES) {
+        if (entry.path !== prefix) continue;
+
+        // Check children for more specific matches first
+        if (entry.children) {
+          const sorted = [...entry.children].sort(
+            (a, b) => b.path.length - a.path.length,
+          );
+          for (const child of sorted) {
+            if (
+              pathname === child.path ||
+              pathname.startsWith(child.path + "/")
+            ) {
+              const childAccess = canAccess(userRole, userUniverse, {
+                roles: child.roles ?? entry.roles,
+                universes: child.universes ?? entry.universes,
+              });
+              return childAccess;
+            }
+          }
+        }
+
+        return canAccess(userRole, userUniverse, entry);
+      }
+      // No matching route found for this top-level prefix
+      return false;
+    }
+  }
+
+  // ── /udaman/{universe}/... routes ──
   const uniPrefixMatch = pathname.match(/^\/udaman\/([^/]+)(\/.*)?$/);
   if (!uniPrefixMatch) return true; // Not a udaman route — allow
 
@@ -275,33 +318,8 @@ export function isRouteAllowed(
   if (routePath === "/" || routePath === "") return true;
 
   for (const entry of ROUTES) {
-    // Absolute paths (e.g. /udaman/admin/investigations) — match against full pathname
-    if (entry.path.startsWith("/udaman/")) {
-      if (pathname === entry.path || pathname.startsWith(entry.path + "/")) {
-        // Check children for more specific matches (longest path first)
-        if (entry.children) {
-          const sorted = [...entry.children].sort(
-            (a, b) => b.path.length - a.path.length,
-          );
-          for (const child of sorted) {
-            const childPath = child.path;
-            if (
-              pathname === childPath ||
-              pathname.startsWith(childPath + "/")
-            ) {
-              const childAccess = canAccess(userRole, urlUniverse, {
-                roles: child.roles ?? entry.roles,
-                universes: child.universes ?? entry.universes,
-              });
-              if (childAccess) return true;
-              return false;
-            }
-          }
-        }
-        if (canAccess(userRole, urlUniverse, entry)) return true;
-      }
-      continue;
-    }
+    // Skip rail routes — they're handled above as top-level
+    if (entry.location === "rail") continue;
 
     // Relative paths — match against route-relative path
     if (routePath === entry.path || routePath.startsWith(entry.path + "/")) {

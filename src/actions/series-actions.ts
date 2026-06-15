@@ -8,6 +8,7 @@ import SeriesCollection from "@catalog/collections/series-collection";
 import type {
   CreateSeriesPayload,
   DeleteByMode,
+  SeriesListPreset,
 } from "@catalog/collections/series-collection";
 import {
   analyzeSeries as analyzeSeriesCtrl,
@@ -49,11 +50,14 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.series");
 
 /** Used in series summary page */
-export async function getSeries(params: { universe?: Universe }) {
+export async function getSeries(params: {
+  universe?: Universe;
+  preset?: SeriesListPreset;
+}) {
   await requirePermission("series", "read");
   const universe = params.universe ?? "UHERO";
-  log.info({ universe }, "getSeries action called");
-  const result = await fetchSeries({ universe });
+  log.info({ universe, preset: params.preset }, "getSeries action called");
+  const result = await fetchSeries({ universe, preset: params.preset });
   log.info({ count: result.data.length }, "getSeries action completed");
   return result.data;
 }
@@ -545,13 +549,13 @@ export async function getQuarantinedSeries(
 export async function unquarantineSeries(seriesId: number, universe: string) {
   await requirePermission("series", "update");
   await unquarantineSeriesCtrl({ seriesId });
-  revalidatePath(`/udaman/${universe}/series/quarantine`);
+  revalidatePath(`/udaman/${universe}/investigations/quarantine`);
 }
 
 export async function emptyQuarantine(universe: string) {
   await requirePermission("series", "delete");
   const count = await emptyQuarantineCtrl({ universe });
-  revalidatePath(`/udaman/${universe}/series/quarantine`);
+  revalidatePath(`/udaman/${universe}/investigations/quarantine`);
   return count;
 }
 

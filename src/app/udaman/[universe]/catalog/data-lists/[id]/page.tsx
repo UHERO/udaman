@@ -2,7 +2,6 @@ import type { Universe } from "@catalog/types/shared";
 
 import { getDataListSuperTableData } from "@/actions/data-lists";
 import { SuperTable } from "@/components/data-list/super-table";
-import { H1 } from "@/components/typography";
 
 export default async function DataListDetailPage({
   params,
@@ -28,7 +27,7 @@ export default async function DataListDetailPage({
 
   return (
     <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden">
-      <H1>{data.dataList.name ?? `Data List #${id}`}</H1>
+      <h1 className="text-3xl font-bold">{data.dataList.name ?? `Data List #${id}`}</h1>
       <SuperTable data={data} />
     </div>
   );

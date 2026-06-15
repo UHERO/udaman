@@ -79,8 +79,10 @@ export function SeriesActionsBar({
     {
       label: "Analyze",
       icon: LineChart,
-      onClick: () =>
-        router.push(`/udaman/${universe}/series/analyze?id=${seriesId}`),
+      onClick: () => {
+        const expr = encodeURIComponent(`"${metadata.s_name}".ts`);
+        router.push(`/udaman/${universe}/analyze?exprs=${expr}`);
+      },
     },
     {
       label: "CSV",

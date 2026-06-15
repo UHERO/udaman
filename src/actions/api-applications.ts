@@ -38,7 +38,7 @@ export async function createApiApplicationAction(
   try {
     log.info("createApiApplicationAction called");
     const result = await createCtrl({ payload });
-    revalidatePath("/udaman/admin/api-keys");
+    revalidatePath("/admin/api-keys");
     log.info({ id: result.data.id }, "createApiApplicationAction completed");
     return { success: true, message: result.message };
   } catch (err) {
@@ -56,7 +56,7 @@ export async function updateApiApplicationAction(
   try {
     log.info({ id }, "updateApiApplicationAction called");
     const result = await updateCtrl({ id, payload });
-    revalidatePath("/udaman/admin/api-keys");
+    revalidatePath("/admin/api-keys");
     return { success: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -72,7 +72,7 @@ export async function deleteApiApplicationAction(
   try {
     log.info({ id }, "deleteApiApplicationAction called");
     const result = await deleteCtrl({ id });
-    revalidatePath("/udaman/admin/api-keys");
+    revalidatePath("/admin/api-keys");
     return { success: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

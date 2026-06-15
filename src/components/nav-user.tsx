@@ -78,7 +78,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             {user.role === "dev" && (
               <DropdownMenuItem asChild>
-                <Link href="/udaman/admin">
+                <Link href="/admin">
                   <Shield />
                   Admin
                 </Link>
