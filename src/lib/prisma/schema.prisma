@@ -723,6 +723,49 @@ model timeline_events {
   @@index([start_date, end_date], map: "idx_timeline_events_dates")
 }
 
+model oauth_clients {
+  id                         Int      @id @default(autoincrement())
+  client_id                  String   @unique(map: "uniq_oauth_clients_client_id") @db.VarChar(64)
+  client_name                String?  @db.VarChar(255)
+  redirect_uris              Json
+  grant_types                Json
+  response_types             Json
+  token_endpoint_auth_method String   @default("none") @db.VarChar(32)
+  scope                      String   @default("mcp") @db.VarChar(64)
+  created_at                 DateTime @default(now()) @db.DateTime(0)
+}
+
+model oauth_authorization_codes {
+  id                    Int       @id @default(autoincrement())
+  code_hash             String    @unique(map: "uniq_oauth_auth_codes_code_hash") @db.Char(64)
+  client_id             String    @db.VarChar(64)
+  user_id               Int
+  redirect_uri          String    @db.VarChar(2048)
+  scope                 String    @default("mcp") @db.VarChar(64)
+  code_challenge        String    @db.VarChar(128)
+  code_challenge_method String    @default("S256") @db.VarChar(8)
+  expires_at            DateTime  @db.DateTime(0)
+  consumed_at           DateTime? @db.DateTime(0)
+  created_at            DateTime  @default(now()) @db.DateTime(0)
+
+  @@index([expires_at], map: "idx_oauth_auth_codes_expires_at")
+}
+
+model oauth_access_tokens {
+  id         Int       @id @default(autoincrement())
+  token_hash String    @unique(map: "uniq_oauth_access_tokens_token_hash") @db.Char(64)
+  client_id  String    @db.VarChar(64)
+  user_id    Int
+  user_email String    @db.VarChar(255)
+  scope      String    @default("mcp") @db.VarChar(64)
+  expires_at DateTime  @db.DateTime(0)
+  revoked_at DateTime? @db.DateTime(0)
+  created_at DateTime  @default(now()) @db.DateTime(0)
+
+  @@index([user_id], map: "idx_oauth_access_tokens_user_id")
+  @@index([expires_at], map: "idx_oauth_access_tokens_expires_at")
+}
+
 enum users_role {
   external
   fsonly
