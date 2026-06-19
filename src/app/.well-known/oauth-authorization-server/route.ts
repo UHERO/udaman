@@ -5,11 +5,13 @@
  * deployments work behind any host.
  */
 
+import { getPublicOrigin } from "@/lib/oauth/origin";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  const origin = new URL(req.url).origin;
+  const origin = getPublicOrigin(req);
   return Response.json({
     issuer: origin,
     authorization_endpoint: `${origin}/api/oauth/authorize`,

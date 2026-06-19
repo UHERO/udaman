@@ -14,6 +14,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 
 import { auth } from "@/lib/auth/index";
 import { registerUheroTools } from "@/lib/mcp-tools";
+import { getPublicOrigin } from "@/lib/oauth/origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -43,7 +44,7 @@ async function resolveAuth(req: Request): Promise<AuthContext | null> {
 }
 
 function unauthorized(req: Request): Response {
-  const origin = new URL(req.url).origin;
+  const origin = getPublicOrigin(req);
   const resourceMetadata = `${origin}/.well-known/oauth-protected-resource/api/mcp`;
   return new Response(
     JSON.stringify({

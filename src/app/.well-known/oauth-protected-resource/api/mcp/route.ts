@@ -4,11 +4,13 @@
  * OAuth without us hardcoding URLs on its side.
  */
 
+import { getPublicOrigin } from "@/lib/oauth/origin";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  const origin = new URL(req.url).origin;
+  const origin = getPublicOrigin(req);
   return Response.json({
     resource: `${origin}/api/mcp`,
     authorization_servers: [origin],

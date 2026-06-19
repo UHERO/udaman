@@ -8,6 +8,7 @@
  */
 
 import { auth } from "@/lib/auth/index";
+import { getPublicOrigin } from "@/lib/oauth/origin";
 import OAuthController, { type OAuthError } from "@catalog/controllers/oauth";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id || !session.user.email) {
     const callbackUrl = url.pathname + url.search;
-    const signInUrl = new URL("/udaman", url.origin);
+    const signInUrl = new URL("/udaman", getPublicOrigin(req));
     signInUrl.searchParams.set("callbackUrl", callbackUrl);
     return Response.redirect(signInUrl.toString(), 302);
   }
