@@ -104,7 +104,8 @@ export async function proxy(request: NextRequest) {
     // Let NextAuth & static assets pass through untouched
     if (
       (pathname.startsWith("/api/") && app !== "api") ||
-      pathname.startsWith("/_next")
+      pathname.startsWith("/_next") || 
+      pathname.startsWith("/.well-known")
     ) {
       return NextResponse.next();
     }
