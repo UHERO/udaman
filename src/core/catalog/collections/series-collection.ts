@@ -1053,23 +1053,30 @@ class SeriesCollection {
         )
     `;
 
+    if (needRepairDates.length > 0) {
+      log.info(
+        { xseriesId: id, count: needRepairDates.length, sample: needRepairDates.slice(0, 3).map(r => String(r.date)) },
+        "repairDataPoints: found orphaned dates",
+      );
+    }
+
     for (const dateRow of needRepairDates) {
-      const latest = await mysql<{ created_at: Date; data_source_id: number }>`
-        SELECT created_at, data_source_id FROM data_points
-        WHERE xseries_id = ${id} AND date = ${dateRow.date}
+      const dateStr =
+        dateRow.date instanceof Date
+          ? dateRow.date.toISOString().slice(0, 10)
+          : String(dateRow.date);
+      // Single UPDATE avoids round-tripping created_at through JS Date,
+      // which breaks on non-UTC servers due to Bun SQL's local-time
+      // deserialization vs UTC serialization asymmetry (oven-sh/bun#29208).
+      await mysql`
+        UPDATE data_points
+        SET current = 1
+        WHERE xseries_id = ${id}
+          AND date = ${dateStr}
+          AND current = 0
         ORDER BY created_at DESC
         LIMIT 1
       `;
-      if (latest.length > 0) {
-        await mysql`
-          UPDATE data_points
-          SET current = true
-          WHERE xseries_id = ${id}
-            AND date = ${dateRow.date}
-            AND created_at = ${latest[0].created_at}
-            AND data_source_id = ${latest[0].data_source_id}
-        `;
-      }
     }
   }
 
@@ -1530,7 +1537,10 @@ class SeriesCollection {
       }
     }
 
-    if (cleanData.size === 0) return { inserted: 0 };
+    if (cleanData.size === 0) {
+      log.warn({ xseriesId, dataSourceId }, "updateData: cleanData empty, skipping (repairDataPoints will NOT run)");
+      return { inserted: 0 };
+    }
 
     // Get this loader's priority
     const loaderRows = await mysql<{ priority: number | null }>`

@@ -14,7 +14,7 @@ export default async function ClipboardPage({
       <div>
         <h1 className="text-3xl font-bold">Clipboard</h1>
         <p className="text-muted-foreground text-sm">
-          Series saved for quick access.
+          Series saved for quick access and bulk operations.
         </p>
       </div>
       <ClipboardTable
