@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertTriangle, SearchX } from "lucide-react";
+import { AlertTriangle, LayoutDashboard, SearchX } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { WidthToggleBar } from "@/components/width-toggle-bar";
 import { useAppPathname } from "@/hooks/use-app-pathname";
 import { getVisibleChildren } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
@@ -17,6 +16,11 @@ const TABS: {
   segment: string;
   badgeKey?: "noSource" | "quarantine";
 }[] = [
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    segment: "",
+  },
   {
     label: "Missing Metadata",
     icon: SearchX,
@@ -56,15 +60,21 @@ export function InvestigationsTabs({
   );
   const visibleTabs = TABS.filter((tab) =>
     visibleChildren.some(
-      (child) => child.path === `/investigations/${tab.segment}`,
+      (child) =>
+        child.path ===
+        (tab.segment
+          ? `/investigations/${tab.segment}`
+          : "/investigations"),
     ),
   );
 
   return (
     <div className="flex items-center gap-1 border-b">
       {visibleTabs.map((tab) => {
-        const href = `${base}/${tab.segment}`;
-        const isActive = pathname.startsWith(`${base}/${tab.segment}`);
+        const href = tab.segment ? `${base}/${tab.segment}` : base;
+        const isActive = tab.segment
+          ? pathname.startsWith(`${base}/${tab.segment}`)
+          : pathname === base;
         const badgeCount =
           tab.badgeKey && badgeCounts ? badgeCounts[tab.badgeKey] : undefined;
         return (

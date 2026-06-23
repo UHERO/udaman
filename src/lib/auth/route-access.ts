@@ -115,6 +115,7 @@ export const ROUTES: RouteEntry[] = [
     icon: SearchSlash,
     roles: ["internal", "admin", "dev"],
     children: [
+      { label: "Dashboard", path: "/investigations" },
       { label: "Missing Metadata", path: "/investigations/no-source" },
       { label: "Quarantine", path: "/investigations/quarantine" },
     ],
