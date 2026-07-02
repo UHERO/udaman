@@ -5,10 +5,10 @@ const nextConfig: NextConfig = {
     "*": ["./data/**"],
   },
   serverExternalPackages: ["pino"],
-  serverActions: {
-    bodySizeLimit: "50mb",
-  },
   experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
     proxyClientMaxBodySize: "50mb",
   },
 };
