@@ -27,11 +27,29 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
+  const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50 MB
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formRef.current) return;
 
     const formData = new FormData(formRef.current);
+
+    // Check total file size before submitting
+    const fileFields = ["newForecastFile", "oldForecastFile", "historyFile"];
+    let totalSize = 0;
+    for (const field of fileFields) {
+      const file = formData.get(field) as File | null;
+      if (file && file.size > 0) totalSize += file.size;
+    }
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const sizeMB = (totalSize / 1024 / 1024).toFixed(1);
+      toast.error(
+        `Total file size (${sizeMB} MB) exceeds the 50 MB limit. Please use smaller files.`,
+      );
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -57,7 +75,14 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
         }
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "An error occurred");
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("Body exceeded") || message.includes("413")) {
+        toast.error(
+          `Upload rejected: file size exceeds server limit. Check nginx client_max_body_size in production.`,
+        );
+      } else {
+        toast.error(message || "An error occurred");
+      }
     } finally {
       setSubmitting(false);
     }

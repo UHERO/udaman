@@ -19,7 +19,11 @@ import type {
   DownloadFormData,
 } from "@catalog/controllers/downloads";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
+import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
+
+const log = createLogger("action.downloads");
 
 export async function listDownloads(): Promise<{ domains: DomainGroup[] }> {
   await requirePermission("download", "read");
@@ -41,27 +45,55 @@ export async function fetchDownloadForEdit(
 export async function downloadToServer(
   id: number,
 ): Promise<{ status: number; changed: boolean }> {
-  await requirePermission("download", "execute");
-  return triggerDownloadToServer({ id });
+  const { userId } = await requirePermission("download", "execute");
+  try {
+    return await triggerDownloadToServer({ id });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "downloadToServer failed");
+    AppLogCollection.logError(err, { userId, name: "download.execute" });
+    throw err;
+  }
 }
 
 export async function createDownloadAction(payload: CreateDownloadPayload) {
-  await requirePermission("download", "create");
-  const result = await createDownload(payload);
-  return { message: result.message, id: result.data.id };
+  const { userId } = await requirePermission("download", "create");
+  try {
+    const result = await createDownload(payload);
+    return { message: result.message, id: result.data.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createDownloadAction failed");
+    AppLogCollection.logError(err, { userId, name: "download.create" });
+    throw err;
+  }
 }
 
 export async function updateDownloadAction(
   id: number,
   payload: UpdateDownloadPayload,
 ) {
-  await requirePermission("download", "update");
-  const result = await updateDownload(id, payload);
-  return { message: result.message, id: result.data.id };
+  const { userId } = await requirePermission("download", "update");
+  try {
+    const result = await updateDownload(id, payload);
+    return { message: result.message, id: result.data.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateDownloadAction failed");
+    AppLogCollection.logError(err, { userId, name: "download.update" });
+    throw err;
+  }
 }
 
 export async function deleteDownloadAction(id: number) {
-  await requirePermission("download", "delete");
-  const result = await deleteDownload(id);
-  return { message: result.message };
+  const { userId } = await requirePermission("download", "delete");
+  try {
+    const result = await deleteDownload(id);
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteDownloadAction failed");
+    AppLogCollection.logError(err, { userId, name: "download.delete" });
+    throw err;
+  }
 }

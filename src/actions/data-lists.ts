@@ -25,6 +25,7 @@ import { createMeasurement as createMeasurementCtrl } from "@catalog/controllers
 import type { Universe } from "@catalog/types/shared";
 
 import { addMultipleSeriesToClipboard } from "@/actions/clipboard-actions";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -39,32 +40,53 @@ export async function getDataLists(params?: { universe?: Universe }) {
 }
 
 export async function createDataList(payload: CreateDataListPayload) {
-  await requirePermission("data-list", "create");
+  const { userId } = await requirePermission("data-list", "create");
   log.info("createDataList action called");
-  const result = await createDataListCtrl({ payload });
-  revalidatePath("/data-list");
-  log.info({ id: result.data.id }, "createDataList action completed");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await createDataListCtrl({ payload });
+    revalidatePath("/data-list");
+    log.info({ id: result.data.id }, "createDataList action completed");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createDataList failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.create" });
+    throw err;
+  }
 }
 
 export async function updateDataList(
   id: number,
   payload: UpdateDataListPayload,
 ) {
-  await requirePermission("data-list", "update");
+  const { userId } = await requirePermission("data-list", "update");
   log.info({ id }, "updateDataList action called");
-  const result = await updateDataListCtrl({ id, payload });
-  revalidatePath("/data-list");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await updateDataListCtrl({ id, payload });
+    revalidatePath("/data-list");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateDataList failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.update" });
+    throw err;
+  }
 }
 
 export async function deleteDataList(id: number) {
-  await requirePermission("data-list", "delete");
+  const { userId } = await requirePermission("data-list", "delete");
   log.info({ id }, "deleteDataList action called");
-  const result = await deleteDataListCtrl({ id });
-  revalidatePath("/data-list");
-  log.info({ id }, "deleteDataList action completed");
-  return { message: result.message };
+  try {
+    const result = await deleteDataListCtrl({ id });
+    revalidatePath("/data-list");
+    log.info({ id }, "deleteDataList action completed");
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteDataList failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.delete" });
+    throw err;
+  }
 }
 
 export async function getDataListSuperTableData(params: {
@@ -110,14 +132,21 @@ export async function moveMeasurementAction(
   measurementId: number,
   direction: "up" | "down",
 ) {
-  await requirePermission("data-list", "update");
+  const { userId } = await requirePermission("data-list", "update");
   log.info(
     { dataListId, measurementId, direction },
     "moveMeasurement action called",
   );
-  await moveMeasurementCtrl({ dataListId, measurementId, direction });
-  revalidatePath("/data-list");
-  return { message: "Measurement moved" };
+  try {
+    await moveMeasurementCtrl({ dataListId, measurementId, direction });
+    revalidatePath("/data-list");
+    return { message: "Measurement moved" };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "moveMeasurement failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.move_measurement" });
+    throw err;
+  }
 }
 
 export async function setMeasurementIndentAction(
@@ -125,51 +154,79 @@ export async function setMeasurementIndentAction(
   measurementId: number,
   direction: "in" | "out",
 ) {
-  await requirePermission("data-list", "update");
+  const { userId } = await requirePermission("data-list", "update");
   log.info(
     { dataListId, measurementId, direction },
     "setMeasurementIndent action called",
   );
-  await setMeasurementIndentCtrl({ dataListId, measurementId, direction });
-  revalidatePath("/data-list");
-  return { message: "Indent updated" };
+  try {
+    await setMeasurementIndentCtrl({ dataListId, measurementId, direction });
+    revalidatePath("/data-list");
+    return { message: "Indent updated" };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "setMeasurementIndent failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.set_indent" });
+    throw err;
+  }
 }
 
 export async function removeMeasurementAction(
   dataListId: number,
   measurementId: number,
 ) {
-  await requirePermission("data-list", "update");
+  const { userId } = await requirePermission("data-list", "update");
   log.info({ dataListId, measurementId }, "removeMeasurement action called");
-  await removeDataListMeasurementCtrl({ dataListId, measurementId });
-  revalidatePath("/data-list");
-  return { message: "Measurement removed" };
+  try {
+    await removeDataListMeasurementCtrl({ dataListId, measurementId });
+    revalidatePath("/data-list");
+    return { message: "Measurement removed" };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "removeMeasurement failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.remove_measurement" });
+    throw err;
+  }
 }
 
 export async function addMeasurementAction(
   dataListId: number,
   measurementId: number,
 ) {
-  await requirePermission("data-list", "update");
+  const { userId } = await requirePermission("data-list", "update");
   log.info({ dataListId, measurementId }, "addMeasurement action called");
-  await addDataListMeasurementCtrl({ dataListId, measurementId });
-  revalidatePath("/data-list");
-  return { message: "Measurement added" };
+  try {
+    await addDataListMeasurementCtrl({ dataListId, measurementId });
+    revalidatePath("/data-list");
+    return { message: "Measurement added" };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "addMeasurement failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.add_measurement" });
+    throw err;
+  }
 }
 
 export async function createMeasurementForDataList(
   dataListId: number,
   payload: CreateMeasurementPayload,
 ) {
-  await requirePermission("data-list", "create");
+  const { userId } = await requirePermission("data-list", "create");
   log.info({ dataListId }, "createMeasurementForDataList action called");
-  const result = await createMeasurementCtrl({ payload });
-  await addDataListMeasurementCtrl({
-    dataListId,
-    measurementId: result.data.id,
-  });
-  revalidatePath("/data-list");
-  return { message: "Measurement created and added to data list" };
+  try {
+    const result = await createMeasurementCtrl({ payload });
+    await addDataListMeasurementCtrl({
+      dataListId,
+      measurementId: result.data.id,
+    });
+    revalidatePath("/data-list");
+    return { message: "Measurement created and added to data list" };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createMeasurementForDataList failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.create_measurement" });
+    throw err;
+  }
 }
 
 export async function replaceAllMeasurementsAction(
@@ -177,18 +234,25 @@ export async function replaceAllMeasurementsAction(
   prefixes: string[],
   universe: Universe,
 ) {
-  await requirePermission("data-list", "update");
+  const { userId } = await requirePermission("data-list", "update");
   log.info(
     { dataListId, prefixCount: prefixes.length },
     "replaceAllMeasurements action called",
   );
-  const result = await replaceAllMeasurementsCtrl({
-    dataListId,
-    prefixes,
-    universe,
-  });
-  revalidatePath("/data-list");
-  return result;
+  try {
+    const result = await replaceAllMeasurementsCtrl({
+      dataListId,
+      prefixes,
+      universe,
+    });
+    revalidatePath("/data-list");
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "replaceAllMeasurements failed");
+    AppLogCollection.logError(err, { userId, name: "data-list.replace_measurements" });
+    throw err;
+  }
 }
 
 export async function addAllSeriesToClipboardAction(dataListId: number) {

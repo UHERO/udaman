@@ -16,6 +16,7 @@ import type {
   UpdateCategoryPayload,
 } from "@catalog/types/shared";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -47,52 +48,87 @@ export async function swapCategoryOrder(
   id2: number,
   order2: number,
 ): Promise<void> {
-  await requirePermission("category", "update");
+  const { userId } = await requirePermission("category", "update");
   log.info({ id1, order1, id2, order2 }, "swapCategoryOrder action called");
-  await Promise.all([
-    updateCategoryCtrl({ id: id1, payload: { listOrder: order2 } }),
-    updateCategoryCtrl({ id: id2, payload: { listOrder: order1 } }),
-  ]);
-  revalidatePath("/categories");
+  try {
+    await Promise.all([
+      updateCategoryCtrl({ id: id1, payload: { listOrder: order2 } }),
+      updateCategoryCtrl({ id: id2, payload: { listOrder: order1 } }),
+    ]);
+    revalidatePath("/categories");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "swapCategoryOrder failed");
+    AppLogCollection.logError(err, { userId, name: "category.swap_order" });
+    throw err;
+  }
 }
 
 export async function updateCategoryVisibility(
   id: number,
   updates: { hidden?: boolean; masked?: boolean },
 ): Promise<void> {
-  await requirePermission("category", "update");
+  const { userId } = await requirePermission("category", "update");
   log.info({ id, updates }, "updateCategoryVisibility action called");
-  await updateCategoryCtrl({ id, payload: updates });
-  revalidatePath("/categories");
+  try {
+    await updateCategoryCtrl({ id, payload: updates });
+    revalidatePath("/categories");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateCategoryVisibility failed");
+    AppLogCollection.logError(err, { userId, name: "category.update_visibility" });
+    throw err;
+  }
 }
 
 export async function createCategory(
   payload: CreateCategoryPayload,
 ): Promise<{ message: string; data: Category }> {
-  await requirePermission("category", "create");
+  const { userId } = await requirePermission("category", "create");
   log.info("createCategory action called");
-  const result = await createCategoryCtrl({ payload });
-  revalidatePath("/categories");
-  log.info({ id: result.data.id }, "createCategory action completed");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await createCategoryCtrl({ payload });
+    revalidatePath("/categories");
+    log.info({ id: result.data.id }, "createCategory action completed");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createCategory failed");
+    AppLogCollection.logError(err, { userId, name: "category.create" });
+    throw err;
+  }
 }
 
 export async function updateCategory(
   id: number,
   payload: UpdateCategoryPayload,
 ): Promise<{ message: string; data: Category }> {
-  await requirePermission("category", "update");
+  const { userId } = await requirePermission("category", "update");
   log.info({ id }, "updateCategory action called");
-  const result = await updateCategoryCtrl({ id, payload });
-  revalidatePath("/categories");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await updateCategoryCtrl({ id, payload });
+    revalidatePath("/categories");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateCategory failed");
+    AppLogCollection.logError(err, { userId, name: "category.update" });
+    throw err;
+  }
 }
 
 export async function deleteCategory(id: number): Promise<{ message: string }> {
-  await requirePermission("category", "delete");
+  const { userId } = await requirePermission("category", "delete");
   log.info({ id }, "deleteCategory action called");
-  const result = await deleteCategoryCtrl({ id });
-  revalidatePath("/categories");
-  log.info({ id }, "deleteCategory action completed");
-  return { message: result.message };
+  try {
+    const result = await deleteCategoryCtrl({ id });
+    revalidatePath("/categories");
+    log.info({ id }, "deleteCategory action completed");
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteCategory failed");
+    AppLogCollection.logError(err, { userId, name: "category.delete" });
+    throw err;
+  }
 }

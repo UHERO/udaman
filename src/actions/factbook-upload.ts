@@ -10,6 +10,7 @@ import {
   type FactbookPreview,
 } from "@catalog/utils/factbook-parser";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -21,14 +22,15 @@ export type FactbookPreviewResult =
 
 /** Read the factbook file at DATA_DIR/factbooktablelong.txt and return summary stats. */
 export async function previewFactbookAction(): Promise<FactbookPreviewResult> {
-  await requirePermission("upload", "read");
+  const { userId } = await requirePermission("upload", "read");
 
   try {
     const preview = await previewFactbook();
     return { success: true, preview };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "previewFactbookAction failed");
+    log.error({ err: message, userId }, "previewFactbookAction failed");
+    AppLogCollection.logError(err, { userId, name: "factbook-upload.preview" });
     return { success: false, message };
   }
 }
@@ -43,7 +45,7 @@ export type FactbookUploadActionResult =
  * with the contents of the file.
  */
 export async function runFactbookUploadAction(): Promise<FactbookUploadActionResult> {
-  await requirePermission("series", "create");
+  const { userId } = await requirePermission("series", "create");
 
   log.info("runFactbookUploadAction: start");
   try {
@@ -66,7 +68,8 @@ export async function runFactbookUploadAction(): Promise<FactbookUploadActionRes
     return { success: true, message: summary, result };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "runFactbookUploadAction failed");
+    log.error({ err: message, userId }, "runFactbookUploadAction failed");
+    AppLogCollection.logError(err, { userId, name: "factbook-upload.run" });
     return { success: false, message: `Factbook upload failed: ${message}` };
   }
 }

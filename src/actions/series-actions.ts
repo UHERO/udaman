@@ -44,6 +44,7 @@ import { getGeographies } from "@/core/catalog/controllers/geographies";
 import { getSourceDetails } from "@/core/catalog/controllers/source-details";
 import { getSources } from "@/core/catalog/controllers/sources";
 import { getUnits } from "@/core/catalog/controllers/units";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -120,26 +121,40 @@ export async function deleteSeriesDataPoints(
     deleteBy: DeleteByMode;
   },
 ) {
-  await requirePermission("series", "delete");
+  const { userId } = await requirePermission("series", "delete");
   const { universe, date, deleteBy } = queryParams;
   log.info(
     { id, universe, deleteBy, date },
     "deleteSeriesDataPoints action called",
   );
-  const result = await deleteDataPointsCtrl({
-    id,
-    u: universe as Universe,
-    date,
-    deleteBy,
-  });
-  log.info({ id }, "deleteSeriesDataPoints action completed");
-  return result.data;
+  try {
+    const result = await deleteDataPointsCtrl({
+      id,
+      u: universe as Universe,
+      date,
+      deleteBy,
+    });
+    log.info({ id }, "deleteSeriesDataPoints action completed");
+    return result.data;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteSeriesDataPoints failed");
+    AppLogCollection.logError(err, { userId, name: "series.delete_data_points" });
+    throw err;
+  }
 }
 
 export async function syncPublicDataPoints(seriesId: number, universe: string) {
-  await requirePermission("series", "update");
-  await DataPointCollection.updatePublicDataPointsForSeries(seriesId, universe);
-  return { message: "Public data points synced" };
+  const { userId } = await requirePermission("series", "update");
+  try {
+    await DataPointCollection.updatePublicDataPointsForSeries(seriesId, universe);
+    return { message: "Public data points synced" };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "syncPublicDataPoints failed");
+    AppLogCollection.logError(err, { userId, name: "series.sync_public_data_points" });
+    throw err;
+  }
 }
 
 export async function searchSeriesAction(term: string, universe: string) {
@@ -213,7 +228,7 @@ export async function createAlias(
   seriesId: number,
   targetUniverse: Universe,
 ): Promise<{ message: string } | { error: string }> {
-  await requirePermission("series", "create");
+  const { userId } = await requirePermission("series", "create");
   try {
     const alias = await SeriesCollection.createAlias(seriesId, {
       universe: targetUniverse,
@@ -221,7 +236,10 @@ export async function createAlias(
     revalidatePath(`/udaman/${targetUniverse}/series`);
     return { message: `Alias created: ${alias.name} in ${targetUniverse}` };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : String(e) };
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ err: message, userId }, "createAlias failed");
+    AppLogCollection.logError(e, { userId, name: "series.create_alias" });
+    return { error: message };
   }
 }
 
@@ -247,7 +265,7 @@ export interface CreateSeriesFormPayload {
 }
 
 export async function createSeries(payload: CreateSeriesFormPayload) {
-  await requirePermission("series", "create");
+  const { userId } = await requirePermission("series", "create");
   log.info(
     { name: payload.name, universe: payload.universe },
     "createSeries action called",
@@ -272,13 +290,20 @@ export async function createSeries(payload: CreateSeriesFormPayload) {
     investigationNotes: payload.investigationNotes || null,
   };
 
-  const series = await SeriesCollection.create(createPayload);
-  log.info(
-    { id: series.id, name: series.name },
-    "createSeries action completed",
-  );
-  revalidatePath(`/udaman/${payload.universe}/series`);
-  return series.toJSON();
+  try {
+    const series = await SeriesCollection.create(createPayload);
+    log.info(
+      { id: series.id, name: series.name },
+      "createSeries action completed",
+    );
+    revalidatePath(`/udaman/${payload.universe}/series`);
+    return series.toJSON();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createSeries failed");
+    AppLogCollection.logError(err, { userId, name: "series.create" });
+    throw err;
+  }
 }
 
 // ─── Bulk create ────────────────────────────────────────────────────
@@ -315,7 +340,7 @@ export interface BulkCreatePayload {
 export async function bulkCreateSeries(
   payload: BulkCreatePayload,
 ): Promise<{ successCount: number; errors: string[] }> {
-  await requirePermission("series", "create");
+  const { userId } = await requirePermission("series", "create");
   const { universe, definitions, ...optionalMeta } = payload;
   log.info({ universe }, "bulkCreateSeries action called");
 
@@ -411,7 +436,8 @@ export async function bulkCreateSeries(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     errors.push(msg);
-    log.error({ error: msg }, "bulkCreateSeries failed — rolled back");
+    log.error({ error: msg, userId }, "bulkCreateSeries failed — rolled back");
+    AppLogCollection.logError(e, { userId, name: "series.bulk_create" });
     return { successCount: 0, errors };
   }
 
@@ -447,32 +473,39 @@ export async function updateSeries(
   universe: Universe,
   payload: UpdateSeriesFormPayload,
 ) {
-  await requirePermission("series", "update");
-  const result = await updateSeriesCtrl({
-    id,
-    payload: {
-      name: payload.name,
-      geographyId: payload.geographyId,
-      frequency: payload.frequency,
-      dataPortalName: payload.dataPortalName || null,
-      unitId: payload.unitId ?? null,
-      sourceId: payload.sourceId ?? null,
-      sourceDetailId: payload.sourceDetailId ?? null,
-      decimals: payload.decimals ?? 1,
-      description: payload.description || null,
-      sourceLink: payload.sourceLink || null,
-      seasonalAdjustment: payload.seasonalAdjustment ?? null,
-      frequencyTransform: payload.frequencyTransform || null,
-      percent: payload.percent ?? null,
-      real: payload.real ?? null,
-      restricted: payload.restricted ?? false,
-      quarantined: payload.quarantined ?? false,
-      investigationNotes: payload.investigationNotes || null,
-    },
-  });
+  const { userId } = await requirePermission("series", "update");
+  try {
+    const result = await updateSeriesCtrl({
+      id,
+      payload: {
+        name: payload.name,
+        geographyId: payload.geographyId,
+        frequency: payload.frequency,
+        dataPortalName: payload.dataPortalName || null,
+        unitId: payload.unitId ?? null,
+        sourceId: payload.sourceId ?? null,
+        sourceDetailId: payload.sourceDetailId ?? null,
+        decimals: payload.decimals ?? 1,
+        description: payload.description || null,
+        sourceLink: payload.sourceLink || null,
+        seasonalAdjustment: payload.seasonalAdjustment ?? null,
+        frequencyTransform: payload.frequencyTransform || null,
+        percent: payload.percent ?? null,
+        real: payload.real ?? null,
+        restricted: payload.restricted ?? false,
+        quarantined: payload.quarantined ?? false,
+        investigationNotes: payload.investigationNotes || null,
+      },
+    });
 
-  revalidatePath(`/udaman/${universe}/series/${id}`);
-  return { message: result.message, data: result.data.toJSON() };
+    revalidatePath(`/udaman/${universe}/series/${id}`);
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateSeries failed");
+    AppLogCollection.logError(err, { userId, name: "series.update" });
+    throw err;
+  }
 }
 
 // ─── Duplicate ───────────────────────────────────────────────────────
@@ -483,32 +516,39 @@ export async function duplicateSeries(
   copyLoaders: boolean,
   payload: CreateSeriesFormPayload,
 ) {
-  await requirePermission("series", "create");
-  const result = await duplicateSeriesCtrl({
-    sourceId: originSeriesId,
-    payload: {
-      name: payload.name,
-      universe,
-      dataPortalName: payload.dataPortalName || null,
-      unitId: payload.unitId ?? null,
-      sourceId: payload.sourceId ?? null,
-      sourceDetailId: payload.sourceDetailId ?? null,
-      decimals: payload.decimals ?? 1,
-      description: payload.description || null,
-      sourceLink: payload.sourceLink || null,
-      seasonalAdjustment: payload.seasonalAdjustment ?? null,
-      frequencyTransform: payload.frequencyTransform || null,
-      percent: payload.percent ?? null,
-      real: payload.real ?? null,
-      restricted: payload.restricted ?? false,
-      quarantined: payload.quarantined ?? false,
-      investigationNotes: payload.investigationNotes || null,
-    },
-    copyLoaders,
-  });
+  const { userId } = await requirePermission("series", "create");
+  try {
+    const result = await duplicateSeriesCtrl({
+      sourceId: originSeriesId,
+      payload: {
+        name: payload.name,
+        universe,
+        dataPortalName: payload.dataPortalName || null,
+        unitId: payload.unitId ?? null,
+        sourceId: payload.sourceId ?? null,
+        sourceDetailId: payload.sourceDetailId ?? null,
+        decimals: payload.decimals ?? 1,
+        description: payload.description || null,
+        sourceLink: payload.sourceLink || null,
+        seasonalAdjustment: payload.seasonalAdjustment ?? null,
+        frequencyTransform: payload.frequencyTransform || null,
+        percent: payload.percent ?? null,
+        real: payload.real ?? null,
+        restricted: payload.restricted ?? false,
+        quarantined: payload.quarantined ?? false,
+        investigationNotes: payload.investigationNotes || null,
+      },
+      copyLoaders,
+    });
 
-  revalidatePath(`/udaman/${universe}/series`);
-  return { message: result.message, data: result.data.toJSON() };
+    revalidatePath(`/udaman/${universe}/series`);
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "duplicateSeries failed");
+    AppLogCollection.logError(err, { userId, name: "series.duplicate" });
+    throw err;
+  }
 }
 
 // ─── Delete ─────────────────────────────────────────────────────────
@@ -518,9 +558,16 @@ export async function deleteSeries(
   universe: string,
   opts?: { force?: boolean },
 ) {
-  await requirePermission("series", "delete");
-  await deleteSeriesCtrl({ id, force: opts?.force });
-  revalidatePath(`/udaman/${universe}/series`);
+  const { userId } = await requirePermission("series", "delete");
+  try {
+    await deleteSeriesCtrl({ id, force: opts?.force });
+    revalidatePath(`/udaman/${universe}/series`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteSeries failed");
+    AppLogCollection.logError(err, { userId, name: "series.delete" });
+    throw err;
+  }
 }
 
 // ─── Null-field audit ───────────────────────────────────────────────
@@ -547,16 +594,30 @@ export async function getQuarantinedSeries(
 }
 
 export async function unquarantineSeries(seriesId: number, universe: string) {
-  await requirePermission("series", "update");
-  await unquarantineSeriesCtrl({ seriesId });
-  revalidatePath(`/udaman/${universe}/investigations/quarantine`);
+  const { userId } = await requirePermission("series", "update");
+  try {
+    await unquarantineSeriesCtrl({ seriesId });
+    revalidatePath(`/udaman/${universe}/investigations/quarantine`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "unquarantineSeries failed");
+    AppLogCollection.logError(err, { userId, name: "series.unquarantine" });
+    throw err;
+  }
 }
 
 export async function emptyQuarantine(universe: string) {
-  await requirePermission("series", "delete");
-  const count = await emptyQuarantineCtrl({ universe });
-  revalidatePath(`/udaman/${universe}/investigations/quarantine`);
-  return count;
+  const { userId } = await requirePermission("series", "delete");
+  try {
+    const count = await emptyQuarantineCtrl({ universe });
+    revalidatePath(`/udaman/${universe}/investigations/quarantine`);
+    return count;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "emptyQuarantine failed");
+    AppLogCollection.logError(err, { userId, name: "series.empty_quarantine" });
+    throw err;
+  }
 }
 
 // ─── Analyze / Transform ─────────────────────────────────────────────
@@ -570,13 +631,14 @@ export async function analyzeSeriesAction(id: number): Promise<AnalyzeResult> {
 export async function transformSeriesAction(
   evalStr: string,
 ): Promise<AnalyzeResult | { error: string }> {
-  await requirePermission("series", "read");
+  const { userId } = await requirePermission("series", "read");
   log.info({ evalStr }, "transformSeriesAction called");
   try {
     return await transformSeriesCtrl({ evalStr });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    log.error({ evalStr, error: message }, "transformSeriesAction failed");
+    log.error({ evalStr, error: message, userId }, "transformSeriesAction failed");
+    AppLogCollection.logError(e, { userId, name: "series.transform" });
     return { error: message };
   }
 }

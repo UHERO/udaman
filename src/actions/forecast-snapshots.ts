@@ -11,6 +11,7 @@ import {
   updateSnapshot,
 } from "@catalog/controllers/forecast-snapshots";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -36,7 +37,7 @@ export async function createSnapshotAction(formData: FormData): Promise<{
   message: string;
   id?: number;
 }> {
-  await requirePermission("forecast-snapshot", "create");
+  const { userId } = await requirePermission("forecast-snapshot", "create");
 
   const name = formData.get("name") as string;
   const version = formData.get("version") as string;
@@ -69,11 +70,12 @@ export async function createSnapshotAction(formData: FormData): Promise<{
     });
 
     revalidatePath("/udaman", "layout");
-    log.info({ id: result.id }, "createSnapshotAction completed");
+    log.info({ id: result.id, userId }, "createSnapshotAction completed");
     return { success: true, message: "Snapshot created", id: result.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "createSnapshotAction failed");
+    log.error({ err: message, userId }, "createSnapshotAction failed");
+    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.create" });
     return { success: false, message: `Failed to create snapshot: ${message}` };
   }
 }
@@ -85,7 +87,7 @@ export async function updateSnapshotAction(
   success: boolean;
   message: string;
 }> {
-  await requirePermission("forecast-snapshot", "update");
+  const { userId } = await requirePermission("forecast-snapshot", "update");
 
   const name = (formData.get("name") as string) || undefined;
   const version = (formData.get("version") as string) || undefined;
@@ -124,11 +126,12 @@ export async function updateSnapshotAction(
     });
 
     revalidatePath("/udaman", "layout");
-    log.info({ id }, "updateSnapshotAction completed");
+    log.info({ id, userId }, "updateSnapshotAction completed");
     return { success: true, message: "Snapshot updated" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "updateSnapshotAction failed");
+    log.error({ err: message, userId }, "updateSnapshotAction failed");
+    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.update" });
     return { success: false, message: `Failed to update snapshot: ${message}` };
   }
 }
@@ -137,16 +140,17 @@ export async function deleteSnapshotAction(id: number): Promise<{
   success: boolean;
   message: string;
 }> {
-  await requirePermission("forecast-snapshot", "delete");
+  const { userId } = await requirePermission("forecast-snapshot", "delete");
 
   try {
     await deleteSnapshot({ id });
     revalidatePath("/udaman", "layout");
-    log.info({ id }, "deleteSnapshotAction completed");
+    log.info({ id, userId }, "deleteSnapshotAction completed");
     return { success: true, message: "Snapshot deleted" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "deleteSnapshotAction failed");
+    log.error({ err: message, userId }, "deleteSnapshotAction failed");
+    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.delete" });
     return { success: false, message: `Failed to delete snapshot: ${message}` };
   }
 }
@@ -156,16 +160,17 @@ export async function duplicateSnapshotAction(id: number): Promise<{
   message: string;
   id?: number;
 }> {
-  await requirePermission("forecast-snapshot", "create");
+  const { userId } = await requirePermission("forecast-snapshot", "create");
 
   try {
     const result = await duplicateSnapshot({ id });
     revalidatePath("/udaman", "layout");
-    log.info({ id, copyId: result.id }, "duplicateSnapshotAction completed");
+    log.info({ id, copyId: result.id, userId }, "duplicateSnapshotAction completed");
     return { success: true, message: "Snapshot duplicated", id: result.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "duplicateSnapshotAction failed");
+    log.error({ err: message, userId }, "duplicateSnapshotAction failed");
+    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.duplicate" });
     return {
       success: false,
       message: `Failed to duplicate snapshot: ${message}`,

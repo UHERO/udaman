@@ -12,6 +12,7 @@ import {
   updateTimelineEvent as updateCtrl,
 } from "@catalog/controllers/timeline-events";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -27,28 +28,49 @@ export async function listTimelineEventsAction() {
 export async function createTimelineEventAction(
   payload: CreateTimelineEventPayload,
 ) {
-  await requirePermission("timeline_event", "create");
+  const { userId } = await requirePermission("timeline_event", "create");
   log.info("createTimelineEvent action called");
-  const result = await createCtrl({ payload });
-  revalidatePath("/udaman", "layout");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await createCtrl({ payload });
+    revalidatePath("/udaman", "layout");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createTimelineEvent failed");
+    AppLogCollection.logError(err, { userId, name: "timeline-event.create" });
+    throw err;
+  }
 }
 
 export async function updateTimelineEventAction(
   id: number,
   payload: UpdateTimelineEventPayload,
 ) {
-  await requirePermission("timeline_event", "update");
+  const { userId } = await requirePermission("timeline_event", "update");
   log.info({ id }, "updateTimelineEvent action called");
-  const result = await updateCtrl({ id, payload });
-  revalidatePath("/udaman", "layout");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await updateCtrl({ id, payload });
+    revalidatePath("/udaman", "layout");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateTimelineEvent failed");
+    AppLogCollection.logError(err, { userId, name: "timeline-event.update" });
+    throw err;
+  }
 }
 
 export async function deleteTimelineEventAction(id: number) {
-  await requirePermission("timeline_event", "delete");
+  const { userId } = await requirePermission("timeline_event", "delete");
   log.info({ id }, "deleteTimelineEvent action called");
-  const result = await deleteCtrl({ id });
-  revalidatePath("/udaman", "layout");
-  return { message: result.message };
+  try {
+    const result = await deleteCtrl({ id });
+    revalidatePath("/udaman", "layout");
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteTimelineEvent failed");
+    AppLogCollection.logError(err, { userId, name: "timeline-event.delete" });
+    throw err;
+  }
 }

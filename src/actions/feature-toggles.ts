@@ -5,6 +5,7 @@ import {
   updateFeatureToggleStatus,
 } from "@catalog/controllers/feature-toggles";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -19,7 +20,7 @@ export async function updateFeatureToggleStatusAction(
   id: number,
   status: boolean,
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("*", "update");
+  const { userId } = await requirePermission("*", "update");
 
   try {
     const toggle = await updateFeatureToggleStatus({ id, status });
@@ -30,7 +31,8 @@ export async function updateFeatureToggleStatusAction(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "updateFeatureToggleStatusAction failed");
+    log.error({ err: message, userId }, "updateFeatureToggleStatusAction failed");
+    AppLogCollection.logError(err, { userId, name: "feature-toggle.update" });
     return { success: false, message: `Failed to update toggle: ${message}` };
   }
 }
