@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
     "*": ["./data/**"],
   },
   serverExternalPackages: ["pino"],
+  serverActions: {
+    bodySizeLimit: "50mb",
+  },
   experimental: {
     proxyClientMaxBodySize: "50mb",
   },
