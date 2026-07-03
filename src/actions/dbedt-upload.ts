@@ -26,6 +26,7 @@ export async function getDbedtUploadStatusAction(id: number) {
 
 export async function cancelDbedtUploadAction(id: number) {
   const { userId } = await requirePermission("upload", "create");
+  log.info({ id }, "cancelDbedtUploadAction called");
   try {
     await DbedtUploadCollection.updateStatus(id, "fail", "Cancelled by user");
   } catch (err) {

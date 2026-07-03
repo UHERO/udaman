@@ -46,6 +46,7 @@ export async function downloadToServer(
   id: number,
 ): Promise<{ status: number; changed: boolean }> {
   const { userId } = await requirePermission("download", "execute");
+  log.info({ id }, "downloadToServer action called");
   try {
     return await triggerDownloadToServer({ id });
   } catch (err) {
@@ -58,8 +59,10 @@ export async function downloadToServer(
 
 export async function createDownloadAction(payload: CreateDownloadPayload) {
   const { userId } = await requirePermission("download", "create");
+  log.info("createDownloadAction called");
   try {
     const result = await createDownload(payload);
+    log.info({ id: result.data.id }, "createDownloadAction completed");
     return { message: result.message, id: result.data.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -74,6 +77,7 @@ export async function updateDownloadAction(
   payload: UpdateDownloadPayload,
 ) {
   const { userId } = await requirePermission("download", "update");
+  log.info({ id }, "updateDownloadAction called");
   try {
     const result = await updateDownload(id, payload);
     return { message: result.message, id: result.data.id };
@@ -87,8 +91,10 @@ export async function updateDownloadAction(
 
 export async function deleteDownloadAction(id: number) {
   const { userId } = await requirePermission("download", "delete");
+  log.info({ id }, "deleteDownloadAction called");
   try {
     const result = await deleteDownload(id);
+    log.info({ id }, "deleteDownloadAction completed");
     return { message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

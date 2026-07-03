@@ -41,7 +41,8 @@ export async function createApiApplicationAction(
     log.info("createApiApplicationAction called");
     const result = await createCtrl({ payload });
     revalidatePath("/admin/api-keys");
-    log.info({ id: result.data.id }, "createApiApplicationAction completed");
+    log.info({ id: result.data.id, userId }, "createApiApplicationAction completed");
+    AppLogCollection.log({ category: "api-application", name: "api-application.create", userId });
     return { success: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -61,6 +62,8 @@ export async function updateApiApplicationAction(
     log.info({ id }, "updateApiApplicationAction called");
     const result = await updateCtrl({ id, payload });
     revalidatePath("/admin/api-keys");
+    log.info({ id, userId }, "updateApiApplicationAction completed");
+    AppLogCollection.log({ category: "api-application", name: "api-application.update", userId });
     return { success: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -79,6 +82,8 @@ export async function deleteApiApplicationAction(
     log.info({ id }, "deleteApiApplicationAction called");
     const result = await deleteCtrl({ id });
     revalidatePath("/admin/api-keys");
+    log.info({ id, userId }, "deleteApiApplicationAction completed");
+    AppLogCollection.log({ category: "api-application", name: "api-application.delete", userId });
     return { success: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

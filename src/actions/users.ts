@@ -29,13 +29,21 @@ export async function changePassword(
 ) {
   const userId = await getCurrentUserId();
   log.info({ userId }, "changePassword action called");
-  const result = await changePasswordCtrl({
-    id: userId,
-    currentPassword,
-    newPassword,
-  });
-  log.info({ userId }, "changePassword action completed");
-  return { message: result.message };
+  try {
+    const result = await changePasswordCtrl({
+      id: userId,
+      currentPassword,
+      newPassword,
+    });
+    log.info({ userId }, "changePassword action completed");
+    AppLogCollection.log({ category: "user", name: "user.change_password", userId });
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "changePassword failed");
+    AppLogCollection.logError(err, { userId, name: "user.change_password" });
+    throw err;
+  }
 }
 
 export async function listUsers() {
@@ -49,18 +57,27 @@ export async function updateUserRole(userId: number, role: string) {
   const currentUserId = await getCurrentUserId();
   const currentRole = await getCurrentUserRole();
   if (currentRole !== "dev") throw new AuthorizationError("Unauthorized: dev role required");
-  const result = await updateUserRoleCtrl({ id: userId, role });
+  log.info({ userId, role, currentUserId }, "updateUserRole action called");
+  try {
+    const result = await updateUserRoleCtrl({ id: userId, role });
 
-  AppLogCollection.log({
-    category: "user",
-    name: "user.role_change",
-    userId: currentUserId,
-    subject: "users",
-    subjectId: userId,
-    metadata: { newRole: role },
-  });
+    AppLogCollection.log({
+      category: "user",
+      name: "user.role_change",
+      userId: currentUserId,
+      subject: "users",
+      subjectId: userId,
+      metadata: { newRole: role },
+    });
 
-  return { message: result.message };
+    log.info({ userId, role, currentUserId }, "updateUserRole action completed");
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId: currentUserId }, "updateUserRole failed");
+    AppLogCollection.logError(err, { userId: currentUserId, name: "user.role_change" });
+    throw err;
+  }
 }
 
 export async function createUserAction(payload: {
@@ -91,6 +108,7 @@ export async function createUserAction(payload: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message }, "createUserAction failed");
+    AppLogCollection.logError(err, { name: "user.create" });
     return { success: false, message: `Failed to create user: ${message}` };
   }
 }

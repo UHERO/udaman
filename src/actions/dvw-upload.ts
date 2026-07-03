@@ -26,6 +26,7 @@ export async function getDvwUploadStatusAction(id: number) {
 
 export async function cancelDvwUploadAction(id: number) {
   const { userId } = await requirePermission("upload", "create");
+  log.info({ id }, "cancelDvwUploadAction called");
   try {
     await DvwUploadCollection.updateStatus(id, "fail", "Cancelled by user");
   } catch (err) {

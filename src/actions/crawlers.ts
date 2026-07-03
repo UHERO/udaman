@@ -1,7 +1,11 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
+import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 import { rawQuery } from "@/lib/mysql/hhdb";
+
+const log = createLogger("action.crawlers");
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -192,28 +196,37 @@ export async function getQpubDashboardStats(): Promise<QpubDashboardStats> {
  * Returns the number of records reset.
  */
 export async function resetFailedRecords(): Promise<number> {
-  await requirePermission("worker", "execute");
+  const { userId } = await requirePermission("worker", "execute");
+  log.info("resetFailedRecords action called");
 
-  const countResult = await rawQuery<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM scrape_status
-     WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'`,
-  );
-  const count = Number(countResult[0]?.cnt ?? 0);
-
-  if (count > 0) {
-    await rawQuery(
-      `UPDATE scrape_status
-       SET scrape_status = CASE WHEN scrape_status = 'failed' THEN 'success' ELSE scrape_status END,
-           parse_status = CASE WHEN parse_status = 'failed' THEN 'pending' ELSE parse_status END,
-           load_status = CASE WHEN load_status = 'failed' THEN 'pending' ELSE load_status END,
-           retry_count = 0,
-           error = NULL
+  try {
+    const countResult = await rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM scrape_status
        WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'`,
     );
-  }
+    const count = Number(countResult[0]?.cnt ?? 0);
 
-  invalidateCache();
-  return count;
+    if (count > 0) {
+      await rawQuery(
+        `UPDATE scrape_status
+         SET scrape_status = CASE WHEN scrape_status = 'failed' THEN 'success' ELSE scrape_status END,
+             parse_status = CASE WHEN parse_status = 'failed' THEN 'pending' ELSE parse_status END,
+             load_status = CASE WHEN load_status = 'failed' THEN 'pending' ELSE load_status END,
+             retry_count = 0,
+             error = NULL
+         WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'`,
+      );
+    }
+
+    invalidateCache();
+    log.info({ count }, "resetFailedRecords action completed");
+    return count;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "resetFailedRecords failed");
+    AppLogCollection.logError(err, { userId, name: "crawler.reset_failed" });
+    throw err;
+  }
 }
 
 // ─── Clear Pending Records ──────────────────────────────────────────
@@ -225,21 +238,30 @@ export async function resetFailedRecords(): Promise<number> {
  * Returns the number of records cleared.
  */
 export async function clearPendingRecords(): Promise<number> {
-  await requirePermission("worker", "execute");
+  const { userId } = await requirePermission("worker", "execute");
+  log.info("clearPendingRecords action called");
 
-  const countResult = await rawQuery<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM scrape_status WHERE scrape_status = 'pending'`,
-  );
-  const count = Number(countResult[0]?.cnt ?? 0);
-
-  if (count > 0) {
-    await rawQuery(
-      `UPDATE scrape_status
-       SET scrape_status = 'success'
-       WHERE scrape_status = 'pending'`,
+  try {
+    const countResult = await rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM scrape_status WHERE scrape_status = 'pending'`,
     );
-  }
+    const count = Number(countResult[0]?.cnt ?? 0);
 
-  invalidateCache();
-  return count;
+    if (count > 0) {
+      await rawQuery(
+        `UPDATE scrape_status
+         SET scrape_status = 'success'
+         WHERE scrape_status = 'pending'`,
+      );
+    }
+
+    invalidateCache();
+    log.info({ count }, "clearPendingRecords action completed");
+    return count;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "clearPendingRecords failed");
+    AppLogCollection.logError(err, { userId, name: "crawler.clear_pending" });
+    throw err;
+  }
 }

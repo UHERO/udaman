@@ -146,6 +146,7 @@ export async function deleteSeriesDataPoints(
 
 export async function syncPublicDataPoints(seriesId: number, universe: string) {
   const { userId } = await requirePermission("series", "update");
+  log.info({ seriesId, universe }, "syncPublicDataPoints action called");
   try {
     await DataPointCollection.updatePublicDataPointsForSeries(seriesId, universe);
     return { message: "Public data points synced" };
@@ -229,11 +230,13 @@ export async function createAlias(
   targetUniverse: Universe,
 ): Promise<{ message: string } | { error: string }> {
   const { userId } = await requirePermission("series", "create");
+  log.info({ seriesId, targetUniverse }, "createAlias action called");
   try {
     const alias = await SeriesCollection.createAlias(seriesId, {
       universe: targetUniverse,
     });
     revalidatePath(`/udaman/${targetUniverse}/series`);
+    log.info({ seriesId, aliasName: alias.name, targetUniverse }, "createAlias action completed");
     return { message: `Alias created: ${alias.name} in ${targetUniverse}` };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -474,6 +477,7 @@ export async function updateSeries(
   payload: UpdateSeriesFormPayload,
 ) {
   const { userId } = await requirePermission("series", "update");
+  log.info({ id }, "updateSeries action called");
   try {
     const result = await updateSeriesCtrl({
       id,
@@ -517,6 +521,7 @@ export async function duplicateSeries(
   payload: CreateSeriesFormPayload,
 ) {
   const { userId } = await requirePermission("series", "create");
+  log.info({ originSeriesId, universe }, "duplicateSeries action called");
   try {
     const result = await duplicateSeriesCtrl({
       sourceId: originSeriesId,
@@ -559,9 +564,11 @@ export async function deleteSeries(
   opts?: { force?: boolean },
 ) {
   const { userId } = await requirePermission("series", "delete");
+  log.info({ id, universe }, "deleteSeries action called");
   try {
     await deleteSeriesCtrl({ id, force: opts?.force });
     revalidatePath(`/udaman/${universe}/series`);
+    log.info({ id }, "deleteSeries action completed");
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteSeries failed");
@@ -595,6 +602,7 @@ export async function getQuarantinedSeries(
 
 export async function unquarantineSeries(seriesId: number, universe: string) {
   const { userId } = await requirePermission("series", "update");
+  log.info({ seriesId, universe }, "unquarantineSeries action called");
   try {
     await unquarantineSeriesCtrl({ seriesId });
     revalidatePath(`/udaman/${universe}/investigations/quarantine`);
@@ -608,6 +616,7 @@ export async function unquarantineSeries(seriesId: number, universe: string) {
 
 export async function emptyQuarantine(universe: string) {
   const { userId } = await requirePermission("series", "delete");
+  log.info({ universe }, "emptyQuarantine action called");
   try {
     const count = await emptyQuarantineCtrl({ universe });
     revalidatePath(`/udaman/${universe}/investigations/quarantine`);
