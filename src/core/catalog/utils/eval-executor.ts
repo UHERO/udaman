@@ -119,6 +119,7 @@ const ALLOWED_STATIC_METHODS = new Set([
   "loadApiEiaAeo",
   "loadApiEiaSteo",
   "loadApiDvw",
+  "loadFromTG",
 ]);
 
 /** Arithmetic operator → Series method name */

@@ -1904,6 +1904,19 @@ class SeriesCollection {
     return this.wrapApiResult(data, url, freqCode);
   }
 
+  /** Load TG data from MariaDB */
+  static async loadFromTG(
+    filters: Record<string, string | number | boolean>,
+  ): Promise<Series> {
+    const { fetchSeries } = await import("../utils/tg-series");
+    const { data, name, frequency } = await fetchSeries(filters);
+    const result = new Series({ name });
+    result.data = data;
+    const freq = Series.frequencyFromCode(frequency);
+    if (freq) result.frequency = freq;
+    return result;
+  }
+
   /** Load from the DVW API. */
   static async loadApiDvw(
     mod: string,
