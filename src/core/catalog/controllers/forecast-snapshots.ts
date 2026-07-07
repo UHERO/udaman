@@ -304,14 +304,23 @@ export async function getSnapshotData({
   const allSeries = [...newForecast, ...oldForecast, ...history];
   const allDates = getAllDates(allSeries);
 
-  // Look up human-readable display names and series IDs from the database
+  // Build display names: prefer TSD description, fall back to DB lookup
+  const tsdDescriptions: Record<string, string> = {};
+  for (const s of allSeries) {
+    if (!tsdDescriptions[s.name] && s.description.trim()) {
+      tsdDescriptions[s.name] = s.description.trim();
+    }
+  }
   const uniqueNames = [...new Set(allSeries.map((s) => s.name))];
   const seriesInfoMap = await SeriesCollection.lookupSeriesInfo(uniqueNames);
   const displayNames: Record<string, string> = {};
   const seriesIds: Record<string, number> = {};
-  for (const [k, v] of seriesInfoMap) {
-    displayNames[k] = v.displayName;
-    seriesIds[k] = v.id;
+  for (const name of uniqueNames) {
+    const tsdDesc = tsdDescriptions[name];
+    const dbInfo = seriesInfoMap.get(name);
+    if (tsdDesc) displayNames[name] = tsdDesc;
+    else if (dbInfo) displayNames[name] = dbInfo.displayName;
+    if (dbInfo) seriesIds[name] = dbInfo.id;
   }
 
   return {

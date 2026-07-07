@@ -534,12 +534,18 @@ export function ForecastSnapshotCharts({
             const props = raw as Record<string, number | string>;
             if (!Number.isFinite(props.y) || !Number.isFinite(props.height))
               return <rect width={0} height={0} />;
+            let y = props.y as number;
+            let height = props.height as number;
+            if (height < 0) {
+              y += height;
+              height = -height;
+            }
             return (
               <rect
                 x={(props.x as number) - index * (props.width as number)}
-                y={props.y as number}
+                y={y}
                 width={barCount * (props.width as number)}
-                height={props.height as number}
+                height={height}
                 fill={props.fill as string}
                 fillOpacity={fillOpacity}
               />
