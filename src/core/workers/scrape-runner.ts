@@ -13,7 +13,9 @@ import { rawQuery } from "@/lib/mysql/hhdb";
 
 import type { Page } from "playwright-core";
 
+import { errorMessage, processLoad } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
+import { processParse } from "./processors/qpub-parse";
 import { processScrape } from "./processors/qpub-scrape";
 
 // Ensure all date operations use Hawaii Standard Time.
@@ -143,6 +145,50 @@ async function countStale(): Promise<number> {
   return Number(rows[0]?.cnt ?? 0);
 }
 
+// ─── Inline parse+load ────────────────────────────────────────────────
+
+type PendingRow = { tmk: string; island_code: string; parse_status: string };
+
+/**
+ * Process previously-scraped records (parse → load) until the stop signal
+ * fires or no pending records remain. Runs concurrently with the scrape
+ * batch so the 4–20 s delay per page is used productively.
+ */
+async function processPendingRecords(signal: {
+  stop: boolean;
+}): Promise<number> {
+  let count = 0;
+  while (!signal.stop && running) {
+    const rows = await rawQuery<PendingRow>(
+      `SELECT s.tmk, p.island_code, s.parse_status
+       FROM scrape_status s
+       JOIN properties p ON s.tmk = p.tmk
+       WHERE s.scrape_status = 'success'
+         AND (s.parse_status IN ('pending','failed')
+              OR s.load_status IN ('pending','failed'))
+       LIMIT 1`,
+    );
+    if (rows.length === 0) break;
+
+    const { tmk, island_code, parse_status } = rows[0];
+    try {
+      if (parse_status !== "success") {
+        await processParse({ tmk, island: island_code }, (msg) =>
+          log.debug(msg),
+        );
+      }
+      await processLoad({ tmk }, (msg) => log.debug(msg));
+      count++;
+    } catch (e) {
+      log.error(
+        { tmk, error: errorMessage(e) },
+        "Inline parse+load failed",
+      );
+    }
+  }
+  return count;
+}
+
 // ─── Main loop ─────────────────────────────────────────────────────────
 
 async function run() {
@@ -231,7 +277,20 @@ async function run() {
         }
       });
 
-    const results = await Promise.allSettled(scrapeJobs);
+    // Run parse+load for previously scraped records while this batch scrapes.
+    // The scrape jobs spend most of their time on network I/O and randomDelay(),
+    // so we use that idle time to process pending records concurrently.
+    const inlineSignal = { stop: false };
+    const [results] = await Promise.all([
+      Promise.allSettled(scrapeJobs).then((r) => {
+        inlineSignal.stop = true;
+        return r;
+      }),
+      processPendingRecords(inlineSignal).then((count) => {
+        if (count > 0)
+          log.info({ count }, "Inline parse+load completed during scrape");
+      }),
+    ]);
 
     // Collect captcha pages from batch results
     const captchaPages: Page[] = results
