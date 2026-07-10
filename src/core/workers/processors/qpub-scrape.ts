@@ -1,14 +1,13 @@
-import {
-  closeBrowser,
-  getPage,
-  releasePage,
-} from "@/core/crawlers/qpub/browser";
+import { getPage, releasePage } from "@/core/crawlers/qpub/browser";
 import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
 import { rawQuery } from "@/lib/mysql/hhdb";
+
+import type { Page } from "playwright-core";
 
 export type ScrapeResult = {
   status: "success" | "captcha" | "blocked" | "error";
   error?: string;
+  page?: Page; // set when captcha/blocked — caller owns this page
 };
 
 export async function processScrape(
@@ -18,6 +17,7 @@ export async function processScrape(
   const { tmk, url } = data;
 
   const page = await getPage();
+  let handedOff = false;
   try {
     const result = await scrapeTmk(page, tmk, url);
     log(`${tmk}: ${result.status}${result.error ? ` (${result.error})` : ""}`);
@@ -38,8 +38,8 @@ export async function processScrape(
          WHERE tmk = ?`,
         [result.error ?? result.status, tmk],
       );
-      await closeBrowser();
-      return { status: result.status, error: result.error ?? "detected" };
+      handedOff = true;
+      return { status: result.status, error: result.error ?? "detected", page };
     } else {
       // error status
       await rawQuery(
@@ -51,6 +51,8 @@ export async function processScrape(
       return { status: "error", error: result.error ?? "Unknown scrape error" };
     }
   } finally {
-    await releasePage(page);
+    if (!handedOff) {
+      await releasePage(page);
+    }
   }
 }

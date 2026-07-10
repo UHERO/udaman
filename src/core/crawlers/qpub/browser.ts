@@ -16,6 +16,7 @@ chromium.use(stealth);
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
+const idlePages: Page[] = [];
 
 /** Random desktop viewport (same strategy as old scraper) */
 function randomViewport() {
@@ -46,23 +47,31 @@ async function ensureBrowser(): Promise<BrowserContext> {
   return context;
 }
 
-/** Get a fresh page (tab) from the shared browser context. */
+/** Get a page from the pool, or create a new one if none are idle. */
 export async function getPage(): Promise<Page> {
   const ctx = await ensureBrowser();
-  return ctx.newPage();
+  return idlePages.pop() ?? ctx.newPage();
 }
 
-/** Close the page after use */
+/** Return a page to the pool for reuse. */
 export async function releasePage(page: Page): Promise<void> {
   try {
-    await page.close();
+    await page.goto("about:blank");
+    idlePages.push(page);
   } catch {
-    // page may already be closed
+    // Page is broken/closed — discard it
   }
+}
+
+/** Remove a specific page from the idle pool without closing it. */
+export function removeFromPool(page: Page): void {
+  const idx = idlePages.indexOf(page);
+  if (idx !== -1) idlePages.splice(idx, 1);
 }
 
 /** Shut down browser and context — called on worker shutdown */
 export async function closeBrowser(): Promise<void> {
+  idlePages.length = 0;
   if (context) {
     try {
       await context.close();

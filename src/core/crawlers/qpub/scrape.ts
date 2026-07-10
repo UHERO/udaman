@@ -114,6 +114,20 @@ export async function saveHtml(tmk: string, html: string): Promise<void> {
   await fs.writeFile(path.join(htmlDir, `${safeName}.html`), html);
 }
 
+// ─── Captcha resolution check ────────────────────────────────────────
+
+/** Re-check whether a captcha page has been solved (e.g. manually by the user). */
+export async function isCaptchaResolved(page: Page): Promise<boolean> {
+  try {
+    const blocker = await checkForBlockers(page);
+    if (blocker.blocked) return false;
+    const pageResult = await checkPageStatus(page);
+    return pageResult.status === "success";
+  } catch {
+    return false;
+  }
+}
+
 // ─── Main scrape function ─────────────────────────────────────────────
 
 /**

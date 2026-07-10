@@ -1,4 +1,4 @@
-import { closeBrowser } from "@/core/crawlers/qpub/browser";
+import { closeBrowser, releasePage } from "@/core/crawlers/qpub/browser";
 import {
   buildUrl,
   isBlockedTime,
@@ -7,8 +7,11 @@ import {
   msUntilUnblocked,
   type IslandCode,
 } from "@/core/crawlers/qpub/config";
+import { isCaptchaResolved } from "@/core/crawlers/qpub/scrape";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
+
+import type { Page } from "playwright-core";
 
 import { processNightly } from "./processors/qpub-nightly";
 import { processScrape } from "./processors/qpub-scrape";
@@ -230,16 +233,46 @@ async function run() {
 
     const results = await Promise.allSettled(scrapeJobs);
 
-    // If any scrape hit captcha/blocked, pause before the next batch
-    const wasBlocked = results.some(
-      (r) =>
-        r.status === "fulfilled" &&
-        r.value &&
-        (r.value.status === "captcha" || r.value.status === "blocked"),
-    );
-    if (wasBlocked) {
-      log.warn("Captcha/block in batch — pausing before next claim");
-      await sleep(CAPTCHA_DELAY_MS);
+    // Collect captcha pages from batch results
+    const captchaPages: Page[] = results
+      .filter(
+        (r) =>
+          r.status === "fulfilled" &&
+          r.value?.page &&
+          (r.value.status === "captcha" || r.value.status === "blocked"),
+      )
+      .map((r) => (r as PromiseFulfilledResult<{ page: Page }>).value.page);
+
+    if (captchaPages.length > 0) {
+      log.warn(
+        { count: captchaPages.length },
+        "Captcha detected — pages left open for manual solving. Monitoring...",
+      );
+
+      const pollInterval = 5_000;
+      const maxPolls = CAPTCHA_DELAY_MS / pollInterval;
+      let resolved = false;
+
+      for (let i = 0; i < maxPolls && running; i++) {
+        await sleep(pollInterval);
+
+        for (const page of captchaPages) {
+          if (await isCaptchaResolved(page)) {
+            log.info("Captcha solved by user — resuming scraping");
+            resolved = true;
+            break;
+          }
+        }
+        if (resolved) break;
+      }
+
+      if (!resolved) {
+        log.info("Captcha backoff expired — releasing pages");
+      }
+
+      for (const page of captchaPages) {
+        await releasePage(page);
+      }
     }
   }
 
