@@ -1,7 +1,7 @@
 import { createLogger } from "@/core/observability/logger";
 
+import { Mailer } from "./mailer";
 import { DBEDT_UPLOAD_RECIPIENTS } from "./recipients";
-import { sendMail } from "./transport";
 
 /**
  * Notification mailer for DBEDT uploads (Econ + Tour).
@@ -66,7 +66,7 @@ export async function sendDbedtUploadStarted(
     { label: input.label, uploadId: input.uploadId },
     "Sending upload-started email",
   );
-  await sendMail({
+  await Mailer.email({
     to: [...DBEDT_UPLOAD_RECIPIENTS],
     subject,
     html,
@@ -116,7 +116,7 @@ export async function sendDbedtUploadCompleted(
     { label: input.label, uploadId: input.uploadId, status: input.status },
     "Sending upload-completed email",
   );
-  await sendMail({
+  await Mailer.email({
     to: [...DBEDT_UPLOAD_RECIPIENTS],
     subject,
     html,

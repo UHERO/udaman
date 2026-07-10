@@ -34,6 +34,7 @@ import {
   Layers,
   ListOrdered,
   LogOut,
+  Mail,
   MapPin,
   PlusSquare,
   Receipt,
@@ -142,6 +143,7 @@ const ADMIN_ICONS: Record<string, LucideIcon> = {
   "/admin/crawlers": Globe,
   "/admin/stats": BarChart3,
   "/admin/api-keys": KeyRound,
+  "/admin/messages": Mail,
 };
 
 const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [

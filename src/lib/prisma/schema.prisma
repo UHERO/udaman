@@ -864,3 +864,32 @@ enum app_logs_level {
   warn
   error
 }
+
+model messages {
+  id         Int              @id @default(autoincrement())
+  channel    messages_channel
+  sender     String?          @db.VarChar(100)
+  from_addr  String?          @db.VarChar(255)
+  recipient  String           @db.VarChar(500)
+  subject    String?          @db.VarChar(500)
+  body       String           @db.Text
+  status     messages_status  @default(pending)
+  error      String?          @db.Text
+  user_id    Int?
+  created_at DateTime         @default(now()) @db.Timestamp(0)
+
+  @@index([channel, created_at], map: "idx_messages_channel_created")
+  @@index([user_id, created_at], map: "idx_messages_user_created")
+}
+
+enum messages_channel {
+  email
+  slack
+  sms
+}
+
+enum messages_status {
+  pending
+  sent
+  failed
+}

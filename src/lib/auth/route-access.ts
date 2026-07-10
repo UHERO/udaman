@@ -172,6 +172,7 @@ export const ROUTES: RouteEntry[] = [
       { label: "Crawlers", path: "/admin/crawlers" },
       { label: "Stats", path: "/admin/stats" },
       { label: "API Keys", path: "/admin/api-keys", roles: ["dev"] },
+      { label: "Messages", path: "/admin/messages", roles: ["dev"] },
     ],
   },
   {
