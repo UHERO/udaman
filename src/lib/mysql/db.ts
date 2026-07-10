@@ -27,14 +27,16 @@ const connection = new SQL({
 
 function mysql<T = Record<string, unknown>>(
   strings: TemplateStringsArray,
-  ...values: any[]
+  ...values: unknown[]
 ): Promise<T[]>;
-function mysql(value: any, ...keys: string[]): any;
-function mysql(...args: any[]) {
+function mysql(value: unknown, ...keys: string[]): unknown;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mysql(...args: unknown[]) {
   const [first] = args;
 
   // Fragment helper: mysql([1, 2, 3]) or mysql(obj, "col1", "col2")
-  if (!first?.raw) {
+  if (!(first as TemplateStringsArray)?.raw) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (connection as any)(...args);
   }
 
@@ -44,11 +46,13 @@ function mysql(...args: any[]) {
   const query = strings.join("?");
   assertNotReadOnly(query);
   const start = performance.now();
-  return (connection(strings, ...values) as Promise<any[]>).then((result) => {
-    const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, rows: result.length }, query);
-    return result;
-  });
+  return (connection(strings, ...values) as Promise<unknown[]>).then(
+    (result) => {
+      const durationMs = +(performance.now() - start).toFixed(2);
+      log.debug({ durationMs, rows: result.length }, query);
+      return result;
+    },
+  );
 }
 
 /** Execute a raw SQL string with positional `?` parameters (for dynamic queries). */
@@ -58,7 +62,8 @@ function rawQuery<T = Record<string, unknown>>(
 ): Promise<T[]> {
   assertNotReadOnly(sql);
   const start = performance.now();
-  return (connection as any).unsafe(sql, params).then((result: any[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (connection as any).unsafe(sql, params).then((result: T[]) => {
     const durationMs = +(performance.now() - start).toFixed(2);
     log.debug({ durationMs, rows: result.length }, sql);
     return result;
@@ -86,14 +91,18 @@ async function transaction<T>(fn: () => Promise<T>): Promise<T> {
  */
 async function scopedConnection<T>(
   fn: (
-    exec: (sql: string, params?: (string | number | Date)[]) => Promise<any[]>,
+    exec: (
+      sql: string,
+      params?: (string | number | Date)[],
+    ) => Promise<Record<string, unknown>[]>,
   ) => Promise<T>,
 ): Promise<T> {
   const start = performance.now();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result] = await connection.begin(async (tx: any) => {
     const exec = (sql: string, params: (string | number | Date)[] = []) => {
       const qStart = performance.now();
-      return tx.unsafe(sql, params).then((rows: any[]) => {
+      return tx.unsafe(sql, params).then((rows: Record<string, unknown>[]) => {
         const durationMs = +(performance.now() - qStart).toFixed(2);
         log.debug({ durationMs, rows: rows.length }, "scoped query");
         return rows;
@@ -117,10 +126,13 @@ async function insertAndGetId(
 ): Promise<number> {
   assertNotReadOnly(sql);
   const start = performance.now();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result] = await connection.begin(async (tx: any) => {
     await tx.unsafe(sql, params);
-    const rows = await tx.unsafe("SELECT LAST_INSERT_ID() as insertId");
-    return [rows[0].insertId as number];
+    const rows: { insertId: number }[] = await tx.unsafe(
+      "SELECT LAST_INSERT_ID() as insertId",
+    );
+    return [rows[0].insertId];
   });
   const durationMs = +(performance.now() - start).toFixed(2);
   log.debug({ durationMs }, sql);

@@ -1,5 +1,6 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type {
   CreateDownloadPayload,
   UpdateDownloadPayload,
@@ -19,7 +20,6 @@ import type {
   DownloadFormData,
 } from "@catalog/controllers/downloads";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 

@@ -48,6 +48,7 @@ async function rawQuery<T = Record<string, unknown>>(
 ): Promise<T[]> {
   const start = performance.now();
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (getConnection() as any).unsafe(sql, params);
     const durationMs = +(performance.now() - start).toFixed(2);
     log.debug({ durationMs, rows: result.length }, "hhdb query");
@@ -56,6 +57,7 @@ async function rawQuery<T = Record<string, unknown>>(
     if (isConnectionError(err)) {
       log.warn("HHDB connection lost, reconnecting and retrying query");
       resetConnection();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (getConnection() as any).unsafe(sql, params);
       const durationMs = +(performance.now() - start).toFixed(2);
       log.debug({ durationMs, rows: result.length }, "hhdb query (retry)");
@@ -79,9 +81,12 @@ async function insertAndGetId(
 ): Promise<number> {
   const start = performance.now();
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const conn = getConnection() as any;
     await conn.unsafe(sql, params);
-    const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
+    const rows: { insertId: number }[] = await conn.unsafe(
+      "SELECT LAST_INSERT_ID() as insertId",
+    );
     const id = Number(rows[0].insertId);
     const durationMs = +(performance.now() - start).toFixed(2);
     log.debug({ durationMs, insertId: id }, sql);
@@ -90,9 +95,12 @@ async function insertAndGetId(
     if (isConnectionError(err)) {
       log.warn("HHDB connection lost, reconnecting and retrying insert");
       resetConnection();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const conn = getConnection() as any;
       await conn.unsafe(sql, params);
-      const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
+      const rows: { insertId: number }[] = await conn.unsafe(
+        "SELECT LAST_INSERT_ID() as insertId",
+      );
       const id = Number(rows[0].insertId);
       const durationMs = +(performance.now() - start).toFixed(2);
       log.debug({ durationMs, insertId: id }, `${sql} (retry)`);

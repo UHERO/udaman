@@ -71,9 +71,7 @@ class DataFileReader extends ClientDataFileReader {
           );
       } else {
         // Case-insensitive match with trimmed sheet names
-        const found = sheetNames.find(
-          (n) => n.trim().toLowerCase() === spec,
-        );
+        const found = sheetNames.find((n) => n.trim().toLowerCase() === spec);
         if (found) sheetName = found;
         else
           throw new Error(

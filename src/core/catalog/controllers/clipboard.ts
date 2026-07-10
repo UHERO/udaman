@@ -172,7 +172,10 @@ export async function searchClipboardLoaders({
 }): Promise<{ data: ClipboardLoaderRow[] }> {
   log.info({ userId, pattern }, "searching clipboard loaders");
   const data = await ClipboardCollection.searchLoadersByEval(userId, pattern);
-  log.info({ userId, pattern, count: data.length }, "clipboard loader search complete");
+  log.info(
+    { userId, pattern, count: data.length },
+    "clipboard loader search complete",
+  );
   return { data };
 }
 
@@ -187,7 +190,10 @@ export async function reloadClipboardLoaders({
     return { message: "No loaders to reload" };
   }
 
-  log.info({ userId, loaderCount: loaderIds.length }, "queueing clipboard loader reload");
+  log.info(
+    { userId, loaderCount: loaderIds.length },
+    "queueing clipboard loader reload",
+  );
 
   // Derive unique series IDs from loader IDs
   const seriesRows = await mysql<{ series_id: number }>`

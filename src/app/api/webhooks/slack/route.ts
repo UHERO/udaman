@@ -29,10 +29,7 @@ function verifySlackSignature(
     .digest("hex");
   const expected = `v0=${hmac}`;
 
-  return crypto.timingSafeEqual(
-    Buffer.from(expected),
-    Buffer.from(signature),
-  );
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
 /**

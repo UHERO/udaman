@@ -42,7 +42,7 @@ export function parseSeriesCode(input: string): ParsedSeriesCode | null {
 export function formatSeriesCode(
   name: string,
   geo: string,
-  freq: Frequency
+  freq: Frequency,
 ): string {
   return `${name}@${geo}.${freq}`;
 }
@@ -80,7 +80,7 @@ export function toYearMonth(d: Date): string {
 export function clampObservations<T extends { date: string }>(
   observations: T[],
   start: string | undefined,
-  end: string | undefined
+  end: string | undefined,
 ): T[] {
   if (!start && !end) return observations;
   const startKey = start ? normalizeDateKey(start) : null;
@@ -101,11 +101,11 @@ function normalizeDateKey(input: string): string {
 }
 
 export function describeDisambiguation(
-  matches: Array<{ geography?: { handle: string }; frequencyShort: string }>
+  matches: Array<{ geography?: { handle: string }; frequencyShort: string }>,
 ): string | undefined {
   if (matches.length <= 1) return undefined;
   const geoArr = uniq(
-    matches.map((m) => m.geography?.handle).filter((g): g is string => !!g)
+    matches.map((m) => m.geography?.handle).filter((g): g is string => !!g),
   );
   const freqArr = uniq(matches.map((m) => m.frequencyShort));
   if (geoArr.length > 1 && freqArr.length <= 1) {

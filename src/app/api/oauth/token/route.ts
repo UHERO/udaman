@@ -23,7 +23,10 @@ export async function POST(req: Request) {
     form = await req.formData();
   } catch {
     return Response.json(
-      { error: "invalid_request", error_description: "body must be application/x-www-form-urlencoded" },
+      {
+        error: "invalid_request",
+        error_description: "body must be application/x-www-form-urlencoded",
+      },
       { status: 400 },
     );
   }
@@ -36,7 +39,10 @@ export async function POST(req: Request) {
 
   if (grantType !== "authorization_code") {
     return Response.json(
-      { error: "unsupported_grant_type", error_description: "only authorization_code is supported" },
+      {
+        error: "unsupported_grant_type",
+        error_description: "only authorization_code is supported",
+      },
       { status: 400 },
     );
   }
@@ -75,9 +81,14 @@ export async function POST(req: Request) {
     );
   } catch (err) {
     const oauthErr =
-      err && typeof err === "object" && "error" in (err as Record<string, unknown>)
+      err &&
+      typeof err === "object" &&
+      "error" in (err as Record<string, unknown>)
         ? (err as OAuthError)
-        : ({ error: "server_error", error_description: "internal error" } as OAuthError);
+        : ({
+            error: "server_error",
+            error_description: "internal error",
+          } as OAuthError);
     const status =
       oauthErr.error === "invalid_client"
         ? 401

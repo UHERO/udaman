@@ -10,7 +10,6 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
@@ -18,13 +17,13 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@/*": ["./src/*"],
       "@catalog/*": ["./src/core/catalog/*"],
-      "@database/mysql": ["src/lib/mysql/db.ts"],
-      "@database/mysql/helpers": ["src/lib/mysql/helpers.ts"],
-      "@observability/logger": ["src/core/observability/logger.ts"]
+      "@database/mysql": ["./src/lib/mysql/db.ts"],
+      "@database/mysql/helpers": ["./src/lib/mysql/helpers.ts"],
+      "@observability/logger": ["./src/core/observability/logger.ts"]
     }
   },
   "include": [

@@ -35,8 +35,12 @@ class OAuthAccessToken {
     this.userEmail = attrs.user_email;
     this.scope = attrs.scope ?? "mcp";
     this.expiresAt = new Date(attrs.expires_at as string | Date);
-    this.revokedAt = attrs.revoked_at ? new Date(attrs.revoked_at as string | Date) : null;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
+    this.revokedAt = attrs.revoked_at
+      ? new Date(attrs.revoked_at as string | Date)
+      : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
   }
 
   isExpired(now: Date = new Date()): boolean {

@@ -7,9 +7,10 @@
  * JSON errors when they aren't (so we don't become an open redirector).
  */
 
+import OAuthController, { type OAuthError } from "@catalog/controllers/oauth";
+
 import { auth } from "@/lib/auth/index";
 import { getPublicOrigin } from "@/lib/oauth/origin";
-import OAuthController, { type OAuthError } from "@catalog/controllers/oauth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,7 +30,8 @@ function errorRedirect(
   }
   const url = new URL(redirectUri);
   url.searchParams.set("error", err.error);
-  if (err.error_description) url.searchParams.set("error_description", err.error_description);
+  if (err.error_description)
+    url.searchParams.set("error_description", err.error_description);
   if (state) url.searchParams.set("state", state);
   return Response.redirect(url.toString(), 302);
 }
@@ -49,7 +51,10 @@ export async function GET(req: Request) {
   // /authorize into an open redirector.
   if (!clientId || !redirectUri) {
     return Response.json(
-      { error: "invalid_request", error_description: "client_id and redirect_uri are required" },
+      {
+        error: "invalid_request",
+        error_description: "client_id and redirect_uri are required",
+      },
       { status: 400 },
     );
   }
@@ -86,12 +91,20 @@ export async function GET(req: Request) {
     return Response.redirect(target.toString(), 302);
   } catch (err) {
     const oauthErr =
-      err && typeof err === "object" && "error" in (err as Record<string, unknown>)
+      err &&
+      typeof err === "object" &&
+      "error" in (err as Record<string, unknown>)
         ? (err as OAuthError)
-        : ({ error: "server_error", error_description: "internal error" } as OAuthError);
+        : ({
+            error: "server_error",
+            error_description: "internal error",
+          } as OAuthError);
     // For invalid_client / invalid_request that came from un-trusted inputs,
     // don't redirect — return JSON instead.
-    if (oauthErr.error === "invalid_client" || oauthErr.error === "invalid_request") {
+    if (
+      oauthErr.error === "invalid_client" ||
+      oauthErr.error === "invalid_request"
+    ) {
       return Response.json(oauthErr, { status: 400 });
     }
     return errorRedirect(redirectUri, state, oauthErr);

@@ -61,7 +61,11 @@ class OAuthAuthorizationCode {
   }
 
   verifyPkce(verifier: string) {
-    return verifyPkceChallenge(verifier, this.codeChallenge, this.codeChallengeMethod);
+    return verifyPkceChallenge(
+      verifier,
+      this.codeChallenge,
+      this.codeChallengeMethod,
+    );
   }
 
   toString(): string {

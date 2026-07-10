@@ -292,9 +292,7 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
                           variant="ghost"
                           size="icon"
                           className="size-7"
-                          disabled={
-                            isPending || idx === series.length - 1
-                          }
+                          disabled={isPending || idx === series.length - 1}
                           onClick={() => handleMove(s.seriesId, "down")}
                           title="Move down"
                         >

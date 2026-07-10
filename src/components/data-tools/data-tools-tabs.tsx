@@ -26,11 +26,7 @@ export function DataToolsTabs({
   const pathname = useAppPathname();
   const base = `/udaman/${universe}/data-tools`;
 
-  const visibleChildren = getVisibleChildren(
-    role,
-    userUniverse,
-    "/data-tools",
-  );
+  const visibleChildren = getVisibleChildren(role, userUniverse, "/data-tools");
   const visibleTabs = TABS.filter((tab) =>
     visibleChildren.some(
       (child) => child.path === `/data-tools/${tab.segment}`,

@@ -44,7 +44,8 @@ function getSenderConfig(sender: string): SenderConfig {
     return {
       host,
       port: parseInt(process.env.SMTP_PORT ?? "587", 10),
-      secure: process.env.SMTP_SECURE === "1" || process.env.SMTP_SECURE === "true",
+      secure:
+        process.env.SMTP_SECURE === "1" || process.env.SMTP_SECURE === "true",
       user,
       pass,
       from: process.env.MAIL_FROM ?? user,
@@ -63,7 +64,9 @@ function getSenderConfig(sender: string): SenderConfig {
     return {
       host,
       port: parseInt(process.env.SMTP_UHEROSRV_PORT ?? "587", 10),
-      secure: process.env.SMTP_UHEROSRV_SECURE === "1" || process.env.SMTP_UHEROSRV_SECURE === "true",
+      secure:
+        process.env.SMTP_UHEROSRV_SECURE === "1" ||
+        process.env.SMTP_UHEROSRV_SECURE === "true",
       user,
       pass,
       from: process.env.SMTP_UHEROSRV_FROM ?? user,
@@ -147,8 +150,7 @@ export async function sendMail(opts: SendMailOptions): Promise<void> {
   }
 
   const from = opts.from ?? getFromAddress(senderKey);
-  const text =
-    opts.text ?? (opts.html ? htmlToText(opts.html) : "");
+  const text = opts.text ?? (opts.html ? htmlToText(opts.html) : "");
 
   const transporter = getTransporter(senderKey);
   const info = await transporter.sendMail({

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";

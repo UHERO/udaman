@@ -267,7 +267,9 @@ const CSV_DIMENSION_COLS = new Set(["year", "zip", "zipname", "county"]);
  *
  * If the file doesn't exist, returns an empty array (graceful degradation).
  */
-export async function readFactbookCsv(filePath: string): Promise<FactbookRow[]> {
+export async function readFactbookCsv(
+  filePath: string,
+): Promise<FactbookRow[]> {
   let text: string;
   try {
     text = await readFile(filePath, "utf8");
@@ -318,7 +320,11 @@ export async function readFactbookCsv(filePath: string): Promise<FactbookRow[]> 
         continue;
       }
       const trimmed = raw.trim();
-      if (trimmed === "" || trimmed.toUpperCase() === "NA" || trimmed === "NULL") {
+      if (
+        trimmed === "" ||
+        trimmed.toUpperCase() === "NA" ||
+        trimmed === "NULL"
+      ) {
         values[sanitized] = null;
         continue;
       }

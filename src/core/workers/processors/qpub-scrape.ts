@@ -3,7 +3,6 @@ import {
   getPage,
   releasePage,
 } from "@/core/crawlers/qpub/browser";
-import { getIslandCode } from "@/core/crawlers/qpub/config";
 import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
@@ -21,9 +20,7 @@ export async function processScrape(
   const page = await getPage();
   try {
     const result = await scrapeTmk(page, tmk, url);
-    log(
-      `${tmk}: ${result.status}${result.error ? ` (${result.error})` : ""}`,
-    );
+    log(`${tmk}: ${result.status}${result.error ? ` (${result.error})` : ""}`);
 
     if (result.status === "success" || result.status === "no_data") {
       await rawQuery(

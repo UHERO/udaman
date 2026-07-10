@@ -51,7 +51,7 @@ export function NavMain({
                 isActive={active}
                 className={cn(
                   active &&
-                    "relative bg-ublue/10 text-ublue before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-full before:bg-ublue hover:bg-ublue/15 hover:text-ublue [&>svg]:text-ublue",
+                    "bg-ublue/10 text-ublue before:bg-ublue hover:bg-ublue/15 hover:text-ublue [&>svg]:text-ublue relative before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-full",
                 )}
               >
                 <Link href={item.url}>

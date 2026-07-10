@@ -71,7 +71,9 @@ export class Mailer {
    */
   static async email(opts: EmailOptions): Promise<void> {
     if (!opts.html && !opts.text) {
-      throw new Error("Mailer.email: at least one of `html` or `text` is required");
+      throw new Error(
+        "Mailer.email: at least one of `html` or `text` is required",
+      );
     }
 
     log.info(

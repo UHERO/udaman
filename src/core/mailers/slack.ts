@@ -21,9 +21,7 @@ export async function sendSlackMessage(opts: {
 
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) {
-    throw new Error(
-      "Slack not configured: SLACK_BOT_TOKEN is required",
-    );
+    throw new Error("Slack not configured: SLACK_BOT_TOKEN is required");
   }
 
   const body: Record<string, unknown> = {
@@ -57,8 +55,5 @@ export async function sendSlackMessage(opts: {
     throw new Error(`Slack API error: ${data.error}${detail}`);
   }
 
-  log.info(
-    { channel: opts.channel, ts: data.ts },
-    "Slack message sent",
-  );
+  log.info({ channel: opts.channel, ts: data.ts }, "Slack message sent");
 }

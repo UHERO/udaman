@@ -18,7 +18,6 @@ import {
   ChartLine,
   ClipboardList,
   FileSpreadsheet,
-  Globe,
   LineChart,
   SearchSlash,
   Shield,

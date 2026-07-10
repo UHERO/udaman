@@ -26,7 +26,10 @@ async function removeAllSchedulers(): Promise<void> {
  */
 export async function registerSchedules(): Promise<void> {
   if (process.env.NODE_ENV !== "production") {
-    log.info("Skipping cron schedules in development (NODE_ENV=%s)", process.env.NODE_ENV);
+    log.info(
+      "Skipping cron schedules in development (NODE_ENV=%s)",
+      process.env.NODE_ENV,
+    );
     await removeAllSchedulers();
     return;
   }

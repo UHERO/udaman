@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
@@ -20,8 +21,8 @@ import {
   getQuarantinedSeries as fetchQuarantinedSeries,
   getSeries as fetchSeries,
   getSeriesById as fetchSeriesById,
-  getSeriesWithNullField as fetchSeriesWithNullField,
   getSeriesDependents as fetchSeriesDependents,
+  getSeriesWithNullField as fetchSeriesWithNullField,
   getSourceMap as fetchSourceMap,
   getCompareAllGeos as getCompareAllGeosCtrl,
   getCompareMeasurement as getCompareMeasurementCtrl,
@@ -44,7 +45,6 @@ import { getGeographies } from "@/core/catalog/controllers/geographies";
 import { getSourceDetails } from "@/core/catalog/controllers/source-details";
 import { getSources } from "@/core/catalog/controllers/sources";
 import { getUnits } from "@/core/catalog/controllers/units";
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -139,7 +139,10 @@ export async function deleteSeriesDataPoints(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteSeriesDataPoints failed");
-    AppLogCollection.logError(err, { userId, name: "series.delete_data_points" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "series.delete_data_points",
+    });
     throw err;
   }
 }
@@ -148,12 +151,18 @@ export async function syncPublicDataPoints(seriesId: number, universe: string) {
   const { userId } = await requirePermission("series", "update");
   log.info({ seriesId, universe }, "syncPublicDataPoints action called");
   try {
-    await DataPointCollection.updatePublicDataPointsForSeries(seriesId, universe);
+    await DataPointCollection.updatePublicDataPointsForSeries(
+      seriesId,
+      universe,
+    );
     return { message: "Public data points synced" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "syncPublicDataPoints failed");
-    AppLogCollection.logError(err, { userId, name: "series.sync_public_data_points" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "series.sync_public_data_points",
+    });
     throw err;
   }
 }
@@ -236,7 +245,10 @@ export async function createAlias(
       universe: targetUniverse,
     });
     revalidatePath(`/udaman/${targetUniverse}/series`);
-    log.info({ seriesId, aliasName: alias.name, targetUniverse }, "createAlias action completed");
+    log.info(
+      { seriesId, aliasName: alias.name, targetUniverse },
+      "createAlias action completed",
+    );
     return { message: `Alias created: ${alias.name} in ${targetUniverse}` };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -646,7 +658,10 @@ export async function transformSeriesAction(
     return await transformSeriesCtrl({ evalStr });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    log.error({ evalStr, error: message, userId }, "transformSeriesAction failed");
+    log.error(
+      { evalStr, error: message, userId },
+      "transformSeriesAction failed",
+    );
     AppLogCollection.logError(e, { userId, name: "series.transform" });
     return { error: message };
   }

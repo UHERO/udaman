@@ -77,7 +77,14 @@ export function OwnershipDistributionChart() {
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bucket" label={{ value: "Properties per Owner", position: "insideBottom", offset: -5 }} />
+              <XAxis
+                dataKey="bucket"
+                label={{
+                  value: "Properties per Owner",
+                  position: "insideBottom",
+                  offset: -5,
+                }}
+              />
               <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
               <ChartTooltip
                 content={

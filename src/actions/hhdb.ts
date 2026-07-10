@@ -2,7 +2,6 @@
 
 import {
   getAccessoryStructuresJSON as getAccessoryStructuresCtrl,
-  getTableCount as getTableCountCtrl,
   getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
   getAppealsJSON as getAppealsCtrl,
   getAssessmentsJSON as getAssessmentsCtrl,
@@ -25,9 +24,9 @@ import {
   getOutOfStateRatioByQuarter as getOutOfStateRatioCtrl,
   getOutOfStateTopStates as getOutOfStateTopStatesCtrl,
   getOutOfStateTopZips as getOutOfStateTopZipsCtrl,
+  getOwnersJSON as getOwnersCtrl,
   getOwnershipDistribution as getOwnershipDistributionCtrl,
   getOwnershipLorenzCurve as getOwnershipLorenzCurveCtrl,
-  getOwnersJSON as getOwnersCtrl,
   getParcelsJSON as getParcelsCtrl,
   getPermitActivityByYear as getPermitActivityCtrl,
   getPermitsJSON as getPermitsCtrl,
@@ -40,6 +39,7 @@ import {
   getPropertyCountByClass as getPropertyCountCtrl,
   getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
   getSalesJSON as getSalesCtrl,
+  getTableCount as getTableCountCtrl,
   getTopOwners as getTopOwnersCtrl,
   getTotalAssessedByIsland as getTotalAssessedCtrl,
   getYardImprovementsJSON as getYardImprovementsCtrl,
@@ -281,9 +281,8 @@ export async function getHhdbProfileTextDrilldown(
 
 export async function getHhdbOutOfStateRatio(islandCode?: string) {
   await requirePermission("hhdb", "read");
-  return cachedDashboard(
-    `outOfStateRatio:${islandCode ?? "all"}`,
-    () => getOutOfStateRatioCtrl(islandCode),
+  return cachedDashboard(`outOfStateRatio:${islandCode ?? "all"}`, () =>
+    getOutOfStateRatioCtrl(islandCode),
   );
 }
 
@@ -308,17 +307,15 @@ export async function getHhdbOutOfStateTopZips(
 
 export async function getHhdbOwnershipDistribution(islandCode?: string) {
   await requirePermission("hhdb", "read");
-  return cachedDashboard(
-    `ownershipDist:${islandCode ?? "all"}`,
-    () => getOwnershipDistributionCtrl(islandCode),
+  return cachedDashboard(`ownershipDist:${islandCode ?? "all"}`, () =>
+    getOwnershipDistributionCtrl(islandCode),
   );
 }
 
 export async function getHhdbOwnershipLorenz(islandCode?: string) {
   await requirePermission("hhdb", "read");
-  return cachedDashboard(
-    `ownershipLorenz:${islandCode ?? "all"}`,
-    () => getOwnershipLorenzCurveCtrl(islandCode),
+  return cachedDashboard(`ownershipLorenz:${islandCode ?? "all"}`, () =>
+    getOwnershipLorenzCurveCtrl(islandCode),
   );
 }
 
@@ -332,9 +329,7 @@ export async function getHhdbConcentrationByIsland() {
   return cachedDashboard("concentrationByIsland", getConcentrationByIslandCtrl);
 }
 
-export async function getHhdbTableCount(
-  table: string,
-): Promise<number | null> {
+export async function getHhdbTableCount(table: string): Promise<number | null> {
   await requirePermission("hhdb", "read");
   return getTableCountCtrl(table);
 }

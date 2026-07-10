@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type {
   CreateUniversePayload,
   UpdateUniversePayload,
@@ -13,13 +14,12 @@ import {
   renameUniverse as renameUniverseCtrl,
   updateUniverse as updateUniverseCtrl,
 } from "@catalog/controllers/universe";
+
+import { createLogger } from "@/core/observability/logger";
 import {
   enqueueUniverseArchive,
   enqueueUniversePurge,
 } from "@/core/workers/enqueue";
-
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
-import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.universes");
@@ -107,14 +107,14 @@ export async function deleteUniverse(name: string) {
 /** Universes that cannot be archived or purged. */
 const PROTECTED_UNIVERSES = new Set(["UHERO"]);
 
-export async function archiveUniverseAction(
-  name: string,
-  scheduledAt: string,
-) {
+export async function archiveUniverseAction(name: string, scheduledAt: string) {
   const { userId } = await requirePermission("universe", "delete");
 
   if (PROTECTED_UNIVERSES.has(name.toUpperCase())) {
-    return { success: false, message: `Universe ${name} is protected and cannot be archived via this action` };
+    return {
+      success: false,
+      message: `Universe ${name} is protected and cannot be archived via this action`,
+    };
   }
 
   const runAt = new Date(scheduledAt);
@@ -134,19 +134,20 @@ export async function archiveUniverseAction(
     AppLogCollection.logError(error, { userId, name: "universe.archive" });
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to schedule archive",
+      message:
+        error instanceof Error ? error.message : "Failed to schedule archive",
     };
   }
 }
 
-export async function purgeUniverseAction(
-  name: string,
-  scheduledAt: string,
-) {
+export async function purgeUniverseAction(name: string, scheduledAt: string) {
   const { userId } = await requirePermission("universe", "delete");
 
   if (PROTECTED_UNIVERSES.has(name.toUpperCase())) {
-    return { success: false, message: `Universe ${name} is protected and cannot be deleted` };
+    return {
+      success: false,
+      message: `Universe ${name} is protected and cannot be deleted`,
+    };
   }
 
   const runAt = new Date(scheduledAt);
@@ -168,7 +169,8 @@ export async function purgeUniverseAction(
     AppLogCollection.logError(error, { userId, name: "universe.purge" });
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to schedule delete",
+      message:
+        error instanceof Error ? error.message : "Failed to schedule delete",
     };
   }
 }

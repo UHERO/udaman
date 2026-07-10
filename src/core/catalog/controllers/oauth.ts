@@ -58,7 +58,9 @@ export type OAuthError = {
 };
 
 class OAuthController {
-  static async registerClient(payload: RegisterClientPayload): Promise<OAuthClient> {
+  static async registerClient(
+    payload: RegisterClientPayload,
+  ): Promise<OAuthClient> {
     return OAuthClientCollection.register(payload);
   }
 
@@ -71,7 +73,10 @@ class OAuthController {
   ): Promise<{ code: string; redirectTo: string }> {
     const client = await OAuthClientCollection.getByClientId(params.clientId);
     if (!client) {
-      throw { error: "invalid_client", error_description: "unknown client_id" } satisfies OAuthError;
+      throw {
+        error: "invalid_client",
+        error_description: "unknown client_id",
+      } satisfies OAuthError;
     }
     if (!client.redirectUriAllowed(params.redirectUri)) {
       throw {
@@ -117,18 +122,29 @@ class OAuthController {
   static async exchangeCode(
     params: ExchangeCodeParams,
   ): Promise<{ accessToken: string; expiresIn: number; scope: string }> {
-    const record = await OAuthAuthorizationCodeCollection.findByCode(params.code);
+    const record = await OAuthAuthorizationCodeCollection.findByCode(
+      params.code,
+    );
     if (!record) {
-      throw { error: "invalid_grant", error_description: "code not found" } satisfies OAuthError;
+      throw {
+        error: "invalid_grant",
+        error_description: "code not found",
+      } satisfies OAuthError;
     }
     if (record.isConsumed()) {
       // Per RFC 6749 §10.5, if a code is reused, revoke any tokens issued
       // from prior exchange of the same code. Defensive cleanup.
       await OAuthAccessTokenCollection.revokeByUser(record.userId);
-      throw { error: "invalid_grant", error_description: "code already used" } satisfies OAuthError;
+      throw {
+        error: "invalid_grant",
+        error_description: "code already used",
+      } satisfies OAuthError;
     }
     if (record.isExpired()) {
-      throw { error: "invalid_grant", error_description: "code expired" } satisfies OAuthError;
+      throw {
+        error: "invalid_grant",
+        error_description: "code expired",
+      } satisfies OAuthError;
     }
     if (record.clientId !== params.clientId) {
       throw {
@@ -139,7 +155,8 @@ class OAuthController {
     if (record.redirectUri !== params.redirectUri) {
       throw {
         error: "invalid_grant",
-        error_description: "redirect_uri does not match the one used at /authorize",
+        error_description:
+          "redirect_uri does not match the one used at /authorize",
       } satisfies OAuthError;
     }
 

@@ -10,11 +10,11 @@ import {
 } from "@/core/workers/enqueue";
 import { insertAndGetId, mysql, rawQuery } from "@/lib/mysql/db";
 
-const execAsync = promisify(exec);
-
 import ReloadJob from "../models/reload-job";
 import type { ReloadJobAttrs } from "../models/reload-job";
 import type { Universe } from "../types/shared";
+
+const execAsync = promisify(exec);
 
 const log = createLogger("catalog.reload-job-collection");
 

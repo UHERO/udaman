@@ -50,8 +50,5 @@ export async function sendSms(opts: {
 
   const data = await res.json();
 
-  log.info(
-    { to: opts.to, from, sid: data.sid },
-    "SMS sent",
-  );
+  log.info({ to: opts.to, from, sid: data.sid }, "SMS sent");
 }

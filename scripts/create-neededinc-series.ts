@@ -16,10 +16,11 @@
  *
  * Usage: bun run scripts/create-neededinc-series.ts [--dry-run]
  */
-import { mysql, rawQuery } from "@/lib/mysql/db";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
+
+import { mysql, rawQuery } from "@/lib/mysql/db";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const UNIVERSE = "HHF";

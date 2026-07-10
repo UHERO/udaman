@@ -59,14 +59,16 @@ export interface UheroEnvelope<T> {
 async function uheroFetch<T>(
   path: string,
   searchParams?: Record<string, string | number | undefined>,
-  options: { unrestricted?: boolean } = {}
+  options: { unrestricted?: boolean } = {},
 ): Promise<T> {
   const token = process.env.REST_API_TOKEN;
   if (!token) {
     throw new Error("REST_API_TOKEN is not set");
   }
 
-  const base = options.unrestricted ? UHERO_UNRESTRICTED_BASE_URL : UHERO_BASE_URL;
+  const base = options.unrestricted
+    ? UHERO_UNRESTRICTED_BASE_URL
+    : UHERO_BASE_URL;
   const url = new URL(`${base}${path}`);
   if (searchParams) {
     for (const [key, value] of Object.entries(searchParams)) {
@@ -89,10 +91,12 @@ async function uheroFetch<T>(
     try {
       const body = await res.text();
       detail = body.slice(0, 200);
-    } catch {}
+    } catch {
+      // ignore — best-effort body read for error detail
+    }
     throw new UheroApiError(
       `UHERO API ${res.status} for ${path}: ${detail}`,
-      res.status
+      res.status,
     );
   }
 
@@ -103,7 +107,7 @@ async function uheroFetch<T>(
 export class UheroApiError extends Error {
   constructor(
     message: string,
-    public readonly status: number
+    public readonly status: number,
   ) {
     super(message);
     this.name = "UheroApiError";
@@ -139,7 +143,7 @@ export async function searchSeries(params: {
   //   - no hits   → `data: null`
   const data = await uheroFetch<RawSeries[] | RawSeries | null>(
     "/series",
-    params
+    params,
   );
   if (data == null) return [];
   if (Array.isArray(data)) return data;
@@ -158,13 +162,13 @@ export async function searchSeries(params: {
  */
 export async function getSeriesByCode(
   code: string,
-  options: { universe?: string; unrestricted?: boolean } = {}
+  options: { universe?: string; unrestricted?: boolean } = {},
 ): Promise<RawSeries | null> {
   const { universe = "uhero", unrestricted = false } = options;
   const data = await uheroFetch<RawSeries | { series: RawSeries } | null>(
     "/series",
     { name: code, u: universe },
-    { unrestricted }
+    { unrestricted },
   );
   if (data == null) return null;
   // Some response shapes wrap the series in { series: {...} }. Normalize.
@@ -208,15 +212,16 @@ export async function searchSeriesByText(params: {
  */
 export async function getSeriesByCodeWithObservations(
   code: string,
-  options: { universe?: string; unrestricted?: boolean } = {}
+  options: { universe?: string; unrestricted?: boolean } = {},
 ): Promise<{ series: RawSeries; observations: RawObservations } | null> {
   const { universe = "uhero", unrestricted = false } = options;
-  const data = await uheroFetch<
-    { series: RawSeries; observations: RawObservations } | null
-  >(
+  const data = await uheroFetch<{
+    series: RawSeries;
+    observations: RawObservations;
+  } | null>(
     "/series",
     { name: code, u: universe, expand: "true" },
-    { unrestricted }
+    { unrestricted },
   );
   if (!data || !data.series || !data.series.id || !data.series.name) {
     return null;
@@ -240,7 +245,7 @@ export interface RawObservations {
 
 export async function getSeriesObservations(
   id: number,
-  transform: Transform = "lvl"
+  transform: Transform = "lvl",
 ): Promise<RawObservations> {
   return uheroFetch<RawObservations>("/series/observations", {
     id,
@@ -256,7 +261,7 @@ export interface RawGeography {
 }
 
 export async function listGeographiesForSeries(
-  seriesId: number
+  seriesId: number,
 ): Promise<RawGeography[]> {
   const data = await uheroFetch<RawGeography[]>("/series/siblings/geo", {
     id: seriesId,
@@ -279,7 +284,7 @@ export async function listCategories(): Promise<RawCategory[]> {
 export async function getCategorySeries(
   categoryId: number,
   geo?: string,
-  freq?: Frequency
+  freq?: Frequency,
 ): Promise<RawSeries[]> {
   const data = await uheroFetch<RawSeries[]>("/category/series", {
     id: categoryId,
@@ -295,7 +300,7 @@ export async function getSeriesSiblings(id: number): Promise<RawSeries[]> {
 }
 
 export function normalizeObservations(
-  raw: RawObservations
+  raw: RawObservations,
 ): ObservationPoint[] {
   const first = raw.transformationResults?.[0];
   if (!first) return [];

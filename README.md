@@ -104,11 +104,11 @@ For a complete rebuild (e.g. after schema changes):
 
 ### Processes
 
-| Process | Command | Machine | Purpose |
-|---------|---------|---------|---------|
-| App | `bun run start` | prod | Next.js app + admin panel |
-| Worker | `bun run worker` | worker | BullMQ jobs (time series reloads, exports) |
-| Scraper | `bun run scraper` | scraper-worker | QPub scraping + nightly parse/load |
+| Process | Command           | Machine        | Purpose                                    |
+| ------- | ----------------- | -------------- | ------------------------------------------ |
+| App     | `bun run start`   | prod           | Next.js app + admin panel                  |
+| Worker  | `bun run worker`  | worker         | BullMQ jobs (time series reloads, exports) |
+| Scraper | `bun run scraper` | scraper-worker | QPub scraping + nightly parse/load         |
 
 # ToDo Notes For Later
 
@@ -133,4 +133,3 @@ For a complete rebuild (e.g. after schema changes):
 
 1. dataPortalName is appears to be the only camelCase name in a database of snake_case names. setup a migration to rename to data_portal_name.
 2. yoy,ytd,change fields in the database are unused. Remove them. These are calculated each time, probably better that way.
-

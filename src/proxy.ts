@@ -104,7 +104,7 @@ export async function proxy(request: NextRequest) {
     // Let NextAuth & static assets pass through untouched
     if (
       (pathname.startsWith("/api/") && app !== "api") ||
-      pathname.startsWith("/_next") || 
+      pathname.startsWith("/_next") ||
       pathname.startsWith("/.well-known")
     ) {
       return NextResponse.next();
@@ -228,9 +228,7 @@ export async function proxy(request: NextRequest) {
 
     if (!isRouteAllowed(role, userUniverse, pathname)) {
       const universe = userUniverse.toLowerCase();
-      return NextResponse.redirect(
-        new URL(`/udaman/${universe}`, request.url),
-      );
+      return NextResponse.redirect(new URL(`/udaman/${universe}`, request.url));
     }
 
     const response = NextResponse.next();

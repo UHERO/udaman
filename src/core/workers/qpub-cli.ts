@@ -1,6 +1,3 @@
-// Ensure all date operations use Hawaii Standard Time.
-process.env.TZ = "Pacific/Honolulu";
-
 import { createLogger } from "@/core/observability/logger";
 
 import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
@@ -8,10 +5,13 @@ import { processNightly } from "./processors/qpub-nightly";
 import {
   rebuildAll,
   rebuildTable,
-  runParseAndExtract,
   runLoad,
+  runParseAndExtract,
   runSync,
 } from "./processors/qpub-rebuild";
+
+// Ensure all date operations use Hawaii Standard Time.
+process.env.TZ = "Pacific/Honolulu";
 
 const log = createLogger("qpub-cli");
 

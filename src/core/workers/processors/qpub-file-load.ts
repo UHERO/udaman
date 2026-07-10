@@ -13,8 +13,8 @@
  */
 
 import { createReadStream, existsSync } from "fs";
-import { createInterface } from "readline";
 import path from "path";
+import { createInterface } from "readline";
 
 import type { Logger } from "@/core/observability/logger";
 
@@ -27,13 +27,18 @@ type SqlValue = string | number | null;
 function escapeSqlValue(v: SqlValue): string {
   if (v === null) return "NULL";
   if (typeof v === "number") return String(v);
-  return "'" + String(v)
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-    .replace(/\0/g, "\\0")
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/\x1a/g, "\\Z") + "'";
+  return (
+    "'" +
+    String(v)
+      .replace(/\\/g, "\\\\")
+      .replace(/'/g, "\\'")
+      .replace(/\0/g, "\\0")
+      .replace(/\n/g, "\\n")
+      .replace(/\r/g, "\\r")
+      // eslint-disable-next-line no-control-regex
+      .replace(/\x1a/g, "\\Z") +
+    "'"
+  );
 }
 
 function columnName(col: string): string {
@@ -55,7 +60,9 @@ function buildInsert(
   const prefix = opts?.insertIgnore
     ? `INSERT IGNORE INTO ${table} (${colList}) VALUES`
     : `INSERT INTO ${table} (${colList}) VALUES`;
-  const suffix = opts?.onDuplicate ? ` ON DUPLICATE KEY UPDATE ${opts.onDuplicate}` : "";
+  const suffix = opts?.onDuplicate
+    ? ` ON DUPLICATE KEY UPDATE ${opts.onDuplicate}`
+    : "";
 
   const valueParts = rows.map((row) => {
     const vals = row.map(escapeSqlValue).join(",");
@@ -74,7 +81,10 @@ function buildInsert(
  */
 class SqlWriter {
   private proc: ReturnType<typeof Bun.spawn>;
-  private stdin: ReturnType<typeof Bun.spawn>["stdin"] & { write: Function; end: Function };
+  private stdin: {
+    write: (data: string) => number | Promise<number>;
+    end: () => void;
+  };
   private stderrPromise: Promise<string>;
   private broken = false;
   private brokenError: string | null = null;
@@ -86,9 +96,11 @@ class SqlWriter {
       stderr: "pipe",
     });
     // Cast stdin — we know it's a FileSink because we passed stdin: "pipe"
-    this.stdin = this.proc.stdin as any;
+    this.stdin = this.proc.stdin as unknown as typeof this.stdin;
     // Start reading stderr immediately in background
-    this.stderrPromise = new Response(this.proc.stderr as ReadableStream).text();
+    this.stderrPromise = new Response(
+      this.proc.stderr as ReadableStream,
+    ).text();
   }
 
   /** Write SQL to mariadb stdin. Silently stops if pipe is already broken. */
@@ -219,23 +231,34 @@ const LOAD_ORDER: string[] = [
 
 const ON_DUPLICATE: Record<string, string> = {
   properties: [
-    "parcel_number=VALUES(parcel_number)", "location_address=VALUES(location_address)",
-    "address_other=VALUES(address_other)", "project_name=VALUES(project_name)",
-    "legal_information=VALUES(legal_information)", "property_class=VALUES(property_class)",
-    "land_area_sqft=VALUES(land_area_sqft)", "land_area_acres=VALUES(land_area_acres)",
-    "neighborhood_code=VALUES(neighborhood_code)", "zoning=VALUES(zoning)",
-    "parcel_note=VALUES(parcel_note)", "damage=VALUES(damage)",
-    "reentry_zone=VALUES(reentry_zone)", "zone_color=VALUES(zone_color)",
-    "non_taxable_status=VALUES(non_taxable_status)", "living_units=VALUES(living_units)",
-    "map_url=VALUES(map_url)", "sketch_url=VALUES(sketch_url)",
+    "parcel_number=VALUES(parcel_number)",
+    "location_address=VALUES(location_address)",
+    "address_other=VALUES(address_other)",
+    "project_name=VALUES(project_name)",
+    "legal_information=VALUES(legal_information)",
+    "property_class=VALUES(property_class)",
+    "land_area_sqft=VALUES(land_area_sqft)",
+    "land_area_acres=VALUES(land_area_acres)",
+    "neighborhood_code=VALUES(neighborhood_code)",
+    "zoning=VALUES(zoning)",
+    "parcel_note=VALUES(parcel_note)",
+    "damage=VALUES(damage)",
+    "reentry_zone=VALUES(reentry_zone)",
+    "zone_color=VALUES(zone_color)",
+    "non_taxable_status=VALUES(non_taxable_status)",
+    "living_units=VALUES(living_units)",
+    "map_url=VALUES(map_url)",
+    "sketch_url=VALUES(sketch_url)",
     "updated_at=NOW()",
   ].join(", "),
   assessments: [
-    "scraped_at=VALUES(scraped_at)", "property_class=VALUES(property_class)",
+    "scraped_at=VALUES(scraped_at)",
+    "property_class=VALUES(property_class)",
     "assessed_land_value=VALUES(assessed_land_value)",
     "assessed_building_value=VALUES(assessed_building_value)",
     "dedicated_use_value=VALUES(dedicated_use_value)",
-    "land_exemption=VALUES(land_exemption)", "building_exemption=VALUES(building_exemption)",
+    "land_exemption=VALUES(land_exemption)",
+    "building_exemption=VALUES(building_exemption)",
     "net_taxable_land_value=VALUES(net_taxable_land_value)",
     "net_taxable_building_value=VALUES(net_taxable_building_value)",
     "total_property_assessed_value=VALUES(total_property_assessed_value)",
@@ -246,8 +269,10 @@ const ON_DUPLICATE: Record<string, string> = {
     "market_building_value=VALUES(market_building_value)",
     "total_market_value=VALUES(total_market_value)",
   ].join(", "),
-  condominium_projects: "project_name=VALUES(project_name), unit_count=VALUES(unit_count)",
-  condominium_units: "unit_number=VALUES(unit_number), owner_name=VALUES(owner_name)",
+  condominium_projects:
+    "project_name=VALUES(project_name), unit_count=VALUES(unit_count)",
+  condominium_units:
+    "unit_number=VALUES(unit_number), owner_name=VALUES(owner_name)",
 };
 
 // ─── Main Load Function ─────────────────────────────────────────────
@@ -288,10 +313,17 @@ export async function loadFromFiles(
     }
 
     const onDuplicate = ON_DUPLICATE[actualTable];
-    const rows = await streamJsonlFile(filePath, actualTable, columns, writer, log, {
-      onDuplicate,
-      insertIgnore: isStubProperties,
-    });
+    const rows = await streamJsonlFile(
+      filePath,
+      actualTable,
+      columns,
+      writer,
+      log,
+      {
+        onDuplicate,
+        insertIgnore: isStubProperties,
+      },
+    );
 
     totalRows += rows;
 
@@ -306,7 +338,10 @@ export async function loadFromFiles(
     await writer.write("SET UNIQUE_CHECKS=1;\n");
   }
 
-  log.info({ totalRows }, `Streamed ${totalRows.toLocaleString()} total rows to mariadb CLI`);
+  log.info(
+    { totalRows },
+    `Streamed ${totalRows.toLocaleString()} total rows to mariadb CLI`,
+  );
 
   // finish() closes stdin, waits for exit, and throws with stderr on failure
   await writer.finish();
@@ -335,7 +370,11 @@ export async function loadTableFromFiles(
   // Always load properties first (FK parent)
   const propFile = path.join(stagingDir, "properties.jsonl");
   const propRows = await streamJsonlFile(
-    propFile, "properties", TABLE_COLUMNS.properties, writer, log,
+    propFile,
+    "properties",
+    TABLE_COLUMNS.properties,
+    writer,
+    log,
     { onDuplicate: ON_DUPLICATE.properties },
   );
   if (propRows > 0 && !writer.isBroken) {
@@ -346,7 +385,11 @@ export async function loadTableFromFiles(
   if (table === "condominium" && !writer.isBroken) {
     const stubFile = path.join(stagingDir, "condo_stub_properties.jsonl");
     const stubRows = await streamJsonlFile(
-      stubFile, "properties", TABLE_COLUMNS.condo_stub_properties, writer, log,
+      stubFile,
+      "properties",
+      TABLE_COLUMNS.condo_stub_properties,
+      writer,
+      log,
       { insertIgnore: true },
     );
     if (stubRows > 0 && !writer.isBroken) {
@@ -363,7 +406,9 @@ export async function loadTableFromFiles(
     const columns = TABLE_COLUMNS[tf];
     if (!columns) continue;
     const onDuplicate = ON_DUPLICATE[tf];
-    const rows = await streamJsonlFile(filePath, tf, columns, writer, log, { onDuplicate });
+    const rows = await streamJsonlFile(filePath, tf, columns, writer, log, {
+      onDuplicate,
+    });
 
     if (rows > 0 && !writer.isBroken) {
       await writer.write("COMMIT;\nSET autocommit=0;\n");
@@ -388,7 +433,12 @@ function resolveTableFiles(table: string): string[] {
     case "commercial_improvements":
       return ["commercial_improvements", "commercial_improvement_details"];
     case "historical_tax":
-      return ["historical_tax_summary", "historical_tax_details", "historical_tax_payments", "historical_tax_credits"];
+      return [
+        "historical_tax_summary",
+        "historical_tax_details",
+        "historical_tax_payments",
+        "historical_tax_credits",
+      ];
     case "condominium":
       return ["condominium_projects", "condominium_units"];
     default:

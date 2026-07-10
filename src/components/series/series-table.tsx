@@ -90,9 +90,7 @@ export const SeriesDataTable = ({
       header: "Value",
       cell: ({ cell, row }) => {
         const val = cell.getValue() as number | null;
-        const displayValue = isNumber(val)
-          ? formatLevel(val, decimals)
-          : "-";
+        const displayValue = isNumber(val) ? formatLevel(val, decimals) : "-";
         const rowDate = row.getValue("date") as Date;
         const dateStr = format(rowDate, "yyyy-MM-dd");
         return (

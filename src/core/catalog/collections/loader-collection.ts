@@ -514,7 +514,10 @@ class LoaderCollection {
         await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId}`;
         break;
     }
-    log.info({ loaderId, deleteBy }, `Deleted data points for loader ${loaderId}`);
+    log.info(
+      { loaderId, deleteBy },
+      `Deleted data points for loader ${loaderId}`,
+    );
   }
 
   /** Update dependencies for all UHERO loaders */

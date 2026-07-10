@@ -36,7 +36,10 @@ async function repairStatusRecords(): Promise<void> {
        SET scrape_status = 'failed', error = 'orphaned pending record'
        WHERE scrape_status = 'pending'`,
     );
-    log.info({ count: Number(orphaned.cnt) }, "Repair: marked orphaned pending scrapes as failed");
+    log.info(
+      { count: Number(orphaned.cnt) },
+      "Repair: marked orphaned pending scrapes as failed",
+    );
   }
 
   // 2. Re-scraped but not re-parsed → reset parse+load to pending
@@ -56,7 +59,10 @@ async function repairStatusRecords(): Promise<void> {
          AND scraped_at > parsed_at
          AND parse_status = 'success'`,
     );
-    log.info({ count: Number(stale.cnt) }, "Repair: reset re-scraped records to pending parse+load");
+    log.info(
+      { count: Number(stale.cnt) },
+      "Repair: reset re-scraped records to pending parse+load",
+    );
   }
 }
 
@@ -101,10 +107,7 @@ export async function processNightly(): Promise<string> {
       // Parse if needed
       if (parseStatus !== "success") {
         try {
-          await processParse(
-            { tmk, island },
-            (msg) => log.info(msg),
-          );
+          await processParse({ tmk, island }, (msg) => log.info(msg));
         } catch (e) {
           // Parse failed — can't load, propagate error
           throw new Error(`Parse failed: ${errorMessage(e)}`);
@@ -112,11 +115,9 @@ export async function processNightly(): Promise<string> {
       }
 
       // Load with skipStatusUpdate — pipeline handles batch status updates
-      await processLoad(
-        { tmk },
-        (msg) => log.debug(msg),
-        { skipStatusUpdate: true },
-      );
+      await processLoad({ tmk }, (msg) => log.debug(msg), {
+        skipStatusUpdate: true,
+      });
 
       return "done";
     },

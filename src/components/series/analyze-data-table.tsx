@@ -383,7 +383,15 @@ export function AnalyzeDataTable({
     navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [rows, columns, isCompareMode, seriesNames, activeTransformation, rightTransformation, seriesAxisMap]);
+  }, [
+    rows,
+    columns,
+    isCompareMode,
+    seriesNames,
+    activeTransformation,
+    rightTransformation,
+    seriesAxisMap,
+  ]);
 
   const table = useReactTable({
     data: rows,

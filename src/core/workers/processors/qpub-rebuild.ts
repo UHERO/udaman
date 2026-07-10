@@ -10,30 +10,40 @@
  * rebuild-all / rebuild-table.
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import path from "path";
 
 import {
+  getFileMtime,
   getJsonPath,
   listHtmlFiles,
   tmkFromFilePath,
-  getFileMtime,
 } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
-import { getMaxTaxYear, errorMessage, TABLE_LOADERS } from "./qpub-load";
 import {
-  type ExtractItem,
+  prepareLocalDb,
+  syncTableToRemote,
+  syncToRemote,
+} from "./qpub-db-sync";
+import {
+  DEFAULT_STAGING_DIR,
   extractBatch,
   initStagingDir,
   resetIdCounters,
-  DEFAULT_STAGING_DIR,
+  type ExtractItem,
 } from "./qpub-extract";
 import { loadFromFiles, loadTableFromFiles } from "./qpub-file-load";
-import { prepareLocalDb, syncToRemote, syncTableToRemote } from "./qpub-db-sync";
+import { errorMessage, getMaxTaxYear, TABLE_LOADERS } from "./qpub-load";
 
 const log = createLogger("qpub-rebuild");
 
@@ -62,7 +72,11 @@ const LOCAL_DB_PSWD = process.env.HH_LOCAL_DB_PSWD ?? "";
 const LOCAL_DB_NAME = process.env.HH_LOCAL_DB_NAME ?? "hawaii_housing_rebuild";
 
 function localAuthArgs(): string[] {
-  const args = [`--host=${LOCAL_DB_HOST}`, `--port=${LOCAL_DB_PORT}`, `--user=${LOCAL_DB_USER}`];
+  const args = [
+    `--host=${LOCAL_DB_HOST}`,
+    `--port=${LOCAL_DB_PORT}`,
+    `--user=${LOCAL_DB_USER}`,
+  ];
   if (LOCAL_DB_PSWD) args.push(`--password=${LOCAL_DB_PSWD}`);
   return args;
 }
@@ -80,7 +94,10 @@ function collectFiles(period?: string, island?: string): Map<string, string> {
 
 // ─── Parse Helpers ──────────────────────────────────────────────────
 
-function parseAndWriteJson(tmk: string, filePath: string): ParsedProperty | null {
+function parseAndWriteJson(
+  tmk: string,
+  filePath: string,
+): ParsedProperty | null {
   const html = readFileSync(filePath, "utf-8");
   const parsed = parsePropertyHTML(html, tmk);
 
@@ -100,7 +117,11 @@ function parseAndWriteJson(tmk: string, filePath: string): ParsedProperty | null
   return parsed;
 }
 
-function parseOrReadCached(tmk: string, htmlPath: string, forceParse: boolean): ParsedProperty | null {
+function parseOrReadCached(
+  tmk: string,
+  htmlPath: string,
+  forceParse: boolean,
+): ParsedProperty | null {
   if (!forceParse) {
     const jsonDir = getJsonPath(tmk);
     const jsonFile = path.join(jsonDir, `${tmk}.json`);
@@ -111,7 +132,9 @@ function parseOrReadCached(tmk: string, htmlPath: string, forceParse: boolean): 
         const htmlMtime = statSync(htmlPath).mtimeMs;
 
         if (jsonMtime > htmlMtime) {
-          const data = JSON.parse(readFileSync(jsonFile, "utf-8")) as ParsedProperty;
+          const data = JSON.parse(
+            readFileSync(jsonFile, "utf-8"),
+          ) as ParsedProperty;
           if (data.status === "success" || data.status === "condo_project") {
             return data;
           }
@@ -150,7 +173,9 @@ async function flushSuccess(tmks: string[]): Promise<void> {
   }
 }
 
-async function flushFailed(failures: Array<{ tmk: string; error: string }>): Promise<void> {
+async function flushFailed(
+  failures: Array<{ tmk: string; error: string }>,
+): Promise<void> {
   for (const { tmk, error } of failures) {
     await rawQuery(
       `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
@@ -165,7 +190,10 @@ function parseBatchToItems(
   tmks: string[],
   fileMap: Map<string, string>,
   forceParse: boolean,
-): { items: ExtractItem[]; parseErrors: Array<{ tmk: string; error: string }> } {
+): {
+  items: ExtractItem[];
+  parseErrors: Array<{ tmk: string; error: string }>;
+} {
   const items: ExtractItem[] = [];
   const parseErrors: Array<{ tmk: string; error: string }> = [];
 
@@ -195,7 +223,9 @@ function parseBatchToItems(
  * Phase 1+2: Parse HTML → JSON, then extract JSON → JSONL table files.
  * Returns the list of errors encountered during parsing.
  */
-export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<string> {
+export async function runParseAndExtract(
+  opts: RebuildOptions = {},
+): Promise<string> {
   const { island, period, forceParse = false } = opts;
 
   log.info({ island, period, forceParse }, "Parse+Extract started");
@@ -224,7 +254,11 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
     const batchTmks = tmks.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    const { items, parseErrors } = parseBatchToItems(
+      batchTmks,
+      fileMap,
+      forceParse,
+    );
     allErrors.push(...parseErrors);
 
     if (items.length > 0) {
@@ -236,7 +270,13 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
       const pct = ((processed / total) * 100).toFixed(1);
       const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
       log.info(
-        { batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        {
+          batch: `${batchNum}/${totalBatches}`,
+          processed,
+          total,
+          pct: `${pct}%`,
+          elapsed: `${elapsed}s`,
+        },
         `Parse+Extract: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
       );
     }
@@ -252,7 +292,10 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
     for (const { error } of allErrors) {
       counts[error] = (counts[error] ?? 0) + 1;
     }
-    log.info({ errorBreakdown: counts }, `Parse errors: ${allErrors.length} total`);
+    log.info(
+      { errorBreakdown: counts },
+      `Parse errors: ${allErrors.length} total`,
+    );
   }
 
   const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
@@ -270,7 +313,9 @@ export async function runLoad(opts: { table?: string } = {}): Promise<string> {
   const stagingDir = DEFAULT_STAGING_DIR;
 
   if (!existsSync(stagingDir)) {
-    throw new Error(`Staging directory ${stagingDir} does not exist. Run parse+extract first.`);
+    throw new Error(
+      `Staging directory ${stagingDir} does not exist. Run parse+extract first.`,
+    );
   }
 
   // Prepare local DB (clean slate)
@@ -279,8 +324,17 @@ export async function runLoad(opts: { table?: string } = {}): Promise<string> {
   const startMs = Date.now();
 
   if (opts.table) {
-    log.info({ table: opts.table }, "Loading single table from extracted files");
-    await loadTableFromFiles(opts.table, stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+    log.info(
+      { table: opts.table },
+      "Loading single table from extracted files",
+    );
+    await loadTableFromFiles(
+      opts.table,
+      stagingDir,
+      localAuthArgs(),
+      LOCAL_DB_NAME,
+      log,
+    );
   } else {
     log.info("Loading all tables from extracted files");
     await loadFromFiles(stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
@@ -295,7 +349,9 @@ export async function runLoad(opts: { table?: string } = {}): Promise<string> {
 /**
  * Sync: Dump local database to remote, then update scrape_status.
  */
-export async function runSync(opts: { table?: string; island?: string; period?: string } = {}): Promise<string> {
+export async function runSync(
+  opts: { table?: string; island?: string; period?: string } = {},
+): Promise<string> {
   const startMs = Date.now();
 
   if (opts.table) {
@@ -356,13 +412,20 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 
   // Phase 1+2: Parse and Extract
-  log.info({ total, batchSize: BATCH_SIZE, totalBatches }, "Phase 1+2: Parse + Extract");
+  log.info(
+    { total, batchSize: BATCH_SIZE, totalBatches },
+    "Phase 1+2: Parse + Extract",
+  );
 
   for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
     const batchTmks = tmks.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    const { items, parseErrors } = parseBatchToItems(
+      batchTmks,
+      fileMap,
+      forceParse,
+    );
     allErrors.push(...parseErrors);
 
     if (items.length > 0) {
@@ -374,14 +437,23 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
       const pct = ((processed / total) * 100).toFixed(1);
       const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
       log.info(
-        { batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        {
+          batch: `${batchNum}/${totalBatches}`,
+          processed,
+          total,
+          pct: `${pct}%`,
+          elapsed: `${elapsed}s`,
+        },
         `Parse+Extract: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
       );
     }
   }
 
   const parseElapsed = ((Date.now() - startMs) / 1000).toFixed(1);
-  log.info({ elapsed: `${parseElapsed}s`, errors: allErrors.length }, "Phase 1+2 complete");
+  log.info(
+    { elapsed: `${parseElapsed}s`, errors: allErrors.length },
+    "Phase 1+2 complete",
+  );
 
   // Phase 3: Load into local DB via mariadb CLI
   log.info("Phase 3: Loading extracted files into local database");
@@ -425,7 +497,10 @@ export async function rebuildTable(
     throw new Error(`Unknown table "${table}". Valid tables: ${valid}`);
   }
 
-  log.info({ table, island, period, forceParse }, "Rebuild table (pipeline) started");
+  log.info(
+    { table, island, period, forceParse },
+    "Rebuild table (pipeline) started",
+  );
 
   const fileMap = collectFiles(period, island);
   const tmks = Array.from(fileMap.keys());
@@ -451,18 +526,26 @@ export async function rebuildTable(
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 
   // Phase 1+2: Parse and Extract
-  log.info({ total, table, batchSize: BATCH_SIZE, totalBatches }, "Phase 1+2: Parse + Extract");
+  log.info(
+    { total, table, batchSize: BATCH_SIZE, totalBatches },
+    "Phase 1+2: Parse + Extract",
+  );
 
   for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
     const batchTmks = tmks.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    const { items, parseErrors } = parseBatchToItems(
+      batchTmks,
+      fileMap,
+      forceParse,
+    );
     allErrors.push(...parseErrors);
 
-    const extractItems = table === "condominium"
-      ? items.filter((item) => item.data.status === "condo_project")
-      : items;
+    const extractItems =
+      table === "condominium"
+        ? items.filter((item) => item.data.status === "condo_project")
+        : items;
 
     if (extractItems.length > 0) {
       extractBatch(extractItems, stagingDir);
@@ -473,20 +556,36 @@ export async function rebuildTable(
       const pct = ((processed / total) * 100).toFixed(1);
       const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
       log.info(
-        { table, batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        {
+          table,
+          batch: `${batchNum}/${totalBatches}`,
+          processed,
+          total,
+          pct: `${pct}%`,
+          elapsed: `${elapsed}s`,
+        },
         `Parse+Extract ${table}: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
       );
     }
   }
 
   const parseElapsed = ((Date.now() - startMs) / 1000).toFixed(1);
-  log.info({ table, elapsed: `${parseElapsed}s`, errors: allErrors.length }, "Phase 1+2 complete");
+  log.info(
+    { table, elapsed: `${parseElapsed}s`, errors: allErrors.length },
+    "Phase 1+2 complete",
+  );
 
   // Phase 3: Load into local DB
   log.info({ table }, "Phase 3: Loading extracted files into local database");
   const loadStartMs = Date.now();
 
-  await loadTableFromFiles(table, stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+  await loadTableFromFiles(
+    table,
+    stagingDir,
+    localAuthArgs(),
+    LOCAL_DB_NAME,
+    log,
+  );
 
   const loadElapsed = ((Date.now() - loadStartMs) / 1000).toFixed(1);
   log.info({ table, elapsed: `${loadElapsed}s` }, "Phase 3 complete");

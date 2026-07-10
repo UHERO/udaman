@@ -1,5 +1,6 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import {
   addMultipleToClipboard as addMultipleCtrl,
   addToClipboard as addToClipboardCtrl,
@@ -16,7 +17,6 @@ import type {
   ClipboardAction,
 } from "@catalog/controllers/clipboard";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { getCurrentUserId } from "@/lib/auth";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -124,7 +124,10 @@ export async function bulkUpdateClipboardMetadata(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "bulkUpdateClipboardMetadata failed");
-    AppLogCollection.logError(err, { userId, name: "clipboard.bulk_update_metadata" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "clipboard.bulk_update_metadata",
+    });
     throw err;
   }
 }
@@ -150,7 +153,10 @@ export async function reloadClipboardLoaders(loaderIds: number[]) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "reloadClipboardLoaders failed");
-    AppLogCollection.logError(err, { userId, name: "clipboard.reload_loaders" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "clipboard.reload_loaders",
+    });
     throw err;
   }
 }

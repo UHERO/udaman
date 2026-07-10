@@ -69,10 +69,7 @@ export function ExportListTable({ data }: Props) {
         <p className="text-muted-foreground text-sm">
           {data.length} export{data.length !== 1 && "s"}
         </p>
-        <Button
-          className="cursor-pointer"
-          onClick={() => setCreateOpen(true)}
-        >
+        <Button className="cursor-pointer" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           New Export
         </Button>

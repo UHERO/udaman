@@ -168,17 +168,14 @@ export function AnalyzerSearch({ currentNames, onAdd }: AnalyzerSearchProps) {
           className="flex max-h-80 w-[var(--radix-popover-trigger-width)] flex-col p-0"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-popover px-2 py-2">
+          <div className="bg-popover sticky top-0 z-10 flex items-center gap-2 border-b px-2 py-2">
             <label className="flex cursor-pointer items-center gap-2 hover:opacity-80">
-              <Checkbox
-                checked={allChecked}
-                onCheckedChange={toggleAll}
-              />
-              <span className="text-xs font-medium text-muted-foreground">
+              <Checkbox checked={allChecked} onCheckedChange={toggleAll} />
+              <span className="text-muted-foreground text-xs font-medium">
                 {allChecked ? "Deselect all" : "Select all"}
               </span>
             </label>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
               {checkedCount}/{results.length}
             </span>
             <Button
@@ -196,7 +193,7 @@ export function AnalyzerSearch({ currentNames, onAdd }: AnalyzerSearchProps) {
               {results.map((s) => (
                 <label
                   key={s.name}
-                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                  className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5"
                 >
                   <Checkbox
                     checked={checked.has(s.name)}
@@ -215,9 +212,7 @@ export function AnalyzerSearch({ currentNames, onAdd }: AnalyzerSearchProps) {
         </PopoverContent>
       </Popover>
 
-      {error && (
-        <p className="text-destructive mt-1.5 text-sm">{error}</p>
-      )}
+      {error && <p className="text-destructive mt-1.5 text-sm">{error}</p>}
     </div>
   );
 }

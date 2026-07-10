@@ -1,11 +1,11 @@
 import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { createLogger } from "@/core/observability/logger";
 import { getDataDir } from "@/lib/data-dir";
 import { NotFoundError } from "@/lib/errors";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
-import { createLogger } from "@/core/observability/logger";
 
 import Universe from "../models/universe";
 import type { UniverseAttrs } from "../models/universe";
@@ -216,11 +216,7 @@ class UniverseCollection {
     ];
 
     for (const { file, sql } of joinTables) {
-      await this.exportTableToCsv(
-        join(archiveDir, `${file}.csv`),
-        sql,
-        [name],
-      );
+      await this.exportTableToCsv(join(archiveDir, `${file}.csv`), sql, [name]);
       log.info({ table: file }, "archived table");
     }
 
@@ -236,14 +232,21 @@ class UniverseCollection {
   static async deleteUniverse(
     name: string,
     onProgress?: (step: string) => void,
-  ): Promise<{ deleted: Record<string, number>; skipped: Record<string, number> }> {
+  ): Promise<{
+    deleted: Record<string, number>;
+    skipped: Record<string, number>;
+  }> {
     const deleted: Record<string, number> = {};
     const skipped: Record<string, number> = {};
     const progress = onProgress ?? (() => {});
 
-    const del = async (label: string, sql: string, params: (string | number)[] = [name]) => {
+    const del = async (
+      label: string,
+      sql: string,
+      params: (string | number)[] = [name],
+    ) => {
       const result = await rawQuery(sql, params);
-      const count = (result as any).count ?? 0;
+      const count = (result as unknown as { count?: number }).count ?? 0;
       deleted[label] = (deleted[label] ?? 0) + Number(count);
       log.info({ table: label, count: deleted[label] }, `deleted ${label}`);
     };
@@ -282,7 +285,9 @@ class UniverseCollection {
       }
 
       // 3. data_points — chunked delete for exclusive xseries only
-      progress(`Deleting data_points (${exclusiveIds.length} exclusive xseries)`);
+      progress(
+        `Deleting data_points (${exclusiveIds.length} exclusive xseries)`,
+      );
       deleted["data_points"] = 0;
       for (let i = 0; i < exclusiveIds.length; i += DELETE_BATCH) {
         const chunk = exclusiveIds.slice(i, i + DELETE_BATCH);
@@ -434,7 +439,7 @@ class UniverseCollection {
     let totalRows = 0;
     let headerWritten = false;
 
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
       const sql = `${baseSql} LIMIT ${ARCHIVE_BATCH} OFFSET ${offset}`;
       const rows = await rawQuery<Record<string, unknown>>(sql, params);
@@ -447,9 +452,7 @@ class UniverseCollection {
       }
 
       const headers = Object.keys(rows[0]);
-      const lines = rows.map((row) =>
-        this.csvLine(headers.map((h) => row[h])),
-      );
+      const lines = rows.map((row) => this.csvLine(headers.map((h) => row[h])));
       await appendFile(filePath, lines.join("\n") + "\n");
 
       totalRows += rows.length;

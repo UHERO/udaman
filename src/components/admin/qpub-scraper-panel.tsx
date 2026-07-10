@@ -7,17 +7,12 @@ import {
   clearPendingRecords,
   getQpubDashboardStats,
   resetFailedRecords,
+  type FailedRecord,
   type PipelineStatusCounts,
   type QpubDashboardStats,
-  type FailedRecord,
 } from "@/actions/crawlers";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -103,9 +98,7 @@ function FailedRecordsTable({ records }: { records: FailedRecord[] }) {
           <CardTitle className="text-base">Recent Failures</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-sm">
-            No failed records.
-          </p>
+          <p className="text-muted-foreground text-sm">No failed records.</p>
         </CardContent>
       </Card>
     );

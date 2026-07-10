@@ -37,7 +37,9 @@ async function main() {
     (await prompt("Enter GMAIL_CLIENT_SECRET: "));
 
   if (!clientId || !clientSecret) {
-    console.error("Error: GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET are required.");
+    console.error(
+      "Error: GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET are required.",
+    );
     process.exit(1);
   }
 

@@ -112,8 +112,7 @@ function parseAggregateEval(
   evalStr: string,
 ): { sourceName: string; targetFreq: string } | null {
   // Matches: "NAME".ts.aggregate(:freq, :op) or .ts.aggregate(:freq)
-  const re =
-    /"([^"]+)"\.ts\.aggregate\s*\(\s*:(\w+)(?:\s*,\s*:\w+)?\s*\)/;
+  const re = /"([^"]+)"\.ts\.aggregate\s*\(\s*:(\w+)(?:\s*,\s*:\w+)?\s*\)/;
   const m = evalStr.match(re);
   if (!m) return null;
   return { sourceName: m[1], targetFreq: normalizeFreq(m[2]) };

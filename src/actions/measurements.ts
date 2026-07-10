@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type {
   CreateMeasurementPayload,
   UpdateMeasurementPayload,
@@ -18,7 +19,6 @@ import {
 } from "@catalog/controllers/measurements";
 import type { Universe } from "@catalog/types/shared";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -92,7 +92,10 @@ export async function propagateFieldsAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "propagateFieldsAction failed");
-    AppLogCollection.logError(err, { userId, name: "measurement.propagate_fields" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "measurement.propagate_fields",
+    });
     throw err;
   }
 }
@@ -134,7 +137,10 @@ export async function removeSeriesAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "removeSeriesAction failed");
-    AppLogCollection.logError(err, { userId, name: "measurement.remove_series" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "measurement.remove_series",
+    });
     throw err;
   }
 }

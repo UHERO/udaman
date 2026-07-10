@@ -6,8 +6,8 @@
  */
 
 import path from "path";
+
 import type { Logger } from "@/core/observability/logger";
-import { errorMessage } from "./qpub-load";
 
 // ─── Paths ───────────────────────────────────────────────────────
 
@@ -34,21 +34,38 @@ const REMOTE_DB_NAME = process.env.HH_DB_NAME ?? "hawaii_housing_database";
 
 const ALL_DATA_TABLES: string[] = [
   "properties",
-  "condominium_projects", "condominium_units",
-  "parcels", "owners", "assessments", "land_classifications",
+  "condominium_projects",
+  "condominium_units",
+  "parcels",
+  "owners",
+  "assessments",
+  "land_classifications",
   "residential_improvements",
-  "commercial_improvements", "commercial_improvement_details",
-  "sales", "permits", "current_tax_bills",
-  "historical_tax_summary", "historical_tax_details", "historical_tax_payments", "historical_tax_credits",
-  "yard_improvements", "residential_additions", "agricultural_assessments",
-  "accessory_structures", "appeals", "dedications",
+  "commercial_improvements",
+  "commercial_improvement_details",
+  "sales",
+  "permits",
+  "current_tax_bills",
+  "historical_tax_summary",
+  "historical_tax_details",
+  "historical_tax_payments",
+  "historical_tax_credits",
+  "yard_improvements",
+  "residential_additions",
+  "agricultural_assessments",
+  "accessory_structures",
+  "appeals",
+  "dedications",
 ];
 
 // ─── Table groups for single-table sync ──────────────────────────
 
 /** Tables with FK children that must be dumped together */
 const TABLE_GROUPS: Record<string, string[]> = {
-  commercial_improvements: ["commercial_improvements", "commercial_improvement_details"],
+  commercial_improvements: [
+    "commercial_improvements",
+    "commercial_improvement_details",
+  ],
   historical_tax: [
     "historical_tax_summary",
     "historical_tax_details",
@@ -67,18 +84,29 @@ function resolveDumpTables(table: string): string[] {
 // ─── Helpers ─────────────────────────────────────────────────────
 
 function localAuthArgs(): string[] {
-  const args = [`--host=${LOCAL_DB_HOST}`, `--port=${LOCAL_DB_PORT}`, `--user=${LOCAL_DB_USER}`];
+  const args = [
+    `--host=${LOCAL_DB_HOST}`,
+    `--port=${LOCAL_DB_PORT}`,
+    `--user=${LOCAL_DB_USER}`,
+  ];
   if (LOCAL_DB_PSWD) args.push(`--password=${LOCAL_DB_PSWD}`);
   return args;
 }
 
 function remoteAuthArgs(): string[] {
-  const args = [`--host=${REMOTE_DB_HOST}`, `--port=${REMOTE_DB_PORT}`, `--user=${REMOTE_DB_USER}`];
+  const args = [
+    `--host=${REMOTE_DB_HOST}`,
+    `--port=${REMOTE_DB_PORT}`,
+    `--user=${REMOTE_DB_USER}`,
+  ];
   if (REMOTE_DB_PSWD) args.push(`--password=${REMOTE_DB_PSWD}`);
   return args;
 }
 
-async function runSpawn(cmd: string[], opts?: { stdin?: string }): Promise<void> {
+async function runSpawn(
+  cmd: string[],
+  opts?: { stdin?: string },
+): Promise<void> {
   const proc = Bun.spawn(cmd, {
     stdin: opts?.stdin ? new Blob([opts.stdin]) : "pipe",
     stdout: "pipe",
@@ -88,7 +116,9 @@ async function runSpawn(cmd: string[], opts?: { stdin?: string }): Promise<void>
   const exitCode = await proc.exited;
   if (exitCode !== 0) {
     const stderr = await new Response(proc.stderr).text();
-    throw new Error(`Command failed (exit ${exitCode}): ${cmd.join(" ")}\n${stderr}`);
+    throw new Error(
+      `Command failed (exit ${exitCode}): ${cmd.join(" ")}\n${stderr}`,
+    );
   }
 }
 
@@ -111,7 +141,9 @@ export async function prepareLocalDb(log: Logger): Promise<void> {
 
   // Apply schema
   const schema = await Bun.file(SCHEMA_PATH).text();
-  await runSpawn(["mariadb", ...localAuthArgs(), LOCAL_DB_NAME], { stdin: schema });
+  await runSpawn(["mariadb", ...localAuthArgs(), LOCAL_DB_NAME], {
+    stdin: schema,
+  });
 
   log.info("Local rebuild database ready");
 }
@@ -145,7 +177,10 @@ export async function syncToRemote(log: Logger): Promise<void> {
   );
 
   // Wait for both to finish
-  const [dumpExit, importExit] = await Promise.all([dumpProc.exited, importProc.exited]);
+  const [dumpExit, importExit] = await Promise.all([
+    dumpProc.exited,
+    importProc.exited,
+  ]);
 
   if (dumpExit !== 0) {
     const stderr = await new Response(dumpProc.stderr).text();
@@ -161,7 +196,9 @@ export async function syncToRemote(log: Logger): Promise<void> {
 
   // Re-run frequency tables on remote
   const freqSql = await Bun.file(FREQ_TABLES_PATH).text();
-  await runSpawn(["mariadb", ...remoteAuthArgs(), REMOTE_DB_NAME], { stdin: freqSql });
+  await runSpawn(["mariadb", ...remoteAuthArgs(), REMOTE_DB_NAME], {
+    stdin: freqSql,
+  });
 
   log.info("Sync to remote complete");
 }
@@ -171,7 +208,10 @@ export async function syncToRemote(log: Logger): Promise<void> {
  * Tables with FK children (commercial_improvements, historical_tax, condominium)
  * dump the parent + children together. Properties is always included.
  */
-export async function syncTableToRemote(table: string, log: Logger): Promise<void> {
+export async function syncTableToRemote(
+  table: string,
+  log: Logger,
+): Promise<void> {
   const tables = resolveDumpTables(table);
 
   // Always include properties (FK parent for everything)
@@ -202,7 +242,10 @@ export async function syncTableToRemote(table: string, log: Logger): Promise<voi
     { stdin: dumpProc.stdout, stdout: "pipe", stderr: "pipe" },
   );
 
-  const [dumpExit, importExit] = await Promise.all([dumpProc.exited, importProc.exited]);
+  const [dumpExit, importExit] = await Promise.all([
+    dumpProc.exited,
+    importProc.exited,
+  ]);
 
   if (dumpExit !== 0) {
     const stderr = await new Response(dumpProc.stderr).text();
@@ -218,7 +261,9 @@ export async function syncTableToRemote(table: string, log: Logger): Promise<voi
 
   // Re-run frequency tables on remote
   const freqSql = await Bun.file(FREQ_TABLES_PATH).text();
-  await runSpawn(["mariadb", ...remoteAuthArgs(), REMOTE_DB_NAME], { stdin: freqSql });
+  await runSpawn(["mariadb", ...remoteAuthArgs(), REMOTE_DB_NAME], {
+    stdin: freqSql,
+  });
 
   log.info({ tables }, "Table sync to remote complete");
 }

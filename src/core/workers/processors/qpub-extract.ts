@@ -13,23 +13,20 @@
  *   ["val1","val2","val3",4]
  */
 
-import { existsSync, mkdirSync, writeFileSync, appendFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import path from "path";
 
 import { getIslandCode } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
-import type { Logger } from "@/core/observability/logger";
-
 import {
-  str,
-  int,
   dec,
+  GENERIC_SECTION_MAP,
+  getAssessmentPropertyClass,
+  int,
   parseDateValue,
   sqlDate,
-  getMaxTaxYear,
-  getAssessmentPropertyClass,
+  str,
   unitParcelToTmk,
-  GENERIC_SECTION_MAP,
   type Row,
 } from "./qpub-load";
 
@@ -48,97 +45,229 @@ type SqlValue = string | number | null;
 
 export const TABLE_COLUMNS: Record<string, string[]> = {
   properties: [
-    "tmk", "island_code", "parcel_number", "location_address", "address_other",
-    "project_name", "legal_information", "property_class",
-    "land_area_sqft", "land_area_acres",
-    "neighborhood_code", "zoning", "parcel_note",
-    "damage", "reentry_zone", "zone_color",
-    "non_taxable_status", "living_units",
-    "map_url", "sketch_url",
+    "tmk",
+    "island_code",
+    "parcel_number",
+    "location_address",
+    "address_other",
+    "project_name",
+    "legal_information",
+    "property_class",
+    "land_area_sqft",
+    "land_area_acres",
+    "neighborhood_code",
+    "zoning",
+    "parcel_note",
+    "damage",
+    "reentry_zone",
+    "zone_color",
+    "non_taxable_status",
+    "living_units",
+    "map_url",
+    "sketch_url",
   ],
   parcels: [
-    "tmk", "scraped_at", "last_year_observed",
-    "parcel_number", "location_address", "address_other",
-    "project_name", "legal_information", "property_class",
-    "land_area_sqft", "land_area_acres",
-    "neighborhood_code", "zoning", "parcel_note",
-    "damage", "reentry_zone", "zone_color",
-    "non_taxable_status", "living_units",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "parcel_number",
+    "location_address",
+    "address_other",
+    "project_name",
+    "legal_information",
+    "property_class",
+    "land_area_sqft",
+    "land_area_acres",
+    "neighborhood_code",
+    "zoning",
+    "parcel_note",
+    "damage",
+    "reentry_zone",
+    "zone_color",
+    "non_taxable_status",
+    "living_units",
   ],
   owners: [
-    "tmk", "scraped_at", "last_year_observed",
-    "owner_name", "owner_type", "owner_address", "sequence_order",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "owner_name",
+    "owner_type",
+    "owner_address",
+    "sequence_order",
   ],
   assessments: [
-    "tmk", "scraped_at", "tax_year", "property_class",
-    "assessed_land_value", "assessed_building_value", "dedicated_use_value",
-    "land_exemption", "building_exemption",
-    "net_taxable_land_value", "net_taxable_building_value",
-    "total_property_assessed_value", "total_property_exemption", "total_net_taxable_value",
-    "agricultural_land_value", "market_land_value", "market_building_value", "total_market_value",
+    "tmk",
+    "scraped_at",
+    "tax_year",
+    "property_class",
+    "assessed_land_value",
+    "assessed_building_value",
+    "dedicated_use_value",
+    "land_exemption",
+    "building_exemption",
+    "net_taxable_land_value",
+    "net_taxable_building_value",
+    "total_property_assessed_value",
+    "total_property_exemption",
+    "total_net_taxable_value",
+    "agricultural_land_value",
+    "market_land_value",
+    "market_building_value",
+    "total_market_value",
   ],
   land_classifications: [
-    "tmk", "scraped_at", "last_year_observed",
-    "land_classification", "square_footage", "acreage", "agricultural_use_indicator",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "land_classification",
+    "square_footage",
+    "acreage",
+    "agricultural_use_indicator",
   ],
   residential_improvements: [
-    "tmk", "scraped_at", "last_year_observed",
-    "building_number", "year_built", "eff_year_built",
-    "living_area", "bedrooms", "full_bath", "half_bath",
-    "occupancy", "framing", "percent_complete",
-    "heating_cooling", "exterior_wall", "roof_material",
-    "fireplace", "grade", "building_value",
-    "total_room_count", "condo_style", "condo_view",
-    "floor_level", "parking_spaces",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "building_number",
+    "year_built",
+    "eff_year_built",
+    "living_area",
+    "bedrooms",
+    "full_bath",
+    "half_bath",
+    "occupancy",
+    "framing",
+    "percent_complete",
+    "heating_cooling",
+    "exterior_wall",
+    "roof_material",
+    "fireplace",
+    "grade",
+    "building_value",
+    "total_room_count",
+    "condo_style",
+    "condo_view",
+    "floor_level",
+    "parking_spaces",
   ],
   commercial_improvements: [
-    "id", "tmk", "scraped_at", "last_year_observed",
-    "building_number", "building_card",
-    "year_built", "effective_year_built",
-    "improvement_name", "property_class", "structure_type",
-    "units", "identical_units", "gross_building_description",
-    "building_type", "building_square_footage",
-    "percent_complete", "value",
+    "id",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "building_number",
+    "building_card",
+    "year_built",
+    "effective_year_built",
+    "improvement_name",
+    "property_class",
+    "structure_type",
+    "units",
+    "identical_units",
+    "gross_building_description",
+    "building_type",
+    "building_square_footage",
+    "percent_complete",
+    "value",
   ],
   commercial_improvement_details: [
-    "commercial_improvement_id", "tmk", "scraped_at", "last_year_observed",
-    "card", "section", "floor", "usage", "area", "perimeter",
-    "exterior_wall", "wall_height", "occupancy",
+    "commercial_improvement_id",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "card",
+    "section",
+    "floor",
+    "usage",
+    "area",
+    "perimeter",
+    "exterior_wall",
+    "wall_height",
+    "occupancy",
   ],
   sales: [
-    "tmk", "sale_date", "sale_amount", "instrument", "instrument_type",
-    "instrument_description", "valid_sale", "date_of_recording",
-    "land_court_document_number", "cert", "book_page", "conveyance_tax",
+    "tmk",
+    "sale_date",
+    "sale_amount",
+    "instrument",
+    "instrument_type",
+    "instrument_description",
+    "valid_sale",
+    "date_of_recording",
+    "land_court_document_number",
+    "cert",
+    "book_page",
+    "conveyance_tax",
   ],
   permits: ["tmk", "permit_date", "permit_number", "reason", "permit_amount"],
   current_tax_bills: [
-    "tmk", "scraped_at", "last_year_observed",
-    "tax_period", "description", "original_due_date",
-    "taxes_assessment", "tax_credits", "net_tax",
-    "penalty", "interest", "other", "amount_due",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "tax_period",
+    "description",
+    "original_due_date",
+    "taxes_assessment",
+    "tax_credits",
+    "net_tax",
+    "penalty",
+    "interest",
+    "other",
+    "amount_due",
   ],
   historical_tax_summary: [
-    "id", "tmk", "scraped_at", "year", "tax", "payments_and_credits",
-    "penalty", "interest", "other", "amount_due",
-    "tax_details_total_tax", "tax_details_total_payments_credits",
-    "tax_details_total_penalty", "tax_details_total_interest", "tax_details_total_other",
-    "tax_payments_total_tax", "tax_payments_total_penalty",
-    "tax_payments_total_interest", "tax_payments_total_other",
+    "id",
+    "tmk",
+    "scraped_at",
+    "year",
+    "tax",
+    "payments_and_credits",
+    "penalty",
+    "interest",
+    "other",
+    "amount_due",
+    "tax_details_total_tax",
+    "tax_details_total_payments_credits",
+    "tax_details_total_penalty",
+    "tax_details_total_interest",
+    "tax_details_total_other",
+    "tax_payments_total_tax",
+    "tax_payments_total_penalty",
+    "tax_payments_total_interest",
+    "tax_payments_total_other",
     "tax_credits_total_amount",
   ],
   historical_tax_details: [
-    "historical_tax_summary_id", "tmk", "scraped_at",
-    "tax_period", "description", "tax", "payments_credits",
-    "penalty", "interest", "other",
+    "historical_tax_summary_id",
+    "tmk",
+    "scraped_at",
+    "tax_period",
+    "description",
+    "tax",
+    "payments_credits",
+    "penalty",
+    "interest",
+    "other",
   ],
   historical_tax_payments: [
-    "historical_tax_summary_id", "tmk", "scraped_at",
-    "payment_sequence", "effective_date", "tax",
-    "penalty", "interest", "other",
+    "historical_tax_summary_id",
+    "tmk",
+    "scraped_at",
+    "payment_sequence",
+    "effective_date",
+    "tax",
+    "penalty",
+    "interest",
+    "other",
   ],
   historical_tax_credits: [
-    "historical_tax_summary_id", "tmk", "scraped_at",
-    "period", "description", "amount",
+    "historical_tax_summary_id",
+    "tmk",
+    "scraped_at",
+    "period",
+    "description",
+    "amount",
   ],
   condominium_projects: ["tmk", "project_name", "unit_count"],
   // Stub properties for condo units (INSERT IGNORE)
@@ -146,32 +275,63 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
   condominium_units: ["tmk", "parent_tmk", "unit_number", "owner_name"],
   // Generic section tables (fixed column definitions)
   yard_improvements: [
-    "tmk", "scraped_at", "last_year_observed",
-    "description", "quantity", "year_built", "area",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "description",
+    "quantity",
+    "year_built",
+    "area",
   ],
   residential_additions: [
-    "tmk", "scraped_at", "last_year_observed",
-    "card", "line", "lower", "first", "second", "third", "area",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "card",
+    "line",
+    "lower",
+    "first",
+    "second",
+    "third",
+    "area",
   ],
   agricultural_assessments: [
-    "tmk", "scraped_at", "last_year_observed",
-    "acres", "acres_in_production", "agricultural_type",
-    "agricultural_value", "assessed_value", "description", "use_description",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "acres",
+    "acres_in_production",
+    "agricultural_type",
+    "agricultural_value",
+    "assessed_value",
+    "description",
+    "use_description",
   ],
   accessory_structures: [
-    "tmk", "scraped_at", "last_year_observed",
-    "building_number", "description", "dimensions_units",
-    "percent_complete", "value", "year_built",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "building_number",
+    "description",
+    "dimensions_units",
+    "percent_complete",
+    "value",
+    "year_built",
   ],
   appeals: [
-    "tmk", "scraped_at", "year",
-    "appeal_type_value", "scheduled_hearing_date_subject_to_change", "status",
-    "date_settled", "final_value", "tax_payer_opinion_of_value",
-    "tax_payer_opinion_of_property_class", "tax_payer_opinion_of_exemptions",
+    "tmk",
+    "scraped_at",
+    "year",
+    "appeal_type_value",
+    "scheduled_hearing_date_subject_to_change",
+    "status",
+    "date_settled",
+    "final_value",
+    "tax_payer_opinion_of_value",
+    "tax_payer_opinion_of_property_class",
+    "tax_payer_opinion_of_exemptions",
   ],
-  dedications: [
-    "tmk", "scraped_at", "tax_year", "number_of_dedications",
-  ],
+  dedications: ["tmk", "scraped_at", "tax_year", "number_of_dedications"],
 };
 
 // ─── Counters for auto-increment IDs ───────────────────────────────
@@ -198,18 +358,34 @@ function extractProperties(items: ExtractItem[]): SqlValue[][] {
     const improvInfo =
       (data.residential_improvement_information as Row | undefined) ??
       (data.improvement_information as Row | undefined);
-    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
-    const projectName = str(parcel.project_name) ?? str(firstBuilding?.condo_name);
-    const propertyClass = str(parcel.property_class) ?? getAssessmentPropertyClass(data);
+    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ??
+      [])[0];
+    const projectName =
+      str(parcel.project_name) ?? str(firstBuilding?.condo_name);
+    const propertyClass =
+      str(parcel.property_class) ?? getAssessmentPropertyClass(data);
 
     rows.push([
-      tmk, islandCode, str(parcel.parcel_number), str(parcel.location_address),
-      str(parcel.address_other), projectName, str(parcel.legal_information), propertyClass,
-      int(parcel.land_area_approximate_sq_ft), dec(parcel.land_area_acres),
-      str(parcel.neighborhood_code), str(parcel.zoning), str(parcel.parcel_note),
-      str(parcel.damage), str(parcel.reentry_zone), str(parcel.zone_color),
-      str(parcel.non_taxable_status), str(parcel.living_units),
-      str(mapSection?.map_url), str(sketchSection?.sketch_url),
+      tmk,
+      islandCode,
+      str(parcel.parcel_number),
+      str(parcel.location_address),
+      str(parcel.address_other),
+      projectName,
+      str(parcel.legal_information),
+      propertyClass,
+      int(parcel.land_area_approximate_sq_ft),
+      dec(parcel.land_area_acres),
+      str(parcel.neighborhood_code),
+      str(parcel.zoning),
+      str(parcel.parcel_note),
+      str(parcel.damage),
+      str(parcel.reentry_zone),
+      str(parcel.zone_color),
+      str(parcel.non_taxable_status),
+      str(parcel.living_units),
+      str(mapSection?.map_url),
+      str(sketchSection?.sketch_url),
     ]);
   }
   return rows;
@@ -224,18 +400,33 @@ function extractParcels(items: ExtractItem[]): SqlValue[][] {
     const improvInfo =
       (data.residential_improvement_information as Row | undefined) ??
       (data.improvement_information as Row | undefined);
-    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
-    const projectName = str(parcel.project_name) ?? str(firstBuilding?.condo_name);
-    const propertyClass = str(parcel.property_class) ?? getAssessmentPropertyClass(data);
+    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ??
+      [])[0];
+    const projectName =
+      str(parcel.project_name) ?? str(firstBuilding?.condo_name);
+    const propertyClass =
+      str(parcel.property_class) ?? getAssessmentPropertyClass(data);
 
     rows.push([
-      tmk, sqlDate(scrapedAt), observedYear,
-      str(parcel.parcel_number), str(parcel.location_address), str(parcel.address_other),
-      projectName, str(parcel.legal_information), propertyClass,
-      int(parcel.land_area_approximate_sq_ft), dec(parcel.land_area_acres),
-      str(parcel.neighborhood_code), str(parcel.zoning), str(parcel.parcel_note),
-      str(parcel.damage), str(parcel.reentry_zone), str(parcel.zone_color),
-      str(parcel.non_taxable_status), str(parcel.living_units),
+      tmk,
+      sqlDate(scrapedAt),
+      observedYear,
+      str(parcel.parcel_number),
+      str(parcel.location_address),
+      str(parcel.address_other),
+      projectName,
+      str(parcel.legal_information),
+      propertyClass,
+      int(parcel.land_area_approximate_sq_ft),
+      dec(parcel.land_area_acres),
+      str(parcel.neighborhood_code),
+      str(parcel.zoning),
+      str(parcel.parcel_note),
+      str(parcel.damage),
+      str(parcel.reentry_zone),
+      str(parcel.zone_color),
+      str(parcel.non_taxable_status),
+      str(parcel.living_units),
     ]);
   }
   return rows;
@@ -250,8 +441,13 @@ function extractOwners(items: ExtractItem[]): SqlValue[][] {
     for (let i = 0; i < owners.length; i++) {
       const o = owners[i];
       rows.push([
-        tmk, sqlDate(scrapedAt), observedYear,
-        str(o.owner_name), str(o.owner_type), str(o.owner_address), i + 1,
+        tmk,
+        sqlDate(scrapedAt),
+        observedYear,
+        str(o.owner_name),
+        str(o.owner_type),
+        str(o.owner_address),
+        i + 1,
       ]);
     }
   }
@@ -270,12 +466,24 @@ function extractAssessments(items: ExtractItem[]): SqlValue[][] {
       const taxYear = int(a.tax_year);
       if (!taxYear) continue;
       rows.push([
-        tmk, scrapedAtStr, taxYear, str(a.property_class),
-        int(a.assessed_land_value), int(a.assessed_building_value), int(a.dedicated_use_value),
-        int(a.land_exemption), int(a.building_exemption),
-        int(a.net_taxable_land_value), int(a.net_taxable_building_value),
-        int(a.total_property_assessed_value), int(a.total_property_exemption), int(a.total_net_taxable_value),
-        int(a.agricultural_land_value), int(a.market_land_value), int(a.market_building_value), int(a.total_market_value),
+        tmk,
+        scrapedAtStr,
+        taxYear,
+        str(a.property_class),
+        int(a.assessed_land_value),
+        int(a.assessed_building_value),
+        int(a.dedicated_use_value),
+        int(a.land_exemption),
+        int(a.building_exemption),
+        int(a.net_taxable_land_value),
+        int(a.net_taxable_building_value),
+        int(a.total_property_assessed_value),
+        int(a.total_property_exemption),
+        int(a.total_net_taxable_value),
+        int(a.agricultural_land_value),
+        int(a.market_land_value),
+        int(a.market_building_value),
+        int(a.total_market_value),
       ]);
     }
   }
@@ -291,8 +499,13 @@ function extractLandClassifications(items: ExtractItem[]): SqlValue[][] {
     const scrapedAtStr = sqlDate(scrapedAt);
     for (const c of classifications) {
       rows.push([
-        tmk, scrapedAtStr, observedYear,
-        str(c.land_classification), str(c.square_footage), str(c.acreage), str(c.agricultural_use_indicator),
+        tmk,
+        scrapedAtStr,
+        observedYear,
+        str(c.land_classification),
+        str(c.square_footage),
+        str(c.acreage),
+        str(c.agricultural_use_indicator),
       ]);
     }
   }
@@ -310,14 +523,30 @@ function extractResidentialImprovements(items: ExtractItem[]): SqlValue[][] {
     const scrapedAtStr = sqlDate(scrapedAt);
     for (const b of buildings) {
       rows.push([
-        tmk, scrapedAtStr, observedYear,
-        str(b.building_number), str(b.year_built), str(b.eff_year_built),
-        int(b.living_area), int(b.bedrooms), int(b.full_bath), int(b.half_bath),
-        str(b.occupancy), str(b.framing), str(b.percent_complete),
-        str(b.heating_cooling), str(b.exterior_wall), str(b.roof_material),
-        str(b.fireplace), str(b.grade), str(b.building_value),
-        str(b.total_room_count), str(b.condo_style ?? b.condo_type), str(b.condo_view),
-        str(b.floor_level ?? b.condo_floor_number), str(b.parking_spaces),
+        tmk,
+        scrapedAtStr,
+        observedYear,
+        str(b.building_number),
+        str(b.year_built),
+        str(b.eff_year_built),
+        int(b.living_area),
+        int(b.bedrooms),
+        int(b.full_bath),
+        int(b.half_bath),
+        str(b.occupancy),
+        str(b.framing),
+        str(b.percent_complete),
+        str(b.heating_cooling),
+        str(b.exterior_wall),
+        str(b.roof_material),
+        str(b.fireplace),
+        str(b.grade),
+        str(b.building_value),
+        str(b.total_room_count),
+        str(b.condo_style ?? b.condo_type),
+        str(b.condo_view),
+        str(b.floor_level ?? b.condo_floor_number),
+        str(b.parking_spaces),
       ]);
     }
   }
@@ -333,10 +562,18 @@ function extractSales(items: ExtractItem[]): SqlValue[][] {
     if (!salesInfo?.sales) continue;
     for (const s of salesInfo.sales as Row[]) {
       rows.push([
-        tmk, parseDateValue(str(s.sale_date)), int(s.sale_amount),
-        str(s.instrument), str(s.instrument_type), str(s.instrument_description),
-        str(s.valid_sale), parseDateValue(str(s.date_of_recording)),
-        str(s.land_court_document_number), str(s.cert), str(s.book_page), dec(s.conveyance_tax),
+        tmk,
+        parseDateValue(str(s.sale_date)),
+        int(s.sale_amount),
+        str(s.instrument),
+        str(s.instrument_type),
+        str(s.instrument_description),
+        str(s.valid_sale),
+        parseDateValue(str(s.date_of_recording)),
+        str(s.land_court_document_number),
+        str(s.cert),
+        str(s.book_page),
+        dec(s.conveyance_tax),
       ]);
     }
   }
@@ -352,8 +589,10 @@ function extractPermits(items: ExtractItem[]): SqlValue[][] {
       const permitNumber = str(p.permit_number) ?? str(p.permit_);
       if (!permitNumber) continue;
       rows.push([
-        tmk, parseDateValue(str(p.permit_date) ?? str(p.date)),
-        permitNumber, str(p.reason) ?? str(p.description),
+        tmk,
+        parseDateValue(str(p.permit_date) ?? str(p.date)),
+        permitNumber,
+        str(p.reason) ?? str(p.description),
         int(p.permit_amount) ?? int(p.amount),
       ]);
     }
@@ -370,10 +609,19 @@ function extractCurrentTaxBills(items: ExtractItem[]): SqlValue[][] {
     const scrapedAtStr = sqlDate(scrapedAt);
     for (const b of bills) {
       rows.push([
-        tmk, scrapedAtStr, observedYear,
-        str(b.tax_period), str(b.description), parseDateValue(str(b.original_due_date)),
-        dec(b.taxes_assessment) ?? dec(b.taxes), dec(b.tax_credits) ?? dec(b.credits),
-        dec(b.net_tax), dec(b.penalty), dec(b.interest), dec(b.other), dec(b.amount_due),
+        tmk,
+        scrapedAtStr,
+        observedYear,
+        str(b.tax_period),
+        str(b.description),
+        parseDateValue(str(b.original_due_date)),
+        dec(b.taxes_assessment) ?? dec(b.taxes),
+        dec(b.tax_credits) ?? dec(b.credits),
+        dec(b.net_tax),
+        dec(b.penalty),
+        dec(b.interest),
+        dec(b.other),
+        dec(b.amount_due),
       ]);
     }
   }
@@ -400,21 +648,41 @@ function extractCommercialImprovements(items: ExtractItem[]): {
     for (const b of buildings) {
       const parentId = nextCommercialId++;
       parents.push([
-        parentId, tmk, scrapedAtStr, observedYear,
-        str(b.building_number), str(b.building_card),
-        int(b.year_built), int(b.effective_year_built),
-        str(b.improvement_name), str(b.property_class), str(b.structure_type),
-        str(b.units), str(b.identical_units), str(b.gross_building_description),
-        str(b.building_type), str(b.building_square_footage),
-        str(b.percent_complete), int(b.value),
+        parentId,
+        tmk,
+        scrapedAtStr,
+        observedYear,
+        str(b.building_number),
+        str(b.building_card),
+        int(b.year_built),
+        int(b.effective_year_built),
+        str(b.improvement_name),
+        str(b.property_class),
+        str(b.structure_type),
+        str(b.units),
+        str(b.identical_units),
+        str(b.gross_building_description),
+        str(b.building_type),
+        str(b.building_square_footage),
+        str(b.percent_complete),
+        int(b.value),
       ]);
 
       for (const d of (b.floor_details as Row[] | undefined) ?? []) {
         details.push([
-          parentId, tmk, scrapedAtStr, observedYear,
-          str(d.card), str(d.section), str(d.floor), str(d.usage),
-          str(d.area), str(d.perimeter), str(d.exterior_wall),
-          str(d.wall_height), str(d.occupancy),
+          parentId,
+          tmk,
+          scrapedAtStr,
+          observedYear,
+          str(d.card),
+          str(d.section),
+          str(d.floor),
+          str(d.usage),
+          str(d.area),
+          str(d.perimeter),
+          str(d.exterior_wall),
+          str(d.wall_height),
+          str(d.occupancy),
         ]);
       }
     }
@@ -453,36 +721,65 @@ function extractHistoricalTax(items: ExtractItem[]): {
       const creditTotals = (summary.tax_credits_totals ?? {}) as Row;
 
       summaries.push([
-        summaryId, tmk, scrapedAtStr, year,
-        dec(summary.tax), dec(summary.payments_and_credits),
-        dec(summary.penalty), dec(summary.interest), dec(summary.other), dec(summary.amount_due),
-        dec(detailTotals.total_tax), dec(detailTotals.total_payments_credits),
-        dec(detailTotals.total_penalty), dec(detailTotals.total_interest), dec(detailTotals.total_other),
-        dec(paymentTotals.total_tax), dec(paymentTotals.total_penalty),
-        dec(paymentTotals.total_interest), dec(paymentTotals.total_other),
+        summaryId,
+        tmk,
+        scrapedAtStr,
+        year,
+        dec(summary.tax),
+        dec(summary.payments_and_credits),
+        dec(summary.penalty),
+        dec(summary.interest),
+        dec(summary.other),
+        dec(summary.amount_due),
+        dec(detailTotals.total_tax),
+        dec(detailTotals.total_payments_credits),
+        dec(detailTotals.total_penalty),
+        dec(detailTotals.total_interest),
+        dec(detailTotals.total_other),
+        dec(paymentTotals.total_tax),
+        dec(paymentTotals.total_penalty),
+        dec(paymentTotals.total_interest),
+        dec(paymentTotals.total_other),
         dec(creditTotals.total_amount),
       ]);
 
       for (const d of (summary.tax_details ?? []) as Row[]) {
         details.push([
-          summaryId, tmk, scrapedAtStr,
-          str(d.tax_period), str(d.description), dec(d.tax), dec(d.payments_credits),
-          dec(d.penalty), dec(d.interest), dec(d.other),
+          summaryId,
+          tmk,
+          scrapedAtStr,
+          str(d.tax_period),
+          str(d.description),
+          dec(d.tax),
+          dec(d.payments_credits),
+          dec(d.penalty),
+          dec(d.interest),
+          dec(d.other),
         ]);
       }
 
       for (const p of (summary.tax_payments ?? []) as Row[]) {
         payments.push([
-          summaryId, tmk, scrapedAtStr,
-          str(p.payment_sequence), parseDateValue(str(p.effective_date)),
-          dec(p.tax), dec(p.penalty), dec(p.interest), dec(p.other),
+          summaryId,
+          tmk,
+          scrapedAtStr,
+          str(p.payment_sequence),
+          parseDateValue(str(p.effective_date)),
+          dec(p.tax),
+          dec(p.penalty),
+          dec(p.interest),
+          dec(p.other),
         ]);
       }
 
       for (const c of (summary.tax_credits ?? []) as Row[]) {
         credits.push([
-          summaryId, tmk, scrapedAtStr,
-          str(c.period), str(c.description), dec(c.amount),
+          summaryId,
+          tmk,
+          scrapedAtStr,
+          str(c.period),
+          str(c.description),
+          dec(c.amount),
         ]);
       }
     }
@@ -508,13 +805,17 @@ function extractCondominium(items: ExtractItem[]): {
     if (data.status !== "condo_project") continue;
 
     const parcel = data.parcel_information as Row | undefined;
-    const unitInfo = data.condominium_apartment_unit_information as Row | undefined;
+    const unitInfo = data.condominium_apartment_unit_information as
+      | Row
+      | undefined;
     const unitRows = (unitInfo?.table_data ?? []) as Row[];
     const improvInfo =
       (data.residential_improvement_information as Row | undefined) ??
       (data.improvement_information as Row | undefined);
-    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
-    const projectName = str(parcel?.project_name) ?? str(firstBuilding?.condo_name);
+    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ??
+      [])[0];
+    const projectName =
+      str(parcel?.project_name) ?? str(firstBuilding?.condo_name);
 
     projects.push([tmk, projectName, unitRows.length || null]);
 
@@ -566,9 +867,14 @@ function extractGenericSection(
           .toLowerCase()
           .replace(/[^\w\s]/g, "")
           .replace(/\s+/g, "_");
-        if (columnSet.has(snakeKey) &&
-            snakeKey !== "tmk" && snakeKey !== "scraped_at" && snakeKey !== "last_year_observed") {
-          matched[snakeKey] = value === null || value === undefined ? null : String(value);
+        if (
+          columnSet.has(snakeKey) &&
+          snakeKey !== "tmk" &&
+          snakeKey !== "scraped_at" &&
+          snakeKey !== "last_year_observed"
+        ) {
+          matched[snakeKey] =
+            value === null || value === undefined ? null : String(value);
         }
       }
 
@@ -607,16 +913,28 @@ export function extractBatch(items: ExtractItem[], stagingDir: string): void {
   appendRows(tablePath(stagingDir, "parcels"), extractParcels(items));
   appendRows(tablePath(stagingDir, "owners"), extractOwners(items));
   appendRows(tablePath(stagingDir, "assessments"), extractAssessments(items));
-  appendRows(tablePath(stagingDir, "land_classifications"), extractLandClassifications(items));
-  appendRows(tablePath(stagingDir, "residential_improvements"), extractResidentialImprovements(items));
+  appendRows(
+    tablePath(stagingDir, "land_classifications"),
+    extractLandClassifications(items),
+  );
+  appendRows(
+    tablePath(stagingDir, "residential_improvements"),
+    extractResidentialImprovements(items),
+  );
   appendRows(tablePath(stagingDir, "sales"), extractSales(items));
   appendRows(tablePath(stagingDir, "permits"), extractPermits(items));
-  appendRows(tablePath(stagingDir, "current_tax_bills"), extractCurrentTaxBills(items));
+  appendRows(
+    tablePath(stagingDir, "current_tax_bills"),
+    extractCurrentTaxBills(items),
+  );
 
   // Commercial improvements (parent-child with sequential IDs)
   const ci = extractCommercialImprovements(items);
   appendRows(tablePath(stagingDir, "commercial_improvements"), ci.parents);
-  appendRows(tablePath(stagingDir, "commercial_improvement_details"), ci.details);
+  appendRows(
+    tablePath(stagingDir, "commercial_improvement_details"),
+    ci.details,
+  );
 
   // Historical tax (parent-child with sequential IDs)
   const ht = extractHistoricalTax(items);
@@ -628,7 +946,10 @@ export function extractBatch(items: ExtractItem[], stagingDir: string): void {
   // Condominium
   const condo = extractCondominium(items);
   appendRows(tablePath(stagingDir, "condominium_projects"), condo.projects);
-  appendRows(tablePath(stagingDir, "condo_stub_properties"), condo.stubProperties);
+  appendRows(
+    tablePath(stagingDir, "condo_stub_properties"),
+    condo.stubProperties,
+  );
   appendRows(tablePath(stagingDir, "condominium_units"), condo.units);
 
   // Generic sections (use fixed columns from TABLE_COLUMNS)
@@ -649,13 +970,30 @@ export function initStagingDir(stagingDir: string): void {
 
   // Truncate all known table files
   const allTables = [
-    "properties", "parcels", "owners", "assessments", "land_classifications",
-    "residential_improvements", "commercial_improvements", "commercial_improvement_details",
-    "sales", "permits", "current_tax_bills",
-    "historical_tax_summary", "historical_tax_details", "historical_tax_payments", "historical_tax_credits",
-    "condominium_projects", "condo_stub_properties", "condominium_units",
-    "yard_improvements", "residential_additions", "agricultural_assessments",
-    "accessory_structures", "appeals", "dedications",
+    "properties",
+    "parcels",
+    "owners",
+    "assessments",
+    "land_classifications",
+    "residential_improvements",
+    "commercial_improvements",
+    "commercial_improvement_details",
+    "sales",
+    "permits",
+    "current_tax_bills",
+    "historical_tax_summary",
+    "historical_tax_details",
+    "historical_tax_payments",
+    "historical_tax_credits",
+    "condominium_projects",
+    "condo_stub_properties",
+    "condominium_units",
+    "yard_improvements",
+    "residential_additions",
+    "agricultural_assessments",
+    "accessory_structures",
+    "appeals",
+    "dedications",
   ];
 
   for (const table of allTables) {

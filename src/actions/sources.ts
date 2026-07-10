@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type {
   CreateSourcePayload,
   UpdateSourcePayload,
@@ -13,7 +14,6 @@ import {
 } from "@catalog/controllers/sources";
 import type { Universe } from "@catalog/types/shared";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 

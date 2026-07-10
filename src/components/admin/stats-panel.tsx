@@ -69,7 +69,10 @@ export default function StatsPanel({
               <TableBody>
                 {data.topPages.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-muted-foreground text-sm">
+                    <TableCell
+                      colSpan={2}
+                      className="text-muted-foreground text-sm"
+                    >
                       No data
                     </TableCell>
                   </TableRow>
@@ -104,7 +107,10 @@ export default function StatsPanel({
               <TableBody>
                 {data.topSeries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-muted-foreground text-sm">
+                    <TableCell
+                      colSpan={2}
+                      className="text-muted-foreground text-sm"
+                    >
                       No data
                     </TableCell>
                   </TableRow>
@@ -144,7 +150,10 @@ export default function StatsPanel({
               <TableBody>
                 {data.mostActiveUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-muted-foreground text-sm">
+                    <TableCell
+                      colSpan={2}
+                      className="text-muted-foreground text-sm"
+                    >
                       No data
                     </TableCell>
                   </TableRow>
@@ -177,7 +186,10 @@ export default function StatsPanel({
               <TableBody>
                 {data.topActions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-muted-foreground text-sm">
+                    <TableCell
+                      colSpan={2}
+                      className="text-muted-foreground text-sm"
+                    >
                       No data
                     </TableCell>
                   </TableRow>
@@ -213,7 +225,10 @@ export default function StatsPanel({
             <TableBody>
               {data.dailyActivity.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={2} className="text-muted-foreground text-sm">
+                  <TableCell
+                    colSpan={2}
+                    className="text-muted-foreground text-sm"
+                  >
                     No data
                   </TableCell>
                 </TableRow>

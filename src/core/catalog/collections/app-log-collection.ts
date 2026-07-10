@@ -188,9 +188,7 @@ export class AppLogCollection {
   static async getCounts(): Promise<AppLogCounts> {
     const [totalRows, levelRows, categoryRows] = await Promise.all([
       rawQuery(`SELECT COUNT(*) as total FROM app_logs`),
-      rawQuery(
-        `SELECT level, COUNT(*) as cnt FROM app_logs GROUP BY level`,
-      ),
+      rawQuery(`SELECT level, COUNT(*) as cnt FROM app_logs GROUP BY level`),
       rawQuery(
         `SELECT category, COUNT(*) as cnt FROM app_logs GROUP BY category ORDER BY cnt DESC`,
       ),

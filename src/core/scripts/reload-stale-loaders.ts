@@ -8,9 +8,9 @@
  */
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
-import { mysql } from "@database/mysql";
 import type { LoaderAttrs } from "@catalog/models/loader";
 import Loader from "@catalog/models/loader";
+import { mysql } from "@database/mysql";
 
 const EXECUTE = process.argv.includes("--execute");
 
@@ -68,7 +68,9 @@ async function main() {
             SELECT xseries_id FROM series WHERE id = ${loader.seriesId} LIMIT 1
           `;
           if (xsRows[0]?.xseries_id) {
-            await SeriesCollection.repairDataPoints({ id: xsRows[0].xseries_id });
+            await SeriesCollection.repairDataPoints({
+              id: xsRows[0].xseries_id,
+            });
           }
         }
         console.log(`  [ok]    #${loader.id} ${seriesName}: ${result.message}`);

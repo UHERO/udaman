@@ -140,8 +140,8 @@ function extractDataRows(sheet: WorkSheet): DvwDataRow[] {
       row[normalizeHeader(key)] = val;
     }
 
-    const module = str(row["module"]);
-    if (module == null) break; // blank row = end of data
+    const dvwModule = str(row["module"]);
+    if (dvwModule == null) break; // blank row = end of data
 
     const valueRaw = parseNumeric(row["value"]);
     if (valueRaw == null) continue; // skip rows without value
@@ -149,7 +149,7 @@ function extractDataRows(sheet: WorkSheet): DvwDataRow[] {
     const yearRaw = parseNumeric(row["year"]);
 
     rows.push({
-      module,
+      module: dvwModule,
       frequency: str(row["frequency"]) ?? "A",
       year: typeof yearRaw === "number" ? yearRaw : 0,
       qm: str(row["qm"]),

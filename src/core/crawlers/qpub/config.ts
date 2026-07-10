@@ -113,7 +113,6 @@ export function isScrapePeriodActive(date: Date = new Date()): boolean {
   return (month >= 3 && month <= 7) || (month >= 9 && month <= 12);
 }
 
-
 // ─── TMK helpers ──────────────────────────────────────────────────────
 
 /** Extract island code (first segment) from a TMK string */

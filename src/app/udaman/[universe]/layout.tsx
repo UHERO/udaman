@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import type { Universe } from "@catalog/types/shared";
-
 import GeographyCollection from "@catalog/collections/geography-collection";
 import UniverseCollection from "@catalog/collections/universe-collection";
+import type { Universe } from "@catalog/types/shared";
+
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { NavSearchInput } from "@/components/nav-search";

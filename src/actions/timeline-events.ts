@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type {
   CreateTimelineEventPayload,
   UpdateTimelineEventPayload,
@@ -12,7 +13,6 @@ import {
   updateTimelineEvent as updateCtrl,
 } from "@catalog/controllers/timeline-events";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 

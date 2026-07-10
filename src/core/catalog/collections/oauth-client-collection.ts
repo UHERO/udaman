@@ -10,9 +10,7 @@ import "server-only";
 import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { randomBase64Url } from "@/lib/oauth/pkce";
 
-import OAuthClient, {
-  type OAuthClientAttrs,
-} from "../models/oauth-client";
+import OAuthClient, { type OAuthClientAttrs } from "../models/oauth-client";
 
 export type RegisterClientPayload = {
   clientName?: string | null;
@@ -23,7 +21,9 @@ export type RegisterClientPayload = {
   scope?: string;
 };
 
-function validateRedirectUris(uris: string[]): { ok: true } | { ok: false; reason: string } {
+function validateRedirectUris(
+  uris: string[],
+): { ok: true } | { ok: false; reason: string } {
   if (!Array.isArray(uris) || uris.length === 0) {
     return { ok: false, reason: "redirect_uris must be a non-empty array" };
   }
@@ -48,7 +48,10 @@ function validateRedirectUris(uris: string[]): { ok: true } | { ok: false; reaso
       };
     }
     if (parsed.hash) {
-      return { ok: false, reason: `redirect_uri must not contain a fragment: ${uri}` };
+      return {
+        ok: false,
+        reason: `redirect_uri must not contain a fragment: ${uri}`,
+      };
     }
   }
   return { ok: true };

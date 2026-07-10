@@ -59,7 +59,9 @@ class OAuthAuthorizationCodeCollection {
     return { code, record: new OAuthAuthorizationCode(row) };
   }
 
-  static async findByCode(code: string): Promise<OAuthAuthorizationCode | null> {
+  static async findByCode(
+    code: string,
+  ): Promise<OAuthAuthorizationCode | null> {
     const codeHash = sha256Hex(code);
     const rows = await mysql<OAuthAuthorizationCodeAttrs>`
       SELECT * FROM oauth_authorization_codes WHERE code_hash = ${codeHash} LIMIT 1

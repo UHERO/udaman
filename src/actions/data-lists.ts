@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type {
   CreateDataListPayload,
   UpdateDataListPayload,
@@ -25,7 +26,6 @@ import { createMeasurement as createMeasurementCtrl } from "@catalog/controllers
 import type { Universe } from "@catalog/types/shared";
 
 import { addMultipleSeriesToClipboard } from "@/actions/clipboard-actions";
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -144,7 +144,10 @@ export async function moveMeasurementAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "moveMeasurement failed");
-    AppLogCollection.logError(err, { userId, name: "data-list.move_measurement" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "data-list.move_measurement",
+    });
     throw err;
   }
 }
@@ -184,7 +187,10 @@ export async function removeMeasurementAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "removeMeasurement failed");
-    AppLogCollection.logError(err, { userId, name: "data-list.remove_measurement" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "data-list.remove_measurement",
+    });
     throw err;
   }
 }
@@ -202,7 +208,10 @@ export async function addMeasurementAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "addMeasurement failed");
-    AppLogCollection.logError(err, { userId, name: "data-list.add_measurement" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "data-list.add_measurement",
+    });
     throw err;
   }
 }
@@ -224,7 +233,10 @@ export async function createMeasurementForDataList(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "createMeasurementForDataList failed");
-    AppLogCollection.logError(err, { userId, name: "data-list.create_measurement" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "data-list.create_measurement",
+    });
     throw err;
   }
 }
@@ -250,7 +262,10 @@ export async function replaceAllMeasurementsAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "replaceAllMeasurements failed");
-    AppLogCollection.logError(err, { userId, name: "data-list.replace_measurements" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "data-list.replace_measurements",
+    });
     throw err;
   }
 }

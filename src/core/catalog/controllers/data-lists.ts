@@ -203,7 +203,7 @@ export async function replaceAllMeasurements({
 
 export async function getDataListSuperTable({
   id,
-  universe,
+  universe: _universe,
   freq = "A",
   geo = "HI",
   sa = "all",

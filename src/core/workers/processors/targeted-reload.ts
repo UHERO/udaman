@@ -115,7 +115,9 @@ export async function processTargetedReload(
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        job.log(`Warning: Failed to get loaders for series ${seriesId}: ${msg}`);
+        job.log(
+          `Warning: Failed to get loaders for series ${seriesId}: ${msg}`,
+        );
       }
     }
 
@@ -140,7 +142,9 @@ export async function processTargetedReload(
     const reloadIds = [...new Set([...nonBlsDepIds, ...evalPathSeriesIds])];
 
     if (reloadIds.length > 0) {
-      job.log(`Reloading ${reloadIds.length} non-BLS dependent series via eval path...`);
+      job.log(
+        `Reloading ${reloadIds.length} non-BLS dependent series via eval path...`,
+      );
       await SeriesCollection.batchReload({
         seriesIds: reloadIds,
         suffix: name,

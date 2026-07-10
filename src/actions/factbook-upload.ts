@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import {
   runFactbookUpload,
   type FactbookUploadResult,
@@ -10,7 +11,6 @@ import {
   type FactbookPreview,
 } from "@catalog/utils/factbook-parser";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 

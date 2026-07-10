@@ -19,7 +19,7 @@ function toSnakeCase(str: string): string {
  * Use `columnOverrides` for columns that don't follow snake_case convention,
  * e.g. { dataPortalName: "dataPortalName" } to keep the camelCase column name.
  */
-function buildUpdateObject<T extends Record<string, any>>(
+function buildUpdateObject<T extends Record<string, unknown>>(
   updates: T,
   columnOverrides?: Record<string, string>,
 ): Record<string, string | number | null> {
@@ -27,7 +27,8 @@ function buildUpdateObject<T extends Record<string, any>>(
   for (const [key, value] of Object.entries(updates)) {
     if (value !== undefined) {
       const column = columnOverrides?.[key] ?? toSnakeCase(key);
-      result[column] = typeof value === "boolean" ? (value ? 1 : 0) : value;
+      result[column] =
+        typeof value === "boolean" ? (value ? 1 : 0) : (value as string | number | null);
     }
   }
   return result;

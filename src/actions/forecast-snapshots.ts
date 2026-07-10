@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import {
   createSnapshot,
   deleteSnapshot,
@@ -11,7 +12,6 @@ import {
   updateSnapshot,
 } from "@catalog/controllers/forecast-snapshots";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -75,7 +75,10 @@ export async function createSnapshotAction(formData: FormData): Promise<{
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "createSnapshotAction failed");
-    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.create" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "forecast-snapshot.create",
+    });
     return { success: false, message: `Failed to create snapshot: ${message}` };
   }
 }
@@ -131,7 +134,10 @@ export async function updateSnapshotAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "updateSnapshotAction failed");
-    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.update" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "forecast-snapshot.update",
+    });
     return { success: false, message: `Failed to update snapshot: ${message}` };
   }
 }
@@ -150,7 +156,10 @@ export async function deleteSnapshotAction(id: number): Promise<{
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteSnapshotAction failed");
-    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.delete" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "forecast-snapshot.delete",
+    });
     return { success: false, message: `Failed to delete snapshot: ${message}` };
   }
 }
@@ -165,12 +174,18 @@ export async function duplicateSnapshotAction(id: number): Promise<{
   try {
     const result = await duplicateSnapshot({ id });
     revalidatePath("/udaman", "layout");
-    log.info({ id, copyId: result.id, userId }, "duplicateSnapshotAction completed");
+    log.info(
+      { id, copyId: result.id, userId },
+      "duplicateSnapshotAction completed",
+    );
     return { success: true, message: "Snapshot duplicated", id: result.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "duplicateSnapshotAction failed");
-    AppLogCollection.logError(err, { userId, name: "forecast-snapshot.duplicate" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "forecast-snapshot.duplicate",
+    });
     return {
       success: false,
       message: `Failed to duplicate snapshot: ${message}`,

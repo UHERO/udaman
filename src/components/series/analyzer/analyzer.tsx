@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { transformSeriesAction } from "@/actions/series-actions";
-import { AnalyzeControls } from "@/components/series/analyze-controls";
 import type { TimelineEventForChart } from "@/components/series/analyze-chart";
+import { AnalyzeControls } from "@/components/series/analyze-controls";
 
 import { AnalyzerSearch } from "./analyzer-search";
 import type { AnalyzerEntry } from "./types";
@@ -62,8 +62,7 @@ export function Analyzer({
     if (initialAxes) {
       for (const part of initialAxes.split(",")) {
         const [idx, side] = part.split(":");
-        if (side === "left" || side === "right")
-          axesMap.set(Number(idx), side);
+        if (side === "left" || side === "right") axesMap.set(Number(idx), side);
       }
     }
 
@@ -117,9 +116,7 @@ export function Analyzer({
     evalVersions.current.set(id, version);
 
     setEntries((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, loading: true, error: null } : e,
-      ),
+      prev.map((e) => (e.id === id ? { ...e, loading: true, error: null } : e)),
     );
 
     const result = await transformSeriesAction(expression);
@@ -207,14 +204,9 @@ export function Analyzer({
     [],
   );
 
-  const handleAxisChange = useCallback(
-    (id: string, axis: "left" | "right") => {
-      setEntries((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, axis } : e)),
-      );
-    },
-    [],
-  );
+  const handleAxisChange = useCallback((id: string, axis: "left" | "right") => {
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, axis } : e)));
+  }, []);
 
   const handleRemove = useCallback((id: string) => {
     evalVersions.current.delete(id);
@@ -298,10 +290,7 @@ export function Analyzer({
     return map;
   }, [entries, entryToCompareIndex]);
 
-  const currentNames = useMemo(
-    () => entries.map((e) => e.name),
-    [entries],
-  );
+  const currentNames = useMemo(() => entries.map((e) => e.name), [entries]);
 
   const firstFreqCode = entries.find((e) => e.frequencyCode)?.frequencyCode;
 
@@ -312,7 +301,10 @@ export function Analyzer({
   const effectiveStatsId = useMemo(() => {
     const loadedEntries = entries.filter((e) => e.data.length > 0);
     if (loadedEntries.length === 0) return null;
-    if (selectedStatsId && loadedEntries.some((e) => e.id === selectedStatsId)) {
+    if (
+      selectedStatsId &&
+      loadedEntries.some((e) => e.id === selectedStatsId)
+    ) {
       return selectedStatsId;
     }
     return loadedEntries[0].id;
@@ -335,10 +327,7 @@ export function Analyzer({
 
     // Write exprs
     if (entries.length > 0) {
-      url.searchParams.set(
-        "exprs",
-        entries.map((e) => e.expression).join("|"),
-      );
+      url.searchParams.set("exprs", entries.map((e) => e.expression).join("|"));
     } else {
       url.searchParams.delete("exprs");
     }

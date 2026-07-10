@@ -229,7 +229,7 @@ export const formatValue = (v: number, decimals: number) => {
 /*  Overlay computation helpers                                        */
 /* ------------------------------------------------------------------ */
 
-function linearRegression(
+function _linearRegression(
   data: ChartRow[],
 ): { slope: number; intercept: number } | null {
   const points: { i: number; v: number }[] = [];
@@ -254,7 +254,7 @@ function linearRegression(
   return { slope, intercept };
 }
 
-function logLinearRegression(
+function _logLinearRegression(
   data: ChartRow[],
 ): { slope: number; intercept: number } | null {
   const points: { i: number; v: number }[] = [];
@@ -356,7 +356,7 @@ function hpFilterValues(y: number[], lambda = 14400): number[] {
 }
 
 /** HP filter for ChartRow[] — maps non-null level values through hpFilterValues. */
-function computeHpTrend(data: ChartRow[], lambda = 14400): number[] {
+function _computeHpTrend(data: ChartRow[], lambda = 14400): number[] {
   const values: number[] = [];
   const indices: number[] = [];
   for (let i = 0; i < data.length; i++) {
@@ -409,8 +409,16 @@ export function computeOverlaysMulti(
     }
     if (points.length >= 2) {
       const n = points.length;
-      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-      for (const p of points) { sumX += p.i; sumY += p.v; sumXY += p.i * p.v; sumXX += p.i * p.i; }
+      let sumX = 0,
+        sumY = 0,
+        sumXY = 0,
+        sumXX = 0;
+      for (const p of points) {
+        sumX += p.i;
+        sumY += p.v;
+        sumXY += p.i * p.v;
+        sumXX += p.i * p.i;
+      }
       const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
       const intercept = (sumY - slope * sumX) / n;
       linReg = { slope, intercept };
@@ -426,8 +434,16 @@ export function computeOverlaysMulti(
     }
     if (points.length >= 2) {
       const n = points.length;
-      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-      for (const p of points) { sumX += p.i; sumY += p.v; sumXY += p.i * p.v; sumXX += p.i * p.i; }
+      let sumX = 0,
+        sumY = 0,
+        sumXY = 0,
+        sumXX = 0;
+      for (const p of points) {
+        sumX += p.i;
+        sumY += p.v;
+        sumXY += p.i * p.v;
+        sumXX += p.i * p.i;
+      }
       const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
       const intercept = (sumY - slope * sumX) / n;
       logReg = { slope, intercept };
@@ -440,7 +456,10 @@ export function computeOverlaysMulti(
     const indices: number[] = [];
     for (let i = 0; i < data.length; i++) {
       const v = getVal(data[i]);
-      if (v != null && !isNaN(v)) { values.push(v); indices.push(i); }
+      if (v != null && !isNaN(v)) {
+        values.push(v);
+        indices.push(i);
+      }
     }
     if (values.length >= 3) {
       const tau = hpFilterValues(values);
@@ -468,7 +487,10 @@ export function computeOverlaysMulti(
       let count = 0;
       for (let j = i - k + 1; j <= i; j++) {
         const v = getVal(data[j]);
-        if (v != null) { sum += v; count++; }
+        if (v != null) {
+          sum += v;
+          count++;
+        }
       }
       if (count === k) updated.rollingMean = sum / count;
     }
@@ -477,7 +499,10 @@ export function computeOverlaysMulti(
       let count = 0;
       for (let j = i - k + 1; j <= i; j++) {
         const v = getVal(data[j]);
-        if (v != null) { sum += v; count++; }
+        if (v != null) {
+          sum += v;
+          count++;
+        }
       }
       if (count === k) {
         const mean = sum / count;
@@ -697,18 +722,23 @@ export function applyTransformationMulti(
       case "pop": {
         // Period-over-period: (current - prev) / prev * 100
         const prev = new Array<number | null>(rows.length);
-        for (let i = 0; i < rows.length; i++) prev[i] = rows[i][key] as number | null;
+        for (let i = 0; i < rows.length; i++)
+          prev[i] = rows[i][key] as number | null;
         rows = rows.map((row, i) => {
           if (i === 0 || row[key] == null) return row;
           const p = prev[i - 1];
           if (p == null || p === 0) return { ...row, [key]: null };
-          return { ...row, [key]: ((row[key] as number) - p) / Math.abs(p) * 100 };
+          return {
+            ...row,
+            [key]: (((row[key] as number) - p) / Math.abs(p)) * 100,
+          };
         });
         break;
       }
       case "levelChange": {
         const prev = new Array<number | null>(rows.length);
-        for (let i = 0; i < rows.length; i++) prev[i] = rows[i][key] as number | null;
+        for (let i = 0; i < rows.length; i++)
+          prev[i] = rows[i][key] as number | null;
         rows = rows.map((row, i) => {
           if (i === 0 || row[key] == null) return row;
           const p = prev[i - 1];
@@ -719,14 +749,24 @@ export function applyTransformationMulti(
       }
       case "yoy": {
         // Year-over-year: compare to same period last year
-        const PPY: Record<string, number> = { D: 365, W: 52, M: 12, Q: 4, S: 2, A: 1 };
+        const PPY: Record<string, number> = {
+          D: 365,
+          W: 52,
+          M: 12,
+          Q: 4,
+          S: 2,
+          A: 1,
+        };
         const ppy = PPY[freqCode ?? "M"] ?? 12;
         const prev = rows.map((r) => r[key] as number | null);
         rows = rows.map((row, i) => {
           if (i < ppy || row[key] == null) return row;
           const p = prev[i - ppy];
           if (p == null || p === 0) return { ...row, [key]: null };
-          return { ...row, [key]: ((row[key] as number) - p) / Math.abs(p) * 100 };
+          return {
+            ...row,
+            [key]: (((row[key] as number) - p) / Math.abs(p)) * 100,
+          };
         });
         break;
       }
@@ -743,14 +783,26 @@ export function applyTransformationMulti(
             yearStart = orig[i];
             return { ...row, [key]: null }; // first obs of year has no YTD
           }
-          if (yearStart == null || yearStart === 0) return { ...row, [key]: null };
-          return { ...row, [key]: ((orig[i] as number) - yearStart) / Math.abs(yearStart) * 100 };
+          if (yearStart == null || yearStart === 0)
+            return { ...row, [key]: null };
+          return {
+            ...row,
+            [key]:
+              (((orig[i] as number) - yearStart) / Math.abs(yearStart)) * 100,
+          };
         });
         break;
       }
       case "cagr": {
         // Running CAGR from first observation
-        const PPY: Record<string, number> = { D: 365, W: 52, M: 12, Q: 4, S: 2, A: 1 };
+        const PPY: Record<string, number> = {
+          D: 365,
+          W: 52,
+          M: 12,
+          Q: 4,
+          S: 2,
+          A: 1,
+        };
         const ppy = PPY[freqCode ?? "M"] ?? 12;
         let firstVal: number | null = null;
         let periodIdx = 0;
@@ -765,8 +817,12 @@ export function applyTransformationMulti(
           }
           const idx = periodIdx;
           periodIdx++;
-          if (firstVal <= 0 || v <= 0 || idx === 0) return { ...row, [key]: null };
-          return { ...row, [key]: (Math.pow(v / firstVal, ppy / idx) - 1) * 100 };
+          if (firstVal <= 0 || v <= 0 || idx === 0)
+            return { ...row, [key]: null };
+          return {
+            ...row,
+            [key]: (Math.pow(v / firstVal, ppy / idx) - 1) * 100,
+          };
         });
         break;
       }
@@ -1043,7 +1099,10 @@ interface LevelChartProps {
  * `connectNulls={false}` to visually break the line at gaps (e.g. missing
  * months during COVID).
  */
-function fillGaps(rows: ChartRow[], freqCode: string | null | undefined): ChartRow[] {
+function fillGaps(
+  rows: ChartRow[],
+  freqCode: string | null | undefined,
+): ChartRow[] {
   if (rows.length < 2) return rows;
   const DAY = 86_400_000;
   // Maximum gap (in ms) before we consider data missing
@@ -1113,18 +1172,10 @@ export function LevelChart({
     return { ticks: t, tickFormatter: makeAxisTickFormatter(freq, t) };
   }, [chartData, freqCode]);
 
-  if (chartData.length === 0) return null;
-
-  // Find the date string for the index base reference line
-  const indexBaseDate = indexDate
-    ? indexDate
-    : indexBaseYear
-      ? chartData.find((r) => r.date.startsWith(String(indexBaseYear)))?.date
-      : undefined;
-
   // ── Map brush indices between original data and gap-filled chartData ──
   const mappedBrushStart = useMemo(() => {
-    if (brushStartIndex == null || data.length === chartData.length) return brushStartIndex;
+    if (brushStartIndex == null || data.length === chartData.length)
+      return brushStartIndex;
     const date = data[brushStartIndex]?.date;
     if (!date) return brushStartIndex;
     const idx = chartData.findIndex((r) => r.date >= date);
@@ -1132,7 +1183,8 @@ export function LevelChart({
   }, [brushStartIndex, data, chartData]);
 
   const mappedBrushEnd = useMemo(() => {
-    if (brushEndIndex == null || data.length === chartData.length) return brushEndIndex;
+    if (brushEndIndex == null || data.length === chartData.length)
+      return brushEndIndex;
     const date = data[brushEndIndex]?.date;
     if (!date) return brushEndIndex;
     for (let i = chartData.length - 1; i >= 0; i--) {
@@ -1166,354 +1218,363 @@ export function LevelChart({
     [onBrushChange, data, chartData],
   );
 
+  if (chartData.length === 0) return null;
+
+  // Find the date string for the index base reference line
+  const indexBaseDate = indexDate
+    ? indexDate
+    : indexBaseYear
+      ? chartData.find((r) => r.date.startsWith(String(indexBaseYear)))?.date
+      : undefined;
+
   const hasRight = seriesAxisMap
     ? [...seriesAxisMap.values()].some((v) => v === "right")
     : false;
 
-    // Use brush range (not full data range) so events outside the visible
-    // window don't get rendered and throw off the chart axis.
-    const compareFirstDate =
-      chartData[mappedBrushStart ?? 0]?.date ?? chartData[0]?.date ?? "";
-    const compareLastDate =
-      chartData[mappedBrushEnd ?? chartData.length - 1]?.date ??
-      chartData[chartData.length - 1]?.date ??
-      "";
-    const compareVisibleEvents = selectedEvents.filter(
-      (e) => e.start <= compareLastDate && e.end >= compareFirstDate,
-    );
+  // Use brush range (not full data range) so events outside the visible
+  // window don't get rendered and throw off the chart axis.
+  const compareFirstDate =
+    chartData[mappedBrushStart ?? 0]?.date ?? chartData[0]?.date ?? "";
+  const compareLastDate =
+    chartData[mappedBrushEnd ?? chartData.length - 1]?.date ??
+    chartData[chartData.length - 1]?.date ??
+    "";
+  const compareVisibleEvents = selectedEvents.filter(
+    (e) => e.start <= compareLastDate && e.end >= compareFirstDate,
+  );
 
-    return (
-      <ResponsiveContainer width="100%" height={360}>
-        <ComposedChart
-          data={chartData}
-          margin={{
-            top: indexBaseDate ? 24 : 10,
-            right: hasRight ? 10 : 10,
-            bottom: 0,
-            left: 0,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-          <XAxis
-            dataKey="date"
-            ticks={ticks}
-            tickFormatter={tickFormatter}
-            tick={{ fontSize: 11 }}
-          />
+  return (
+    <ResponsiveContainer width="100%" height={360}>
+      <ComposedChart
+        data={chartData}
+        margin={{
+          top: indexBaseDate ? 24 : 10,
+          right: hasRight ? 10 : 10,
+          bottom: 0,
+          left: 0,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+        <XAxis
+          dataKey="date"
+          ticks={ticks}
+          tickFormatter={tickFormatter}
+          tick={{ fontSize: 11 }}
+        />
+        <YAxis
+          yAxisId="left"
+          domain={["auto", "auto"]}
+          tickFormatter={(v: number) => formatValue(v, decimals)}
+          tick={{ fontSize: 11 }}
+          width={70}
+          label={
+            hasRight && leftAxisLabel
+              ? {
+                  value: leftAxisLabel,
+                  angle: -90,
+                  position: "insideLeft",
+                  style: { fontSize: 11, fill: "#6b7280" },
+                }
+              : undefined
+          }
+        />
+        {hasRight && (
           <YAxis
-            yAxisId="left"
+            yAxisId="right"
+            orientation="right"
             domain={["auto", "auto"]}
             tickFormatter={(v: number) => formatValue(v, decimals)}
             tick={{ fontSize: 11 }}
             width={70}
             label={
-              hasRight && leftAxisLabel
+              rightAxisLabel
                 ? {
-                    value: leftAxisLabel,
-                    angle: -90,
-                    position: "insideLeft",
+                    value: rightAxisLabel,
+                    angle: 90,
+                    position: "insideRight",
                     style: { fontSize: 11, fill: "#6b7280" },
                   }
                 : undefined
             }
           />
-          {hasRight && (
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              domain={["auto", "auto"]}
-              tickFormatter={(v: number) => formatValue(v, decimals)}
-              tick={{ fontSize: 11 }}
-              width={70}
-              label={
-                rightAxisLabel
-                  ? {
-                      value: rightAxisLabel,
-                      angle: 90,
-                      position: "insideRight",
-                      style: { fontSize: 11, fill: "#6b7280" },
-                    }
-                  : undefined
-              }
+        )}
+        <Tooltip
+          content={
+            <CompareTooltip
+              decimals={decimals}
+              seriesNames={seriesNames}
+              seriesVisibility={seriesVisibility}
+              unitLabels={seriesUnitLabels}
             />
-          )}
-          <Tooltip
-            content={
-              <CompareTooltip
-                decimals={decimals}
-                seriesNames={seriesNames}
-                seriesVisibility={seriesVisibility}
-                unitLabels={seriesUnitLabels}
-              />
-            }
-          />
-          {/* Right axis series rendered first so left axis draws on top */}
-          {[...seriesNames.keys()]
-            .sort((a, b) => {
-              const aRight = seriesAxisMap?.get(a) === "right" ? 0 : 1;
-              const bRight = seriesAxisMap?.get(b) === "right" ? 0 : 1;
-              return aRight - bRight || a - b;
-            })
-            .map((i) => {
-              const name = seriesNames[i];
-              const vis = seriesVisibility?.get(i);
-              if (vis === "hidden") return null;
-              const axisId = seriesAxisMap?.get(i) ?? "left";
-              const chartTypeForSeries =
-                axisId === "right" ? rightChartType : leftChartType;
-              const color =
-                vis === "gray"
-                  ? "#94a3b8"
-                  : SERIES_COLORS[i % SERIES_COLORS.length];
-              const opacity = vis === "gray" ? 0.4 : 1;
+          }
+        />
+        {/* Right axis series rendered first so left axis draws on top */}
+        {[...seriesNames.keys()]
+          .sort((a, b) => {
+            const aRight = seriesAxisMap?.get(a) === "right" ? 0 : 1;
+            const bRight = seriesAxisMap?.get(b) === "right" ? 0 : 1;
+            return aRight - bRight || a - b;
+          })
+          .map((i) => {
+            const name = seriesNames[i];
+            const vis = seriesVisibility?.get(i);
+            if (vis === "hidden") return null;
+            const axisId = seriesAxisMap?.get(i) ?? "left";
+            const chartTypeForSeries =
+              axisId === "right" ? rightChartType : leftChartType;
+            const color =
+              vis === "gray"
+                ? "#94a3b8"
+                : SERIES_COLORS[i % SERIES_COLORS.length];
+            const opacity = vis === "gray" ? 0.4 : 1;
 
-              if (chartTypeForSeries === "column") {
-                return (
-                  <Bar
-                    key={name}
-                    dataKey={`series_${i}`}
-                    name={name}
-                    yAxisId={axisId}
-                    fill={color}
-                    fillOpacity={opacity}
-                    isAnimationActive={true}
-                    animationDuration={400}
-                  />
-                );
-              }
-
+            if (chartTypeForSeries === "column") {
               return (
-                <Line
+                <Bar
                   key={name}
-                  type="monotone"
                   dataKey={`series_${i}`}
                   name={name}
                   yAxisId={axisId}
-                  stroke={color}
-                  strokeWidth={vis === "gray" ? 1 : 2}
-                  strokeOpacity={opacity}
-                  dot={false}
+                  fill={color}
+                  fillOpacity={opacity}
                   isAnimationActive={true}
                   animationDuration={400}
-                  connectNulls={false}
                 />
               );
-            })}
-          {/* Overlay: ±σ filled band */}
-          {stats && overlays?.includes("stdDev") && (
-            <ReferenceArea
-              y1={stats.mean - stdDevMultiplier * stats.standardDeviation}
-              y2={stats.mean + stdDevMultiplier * stats.standardDeviation}
-              yAxisId="left"
-              fill="#7c3aed"
-              fillOpacity={0.08}
-              strokeOpacity={0}
-            />
-          )}
-          {stats && overlays?.includes("stdDev") && (
-            <ReferenceLine
-              y={stats.mean + stdDevMultiplier * stats.standardDeviation}
-              yAxisId="left"
-              stroke="#7c3aed"
-              strokeDasharray="4 3"
-              strokeWidth={1}
-              label={{
-                value: `+${stdDevMultiplier}σ: ${formatLevel(stats.mean + stdDevMultiplier * stats.standardDeviation, decimals, unitShortLabel)}`,
-                position: "insideTopRight",
-                fontSize: 10,
-                fill: "#7c3aed",
-              }}
-            />
-          )}
-          {stats && overlays?.includes("stdDev") && (
-            <ReferenceLine
-              y={stats.mean - stdDevMultiplier * stats.standardDeviation}
-              yAxisId="left"
-              stroke="#7c3aed"
-              strokeDasharray="4 3"
-              strokeWidth={1}
-              label={{
-                value: `-${stdDevMultiplier}σ: ${formatLevel(stats.mean - stdDevMultiplier * stats.standardDeviation, decimals, unitShortLabel)}`,
-                position: "insideBottomRight",
-                fontSize: 10,
-                fill: "#7c3aed",
-              }}
-            />
-          )}
-          {/* Overlay: Historical mean */}
-          {stats && overlays?.includes("mean") && (
-            <ReferenceLine
-              y={stats.mean}
-              yAxisId="left"
-              stroke="#16a34a"
-              strokeDasharray="6 3"
-              strokeWidth={1.5}
-              label={{
-                value: `Mean: ${formatLevel(stats.mean, decimals, unitShortLabel)}`,
-                position: "insideTopRight",
-                fontSize: 10,
-                fill: "#16a34a",
-              }}
-            />
-          )}
-          {/* Overlay: Rolling σ filled band */}
-          {overlays?.includes("rollingStdDev") && (
-            <Area
-              type="monotone"
-              dataKey="rollingStdLower"
-              yAxisId="left"
-              stackId="rollingStd"
-              fill="transparent"
-              stroke="transparent"
-              isAnimationActive={true}
-              animationDuration={400}
-              connectNulls={false}
-            />
-          )}
-          {overlays?.includes("rollingStdDev") && (
-            <Area
-              type="monotone"
-              dataKey="rollingStdBand"
-              yAxisId="left"
-              stackId="rollingStd"
-              fill="#f59e0b"
-              fillOpacity={0.1}
-              stroke="#f59e0b"
-              strokeWidth={1}
-              strokeOpacity={0.4}
-              isAnimationActive={true}
-              animationDuration={400}
-              connectNulls={false}
-            />
-          )}
-          {/* Overlay: Rolling mean */}
-          {overlays?.includes("rollingMean") && (
-            <Line
-              type="monotone"
-              dataKey="rollingMean"
-              yAxisId="left"
-              stroke="#f59e0b"
-              strokeWidth={1.5}
-              dot={false}
-              isAnimationActive={true}
-              animationDuration={400}
-              connectNulls={false}
-            />
-          )}
-          {/* Overlay: Linear trend */}
-          {overlays?.includes("linearTrend") && (
-            <Line
-              type="monotone"
-              dataKey="linearTrend"
-              yAxisId="left"
-              stroke="#8b5cf6"
-              strokeWidth={1.5}
-              strokeDasharray="8 4"
-              dot={false}
-              isAnimationActive={true}
-              animationDuration={400}
-              connectNulls={false}
-            />
-          )}
-          {/* Overlay: Log-linear trend */}
-          {overlays?.includes("logLinearTrend") && (
-            <Line
-              type="monotone"
-              dataKey="logLinearTrend"
-              yAxisId="left"
-              stroke="#8b5cf6"
-              strokeWidth={1.5}
-              strokeDasharray="2 3"
-              dot={false}
-              isAnimationActive={true}
-              animationDuration={400}
-              connectNulls={false}
-            />
-          )}
-          {/* Overlay: HP trend */}
-          {overlays?.includes("hpTrend") && (
-            <Line
-              type="monotone"
-              dataKey="hpTrend"
-              yAxisId="left"
-              stroke="#0d9488"
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={true}
-              animationDuration={400}
-              connectNulls={false}
-            />
-          )}
-          {/* Timeline event shading */}
-          {compareVisibleEvents.map((e) => {
-            const x1 = snapToDataPoint(chartData, e.start, "start");
-            let x2 = snapToDataPoint(chartData, e.end, "end");
-            if (!x1 || !x2 || x1 > x2) return null;
-            if (x1 === x2) {
-              const idx = chartData.findIndex((r) => r.date === x1);
-              if (idx >= 0 && idx < chartData.length - 1) {
-                x2 = chartData[idx + 1].date;
-              }
             }
+
             return (
-              <ReferenceArea
-                key={`${e.id}-${e.start}`}
-                x1={x1}
-                x2={x2}
-                fill="#94a3b8"
-                fillOpacity={0.15}
-                strokeOpacity={0}
-                yAxisId="left"
-                label={{
-                  value: e.name,
-                  position: "insideTop",
-                  fontSize: 9,
-                  fill: "transparent",
-                  className: "timeline-event-label",
-                }}
+              <Line
+                key={name}
+                type="monotone"
+                dataKey={`series_${i}`}
+                name={name}
+                yAxisId={axisId}
+                stroke={color}
+                strokeWidth={vis === "gray" ? 1 : 2}
+                strokeOpacity={opacity}
+                dot={false}
+                isAnimationActive={true}
+                animationDuration={400}
+                connectNulls={false}
               />
             );
           })}
-          {indexBaseDate && (
-            <ReferenceLine
-              x={indexBaseDate}
+        {/* Overlay: ±σ filled band */}
+        {stats && overlays?.includes("stdDev") && (
+          <ReferenceArea
+            y1={stats.mean - stdDevMultiplier * stats.standardDeviation}
+            y2={stats.mean + stdDevMultiplier * stats.standardDeviation}
+            yAxisId="left"
+            fill="#7c3aed"
+            fillOpacity={0.08}
+            strokeOpacity={0}
+          />
+        )}
+        {stats && overlays?.includes("stdDev") && (
+          <ReferenceLine
+            y={stats.mean + stdDevMultiplier * stats.standardDeviation}
+            yAxisId="left"
+            stroke="#7c3aed"
+            strokeDasharray="4 3"
+            strokeWidth={1}
+            label={{
+              value: `+${stdDevMultiplier}σ: ${formatLevel(stats.mean + stdDevMultiplier * stats.standardDeviation, decimals, unitShortLabel)}`,
+              position: "insideTopRight",
+              fontSize: 10,
+              fill: "#7c3aed",
+            }}
+          />
+        )}
+        {stats && overlays?.includes("stdDev") && (
+          <ReferenceLine
+            y={stats.mean - stdDevMultiplier * stats.standardDeviation}
+            yAxisId="left"
+            stroke="#7c3aed"
+            strokeDasharray="4 3"
+            strokeWidth={1}
+            label={{
+              value: `-${stdDevMultiplier}σ: ${formatLevel(stats.mean - stdDevMultiplier * stats.standardDeviation, decimals, unitShortLabel)}`,
+              position: "insideBottomRight",
+              fontSize: 10,
+              fill: "#7c3aed",
+            }}
+          />
+        )}
+        {/* Overlay: Historical mean */}
+        {stats && overlays?.includes("mean") && (
+          <ReferenceLine
+            y={stats.mean}
+            yAxisId="left"
+            stroke="#16a34a"
+            strokeDasharray="6 3"
+            strokeWidth={1.5}
+            label={{
+              value: `Mean: ${formatLevel(stats.mean, decimals, unitShortLabel)}`,
+              position: "insideTopRight",
+              fontSize: 10,
+              fill: "#16a34a",
+            }}
+          />
+        )}
+        {/* Overlay: Rolling σ filled band */}
+        {overlays?.includes("rollingStdDev") && (
+          <Area
+            type="monotone"
+            dataKey="rollingStdLower"
+            yAxisId="left"
+            stackId="rollingStd"
+            fill="transparent"
+            stroke="transparent"
+            isAnimationActive={true}
+            animationDuration={400}
+            connectNulls={false}
+          />
+        )}
+        {overlays?.includes("rollingStdDev") && (
+          <Area
+            type="monotone"
+            dataKey="rollingStdBand"
+            yAxisId="left"
+            stackId="rollingStd"
+            fill="#f59e0b"
+            fillOpacity={0.1}
+            stroke="#f59e0b"
+            strokeWidth={1}
+            strokeOpacity={0.4}
+            isAnimationActive={true}
+            animationDuration={400}
+            connectNulls={false}
+          />
+        )}
+        {/* Overlay: Rolling mean */}
+        {overlays?.includes("rollingMean") && (
+          <Line
+            type="monotone"
+            dataKey="rollingMean"
+            yAxisId="left"
+            stroke="#f59e0b"
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={true}
+            animationDuration={400}
+            connectNulls={false}
+          />
+        )}
+        {/* Overlay: Linear trend */}
+        {overlays?.includes("linearTrend") && (
+          <Line
+            type="monotone"
+            dataKey="linearTrend"
+            yAxisId="left"
+            stroke="#8b5cf6"
+            strokeWidth={1.5}
+            strokeDasharray="8 4"
+            dot={false}
+            isAnimationActive={true}
+            animationDuration={400}
+            connectNulls={false}
+          />
+        )}
+        {/* Overlay: Log-linear trend */}
+        {overlays?.includes("logLinearTrend") && (
+          <Line
+            type="monotone"
+            dataKey="logLinearTrend"
+            yAxisId="left"
+            stroke="#8b5cf6"
+            strokeWidth={1.5}
+            strokeDasharray="2 3"
+            dot={false}
+            isAnimationActive={true}
+            animationDuration={400}
+            connectNulls={false}
+          />
+        )}
+        {/* Overlay: HP trend */}
+        {overlays?.includes("hpTrend") && (
+          <Line
+            type="monotone"
+            dataKey="hpTrend"
+            yAxisId="left"
+            stroke="#0d9488"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={true}
+            animationDuration={400}
+            connectNulls={false}
+          />
+        )}
+        {/* Timeline event shading */}
+        {compareVisibleEvents.map((e) => {
+          const x1 = snapToDataPoint(chartData, e.start, "start");
+          let x2 = snapToDataPoint(chartData, e.end, "end");
+          if (!x1 || !x2 || x1 > x2) return null;
+          if (x1 === x2) {
+            const idx = chartData.findIndex((r) => r.date === x1);
+            if (idx >= 0 && idx < chartData.length - 1) {
+              x2 = chartData[idx + 1].date;
+            }
+          }
+          return (
+            <ReferenceArea
+              key={`${e.id}-${e.start}`}
+              x1={x1}
+              x2={x2}
+              fill="#94a3b8"
+              fillOpacity={0.15}
+              strokeOpacity={0}
               yAxisId="left"
-              stroke="#6366f1"
-              strokeDasharray="4 3"
-              strokeWidth={1.5}
               label={{
-                value: indexBaseDate,
-                position: "top",
-                fontSize: 11,
-                fill: "#6366f1",
-                fontWeight: 600,
+                value: e.name,
+                position: "insideTop",
+                fontSize: 9,
+                fill: "transparent",
+                className: "timeline-event-label",
               }}
             />
-          )}
-          {indexBaseDate && (
-            <ReferenceLine
-              y={100}
-              yAxisId="left"
-              stroke="#6366f1"
-              strokeDasharray="3 4"
-              strokeWidth={1}
-              strokeOpacity={0.4}
-            />
-          )}
-          {onBrushChange && (
-            <Brush
-              dataKey="date"
-              height={30}
-              stroke="var(--color-ublue)"
-              tickFormatter={formatDate}
-              startIndex={mappedBrushStart ?? 0}
-              endIndex={mappedBrushEnd ?? chartData.length - 1}
-              onChange={handleGapAwareBrushChange}
-            />
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
-    );
+          );
+        })}
+        {indexBaseDate && (
+          <ReferenceLine
+            x={indexBaseDate}
+            yAxisId="left"
+            stroke="#6366f1"
+            strokeDasharray="4 3"
+            strokeWidth={1.5}
+            label={{
+              value: indexBaseDate,
+              position: "top",
+              fontSize: 11,
+              fill: "#6366f1",
+              fontWeight: 600,
+            }}
+          />
+        )}
+        {indexBaseDate && (
+          <ReferenceLine
+            y={100}
+            yAxisId="left"
+            stroke="#6366f1"
+            strokeDasharray="3 4"
+            strokeWidth={1}
+            strokeOpacity={0.4}
+          />
+        )}
+        {onBrushChange && (
+          <Brush
+            dataKey="date"
+            height={30}
+            stroke="var(--color-ublue)"
+            tickFormatter={formatDate}
+            startIndex={mappedBrushStart ?? 0}
+            endIndex={mappedBrushEnd ?? chartData.length - 1}
+            onChange={handleGapAwareBrushChange}
+          />
+        )}
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
 }
 
 /* ------------------------------------------------------------------ */

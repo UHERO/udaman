@@ -125,7 +125,7 @@ export function setDateArray(
   };
   const q: Record<string, string> = { 1: "Q1", 4: "Q2", 7: "Q3", 10: "Q4" };
 
-  let { startYear, endYear, startQuarter, endQuarter, startMonth, endMonth } =
+  const { startYear, endYear, startQuarter, endQuarter, startMonth, endMonth } =
     dateFormValues;
   let minYear = +startYear;
   let minMonth = monthSelected
@@ -133,7 +133,7 @@ export function setDateArray(
     : quarterSelected
       ? +startQuarter
       : 1;
-  let maxMonth = monthSelected ? +endMonth : quarterSelected ? +endQuarter : 1;
+  const maxMonth = monthSelected ? +endMonth : quarterSelected ? +endQuarter : 1;
   while (`${minYear}-${m[minMonth]}-01` <= `${endYear}-${m[maxMonth]}-01`) {
     // Frequency display order: M, Q, A
     if (monthSelected) {

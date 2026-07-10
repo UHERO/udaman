@@ -52,10 +52,10 @@ import { ResidentialAdditionsTable } from "@/components/hhdb/tables/residential-
 import { SalesTable } from "@/components/hhdb/tables/sales-table";
 import { YardImprovementsTable } from "@/components/hhdb/tables/yard-improvements-table";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type ActionFn = (
   params: HhdbListParams,
-) => Promise<{ rows: any[]; total: number }>;
+) => Promise<{ rows: Record<string, unknown>[]; total: number }>;
 
 interface TableProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

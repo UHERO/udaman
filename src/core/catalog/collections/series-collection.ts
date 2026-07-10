@@ -1,6 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
 import { NotFoundError } from "@/lib/errors";
-import { insertAndGetId, mysql, rawQuery, scopedConnection } from "@/lib/mysql/db";
+import {
+  insertAndGetId,
+  mysql,
+  rawQuery,
+  scopedConnection,
+} from "@/lib/mysql/db";
 import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 
 import Series from "../models/series";
@@ -13,7 +18,6 @@ import type {
 } from "../types/shared";
 import type { SeriesSummary } from "../types/udaman";
 import { isValidUniverse } from "../utils/validators";
-import type LoaderCollection from "./loader-collection";
 import TimeSeriesCollection from "./time-series-collection";
 
 const log = createLogger("catalog.series-collection");
@@ -167,7 +171,10 @@ function resolveFactbookValue(
   return isPercent ? value * 100 : value;
 }
 
-function safeAdd(a: number | null | undefined, b: number | null | undefined): number | null {
+function safeAdd(
+  a: number | null | undefined,
+  b: number | null | undefined,
+): number | null {
   if (a == null || b == null) return null;
   return a + b;
 }
@@ -232,9 +239,7 @@ async function getFactbookCache() {
       }
     } else {
       // Zip exists only in CSV — create a new index entry
-      zipIndex.set(csvRow.zip, [
-        { year: csvRow.year, values: csvRow.values },
-      ]);
+      zipIndex.set(csvRow.zip, [{ year: csvRow.year, values: csvRow.values }]);
     }
   }
 
@@ -568,8 +573,8 @@ class SeriesCollection {
 
   /** Fetch the most recent 40 series for the homepage summary list */
   static async getSummaryList({
-    offset,
-    limit,
+    offset: _offset,
+    limit: _limit,
     universe,
     preset = "recent-created",
   }: {
@@ -1055,7 +1060,11 @@ class SeriesCollection {
 
     if (needRepairDates.length > 0) {
       log.info(
-        { xseriesId: id, count: needRepairDates.length, sample: needRepairDates.slice(0, 3).map(r => String(r.date)) },
+        {
+          xseriesId: id,
+          count: needRepairDates.length,
+          sample: needRepairDates.slice(0, 3).map((r) => String(r.date)),
+        },
         "repairDataPoints: found orphaned dates",
       );
     }
@@ -1117,10 +1126,7 @@ class SeriesCollection {
     return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id} AND date <= ${opts.date}`;
   }
 
-  static async deleteCurrentDataPoints(opts: {
-    id: number;
-    u: Universe;
-  }) {
+  static async deleteCurrentDataPoints(opts: { id: number; u: Universe }) {
     return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id} AND current = 1`;
   }
 
@@ -1538,7 +1544,10 @@ class SeriesCollection {
     }
 
     if (cleanData.size === 0) {
-      log.warn({ xseriesId, dataSourceId }, "updateData: cleanData empty, skipping (repairDataPoints will NOT run)");
+      log.warn(
+        { xseriesId, dataSourceId },
+        "updateData: cleanData empty, skipping (repairDataPoints will NOT run)",
+      );
       return { inserted: 0 };
     }
 
@@ -1628,10 +1637,7 @@ class SeriesCollection {
       // Round to 10 decimal places before comparing to match Rails behavior
       // and avoid creating spurious vintages from floating-point drift.
       const ownLatest = ownLatestByDate.get(dateStr);
-      if (
-        ownLatest != null &&
-        round6(ownLatest) === round6(newValue)
-      ) {
+      if (ownLatest != null && round6(ownLatest) === round6(newValue)) {
         // Already current from this loader — nothing to do
         if (current && current.dataSourceId === dataSourceId) {
           continue;
@@ -1807,7 +1813,12 @@ class SeriesCollection {
     if (startYear !== undefined || endYear !== undefined) {
       // Explicit year range: use the single-range fetch
       const { fetchSeries } = await import("../utils/api-clients/bls");
-      const { data, url } = await fetchSeries(seriesId, frequency, startYear, endYear);
+      const { data, url } = await fetchSeries(
+        seriesId,
+        frequency,
+        startYear,
+        endYear,
+      );
       return this.wrapApiResult(data, url, frequency);
     }
     // Default: full history walk
@@ -1996,7 +2007,7 @@ class SeriesCollection {
       `);
 
       let previousDepth = 1;
-      let [prevCountRow] = await exec(
+      const [prevCountRow] = await exec(
         `SELECT COUNT(*) AS cnt FROM t_series WHERE dependency_depth = 0`,
       );
       let previousDepthCount = (prevCountRow as { cnt: number }).cnt;
@@ -2141,12 +2152,24 @@ class SeriesCollection {
       pseudoHistory: boolean;
     }>;
     job?: { log: (msg: string) => void };
-  }): Promise<Array<{ loaderId: number; status: "success" | "error"; message: string; inserted: number }>> {
+  }): Promise<
+    Array<{
+      loaderId: number;
+      status: "success" | "error";
+      message: string;
+      inserted: number;
+    }>
+  > {
     const { loaders, job } = opts;
     const { default: LoaderCol } = await import("./loader-collection");
     const { fetchSeriesBatch } = await import("../utils/api-clients/bls");
 
-    const results: Array<{ loaderId: number; status: "success" | "error"; message: string; inserted: number }> = [];
+    const results: Array<{
+      loaderId: number;
+      status: "success" | "error";
+      message: string;
+      inserted: number;
+    }> = [];
 
     // Deduplicate BLS series IDs (multiple loaders may share the same BLS ID)
     const uniqueBlsIds = [...new Set(loaders.map((l) => l.blsSeriesId))];
@@ -2166,7 +2189,9 @@ class SeriesCollection {
 
     while (activeIds.length > 0 && endYear > 1900) {
       const startYear = endYear - BLS_MAX_SPAN + 1;
-      job?.log(`BLS batch: fetching ${activeIds.length} series for ${startYear}–${endYear}`);
+      job?.log(
+        `BLS batch: fetching ${activeIds.length} series for ${startYear}–${endYear}`,
+      );
 
       // Split into batches of 50
       for (let i = 0; i < activeIds.length; i += BLS_BATCH_SIZE) {
@@ -2219,7 +2244,9 @@ class SeriesCollection {
       endYear = endYear - BLS_MAX_SPAN;
     }
 
-    job?.log(`BLS batch: ${totalRequests} API requests, ${allData.size} series with data`);
+    job?.log(
+      `BLS batch: ${totalRequests} API requests, ${allData.size} series with data`,
+    );
 
     // Now write data for each loader
     const erroredLoaderIds = new Set(results.map((r) => r.loaderId));
@@ -2233,7 +2260,12 @@ class SeriesCollection {
       if (!blsData || blsData.size === 0) {
         const msg = `No BLS data returned for ${loader.blsSeriesId}`;
         job?.log(`Loader ${loader.loaderId}: ${msg}`);
-        results.push({ loaderId: loader.loaderId, status: "error", message: msg, inserted: 0 });
+        results.push({
+          loaderId: loader.loaderId,
+          status: "error",
+          message: msg,
+          inserted: 0,
+        });
         await LoaderCol.update(loader.loaderId, {
           lastRunAt: new Date(),
           lastError: msg,
@@ -2260,7 +2292,12 @@ class SeriesCollection {
         const runtime = (Date.now() - t) / 1000;
         const msg = `Loaded ${updateResult.inserted} new points (${blsData.size} total) in ${runtime.toFixed(1)}s`;
         job?.log(`Loader ${loader.loaderId}: ${msg}`);
-        results.push({ loaderId: loader.loaderId, status: "success", message: msg, inserted: updateResult.inserted });
+        results.push({
+          loaderId: loader.loaderId,
+          status: "success",
+          message: msg,
+          inserted: updateResult.inserted,
+        });
 
         await LoaderCol.update(loader.loaderId, {
           lastRunAt: new Date(),
@@ -2272,7 +2309,12 @@ class SeriesCollection {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         job?.log(`Loader ${loader.loaderId} write error: ${msg}`);
-        results.push({ loaderId: loader.loaderId, status: "error", message: msg, inserted: 0 });
+        results.push({
+          loaderId: loader.loaderId,
+          status: "error",
+          message: msg,
+          inserted: 0,
+        });
         await LoaderCol.update(loader.loaderId, {
           lastRunAt: new Date(),
           lastError: msg.slice(0, 254),

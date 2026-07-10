@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 import { AssessedValueChart } from "@/components/hhdb/dashboard/assessed-value-chart";
 import { CondoAreaChart } from "@/components/hhdb/dashboard/condo-area-chart";
@@ -10,7 +11,6 @@ import { SalePriceChart } from "@/components/hhdb/dashboard/sale-price-chart";
 import { TotalAssessedChart } from "@/components/hhdb/dashboard/total-assessed-chart";
 import { Button } from "@/components/ui/button";
 import { useFullWidth } from "@/hooks/use-full-width";
-import { Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tab = "about" | "metrics";

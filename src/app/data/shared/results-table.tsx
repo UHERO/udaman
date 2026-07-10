@@ -98,7 +98,7 @@ export default function ResultsTable({
   }
 
   return (
-    <div className="relative max-h-full w-full overflow-auto rounded-md border [scrollbar-color:theme(colors.gray.300)_transparent] [scrollbar-width:thin]">
+    <div className="relative max-h-full w-full [scrollbar-width:thin] [scrollbar-color:theme(colors.gray.300)_transparent] overflow-auto rounded-md border">
       <RawTable className="size-full">
         <TableHeader className="">
           <TableRow className="">

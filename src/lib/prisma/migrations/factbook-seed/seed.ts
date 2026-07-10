@@ -17,9 +17,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { sanitizePrefix } from "@catalog/utils/factbook-parser";
-import { mysql, rawQuery } from "@/lib/mysql/db";
 import type { Universe } from "@catalog/types/shared";
+import { sanitizePrefix } from "@catalog/utils/factbook-parser";
+
+import { rawQuery } from "@/lib/mysql/db";
 
 const HHF: Universe = "HHF";
 const DRY_RUN = !process.argv.includes("--execute");
@@ -29,9 +30,7 @@ const DRY_RUN = !process.argv.includes("--execute");
 /** Insert a row and return the auto-increment ID via a single rawQuery + SELECT. */
 async function insert(sql: string, params: unknown[]): Promise<number> {
   await rawQuery(sql, params as (string | number | Date)[]);
-  const rows = await rawQuery<{ id: number }>(
-    "SELECT LAST_INSERT_ID() as id",
-  );
+  const rows = await rawQuery<{ id: number }>("SELECT LAST_INSERT_ID() as id");
   return rows[0].id;
 }
 
@@ -295,7 +294,9 @@ async function seed() {
 
   const geoRows = await parseGeoCsv();
   const countyFipsSet = new Set(COUNTIES.map((c) => c.fips));
-  const filteredGeoRows = geoRows.filter((r) => countyFipsSet.has(r.countyFips));
+  const filteredGeoRows = geoRows.filter((r) =>
+    countyFipsSet.has(r.countyFips),
+  );
   console.log(`ZCTAs from CSV: ${filteredGeoRows.length}`);
   console.log(`Counties: ${COUNTIES.map((c) => c.handle).join(", ")}`);
   console.log("─".repeat(60));
@@ -311,7 +312,9 @@ async function seed() {
         );
       }
     }
-    console.log(`\nGeographies: 1 state + ${COUNTIES.length} counties + ${filteredGeoRows.length} ZCTAs`);
+    console.log(
+      `\nGeographies: 1 state + ${COUNTIES.length} counties + ${filteredGeoRows.length} ZCTAs`,
+    );
     console.log(`\nMeasurements: ${allPrefixes.length}`);
     for (const prefix of allPrefixes) {
       const pct = PERCENT_PREFIXES.has(prefix) ? " [percent]" : "";
@@ -440,9 +443,7 @@ async function seed() {
           );
         }
       }
-      console.log(
-        `    ${sub.name}: ${sub.columns.length} measurements linked`,
-      );
+      console.log(`    ${sub.name}: ${sub.columns.length} measurements linked`);
     }
   }
 
@@ -499,7 +500,14 @@ async function seed() {
     await insert(
       `INSERT INTO geographies (universe, handle, display_name, display_name_short, fips, geotype, list_order, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'zipcode', ?, NOW(), NOW())`,
-      [HHF, row.zcta5, row.zipname, row.zcta5, row.countyFips, 100 + zctaCreated],
+      [
+        HHF,
+        row.zcta5,
+        row.zipname,
+        row.zcta5,
+        row.countyFips,
+        100 + zctaCreated,
+      ],
     );
     zctaCreated++;
   }
@@ -509,9 +517,13 @@ async function seed() {
 
   console.log("\n" + "─".repeat(60));
   console.log("HHF Universe Seed complete.");
-  console.log(`  Categories: ${UNIVERSE_STRUCTURE.length} top-level + ${UNIVERSE_STRUCTURE.reduce((n, t) => n + t.subCategories.length, 0)} sub`);
+  console.log(
+    `  Categories: ${UNIVERSE_STRUCTURE.length} top-level + ${UNIVERSE_STRUCTURE.reduce((n, t) => n + t.subCategories.length, 0)} sub`,
+  );
   console.log(`  Measurements: ${measurementByPrefix.size}`);
-  console.log(`  Geographies: 1 state + ${COUNTIES.length} counties + ${zctaCreated + zctaExisting} ZCTAs`);
+  console.log(
+    `  Geographies: 1 state + ${COUNTIES.length} counties + ${zctaCreated + zctaExisting} ZCTAs`,
+  );
 }
 
 seed()

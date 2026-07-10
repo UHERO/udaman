@@ -8,22 +8,21 @@
  * either the remote production database or a local rebuild database.
  */
 
-import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { getIslandCode } from "@/core/crawlers/qpub/config";
+import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import type { Logger } from "@/core/observability/logger";
-import { rawQuery, insertAndGetId } from "@/lib/mysql/hhdb";
+import { insertAndGetId, rawQuery } from "@/lib/mysql/hhdb";
 
 import {
-  str,
-  int,
   dec,
-  parseDateValue,
-  sqlDate,
-  getMaxTaxYear,
-  getAssessmentPropertyClass,
-  unitParcelToTmk,
   errorMessage,
   GENERIC_SECTION_MAP,
+  getAssessmentPropertyClass,
+  int,
+  parseDateValue,
+  sqlDate,
+  str,
+  unitParcelToTmk,
   type Row,
 } from "./qpub-load";
 
@@ -93,7 +92,11 @@ async function batchInsert(
 /**
  * DELETE WHERE tmk IN (...) with chunking at DELETE_CHUNK_SIZE.
  */
-async function batchDeleteByTmk(db: DbConnection, table: string, tmks: string[]): Promise<void> {
+async function batchDeleteByTmk(
+  db: DbConnection,
+  table: string,
+  tmks: string[],
+): Promise<void> {
   if (tmks.length === 0) return;
 
   for (let i = 0; i < tmks.length; i += DELETE_CHUNK_SIZE) {
@@ -151,7 +154,8 @@ function extractProperties(items: BatchItem[]): SqlValue[][] {
     const improvInfo =
       (data.residential_improvement_information as Row | undefined) ??
       (data.improvement_information as Row | undefined);
-    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
+    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ??
+      [])[0];
     const projectName =
       str(parcel.project_name) ?? str(firstBuilding?.condo_name);
     const propertyClass =
@@ -194,7 +198,8 @@ function extractParcels(items: BatchItem[]): SqlValue[][] {
     const improvInfo =
       (data.residential_improvement_information as Row | undefined) ??
       (data.improvement_information as Row | undefined);
-    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
+    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ??
+      [])[0];
     const projectName =
       str(parcel.project_name) ?? str(firstBuilding?.condo_name);
     const propertyClass =
@@ -557,7 +562,13 @@ function extractHistoricalTax(items: BatchItem[]): HistoricalTaxExtracted {
       for (const c of taxCredits) {
         result.credits.push({
           summaryKey,
-          row: [tmk, scrapedAtStr, str(c.period), str(c.description), dec(c.amount)],
+          row: [
+            tmk,
+            scrapedAtStr,
+            str(c.period),
+            str(c.description),
+            dec(c.amount),
+          ],
         });
       }
     }
@@ -574,7 +585,9 @@ type CommercialParentRow = {
   details: SqlValue[][];
 };
 
-function extractCommercialImprovements(items: BatchItem[]): CommercialParentRow[] {
+function extractCommercialImprovements(
+  items: BatchItem[],
+): CommercialParentRow[] {
   const parents: CommercialParentRow[] = [];
 
   for (const { tmk, data, scrapedAt, observedYear } of items) {
@@ -637,7 +650,11 @@ function extractCommercialImprovements(items: BatchItem[]): CommercialParentRow[
 // ─── Condominium Extraction ─────────────────────────────────────────
 
 type CondoExtracted = {
-  projects: { tmk: string; projectName: string | null; unitCount: number | null }[];
+  projects: {
+    tmk: string;
+    projectName: string | null;
+    unitCount: number | null;
+  }[];
   unitProperties: SqlValue[][];
   units: SqlValue[][];
 };
@@ -653,13 +670,16 @@ function extractCondominium(items: BatchItem[]): CondoExtracted {
     if (data.status !== "condo_project") continue;
 
     const parcel = data.parcel_information as Row | undefined;
-    const unitInfo = data.condominium_apartment_unit_information as Row | undefined;
+    const unitInfo = data.condominium_apartment_unit_information as
+      | Row
+      | undefined;
     const units = (unitInfo?.table_data ?? []) as Row[];
 
     const improvInfo =
       (data.residential_improvement_information as Row | undefined) ??
       (data.improvement_information as Row | undefined);
-    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
+    const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ??
+      [])[0];
     const projectName =
       str(parcel?.project_name) ?? str(firstBuilding?.condo_name);
     const unitCount = units.length || null;
@@ -690,9 +710,15 @@ function extractCondominium(items: BatchItem[]): CondoExtracted {
 /** Column cache so we only query SHOW COLUMNS once per table per rebuild */
 const columnCache = new Map<string, Set<string>>();
 
-async function getTableColumns(db: DbConnection, table: string): Promise<Set<string>> {
+async function getTableColumns(
+  db: DbConnection,
+  table: string,
+): Promise<Set<string>> {
   if (columnCache.has(table)) return columnCache.get(table)!;
-  const columns = await db.query<{ Field: string }>(`SHOW COLUMNS FROM ${table}`, []);
+  const columns = await db.query<{ Field: string }>(
+    `SHOW COLUMNS FROM ${table}`,
+    [],
+  );
   const set = new Set(columns.map((c) => c.Field));
   columnCache.set(table, set);
   return set;
@@ -729,7 +755,8 @@ async function extractGenericSection(
 
     for (const row of rows) {
       const matched: Record<string, SqlValue> = { tmk };
-      if (columnNames.has("scraped_at")) matched.scraped_at = sqlDate(scrapedAt);
+      if (columnNames.has("scraped_at"))
+        matched.scraped_at = sqlDate(scrapedAt);
       if (hasLastYearObserved) matched.last_year_observed = observedYear;
 
       for (const [key, value] of Object.entries(row)) {
@@ -737,9 +764,15 @@ async function extractGenericSection(
           .toLowerCase()
           .replace(/[^\w\s]/g, "")
           .replace(/\s+/g, "_");
-        if (columnNames.has(snakeKey) && !excludedCols.has(snakeKey) &&
-            snakeKey !== "tmk" && snakeKey !== "scraped_at" && snakeKey !== "last_year_observed") {
-          matched[snakeKey] = value === null || value === undefined ? null : String(value);
+        if (
+          columnNames.has(snakeKey) &&
+          !excludedCols.has(snakeKey) &&
+          snakeKey !== "tmk" &&
+          snakeKey !== "scraped_at" &&
+          snakeKey !== "last_year_observed"
+        ) {
+          matched[snakeKey] =
+            value === null || value === undefined ? null : String(value);
         }
       }
 
@@ -748,7 +781,9 @@ async function extractGenericSection(
       }
 
       // Build row in column order
-      const rowValues = (detectedCols ?? Object.keys(matched)).map((col) => matched[col] ?? null);
+      const rowValues = (detectedCols ?? Object.keys(matched)).map(
+        (col) => matched[col] ?? null,
+      );
       allRows.push(rowValues);
     }
   }
@@ -758,37 +793,67 @@ async function extractGenericSection(
 
 // ─── Table Loading Strategies ───────────────────────────────────────
 
-async function loadPropertiesBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadPropertiesBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const rows = extractProperties(items);
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "island_code", "parcel_number", "location_address", "address_other",
-    "project_name", "legal_information", "property_class",
-    "land_area_sqft", "land_area_acres",
-    "neighborhood_code", "zoning", "parcel_note",
-    "damage", "reentry_zone", "zone_color",
-    "non_taxable_status", "living_units",
-    "map_url", "sketch_url",
+    "tmk",
+    "island_code",
+    "parcel_number",
+    "location_address",
+    "address_other",
+    "project_name",
+    "legal_information",
+    "property_class",
+    "land_area_sqft",
+    "land_area_acres",
+    "neighborhood_code",
+    "zoning",
+    "parcel_note",
+    "damage",
+    "reentry_zone",
+    "zone_color",
+    "non_taxable_status",
+    "living_units",
+    "map_url",
+    "sketch_url",
   ];
 
   const onDuplicate = [
-    "parcel_number=VALUES(parcel_number)", "location_address=VALUES(location_address)",
-    "address_other=VALUES(address_other)", "project_name=VALUES(project_name)",
-    "legal_information=VALUES(legal_information)", "property_class=VALUES(property_class)",
-    "land_area_sqft=VALUES(land_area_sqft)", "land_area_acres=VALUES(land_area_acres)",
-    "neighborhood_code=VALUES(neighborhood_code)", "zoning=VALUES(zoning)",
-    "parcel_note=VALUES(parcel_note)", "damage=VALUES(damage)",
-    "reentry_zone=VALUES(reentry_zone)", "zone_color=VALUES(zone_color)",
-    "non_taxable_status=VALUES(non_taxable_status)", "living_units=VALUES(living_units)",
-    "map_url=VALUES(map_url)", "sketch_url=VALUES(sketch_url)",
+    "parcel_number=VALUES(parcel_number)",
+    "location_address=VALUES(location_address)",
+    "address_other=VALUES(address_other)",
+    "project_name=VALUES(project_name)",
+    "legal_information=VALUES(legal_information)",
+    "property_class=VALUES(property_class)",
+    "land_area_sqft=VALUES(land_area_sqft)",
+    "land_area_acres=VALUES(land_area_acres)",
+    "neighborhood_code=VALUES(neighborhood_code)",
+    "zoning=VALUES(zoning)",
+    "parcel_note=VALUES(parcel_note)",
+    "damage=VALUES(damage)",
+    "reentry_zone=VALUES(reentry_zone)",
+    "zone_color=VALUES(zone_color)",
+    "non_taxable_status=VALUES(non_taxable_status)",
+    "living_units=VALUES(living_units)",
+    "map_url=VALUES(map_url)",
+    "sketch_url=VALUES(sketch_url)",
     "updated_at=NOW()",
   ].join(", ");
 
   await batchInsert(db, { table: "properties", columns, rows, onDuplicate });
 }
 
-async function loadParcelsBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadParcelsBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, "parcels", tmks);
 
@@ -796,19 +861,35 @@ async function loadParcelsBatch(db: DbConnection, items: BatchItem[], _log: Logg
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "scraped_at", "last_year_observed",
-    "parcel_number", "location_address", "address_other",
-    "project_name", "legal_information", "property_class",
-    "land_area_sqft", "land_area_acres",
-    "neighborhood_code", "zoning", "parcel_note",
-    "damage", "reentry_zone", "zone_color",
-    "non_taxable_status", "living_units",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "parcel_number",
+    "location_address",
+    "address_other",
+    "project_name",
+    "legal_information",
+    "property_class",
+    "land_area_sqft",
+    "land_area_acres",
+    "neighborhood_code",
+    "zoning",
+    "parcel_note",
+    "damage",
+    "reentry_zone",
+    "zone_color",
+    "non_taxable_status",
+    "living_units",
   ];
 
   await batchInsert(db, { table: "parcels", columns, rows });
 }
 
-async function loadOwnersBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadOwnersBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, "owners", tmks);
 
@@ -816,32 +897,55 @@ async function loadOwnersBatch(db: DbConnection, items: BatchItem[], _log: Logge
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "scraped_at", "last_year_observed",
-    "owner_name", "owner_type", "owner_address", "sequence_order",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "owner_name",
+    "owner_type",
+    "owner_address",
+    "sequence_order",
   ];
 
   await batchInsert(db, { table: "owners", columns, rows });
 }
 
-async function loadAssessmentsBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadAssessmentsBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const rows = extractAssessments(items);
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "scraped_at", "tax_year", "property_class",
-    "assessed_land_value", "assessed_building_value", "dedicated_use_value",
-    "land_exemption", "building_exemption",
-    "net_taxable_land_value", "net_taxable_building_value",
-    "total_property_assessed_value", "total_property_exemption", "total_net_taxable_value",
-    "agricultural_land_value", "market_land_value", "market_building_value", "total_market_value",
+    "tmk",
+    "scraped_at",
+    "tax_year",
+    "property_class",
+    "assessed_land_value",
+    "assessed_building_value",
+    "dedicated_use_value",
+    "land_exemption",
+    "building_exemption",
+    "net_taxable_land_value",
+    "net_taxable_building_value",
+    "total_property_assessed_value",
+    "total_property_exemption",
+    "total_net_taxable_value",
+    "agricultural_land_value",
+    "market_land_value",
+    "market_building_value",
+    "total_market_value",
   ];
 
   const onDuplicate = [
-    "scraped_at=VALUES(scraped_at)", "property_class=VALUES(property_class)",
+    "scraped_at=VALUES(scraped_at)",
+    "property_class=VALUES(property_class)",
     "assessed_land_value=VALUES(assessed_land_value)",
     "assessed_building_value=VALUES(assessed_building_value)",
     "dedicated_use_value=VALUES(dedicated_use_value)",
-    "land_exemption=VALUES(land_exemption)", "building_exemption=VALUES(building_exemption)",
+    "land_exemption=VALUES(land_exemption)",
+    "building_exemption=VALUES(building_exemption)",
     "net_taxable_land_value=VALUES(net_taxable_land_value)",
     "net_taxable_building_value=VALUES(net_taxable_building_value)",
     "total_property_assessed_value=VALUES(total_property_assessed_value)",
@@ -856,7 +960,11 @@ async function loadAssessmentsBatch(db: DbConnection, items: BatchItem[], _log: 
   await batchInsert(db, { table: "assessments", columns, rows, onDuplicate });
 }
 
-async function loadLandClassificationsBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadLandClassificationsBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, "land_classifications", tmks);
 
@@ -864,14 +972,23 @@ async function loadLandClassificationsBatch(db: DbConnection, items: BatchItem[]
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "scraped_at", "last_year_observed",
-    "land_classification", "square_footage", "acreage", "agricultural_use_indicator",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "land_classification",
+    "square_footage",
+    "acreage",
+    "agricultural_use_indicator",
   ];
 
   await batchInsert(db, { table: "land_classifications", columns, rows });
 }
 
-async function loadResidentialImprovementsBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadResidentialImprovementsBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, "residential_improvements", tmks);
 
@@ -879,20 +996,40 @@ async function loadResidentialImprovementsBatch(db: DbConnection, items: BatchIt
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "scraped_at", "last_year_observed",
-    "building_number", "year_built", "eff_year_built",
-    "living_area", "bedrooms", "full_bath", "half_bath",
-    "occupancy", "framing", "percent_complete",
-    "heating_cooling", "exterior_wall", "roof_material",
-    "fireplace", "grade", "building_value",
-    "total_room_count", "condo_style", "condo_view",
-    "floor_level", "parking_spaces",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "building_number",
+    "year_built",
+    "eff_year_built",
+    "living_area",
+    "bedrooms",
+    "full_bath",
+    "half_bath",
+    "occupancy",
+    "framing",
+    "percent_complete",
+    "heating_cooling",
+    "exterior_wall",
+    "roof_material",
+    "fireplace",
+    "grade",
+    "building_value",
+    "total_room_count",
+    "condo_style",
+    "condo_view",
+    "floor_level",
+    "parking_spaces",
   ];
 
   await batchInsert(db, { table: "residential_improvements", columns, rows });
 }
 
-async function loadCommercialImprovementsBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadCommercialImprovementsBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
 
   // Delete children first (FK constraint), then parents
@@ -903,20 +1040,40 @@ async function loadCommercialImprovementsBatch(db: DbConnection, items: BatchIte
   if (parents.length === 0) return;
 
   const parentColumns = [
-    "tmk", "scraped_at", "last_year_observed",
-    "building_number", "building_card",
-    "year_built", "effective_year_built",
-    "improvement_name", "property_class", "structure_type",
-    "units", "identical_units", "gross_building_description",
-    "building_type", "building_square_footage",
-    "percent_complete", "value",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "building_number",
+    "building_card",
+    "year_built",
+    "effective_year_built",
+    "improvement_name",
+    "property_class",
+    "structure_type",
+    "units",
+    "identical_units",
+    "gross_building_description",
+    "building_type",
+    "building_square_footage",
+    "percent_complete",
+    "value",
   ];
 
   // Insert parents one by one to get IDs for children, but batch the children
-  const detailColumns = [
-    "commercial_improvement_id", "tmk", "scraped_at", "last_year_observed",
-    "card", "section", "floor", "`usage`", "area", "perimeter",
-    "exterior_wall", "wall_height", "occupancy",
+  const _detailColumns = [
+    "commercial_improvement_id",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "card",
+    "section",
+    "floor",
+    "`usage`",
+    "area",
+    "perimeter",
+    "exterior_wall",
+    "wall_height",
+    "occupancy",
   ];
 
   // Since we need parent IDs, insert parents individually and collect detail rows
@@ -946,13 +1103,25 @@ async function loadCommercialImprovementsBatch(db: DbConnection, items: BatchIte
   if (allDetailRows.length > 0) {
     // Use raw column names (usage needs backtick)
     const detailColsRaw = [
-      "commercial_improvement_id", "tmk", "scraped_at", "last_year_observed",
-      "card", "section", "floor", "usage", "area", "perimeter",
-      "exterior_wall", "wall_height", "occupancy",
+      "commercial_improvement_id",
+      "tmk",
+      "scraped_at",
+      "last_year_observed",
+      "card",
+      "section",
+      "floor",
+      "usage",
+      "area",
+      "perimeter",
+      "exterior_wall",
+      "wall_height",
+      "occupancy",
     ];
 
     // Build INSERT manually to handle the backtick on `usage`
-    const colList = detailColsRaw.map((c) => c === "usage" ? "`usage`" : c).join(", ");
+    const colList = detailColsRaw
+      .map((c) => (c === "usage" ? "`usage`" : c))
+      .join(", ");
     const rowPlaceholder = `(${detailColsRaw.map(() => "?").join(", ")})`;
 
     for (let i = 0; i < allDetailRows.length; i += INSERT_CHUNK_SIZE) {
@@ -968,7 +1137,11 @@ async function loadCommercialImprovementsBatch(db: DbConnection, items: BatchIte
   }
 }
 
-async function loadSalesBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadSalesBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, "sales", tmks);
 
@@ -976,27 +1149,50 @@ async function loadSalesBatch(db: DbConnection, items: BatchItem[], _log: Logger
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "sale_date", "sale_amount", "instrument", "instrument_type",
-    "instrument_description", "valid_sale", "date_of_recording",
-    "land_court_document_number", "cert", "book_page", "conveyance_tax",
+    "tmk",
+    "sale_date",
+    "sale_amount",
+    "instrument",
+    "instrument_type",
+    "instrument_description",
+    "valid_sale",
+    "date_of_recording",
+    "land_court_document_number",
+    "cert",
+    "book_page",
+    "conveyance_tax",
   ];
 
   await batchInsert(db, { table: "sales", columns, rows });
 }
 
-async function loadPermitsBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadPermitsBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, "permits", tmks);
 
   const rows = extractPermits(items);
   if (rows.length === 0) return;
 
-  const columns = ["tmk", "permit_date", "permit_number", "reason", "permit_amount"];
+  const columns = [
+    "tmk",
+    "permit_date",
+    "permit_number",
+    "reason",
+    "permit_amount",
+  ];
 
   await batchInsert(db, { table: "permits", columns, rows });
 }
 
-async function loadCurrentTaxBillsBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadCurrentTaxBillsBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, "current_tax_bills", tmks);
 
@@ -1004,16 +1200,29 @@ async function loadCurrentTaxBillsBatch(db: DbConnection, items: BatchItem[], _l
   if (rows.length === 0) return;
 
   const columns = [
-    "tmk", "scraped_at", "last_year_observed",
-    "tax_period", "description", "original_due_date",
-    "taxes_assessment", "tax_credits", "net_tax",
-    "penalty", "interest", "other", "amount_due",
+    "tmk",
+    "scraped_at",
+    "last_year_observed",
+    "tax_period",
+    "description",
+    "original_due_date",
+    "taxes_assessment",
+    "tax_credits",
+    "net_tax",
+    "penalty",
+    "interest",
+    "other",
+    "amount_due",
   ];
 
   await batchInsert(db, { table: "current_tax_bills", columns, rows });
 }
 
-async function loadHistoricalTaxBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadHistoricalTaxBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const tmks = items.map((i) => i.tmk);
   const extracted = extractHistoricalTax(items);
 
@@ -1028,12 +1237,24 @@ async function loadHistoricalTaxBatch(db: DbConnection, items: BatchItem[], _log
 
   // Insert all summaries
   const summaryColumns = [
-    "tmk", "scraped_at", "year", "tax", "payments_and_credits",
-    "penalty", "interest", "other", "amount_due",
-    "tax_details_total_tax", "tax_details_total_payments_credits",
-    "tax_details_total_penalty", "tax_details_total_interest", "tax_details_total_other",
-    "tax_payments_total_tax", "tax_payments_total_penalty",
-    "tax_payments_total_interest", "tax_payments_total_other",
+    "tmk",
+    "scraped_at",
+    "year",
+    "tax",
+    "payments_and_credits",
+    "penalty",
+    "interest",
+    "other",
+    "amount_due",
+    "tax_details_total_tax",
+    "tax_details_total_payments_credits",
+    "tax_details_total_penalty",
+    "tax_details_total_interest",
+    "tax_details_total_other",
+    "tax_payments_total_tax",
+    "tax_payments_total_penalty",
+    "tax_payments_total_interest",
+    "tax_payments_total_other",
     "tax_credits_total_amount",
   ];
 
@@ -1044,7 +1265,11 @@ async function loadHistoricalTaxBatch(db: DbConnection, items: BatchItem[], _log
   });
 
   // Now SELECT back all summary IDs for the batch TMKs to link children
-  if (extracted.details.length === 0 && extracted.payments.length === 0 && extracted.credits.length === 0) {
+  if (
+    extracted.details.length === 0 &&
+    extracted.payments.length === 0 &&
+    extracted.credits.length === 0
+  ) {
     return;
   }
 
@@ -1072,12 +1297,23 @@ async function loadHistoricalTaxBatch(db: DbConnection, items: BatchItem[], _log
     }
 
     const detailColumns = [
-      "historical_tax_summary_id", "tmk", "scraped_at",
-      "tax_period", "description", "tax", "payments_credits",
-      "penalty", "interest", "other",
+      "historical_tax_summary_id",
+      "tmk",
+      "scraped_at",
+      "tax_period",
+      "description",
+      "tax",
+      "payments_credits",
+      "penalty",
+      "interest",
+      "other",
     ];
 
-    await batchInsert(db, { table: "historical_tax_details", columns: detailColumns, rows: detailRows });
+    await batchInsert(db, {
+      table: "historical_tax_details",
+      columns: detailColumns,
+      rows: detailRows,
+    });
   }
 
   // Insert payments
@@ -1090,12 +1326,22 @@ async function loadHistoricalTaxBatch(db: DbConnection, items: BatchItem[], _log
     }
 
     const paymentColumns = [
-      "historical_tax_summary_id", "tmk", "scraped_at",
-      "payment_sequence", "effective_date", "tax",
-      "penalty", "interest", "other",
+      "historical_tax_summary_id",
+      "tmk",
+      "scraped_at",
+      "payment_sequence",
+      "effective_date",
+      "tax",
+      "penalty",
+      "interest",
+      "other",
     ];
 
-    await batchInsert(db, { table: "historical_tax_payments", columns: paymentColumns, rows: paymentRows });
+    await batchInsert(db, {
+      table: "historical_tax_payments",
+      columns: paymentColumns,
+      rows: paymentRows,
+    });
   }
 
   // Insert credits
@@ -1108,29 +1354,44 @@ async function loadHistoricalTaxBatch(db: DbConnection, items: BatchItem[], _log
     }
 
     const creditColumns = [
-      "historical_tax_summary_id", "tmk", "scraped_at",
-      "period", "description", "amount",
+      "historical_tax_summary_id",
+      "tmk",
+      "scraped_at",
+      "period",
+      "description",
+      "amount",
     ];
 
-    await batchInsert(db, { table: "historical_tax_credits", columns: creditColumns, rows: creditRows });
+    await batchInsert(db, {
+      table: "historical_tax_credits",
+      columns: creditColumns,
+      rows: creditRows,
+    });
   }
 }
 
-async function loadCondominiumBatch(db: DbConnection, items: BatchItem[], _log: Logger): Promise<void> {
+async function loadCondominiumBatch(
+  db: DbConnection,
+  items: BatchItem[],
+  _log: Logger,
+): Promise<void> {
   const extracted = extractCondominium(items);
   if (extracted.projects.length === 0) return;
 
   // Upsert projects
   const projectColumns = ["tmk", "project_name", "unit_count"];
   const projectRows: SqlValue[][] = extracted.projects.map((p) => [
-    p.tmk, p.projectName, p.unitCount,
+    p.tmk,
+    p.projectName,
+    p.unitCount,
   ]);
 
   await batchInsert(db, {
     table: "condominium_projects",
     columns: projectColumns,
     rows: projectRows,
-    onDuplicate: "project_name=VALUES(project_name), unit_count=VALUES(unit_count)",
+    onDuplicate:
+      "project_name=VALUES(project_name), unit_count=VALUES(unit_count)",
   });
 
   // Insert stub properties for units (INSERT IGNORE — may already exist)
@@ -1149,7 +1410,8 @@ async function loadCondominiumBatch(db: DbConnection, items: BatchItem[], _log: 
       table: "condominium_units",
       columns: unitColumns,
       rows: extracted.units,
-      onDuplicate: "unit_number=VALUES(unit_number), owner_name=VALUES(owner_name)",
+      onDuplicate:
+        "unit_number=VALUES(unit_number), owner_name=VALUES(owner_name)",
     });
   }
 }
@@ -1164,7 +1426,12 @@ async function loadGenericSectionBatch(
   const tmks = items.map((i) => i.tmk);
   await batchDeleteByTmk(db, tableName, tmks);
 
-  const { columns, rows } = await extractGenericSection(db, items, sectionName, tableName);
+  const { columns, rows } = await extractGenericSection(
+    db,
+    items,
+    sectionName,
+    tableName,
+  );
   if (rows.length === 0) return;
 
   await batchInsert(db, { table: tableName, columns, rows });
@@ -1207,7 +1474,11 @@ async function safeBatchLoad(
 
 // ─── Table Registry ─────────────────────────────────────────────────
 
-type BatchTableLoader = (db: DbConnection, items: BatchItem[], log: Logger) => Promise<void>;
+type BatchTableLoader = (
+  db: DbConnection,
+  items: BatchItem[],
+  log: Logger,
+) => Promise<void>;
 
 const BATCH_TABLE_LOADERS: Record<string, BatchTableLoader> = {
   properties: loadPropertiesBatch,
@@ -1235,16 +1506,32 @@ export async function batchLoadAll(
   log: Logger,
   db: DbConnection = REMOTE_DB,
 ): Promise<BatchResult> {
-  const combined: BatchResult = { succeeded: items.length, failed: 0, errors: [] };
+  const combined: BatchResult = {
+    succeeded: items.length,
+    failed: 0,
+    errors: [],
+  };
 
   // Phase 1: properties (all FKs point here)
-  const propResult = await safeBatchLoad(db, items, loadPropertiesBatch, "properties", log);
+  const propResult = await safeBatchLoad(
+    db,
+    items,
+    loadPropertiesBatch,
+    "properties",
+    log,
+  );
   if (propResult.failed > 0) {
     combined.errors.push(...propResult.errors);
   }
 
   // Phase 2: condominium (creates unit properties)
-  const condoResult = await safeBatchLoad(db, items, loadCondominiumBatch, "condominium", log);
+  const condoResult = await safeBatchLoad(
+    db,
+    items,
+    loadCondominiumBatch,
+    "condominium",
+    log,
+  );
   if (condoResult.failed > 0) {
     combined.errors.push(...condoResult.errors);
   }
@@ -1276,7 +1563,10 @@ export async function batchLoadAll(
       await loadGenericSectionBatch(db, items, sectionName, tableName, log);
     } catch (e) {
       // Generic sections are best-effort — log and continue
-      log.warn({ table: tableName, error: errorMessage(e) }, "Generic section batch failed");
+      log.warn(
+        { table: tableName, error: errorMessage(e) },
+        "Generic section batch failed",
+      );
     }
   }
 
@@ -1304,13 +1594,22 @@ export async function batchLoadTable(
   }
 
   // Check if it's a generic section
-  const sectionEntry = Object.entries(GENERIC_SECTION_MAP).find(([, t]) => t === table);
+  const sectionEntry = Object.entries(GENERIC_SECTION_MAP).find(
+    ([, t]) => t === table,
+  );
   if (sectionEntry) {
     const [sectionName, tableName] = sectionEntry;
     return safeBatchLoad(
       db,
       items,
-      (conn, batchItems, batchLog) => loadGenericSectionBatch(conn, batchItems, sectionName, tableName, batchLog),
+      (conn, batchItems, batchLog) =>
+        loadGenericSectionBatch(
+          conn,
+          batchItems,
+          sectionName,
+          tableName,
+          batchLog,
+        ),
       tableName,
       log,
     );

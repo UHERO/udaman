@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import type { ClipboardLoaderRow } from "@catalog/collections/clipboard-collection";
-import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
+import type {
+  ClipboardLoaderRow,
+  ClipboardSeriesRow,
+} from "@catalog/collections/clipboard-collection";
 import type { ClipboardAction } from "@catalog/controllers/clipboard";
 import { formatHstTimestamp } from "@catalog/utils/time";
 import { format } from "date-fns";
@@ -44,7 +46,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +53,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -253,9 +255,7 @@ export function ClipboardTable({
                   <DropdownMenuContent align="end">
                     {CLIPBOARD_ACTIONS.map((item, i) => (
                       <span key={item.action}>
-                        {item.destructive && i > 0 && (
-                          <DropdownMenuSeparator />
-                        )}
+                        {item.destructive && i > 0 && <DropdownMenuSeparator />}
                         <DropdownMenuItem
                           onClick={() => handleAction(item.action)}
                           className={
@@ -319,10 +319,7 @@ export function ClipboardTable({
               </TableRow>
             ) : (
               loaderRows.map((row) => (
-                <TableRow
-                  key={row.loaderId}
-                  className={getColor(row.color)}
-                >
+                <TableRow key={row.loaderId} className={getColor(row.color)}>
                   <TableCell className="font-mono text-sm">
                     <Link
                       href={`/udaman/${universe}/series/${row.seriesId}`}

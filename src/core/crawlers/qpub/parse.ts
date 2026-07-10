@@ -75,7 +75,7 @@ function extractTwoColumnTable(table: HTMLElement): Record<string, string> {
       let key = cleanText(th.textContent);
       key = key.replace(/:$/, "");
 
-      let value = cleanText(td.textContent);
+      const value = cleanText(td.textContent);
 
       const link = td.querySelector("a");
       const href = link ? link.getAttribute("href") : null;

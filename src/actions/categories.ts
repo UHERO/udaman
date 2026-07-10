@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import {
   createCategory as createCategoryCtrl,
   deleteCategory as deleteCategoryCtrl,
@@ -16,7 +17,6 @@ import type {
   UpdateCategoryPayload,
 } from "@catalog/types/shared";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -76,7 +76,10 @@ export async function updateCategoryVisibility(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "updateCategoryVisibility failed");
-    AppLogCollection.logError(err, { userId, name: "category.update_visibility" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "category.update_visibility",
+    });
     throw err;
   }
 }

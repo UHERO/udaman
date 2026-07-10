@@ -66,9 +66,15 @@ class GeographyCollection {
         universe, handle, display_name, display_name_short,
         fips, list_order, geotype, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [universe, handle ?? null, displayName ?? null,
-       displayNameShort ?? null, fips ?? null, listOrder ?? null,
-       geotype ?? null],
+      [
+        universe,
+        handle ?? null,
+        displayName ?? null,
+        displayNameShort ?? null,
+        fips ?? null,
+        listOrder ?? null,
+        geotype ?? null,
+      ],
     );
     return this.getById(insertId);
   }

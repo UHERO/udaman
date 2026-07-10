@@ -318,8 +318,7 @@ class EvalExecutor {
           }
 
           // Optional 2nd arg: sheet spec for spreadsheet files
-          const sheet =
-            args[1] != null ? String(args[1]) : undefined;
+          const sheet = args[1] != null ? String(args[1]) : undefined;
           const reader = DataFileReader.fromFile(path, sheet);
 
           const dataMap = reader.series(target.name);
@@ -342,9 +341,7 @@ class EvalExecutor {
               : undefined;
           const reader = DataFileReader.fromFile(path, sheetArg ?? "sadata");
 
-          const lookupName = target.isNS
-            ? target.name
-            : target.nsSeriesName;
+          const lookupName = target.isNS ? target.name : target.nsSeriesName;
 
           const dataMap = reader.series(lookupName);
           const result = new Series({
@@ -655,7 +652,11 @@ class EvalExecutor {
           // If no explicit series given, build name from target's geo
           if (!popSeries) {
             const parsed = target.parseName();
-            const popName = Series.buildName(popPrefix, parsed.geo, parsed.freq);
+            const popName = Series.buildName(
+              popPrefix,
+              parsed.geo,
+              parsed.freq,
+            );
             try {
               popSeries = await SeriesCollection.getByName(popName);
             } catch {

@@ -1,7 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
-import DataPointModel from "../models/data-point";
 import type { DataPoint } from "../types/shared";
 
 const log = createLogger("catalog.data-point-collection");
@@ -255,7 +254,10 @@ class DataPointCollection {
     seriesId: number,
     universe: string,
   ): Promise<void> {
-    log.info({ seriesId, universe }, "updatePublicDataPointsForSeries: starting");
+    log.info(
+      { seriesId, universe },
+      "updatePublicDataPointsForSeries: starting",
+    );
 
     // 1. UPDATE existing public data points
     await rawQuery(

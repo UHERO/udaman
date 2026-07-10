@@ -921,7 +921,6 @@ function extractBuildingFields(
       }
     });
   }
-
 }
 
 export function parseResidentialImprovementInformation(

@@ -1,7 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 
 import {
   clearJobs,
@@ -128,7 +141,7 @@ function StateBadge({ state }: { state: JobState }) {
 function StatusDot({ state }: { state: JobState }) {
   return (
     <span
-      className={`inline-block h-2 w-2 shrink-0 rounded-full ${DOT_COLORS[state]}${state === "active" ? " animate-pulse" : ""}`}
+      className={`inline-block h-2 w-2 shrink-0 rounded-full ${DOT_COLORS[state]}${state === "active" ? "animate-pulse" : ""}`}
     />
   );
 }
@@ -214,7 +227,8 @@ function WorkerProcesses({
     <div className="space-y-2">
       {uptimeStr && (
         <p className="text-muted-foreground text-sm">
-          Process uptime: <span className="text-foreground font-medium">{uptimeStr}</span>
+          Process uptime:{" "}
+          <span className="text-foreground font-medium">{uptimeStr}</span>
         </p>
       )}
       <div className="rounded-md border">
@@ -237,7 +251,9 @@ function WorkerProcesses({
                 <TableCell className="text-muted-foreground text-xs">
                   {w.name}
                 </TableCell>
-                <TableCell className="text-xs">{formatUptime(w.idle)}</TableCell>
+                <TableCell className="text-xs">
+                  {formatUptime(w.idle)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -297,8 +313,7 @@ function JobDetail({
           </h4>
           <pre className="max-h-40 overflow-auto rounded bg-red-50 p-2 text-xs text-red-800">
             {job.failedReason}
-            {job.stacktrace.length > 0 &&
-              "\n\n" + job.stacktrace.join("\n")}
+            {job.stacktrace.length > 0 && "\n\n" + job.stacktrace.join("\n")}
           </pre>
         </div>
       )}
@@ -318,7 +333,11 @@ type JobGroup = {
 };
 
 function isRun(job: SerializedJob): boolean {
-  return job.state === "active" || job.state === "completed" || job.state === "failed";
+  return (
+    job.state === "active" ||
+    job.state === "completed" ||
+    job.state === "failed"
+  );
 }
 
 function JobGroupRow({ group }: { group: JobGroup }) {
@@ -333,7 +352,7 @@ function JobGroupRow({ group }: { group: JobGroup }) {
   const allJobs = [...group.runs, ...group.queued];
 
   const selectedJob = selectedJobId
-    ? allJobs.find((j) => j.id === selectedJobId) ?? latestRun
+    ? (allJobs.find((j) => j.id === selectedJobId) ?? latestRun)
     : latestRun;
 
   async function loadLogsForJob(job: SerializedJob) {
@@ -404,8 +423,7 @@ function JobGroupRow({ group }: { group: JobGroup }) {
           <span className="text-muted-foreground ml-2 text-xs">
             {group.runs.length > 1 && `${group.runs.length} runs`}
             {group.runs.length > 1 && group.queued.length > 0 && ", "}
-            {group.queued.length > 0 &&
-              `${group.queued.length} queued`}
+            {group.queued.length > 0 && `${group.queued.length} queued`}
           </span>
         </TableCell>
         <TableCell className="text-muted-foreground text-xs">
@@ -430,7 +448,9 @@ function JobGroupRow({ group }: { group: JobGroup }) {
           {latestRun?.failedReason ? (
             <span className="text-red-600">{latestRun.failedReason}</span>
           ) : latestRun?.state === "completed" && latestRun.returnvalue ? (
-            <span className="text-green-700">{String(latestRun.returnvalue)}</span>
+            <span className="text-green-700">
+              {String(latestRun.returnvalue)}
+            </span>
           ) : null}
         </TableCell>
       </TableRow>
@@ -447,7 +467,8 @@ function JobGroupRow({ group }: { group: JobGroup }) {
                       Queued
                     </h4>
                     {group.queued.map((job) => {
-                      const isSelected = selectedJob && job.id === selectedJob.id;
+                      const isSelected =
+                        selectedJob && job.id === selectedJob.id;
                       return (
                         <button
                           key={job.id}
@@ -683,7 +704,10 @@ export default function WorkersPanel({
         <h2 className="mb-2 text-sm font-semibold">
           Worker Processes ({data.workers.length})
         </h2>
-        <WorkerProcesses workers={data.workers} processStartedAt={data.processStartedAt} />
+        <WorkerProcesses
+          workers={data.workers}
+          processStartedAt={data.processStartedAt}
+        />
       </section>
 
       {/* Grouped job table */}

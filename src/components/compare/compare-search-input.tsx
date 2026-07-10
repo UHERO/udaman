@@ -174,17 +174,14 @@ export function CompareSearchInput({ currentNames }: CompareSearchInputProps) {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Sticky top bar: select all + add button */}
-          <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-popover px-2 py-2">
+          <div className="bg-popover sticky top-0 z-10 flex items-center gap-2 border-b px-2 py-2">
             <label className="flex cursor-pointer items-center gap-2 hover:opacity-80">
-              <Checkbox
-                checked={allChecked}
-                onCheckedChange={toggleAll}
-              />
-              <span className="text-xs font-medium text-muted-foreground">
+              <Checkbox checked={allChecked} onCheckedChange={toggleAll} />
+              <span className="text-muted-foreground text-xs font-medium">
                 {allChecked ? "Deselect all" : "Select all"}
               </span>
             </label>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
               {checkedCount}/{results.length}
             </span>
             <Button
@@ -202,7 +199,7 @@ export function CompareSearchInput({ currentNames }: CompareSearchInputProps) {
               {results.map((s) => (
                 <label
                   key={s.name}
-                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                  className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5"
                 >
                   <Checkbox
                     checked={checked.has(s.name)}
@@ -221,9 +218,7 @@ export function CompareSearchInput({ currentNames }: CompareSearchInputProps) {
         </PopoverContent>
       </Popover>
 
-      {error && (
-        <p className="text-destructive mt-1.5 text-sm">{error}</p>
-      )}
+      {error && <p className="text-destructive mt-1.5 text-sm">{error}</p>}
     </div>
   );
 }

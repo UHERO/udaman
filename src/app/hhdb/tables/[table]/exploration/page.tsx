@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
 import { OwnersExploration } from "@/components/hhdb/exploration/owners-exploration";
 import { TransactionsExploration } from "@/components/hhdb/exploration/transactions-exploration";
+import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
 
 const EXPLORATION_COMPONENTS: Record<string, React.ComponentType> = {
   owners: OwnersExploration,

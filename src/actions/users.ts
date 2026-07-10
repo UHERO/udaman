@@ -36,7 +36,11 @@ export async function changePassword(
       newPassword,
     });
     log.info({ userId }, "changePassword action completed");
-    AppLogCollection.log({ category: "user", name: "user.change_password", userId });
+    AppLogCollection.log({
+      category: "user",
+      name: "user.change_password",
+      userId,
+    });
     return { message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -48,7 +52,8 @@ export async function changePassword(
 
 export async function listUsers() {
   const role = await getCurrentUserRole();
-  if (role !== "dev") throw new AuthorizationError("Unauthorized: dev role required");
+  if (role !== "dev")
+    throw new AuthorizationError("Unauthorized: dev role required");
   const result = await getUsersCtrl();
   return result.data.map((u) => u.toJSON());
 }
@@ -56,7 +61,8 @@ export async function listUsers() {
 export async function updateUserRole(userId: number, role: string) {
   const currentUserId = await getCurrentUserId();
   const currentRole = await getCurrentUserRole();
-  if (currentRole !== "dev") throw new AuthorizationError("Unauthorized: dev role required");
+  if (currentRole !== "dev")
+    throw new AuthorizationError("Unauthorized: dev role required");
   log.info({ userId, role, currentUserId }, "updateUserRole action called");
   try {
     const result = await updateUserRoleCtrl({ id: userId, role });
@@ -70,12 +76,18 @@ export async function updateUserRole(userId: number, role: string) {
       metadata: { newRole: role },
     });
 
-    log.info({ userId, role, currentUserId }, "updateUserRole action completed");
+    log.info(
+      { userId, role, currentUserId },
+      "updateUserRole action completed",
+    );
     return { message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId: currentUserId }, "updateUserRole failed");
-    AppLogCollection.logError(err, { userId: currentUserId, name: "user.role_change" });
+    AppLogCollection.logError(err, {
+      userId: currentUserId,
+      name: "user.role_change",
+    });
     throw err;
   }
 }
@@ -88,7 +100,8 @@ export async function createUserAction(payload: {
   password: string;
 }): Promise<{ success: boolean; message: string; id?: number }> {
   const currentRole = await getCurrentUserRole();
-  if (currentRole !== "dev") throw new AuthorizationError("Unauthorized: dev role required");
+  if (currentRole !== "dev")
+    throw new AuthorizationError("Unauthorized: dev role required");
 
   try {
     const currentUserId = await getCurrentUserId();

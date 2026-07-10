@@ -1,10 +1,10 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { Queue } from "bullmq";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
-import { redisConnection } from "@/core/workers/connection";
 import { createLogger } from "@/core/observability/logger";
+import { redisConnection } from "@/core/workers/connection";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.workers");
@@ -149,7 +149,13 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
   const maxAge = allWorkers.reduce((max, w) => Math.max(max, w.age), 0);
   const processStartedAt = maxAge > 0 ? Date.now() - maxAge * 1000 : null;
 
-  return { jobs: allJobs, counts, workers: allWorkers, processStartedAt, schedulers: allSchedulers };
+  return {
+    jobs: allJobs,
+    counts,
+    workers: allWorkers,
+    processStartedAt,
+    schedulers: allSchedulers,
+  };
 }
 
 export async function getSchedulers(): Promise<SerializedScheduler[]> {
@@ -238,7 +244,10 @@ export async function triggerScheduledJob(
  * Cancel active jobs and drain waiting/delayed jobs from all queues.
  * Completed/failed job history is preserved.
  */
-export async function clearJobs(): Promise<{ cancelled: number; drained: number }> {
+export async function clearJobs(): Promise<{
+  cancelled: number;
+  drained: number;
+}> {
   const { userId } = await requirePermission("worker", "execute");
   log.info("clearJobs action called");
   let cancelled = 0;
@@ -260,7 +269,11 @@ export async function clearJobs(): Promise<{ cancelled: number; drained: number 
         const activeJobs = await queue.getJobs(["active"]);
         for (const job of activeJobs) {
           if (job.id) {
-            await job.moveToFailed(new Error("Cancelled by user"), job.token ?? "0", false);
+            await job.moveToFailed(
+              new Error("Cancelled by user"),
+              job.token ?? "0",
+              false,
+            );
             cancelled++;
           }
         }

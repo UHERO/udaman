@@ -83,7 +83,9 @@ async function main() {
     `\n${"=".repeat(60)}\n  Find stale arithmetic data points\n${"=".repeat(60)}\n`,
   );
   if (!EXECUTE) {
-    console.log("  (dry run — pass --execute to mark stale points non-current)\n");
+    console.log(
+      "  (dry run — pass --execute to mark stale points non-current)\n",
+    );
   }
 
   // 1. Find all enabled loaders with eval expressions
@@ -99,7 +101,9 @@ async function main() {
       AND ds.series_id IS NOT NULL
   `;
 
-  console.log(`Found ${loaders.length} enabled loaders with eval expressions.\n`);
+  console.log(
+    `Found ${loaders.length} enabled loaders with eval expressions.\n`,
+  );
 
   // 2. Filter to loaders whose eval contains arithmetic between series
   type ArithmeticLoader = LoaderRow & { constituentNames: string[] };
@@ -186,29 +190,17 @@ async function main() {
     affectedSeries++;
     totalStale += staleDates.length;
 
-    console.log(
-      `  Loader ${loader.id} → ${loader.target_name}`,
-    );
+    console.log(`  Loader ${loader.id} → ${loader.target_name}`);
     console.log(
       `    Eval: ${loader.eval.length > 80 ? loader.eval.slice(0, 77) + "..." : loader.eval}`,
     );
-    console.log(
-      `    Constituents: ${loader.constituentNames.join(", ")}`,
-    );
-    console.log(
-      `    Intersection dates: ${intersection.size}`,
-    );
-    console.log(
-      `    Target dates (from this loader): ${targetDates.length}`,
-    );
-    console.log(
-      `    Stale dates: ${staleDates.length}`,
-    );
+    console.log(`    Constituents: ${loader.constituentNames.join(", ")}`);
+    console.log(`    Intersection dates: ${intersection.size}`);
+    console.log(`    Target dates (from this loader): ${targetDates.length}`);
+    console.log(`    Stale dates: ${staleDates.length}`);
 
     if (VERBOSE && staleDates.length <= 20) {
-      console.log(
-        `    Stale: ${staleDates.sort().join(", ")}`,
-      );
+      console.log(`    Stale: ${staleDates.sort().join(", ")}`);
     } else if (VERBOSE) {
       const sorted = staleDates.sort();
       console.log(

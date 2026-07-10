@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useState } from "react";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import {
   Activity,
   AudioWaveform,
@@ -163,18 +163,30 @@ const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
     url: "/hhdb/tables/commercial-improvements",
     icon: Hammer,
   },
-  { title: "Condo Projects", url: "/hhdb/tables/condo-projects", icon: Building },
+  {
+    title: "Condo Projects",
+    url: "/hhdb/tables/condo-projects",
+    icon: Building,
+  },
   { title: "Condo Units", url: "/hhdb/tables/condo-units", icon: Building },
   { title: "Permits", url: "/hhdb/tables/permits", icon: FileText },
   { title: "Appeals", url: "/hhdb/tables/appeals", icon: Gavel },
   { title: "Dedications", url: "/hhdb/tables/dedications", icon: BookOpen },
-  { title: "Land Class", url: "/hhdb/tables/land-classifications", icon: Layers },
+  {
+    title: "Land Class",
+    url: "/hhdb/tables/land-classifications",
+    icon: Layers,
+  },
   { title: "Tax Bills", url: "/hhdb/tables/tax-bills", icon: Receipt },
   { title: "Tax History", url: "/hhdb/tables/tax-summary", icon: History },
   { title: "Tax Details", url: "/hhdb/tables/tax-details", icon: ListOrdered },
   { title: "Tax Payments", url: "/hhdb/tables/tax-payments", icon: CreditCard },
   { title: "Tax Credits", url: "/hhdb/tables/tax-credits", icon: Coins },
-  { title: "Agg. Assessments", url: "/hhdb/tables/ag-assessments", icon: Wheat },
+  {
+    title: "Agg. Assessments",
+    url: "/hhdb/tables/ag-assessments",
+    icon: Wheat,
+  },
   {
     title: "Accessories",
     url: "/hhdb/tables/accessory-structures",
@@ -190,13 +202,21 @@ const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
     url: "/hhdb/tables/residential-additions",
     icon: PlusSquare,
   },
-  { title: "Yard Impr.", url: "/hhdb/tables/yard-improvements", icon: TreePine },
+  {
+    title: "Yard Impr.",
+    url: "/hhdb/tables/yard-improvements",
+    icon: TreePine,
+  },
   { title: "Transactions", url: "/hhdb/tables/transactions", icon: ScrollText },
 ];
 
 const DOCS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
   { title: "IT Infrastructure", url: "/docs/it-infrastructure", icon: Server },
-  { title: "Loader Actions", url: "/docs/loader-actions", icon: FunctionSquare },
+  {
+    title: "Loader Actions",
+    url: "/docs/loader-actions",
+    icon: FunctionSquare,
+  },
 ];
 
 export function AppSidebar({
@@ -354,7 +374,7 @@ export function AppSidebar({
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">
+                    <span className="text-muted-foreground truncate text-xs">
                       {user.email}
                     </span>
                   </div>
@@ -387,9 +407,7 @@ export function AppSidebar({
                 <branding.icon className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  {branding.title}
-                </span>
+                <span className="truncate font-semibold">{branding.title}</span>
                 <span className="truncate text-xs">{branding.subtitle}</span>
               </div>
             </div>

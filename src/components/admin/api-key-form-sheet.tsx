@@ -190,9 +190,7 @@ export function ApiKeyFormSheet({
                   placeholder="e.g. octocat"
                   {...form.register("githubNickname")}
                 />
-                <FieldError
-                  errors={[form.formState.errors.githubNickname]}
-                />
+                <FieldError errors={[form.formState.errors.githubNickname]} />
               </Field>
 
               <Field data-invalid={!!form.formState.errors.universe}>

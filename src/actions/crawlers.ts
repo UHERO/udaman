@@ -1,6 +1,7 @@
 "use server";
 
 import { AppLogCollection } from "@catalog/collections/app-log-collection";
+
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 import { rawQuery } from "@/lib/mysql/hhdb";
@@ -82,49 +83,56 @@ export async function getQpubDashboardStats(): Promise<QpubDashboardStats> {
     return cache.data;
   }
 
-  const [scrapeRows, parseRows, loadRows, activityRows, progressRows, batchRows, failedRows] =
-    await Promise.all([
-      // Pipeline stage counts
-      rawQuery<StatusRow>(
-        `SELECT scrape_status AS status, COUNT(*) AS cnt FROM scrape_status GROUP BY scrape_status`,
-      ),
-      rawQuery<StatusRow>(
-        `SELECT parse_status AS status, COUNT(*) AS cnt FROM scrape_status GROUP BY parse_status`,
-      ),
-      rawQuery<StatusRow>(
-        `SELECT load_status AS status, COUNT(*) AS cnt FROM scrape_status GROUP BY load_status`,
-      ),
-      // Activity counters
-      rawQuery<ActivityRow>(`
+  const [
+    scrapeRows,
+    parseRows,
+    loadRows,
+    activityRows,
+    progressRows,
+    batchRows,
+    failedRows,
+  ] = await Promise.all([
+    // Pipeline stage counts
+    rawQuery<StatusRow>(
+      `SELECT scrape_status AS status, COUNT(*) AS cnt FROM scrape_status GROUP BY scrape_status`,
+    ),
+    rawQuery<StatusRow>(
+      `SELECT parse_status AS status, COUNT(*) AS cnt FROM scrape_status GROUP BY parse_status`,
+    ),
+    rawQuery<StatusRow>(
+      `SELECT load_status AS status, COUNT(*) AS cnt FROM scrape_status GROUP BY load_status`,
+    ),
+    // Activity counters
+    rawQuery<ActivityRow>(`
         SELECT
           COALESCE(SUM(CASE WHEN DATE(scraped_at) = CURDATE() THEN 1 ELSE 0 END), 0) AS scraped_today,
           COALESCE(SUM(CASE WHEN scraped_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01') THEN 1 ELSE 0 END), 0) AS scraped_this_month
         FROM scrape_status
         WHERE scraped_at IS NOT NULL
       `),
-      // Scrape progress
-      rawQuery<ProgressRow>(`
+    // Scrape progress
+    rawQuery<ProgressRow>(`
         SELECT
           COUNT(*) AS total,
           COALESCE(SUM(CASE WHEN scraped_at >= NOW() - INTERVAL 6 MONTH THEN 1 ELSE 0 END), 0) AS fresh
         FROM scrape_status
       `),
-      // Last batch (24h window)
-      rawQuery<BatchRow>(`
+    // Last batch (24h window)
+    rawQuery<BatchRow>(`
         SELECT
           COALESCE(SUM(CASE WHEN parsed_at >= NOW() - INTERVAL 24 HOUR THEN 1 ELSE 0 END), 0) AS parsed_last_batch,
           COALESCE(SUM(CASE WHEN loaded_at >= NOW() - INTERVAL 24 HOUR THEN 1 ELSE 0 END), 0) AS loaded_last_batch
         FROM scrape_status
       `),
-      // Failed records (most recent 20)
-      rawQuery<FailedRow>(`
+    // Failed records (most recent 20)
+    rawQuery<FailedRow>(`
         SELECT tmk, scrape_status, parse_status, load_status, error, updated_at, retry_count
         FROM scrape_status
         WHERE scrape_status = 'failed' OR parse_status = 'failed' OR load_status = 'failed'
         ORDER BY updated_at DESC
         LIMIT 20
       `),
-    ]);
+  ]);
 
   function toCounts(rows: StatusRow[]): PipelineStatusCounts {
     const counts: PipelineStatusCounts = { pending: 0, success: 0, failed: 0 };
@@ -147,13 +155,9 @@ export async function getQpubDashboardStats(): Promise<QpubDashboardStats> {
   const parsedLastBatch = Number(batchRows[0]?.parsed_last_batch ?? 0);
   const loadedLastBatch = Number(batchRows[0]?.loaded_last_batch ?? 0);
   const scrapeToLoadPercent =
-    scrape.success > 0
-      ? Math.round((load.success / scrape.success) * 100)
-      : 0;
+    scrape.success > 0 ? Math.round((load.success / scrape.success) * 100) : 0;
 
-  function determineFailedStage(
-    row: FailedRow,
-  ): "scrape" | "parse" | "load" {
+  function determineFailedStage(row: FailedRow): "scrape" | "parse" | "load" {
     if (row.scrape_status === "failed") return "scrape";
     if (row.parse_status === "failed") return "parse";
     return "load";

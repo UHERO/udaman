@@ -529,8 +529,7 @@ export function ForecastSnapshotCharts({
         ];
         const barCount = barOrder.length;
         const fullWidthBar =
-          (index: number, fillOpacity: number) =>
-          (raw: unknown) => {
+          (index: number, fillOpacity: number) => (raw: unknown) => {
             const props = raw as Record<string, number | string>;
             if (!Number.isFinite(props.y) || !Number.isFinite(props.height))
               return <rect width={0} height={0} />;

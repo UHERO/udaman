@@ -72,7 +72,10 @@ type AppPrefix = {
 
 function parsePathname(pathname: string): AppPrefix {
   if (pathname.startsWith("/admin")) {
-    const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
+    const segments = pathname
+      .replace(/^\/admin\/?/, "")
+      .split("/")
+      .filter(Boolean);
     return {
       rootLabel: "Admin",
       rootHref: "/admin",
@@ -81,7 +84,10 @@ function parsePathname(pathname: string): AppPrefix {
     };
   }
   if (pathname.startsWith("/hhdb")) {
-    const segments = pathname.replace(/^\/hhdb\/?/, "").split("/").filter(Boolean);
+    const segments = pathname
+      .replace(/^\/hhdb\/?/, "")
+      .split("/")
+      .filter(Boolean);
     return {
       rootLabel: "HHDB",
       rootHref: "/hhdb",
@@ -90,7 +96,10 @@ function parsePathname(pathname: string): AppPrefix {
     };
   }
   if (pathname.startsWith("/docs")) {
-    const segments = pathname.replace(/^\/docs\/?/, "").split("/").filter(Boolean);
+    const segments = pathname
+      .replace(/^\/docs\/?/, "")
+      .split("/")
+      .filter(Boolean);
     return {
       rootLabel: "Docs",
       rootHref: "/docs",

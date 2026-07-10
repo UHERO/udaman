@@ -1272,7 +1272,9 @@ class Series {
     }
     const myLast = this.lastObservation;
     if (!myLast) {
-      throw new Error(`extendLastFwdToMatch: ${this.name} has no data to extend`);
+      throw new Error(
+        `extendLastFwdToMatch: ${this.name} has no data to extend`,
+      );
     }
     const lastVal = this.data.get(myLast);
     if (lastVal == null) {

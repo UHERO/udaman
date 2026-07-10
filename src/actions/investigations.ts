@@ -1,5 +1,6 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type { AdminAction } from "@catalog/collections/reload-job-collection";
 import {
   deleteReloadJob as deleteReloadJobCtrl,
@@ -7,7 +8,6 @@ import {
   runAdminAction as runAdminActionCtrl,
 } from "@catalog/controllers/investigations";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
 import { AuthorizationError } from "@/lib/errors";
@@ -22,12 +22,19 @@ export async function deleteReloadJob(id: number) {
   log.info({ id, userId }, "deleteReloadJob action called");
   try {
     const result = await deleteReloadJobCtrl({ id });
-    AppLogCollection.log({ category: "investigation", name: "investigation.delete_job", userId });
+    AppLogCollection.log({
+      category: "investigation",
+      name: "investigation.delete_job",
+      userId,
+    });
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteReloadJob failed");
-    AppLogCollection.logError(err, { userId, name: "investigation.delete_job" });
+    AppLogCollection.logError(err, {
+      userId,
+      name: "investigation.delete_job",
+    });
     throw err;
   }
 }
@@ -40,7 +47,11 @@ export async function rerunReloadJob(id: number) {
   log.info({ id, userId }, "rerunReloadJob action called");
   try {
     const result = await rerunReloadJobCtrl({ id });
-    AppLogCollection.log({ category: "investigation", name: "investigation.rerun_job", userId });
+    AppLogCollection.log({
+      category: "investigation",
+      name: "investigation.rerun_job",
+      userId,
+    });
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -58,7 +69,11 @@ export async function runAdminAction(action: AdminAction) {
   log.info({ action, userId }, "runAdminAction called");
   try {
     const result = await runAdminActionCtrl({ action });
-    AppLogCollection.log({ category: "investigation", name: `investigation.${action}`, userId });
+    AppLogCollection.log({
+      category: "investigation",
+      name: `investigation.${action}`,
+      userId,
+    });
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

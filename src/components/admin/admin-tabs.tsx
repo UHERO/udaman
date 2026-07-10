@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Activity,
   BarChart3,
@@ -17,8 +18,6 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { usePathname } from "next/navigation";
-
 import { useFullWidth } from "@/hooks/use-full-width";
 import { getVisibleChildren } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";

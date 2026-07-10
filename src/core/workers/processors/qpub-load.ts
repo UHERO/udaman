@@ -19,10 +19,17 @@ export function errorMessage(e: unknown): string {
   if (typeof e === "string") return e;
   if (e && typeof e === "object") {
     // Bun SQL errors are plain objects with a message property
-    if ("message" in e && typeof (e as Record<string, unknown>).message === "string") {
+    if (
+      "message" in e &&
+      typeof (e as Record<string, unknown>).message === "string"
+    ) {
       return (e as Record<string, unknown>).message as string;
     }
-    try { return JSON.stringify(e); } catch { /* fall through */ }
+    try {
+      return JSON.stringify(e);
+    } catch {
+      /* fall through */
+    }
   }
   return String(e);
 }
@@ -30,7 +37,9 @@ export function errorMessage(e: unknown): string {
 // ─── Helpers ─────────────────────────────────────────────────────
 
 /** Parse a date string like "01/15/2024" or "2024-01-15" into a Date-compatible string, or null */
-export function parseDateValue(value: string | null | undefined): string | null {
+export function parseDateValue(
+  value: string | null | undefined,
+): string | null {
   if (!value) return null;
   const s = value.trim();
   if (!s) return null;
@@ -73,7 +82,9 @@ export function dec(v: unknown): number | null {
 export type Row = Record<string, unknown>;
 
 /** Extract property_class from the most recent assessment record. */
-export function getAssessmentPropertyClass(data: ParsedProperty): string | null {
+export function getAssessmentPropertyClass(
+  data: ParsedProperty,
+): string | null {
   const assessInfo = data.assessment_information as Row | undefined;
   if (!assessInfo) return null;
   const current = (assessInfo.current_assessments as Row[] | undefined) ?? [];
@@ -135,7 +146,10 @@ function dataFieldsMatch(
   fieldNames: string[],
 ): boolean {
   for (const field of fieldNames) {
-    if (normalizeForCompare(existing[field]) !== normalizeForCompare(incoming[field])) {
+    if (
+      normalizeForCompare(existing[field]) !==
+      normalizeForCompare(incoming[field])
+    ) {
       return false;
     }
   }
@@ -158,15 +172,22 @@ async function upsertSnapshot(opts: {
   identityFields: Record<string, unknown>;
   dataFields: Record<string, unknown>;
 }): Promise<"updated" | "inserted"> {
-  const { table, tmk, observedYear, scrapedAt, identityFields, dataFields } = opts;
+  const { table, tmk, observedYear, scrapedAt, identityFields, dataFields } =
+    opts;
   const scrapedAtStr = sqlDate(scrapedAt);
 
   // Build WHERE clause for identity fields
   const identityEntries = Object.entries(identityFields);
-  const identityWhere = identityEntries.length > 0
-    ? " AND " + identityEntries.map(([col]) => `${col}=?`).join(" AND ")
-    : "";
-  const identityValues = Object.values(identityFields) as (string | number | Date | null)[];
+  const identityWhere =
+    identityEntries.length > 0
+      ? " AND " + identityEntries.map(([col]) => `${col}=?`).join(" AND ")
+      : "";
+  const identityValues = Object.values(identityFields) as (
+    | string
+    | number
+    | Date
+    | null
+  )[];
 
   // SELECT most recent record matching tmk + identity
   const existing = await rawQuery<Record<string, unknown>>(
@@ -589,7 +610,10 @@ export async function loadCommercialImprovements(
 
     const floorDetails = (b.floor_details as Row[] | undefined) ?? [];
 
-    if (existing.length > 0 && dataFieldsMatch(existing[0], incomingData, Object.keys(incomingData))) {
+    if (
+      existing.length > 0 &&
+      dataFieldsMatch(existing[0], incomingData, Object.keys(incomingData))
+    ) {
       // Data unchanged → bump parent last_year_observed + scraped_at
       const parentId = existing[0].id as number;
       await rawQuery(
@@ -849,7 +873,14 @@ export async function loadHistoricalTax(
         `INSERT INTO historical_tax_credits (historical_tax_summary_id, tmk, scraped_at,
            period, description, amount)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [summaryId, tmk, scrapedAtStr, str(c.period), str(c.description), dec(c.amount)],
+        [
+          summaryId,
+          tmk,
+          scrapedAtStr,
+          str(c.period),
+          str(c.description),
+          dec(c.amount),
+        ],
       );
     }
   }
@@ -1250,7 +1281,14 @@ export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
   appeals: (tmk, data, s, y) =>
     loadGenericForTable(tmk, data, "appeal_information", "appeals", s, y),
   dedications: (tmk, data, s, y) =>
-    loadGenericForTable(tmk, data, "dedication_information", "dedications", s, y),
+    loadGenericForTable(
+      tmk,
+      data,
+      "dedication_information",
+      "dedications",
+      s,
+      y,
+    ),
 };
 
 // ─── Main load processor ─────────────────────────────────────────
@@ -1312,7 +1350,9 @@ export async function processLoad(
       `SELECT scraped_at FROM scrape_status WHERE tmk=?`,
       [tmk],
     );
-    const scrapedAt = ssRow?.scraped_at ? new Date(ssRow.scraped_at) : new Date();
+    const scrapedAt = ssRow?.scraped_at
+      ? new Date(ssRow.scraped_at)
+      : new Date();
 
     // Derive observation year from the most recent assessment on the page
     const observedYear = getMaxTaxYear(parsed);

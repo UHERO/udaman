@@ -337,11 +337,13 @@ export function exportToPDF(
   doc.setFontSize(8);
   doc.text(textMap[type].footerText, 6, afterTableY);
   doc.setFontSize(8);
-  type === "dbedt"
-    ? doc.textWithLink(textMap[type].footerTextSource[0], 6, afterTableY + 4, {
-        url: "http://dbedt.hawaii.gov/economic",
-      })
-    : doc.text(textMap[type].footerTextSource, 6, afterTableY + 4);
+  if (type === "dbedt") {
+    doc.textWithLink(textMap[type].footerTextSource[0], 6, afterTableY + 4, {
+      url: "http://dbedt.hawaii.gov/economic",
+    });
+  } else {
+    doc.text(textMap[type].footerTextSource, 6, afterTableY + 4);
+  }
   doc.save(`${textMap[type].titleText}.pdf`);
 }
 
@@ -361,7 +363,7 @@ function generatePrintHTML(
     th.left-align, td.left-align { text-align: left; }
   </style>`;
 
-  headerDateChunks.forEach((headerChunk, index) => {
+  headerDateChunks.forEach((headerChunk, _index) => {
     html += "<table><thead><tr>";
     html += `<th class="left-align">Indicator</th><th class="left-align">Area</th><th class="left-align">Units</th>`;
     headerChunk.forEach((d) => (html += `<th>${d}</th>`));
@@ -383,9 +385,11 @@ function generatePrintHTML(
   });
   html += `<p style="font-size: 10px; text-align: left;">${textMap[type].footerText}`;
 
-  type === "dbedt"
-    ? (html += ` For more information please visit: <a href="http://dbedt.hawaii.gov/economic" target="_blank">http://dbedt.hawaii.gov/economic</a></p>`)
-    : (html += `<p style="font-size: 10px; text-align: left; line-height: 1.2;">${textMap[type].footerTextSource.join("<br />")}</p>`);
+  if (type === "dbedt") {
+    html += ` For more information please visit: <a href="http://dbedt.hawaii.gov/economic" target="_blank">http://dbedt.hawaii.gov/economic</a></p>`;
+  } else {
+    html += `<p style="font-size: 10px; text-align: left; line-height: 1.2;">${textMap[type].footerTextSource.join("<br />")}</p>`;
+  }
 
   return html;
 }

@@ -78,12 +78,12 @@ export default function LoaderActionsPage() {
           <P>
             Every loader in Udaman can have an <strong>eval</strong> field that
             describes how to compute the value of a series. Evals are
-            Ruby-flavored expressions that reference other series by name,
-            chain method calls, and use arithmetic operators.
+            Ruby-flavored expressions that reference other series by name, chain
+            method calls, and use arithmetic operators.
           </P>
           <P>
-            The result of an eval is always a single time series &mdash; a
-            set of date/value pairs that becomes the data for the series being
+            The result of an eval is always a single time series &mdash; a set
+            of date/value pairs that becomes the data for the series being
             loaded.
           </P>
         </section>
@@ -154,9 +154,7 @@ export default function LoaderActionsPage() {
               </strong>{" "}
               Pass another series as an argument by quoting its name.
             </div>
-            <CodeBlock>
-              {`"E_NF@HI.M".ts.add("E_NF@HON.M".ts)`}
-            </CodeBlock>
+            <CodeBlock>{`"E_NF@HI.M".ts.add("E_NF@HON.M".ts)`}</CodeBlock>
 
             <div>
               <strong className="text-stone-800 dark:text-stone-100">
@@ -250,8 +248,8 @@ Series.search("TOUR").first`}
             Arithmetic Methods
           </h2>
           <P>
-            Method equivalents of the arithmetic operators, plus a few
-            variants with special null handling.
+            Method equivalents of the arithmetic operators, plus a few variants
+            with special null handling.
           </P>
           <MethodBlock
             name="add"
@@ -408,8 +406,8 @@ Series.search("TOUR").first`}
             Interpolation
           </h2>
           <P>
-            Methods for converting between frequencies (e.g. annual to
-            monthly) or filling in missing data points.
+            Methods for converting between frequencies (e.g. annual to monthly)
+            or filling in missing data points.
           </P>
           <MethodBlock
             name="interpolate"
@@ -544,9 +542,9 @@ Series.search("TOUR").first`}
             Sharing & County Allocation
           </h2>
           <P>
-            Methods for distributing state-level data to counties using
-            various ratio-based approaches. These are the primary tools for
-            producing county-level estimates from state totals.
+            Methods for distributing state-level data to counties using various
+            ratio-based approaches. These are the primary tools for producing
+            county-level estimates from state totals.
           </P>
           <MethodBlock
             name="mc_ma_county_share_for"
@@ -557,13 +555,13 @@ Series.search("TOUR").first`}
           <MethodBlock
             name="mc_price_share_for"
             evalName="mc_price_share_for"
-            description='Mean-corrected price share. Similar to mc_ma_county_share_for but designed for price indices. Computes county share using moving average ratios of the NS (not seasonally adjusted) counterparts, mean-corrects against county annual averages, and patches the most recent incomplete year with a backward-looking MA correction.'
+            description="Mean-corrected price share. Similar to mc_ma_county_share_for but designed for price indices. Computes county share using moving average ratios of the NS (not seasonally adjusted) counterparts, mean-corrects against county annual averages, and patches the most recent incomplete year with a backward-looking MA correction."
             example={`"CPI@HI.M".ts.mc_price_share_for("HON")`}
           />
           <MethodBlock
             name="aa_state_based_county_share_for"
             evalName="aa_state_based_county_share_for"
-            description='Annual-average county share. Uses the ratio of county-to-state annual averages (instead of moving averages) to distribute the target series to a county. Simpler than the MA-based methods. The first argument is the county code, and an optional second argument overrides the series prefix.'
+            description="Annual-average county share. Uses the ratio of county-to-state annual averages (instead of moving averages) to distribute the target series to a county. Simpler than the MA-based methods. The first argument is the county code, and an optional second argument overrides the series prefix."
             example={`"CPI@HI.Q".ts.aa_state_based_county_share_for("KAU")`}
           />
           <MethodBlock
@@ -588,7 +586,7 @@ Series.search("TOUR").first`}
           </P>
           <MethodBlock
             name="trim"
-            description='Restrict the series to a specific date range. Pass start and end dates as positional arguments, or use before:/after: keyword arguments. Omit either end to leave it open.'
+            description="Restrict the series to a specific date range. Pass start and end dates as positional arguments, or use before:/after: keyword arguments. Omit either end to leave it open."
             example={`"E_NF@HI.M".ts.trim("2010-01-01", "2023-12-01")\n"E_NF@HI.M".ts.trim(before: "2010-01-01")\n"E_NF@HI.M".ts.trim(after: "2023-12-01")`}
           />
           <MethodBlock
@@ -638,8 +636,8 @@ Series.search("TOUR").first`}
             Deflation (Real Values)
           </h2>
           <P>
-            Convert nominal (current-dollar) values into real
-            (constant-dollar) values by dividing by a price index.
+            Convert nominal (current-dollar) values into real (constant-dollar)
+            values by dividing by a price index.
           </P>
           <MethodBlock
             name="convert_to_real"
@@ -663,9 +661,7 @@ Series.search("TOUR").first`}
           >
             Per Capita
           </h2>
-          <P>
-            Divide by a population series to produce per-person values.
-          </P>
+          <P>Divide by a population series to produce per-person values.</P>
           <MethodBlock
             name="per_cap"
             evalName="per_cap"
@@ -681,7 +677,7 @@ Series.search("TOUR").first`}
           <MethodBlock
             name="per_cap_civilian"
             evalName="per_cap_civilian"
-            description='Per capita using civilian population (NRC) instead of total resident population (NR). Multiplies by 100.'
+            description="Per capita using civilian population (NRC) instead of total resident population (NR). Multiplies by 100."
             example={`"E_NF@HI.M".ts.per_cap_civilian`}
           />
         </section>
@@ -717,7 +713,7 @@ Series.search("TOUR").first`}
           <MethodBlock
             name="load_from"
             evalName="load_from"
-            description='Load data from a static file. Supports Excel (.xlsx, .xls), CSV, and TSD file formats. The series name is used to find the matching data in the file. An optional second argument specifies the sheet name for Excel files.'
+            description="Load data from a static file. Supports Excel (.xlsx, .xls), CSV, and TSD file formats. The series name is used to find the matching data in the file. An optional second argument specifies the sheet name for Excel files."
             example={`"E_NF@HI.M".ts.load_from("data/employment.xlsx")\n"E_NF@HI.M".ts.load_from("data/output.xlsx", "Sheet2")\n"E_NF@HI.M".ts.load_from("data/series.tsd")`}
           />
           <MethodBlock
@@ -729,7 +725,7 @@ Series.search("TOUR").first`}
           <MethodBlock
             name="load_mean_corrected_sa_from"
             evalName="load_mean_corrected_sa_from"
-            description='Load seasonally-adjusted data from a demetra file and mean-correct it. Loads the SA series from the file, then adjusts it so its annual sums match the actual NS series from the database. Formula: (demetra / demetra.annual_sum) * ns.annual_sum.'
+            description="Load seasonally-adjusted data from a demetra file and mean-correct it. Loads the SA series from the file, then adjusts it so its annual sums match the actual NS series from the database. Formula: (demetra / demetra.annual_sum) * ns.annual_sum."
             example={`"E_NF@HI.M".ts.load_mean_corrected_sa_from("data/demetra_output.xlsx")`}
           />
         </section>
@@ -752,7 +748,7 @@ Series.search("TOUR").first`}
           <MethodBlock
             name="Series.load_from_download"
             evalName="Series.load_from_download"
-            description='Load data from a download handle using cell navigation. Specify the row, column, sheet, and frequency to locate the data within a downloaded file.'
+            description="Load data from a download handle using cell navigation. Specify the row, column, sheet, and frequency to locate the data within a downloaded file."
             example={`Series.load_from_download("handle_name", row: "GDP", col: "2023", frequency: "year")`}
           />
           <MethodBlock
@@ -764,7 +760,7 @@ Series.search("TOUR").first`}
           <MethodBlock
             name="Series.load_from_factbook"
             evalName="Series.load_from_factbook"
-            description='Load from the Hawaii Housing Factbook file. Specify the measurement prefix and a geography handle (zip code or county name).'
+            description="Load from the Hawaii Housing Factbook file. Specify the measurement prefix and a geography handle (zip code or county name)."
             example={`Series.load_from_factbook("ZMEDPRICE", "96822")\nSeries.load_from_factbook("MEDSALEPRICE", "honolulu")`}
           />
           <MethodBlock

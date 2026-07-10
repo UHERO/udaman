@@ -98,11 +98,11 @@ TWILIO_PHONE=+18001234567
 
 ### Global flags
 
-| Var | Effect |
-|---|---|
-| `MAIL_DISABLED=1` | All email sends become no-ops (logged only) |
-| `SLACK_DISABLED=1` | All Slack sends become no-ops (logged only) |
-| `SMS_DISABLED=1` | All SMS sends become no-ops (logged only) |
+| Var                         | Effect                                                  |
+| --------------------------- | ------------------------------------------------------- |
+| `MAIL_DISABLED=1`           | All email sends become no-ops (logged only)             |
+| `SLACK_DISABLED=1`          | All Slack sends become no-ops (logged only)             |
+| `SMS_DISABLED=1`            | All SMS sends become no-ops (logged only)               |
 | `NODE_ENV !== "production"` | All email recipients redirected to `DEV_MAIL_RECIPIENT` |
 
 ## Adding a new named sender

@@ -1,7 +1,3 @@
-// Ensure all date operations use Hawaii Standard Time.
-// Must be set before any module that touches Date is imported.
-process.env.TZ = "Pacific/Honolulu";
-
 import { Job, Worker } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
@@ -9,6 +5,10 @@ import { createLogger } from "@/core/observability/logger";
 import { redisConnection } from "./connection";
 import { processors } from "./processors";
 import { registerSchedules } from "./scheduler";
+
+// Ensure all date operations use Hawaii Standard Time.
+// Must be set before any module that touches Date is imported.
+process.env.TZ = "Pacific/Honolulu";
 
 const log = createLogger("worker");
 

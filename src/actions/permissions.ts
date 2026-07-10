@@ -1,8 +1,8 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import PermissionCollection from "@catalog/collections/permission-collection";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requireAuth } from "@/lib/auth/dal";
 import { AuthorizationError } from "@/lib/errors";
@@ -24,7 +24,14 @@ export async function updatePermissions(payload: {
   }
 
   const userId = parseInt(session.user.id!);
-  log.info({ userId, updates: payload.updates.length, creates: payload.creates.length }, "updatePermissions action called");
+  log.info(
+    {
+      userId,
+      updates: payload.updates.length,
+      creates: payload.creates.length,
+    },
+    "updatePermissions action called",
+  );
 
   try {
     if (payload.updates.length > 0) {
@@ -36,7 +43,11 @@ export async function updatePermissions(payload: {
 
     const total = payload.updates.length + payload.creates.length;
     log.info({ userId, total }, "updatePermissions action completed");
-    AppLogCollection.log({ category: "permission", name: "permission.update", userId });
+    AppLogCollection.log({
+      category: "permission",
+      name: "permission.update",
+      userId,
+    });
     return { message: `Saved ${total} permission(s)` };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

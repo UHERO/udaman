@@ -9,7 +9,7 @@ export async function getUploads() {
   return { data: [] };
 }
 
-export async function createUpload({ payload }: { payload: any }) {
+export async function createUpload({ payload: _payload }: { payload: unknown }) {
   // TODO: implement upload
   return { data: null };
 }

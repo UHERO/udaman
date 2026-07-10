@@ -1,7 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowRightLeft, ChartColumn, Eye, EyeOff, Loader2, X } from "lucide-react";
+import {
+  ArrowRightLeft,
+  ChartColumn,
+  Eye,
+  EyeOff,
+  Loader2,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,7 +27,10 @@ interface AnalyzerSeriesRowProps {
   isStatsSelected?: boolean;
   onSelectStats?: (id: string) => void;
   onExpressionChange: (id: string, expression: string) => void;
-  onVisibilityChange: (id: string, visibility: AnalyzerEntry["visibility"]) => void;
+  onVisibilityChange: (
+    id: string,
+    visibility: AnalyzerEntry["visibility"],
+  ) => void;
   onAxisChange: (id: string, axis: "left" | "right") => void;
   onRemove: (id: string) => void;
   onCompareYoY?: (id: string) => void;
@@ -75,7 +85,11 @@ export function AnalyzerSeriesRow({
   }
 
   const opacity =
-    entry.visibility === "hidden" ? 0.35 : entry.visibility === "gray" ? 0.55 : 1;
+    entry.visibility === "hidden"
+      ? 0.35
+      : entry.visibility === "gray"
+        ? 0.55
+        : 1;
 
   const nextVisibility: AnalyzerEntry["visibility"] =
     entry.visibility === "active"
@@ -112,7 +126,7 @@ export function AnalyzerSeriesRow({
       {/* Expression input */}
       <Input
         ref={inputRef}
-        className="h-7 flex-1 border-transparent font-mono text-xs shadow-none focus:border-input"
+        className="focus:border-input h-7 flex-1 border-transparent font-mono text-xs shadow-none"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
@@ -138,7 +152,7 @@ export function AnalyzerSeriesRow({
       {entry.error && !entry.loading && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="cursor-default shrink-0 text-xs text-red-500">
+            <span className="shrink-0 cursor-default text-xs text-red-500">
               ✕
             </span>
           </TooltipTrigger>
@@ -169,10 +183,7 @@ export function AnalyzerSeriesRow({
             size="icon"
             className="h-6 w-6 shrink-0"
             onClick={() =>
-              onAxisChange(
-                entry.id,
-                entry.axis === "left" ? "right" : "left",
-              )
+              onAxisChange(entry.id, entry.axis === "left" ? "right" : "left")
             }
           >
             <ArrowRightLeft className="h-3 w-3" />
@@ -222,7 +233,7 @@ export function AnalyzerSeriesRow({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+            className="text-muted-foreground hover:text-destructive h-6 w-6 shrink-0"
             onClick={() => onRemove(entry.id)}
           >
             <X className="h-3 w-3" />

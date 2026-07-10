@@ -4,10 +4,7 @@ import path from "path";
 
 import type { Page } from "playwright-core";
 
-import {
-  getHtmlPath,
-  QPUB_CONFIG,
-} from "./config";
+import { getHtmlPath, QPUB_CONFIG } from "./config";
 
 // ─── Types ────────────────────────────────────────────────────────────
 

@@ -137,7 +137,7 @@ export function AnalyzeSearchInput() {
               {results.map((s) => (
                 <button
                   key={s.name}
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-accent"
+                  className="hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left"
                   onClick={() => navigateToSeries(s.id)}
                 >
                   <span className="truncate font-mono text-sm">{s.name}</span>
@@ -153,9 +153,7 @@ export function AnalyzeSearchInput() {
         </PopoverContent>
       </Popover>
 
-      {error && (
-        <p className="text-destructive mt-1.5 text-sm">{error}</p>
-      )}
+      {error && <p className="text-destructive mt-1.5 text-sm">{error}</p>}
     </div>
   );
 }

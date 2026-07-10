@@ -7,6 +7,7 @@ import type {
   CreateTimelineEventPayload,
   UpdateTimelineEventPayload,
 } from "../collections/timeline-event-collection";
+
 const log = createLogger("catalog.timeline-events");
 
 export async function getTimelineEvents({

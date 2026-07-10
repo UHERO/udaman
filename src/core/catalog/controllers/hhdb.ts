@@ -471,21 +471,36 @@ export async function getProfileTextDrilldown(
 
 export async function getOutOfStateRatioByQuarter(islandCode?: string) {
   log.info({ islandCode }, "fetching out-of-state ratio by quarter");
-  const data = await HhdbDashboardCollection.getOutOfStateRatioByQuarter(islandCode);
+  const data =
+    await HhdbDashboardCollection.getOutOfStateRatioByQuarter(islandCode);
   log.info({ count: data.length }, "out-of-state ratio fetched");
   return data;
 }
 
-export async function getOutOfStateTopStates(startYear?: number, endYear?: number) {
+export async function getOutOfStateTopStates(
+  startYear?: number,
+  endYear?: number,
+) {
   log.info({ startYear, endYear }, "fetching out-of-state top states");
-  const data = await HhdbDashboardCollection.getOutOfStateTopStates(startYear, endYear);
+  const data = await HhdbDashboardCollection.getOutOfStateTopStates(
+    startYear,
+    endYear,
+  );
   log.info({ count: data.length }, "out-of-state top states fetched");
   return data;
 }
 
-export async function getOutOfStateTopZips(state?: string, startYear?: number, endYear?: number) {
+export async function getOutOfStateTopZips(
+  state?: string,
+  startYear?: number,
+  endYear?: number,
+) {
   log.info({ state, startYear, endYear }, "fetching out-of-state top zips");
-  const data = await HhdbDashboardCollection.getOutOfStateTopZips(state, startYear, endYear);
+  const data = await HhdbDashboardCollection.getOutOfStateTopZips(
+    state,
+    startYear,
+    endYear,
+  );
   log.info({ count: data.length }, "out-of-state top zips fetched");
   return data;
 }
@@ -494,15 +509,20 @@ export async function getOutOfStateTopZips(state?: string, startYear?: number, e
 
 export async function getOwnershipDistribution(islandCode?: string) {
   log.info({ islandCode }, "fetching ownership distribution");
-  const data = await HhdbDashboardCollection.getOwnershipDistribution(islandCode);
+  const data =
+    await HhdbDashboardCollection.getOwnershipDistribution(islandCode);
   log.info({ count: data.length }, "ownership distribution fetched");
   return data;
 }
 
 export async function getOwnershipLorenzCurve(islandCode?: string) {
   log.info({ islandCode }, "fetching ownership Lorenz curve");
-  const data = await HhdbDashboardCollection.getOwnershipLorenzCurve(islandCode);
-  log.info({ points: data.points.length, gini: data.gini }, "ownership Lorenz curve fetched");
+  const data =
+    await HhdbDashboardCollection.getOwnershipLorenzCurve(islandCode);
+  log.info(
+    { points: data.points.length, gini: data.gini },
+    "ownership Lorenz curve fetched",
+  );
   return data;
 }
 

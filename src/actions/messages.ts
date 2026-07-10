@@ -1,9 +1,10 @@
 "use server";
 
-import { createLogger } from "@/core/observability/logger";
-import { Mailer } from "@/core/mailers/mailer";
-import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
 import { insertAndGetId, mysql } from "@database/mysql";
+
+import { Mailer } from "@/core/mailers/mailer";
+import { createLogger } from "@/core/observability/logger";
+import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
 import { AuthorizationError } from "@/lib/errors";
 
 const log = createLogger("action.messages");
@@ -92,7 +93,10 @@ export async function sendMessageAction(
       { messageId, channel: payload.channel, to: payload.to, userId },
       "Message sent",
     );
-    return { success: true, message: `Message sent successfully (id: ${messageId})` };
+    return {
+      success: true,
+      message: `Message sent successfully (id: ${messageId})`,
+    };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
 

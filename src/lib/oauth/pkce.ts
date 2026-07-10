@@ -39,10 +39,12 @@ export function verifyPkceChallenge(
   method: string,
 ): PkceVerificationResult {
   if (method !== "S256") return { ok: false, reason: "bad_method" };
-  if (!PKCE_VERIFIER_RE.test(verifier)) return { ok: false, reason: "bad_verifier" };
+  if (!PKCE_VERIFIER_RE.test(verifier))
+    return { ok: false, reason: "bad_verifier" };
 
   const expected = sha256Base64Url(verifier);
-  if (expected.length !== challenge.length) return { ok: false, reason: "mismatch" };
+  if (expected.length !== challenge.length)
+    return { ok: false, reason: "mismatch" };
 
   const expectedBuf = Buffer.from(expected);
   const challengeBuf = Buffer.from(challenge);

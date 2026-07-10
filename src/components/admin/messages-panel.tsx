@@ -1,16 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import {
-  sendMessageAction,
-  type SendMessagePayload,
-} from "@/actions/messages";
+import { sendMessageAction, type SendMessagePayload } from "@/actions/messages";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -33,8 +30,16 @@ import { cn } from "@/lib/utils";
 const CHANNELS = ["email", "slack", "sms"] as const;
 
 const EMAIL_SENDERS = [
-  { key: "default", label: "udaman.bot@gmail.com", from: "udaman.bot@gmail.com" },
-  { key: "uherosrv", label: "uherosrv@hawaii.edu (not yet configured)", from: "uherosrv@hawaii.edu" },
+  {
+    key: "default",
+    label: "udaman.bot@gmail.com",
+    from: "udaman.bot@gmail.com",
+  },
+  {
+    key: "uherosrv",
+    label: "uherosrv@hawaii.edu (not yet configured)",
+    from: "uherosrv@hawaii.edu",
+  },
 ] as const;
 
 const formSchema = z.discriminatedUnion("channel", [
@@ -96,7 +101,13 @@ export function MessagesPanel({
     const ch = value as (typeof CHANNELS)[number];
     setChannel(ch);
     if (ch === "email") {
-      form.reset({ channel: "email", to: "", subject: "", body: "", sender: "default" });
+      form.reset({
+        channel: "email",
+        to: "",
+        subject: "",
+        body: "",
+        sender: "default",
+      });
     } else if (ch === "slack") {
       form.reset({ channel: "slack", to: "", body: "" });
     } else {
@@ -142,10 +153,7 @@ export function MessagesPanel({
       {/* Send form */}
       <div className="rounded-lg border p-6">
         <h2 className="mb-4 text-lg font-semibold">Send Message</h2>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-4"
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FieldSet className="m-0 gap-1 p-0">
             <FieldGroup className="gap-3">
               <Field data-invalid={!!form.formState.errors.channel}>
@@ -169,9 +177,7 @@ export function MessagesPanel({
                   <FieldLabel htmlFor="sender">From</FieldLabel>
                   <Select
                     value={form.watch("sender") as string}
-                    onValueChange={(value) =>
-                      form.setValue("sender", value)
-                    }
+                    onValueChange={(value) => form.setValue("sender", value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select sender" />
@@ -212,8 +218,12 @@ export function MessagesPanel({
               {channel === "email" && (
                 <Field
                   data-invalid={
-                    !!(form.formState.errors as Record<string, { message?: string }>)
-                      .subject
+                    !!(
+                      form.formState.errors as Record<
+                        string,
+                        { message?: string }
+                      >
+                    ).subject
                   }
                 >
                   <FieldLabel htmlFor="subject">Subject</FieldLabel>
@@ -224,8 +234,12 @@ export function MessagesPanel({
                   />
                   <FieldError
                     errors={[
-                      (form.formState.errors as Record<string, { message?: string }>)
-                        .subject,
+                      (
+                        form.formState.errors as Record<
+                          string,
+                          { message?: string }
+                        >
+                      ).subject,
                     ]}
                   />
                 </Field>
@@ -262,14 +276,12 @@ export function MessagesPanel({
       <div>
         <h2 className="mb-4 text-lg font-semibold">Message History</h2>
         {initialMessages.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No messages sent yet.
-          </p>
+          <p className="text-muted-foreground text-sm">No messages sent yet.</p>
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/50">
+                <tr className="bg-muted/50 border-b">
                   <th className="px-3 py-2 text-left font-medium">ID</th>
                   <th className="px-3 py-2 text-left font-medium">Channel</th>
                   <th className="px-3 py-2 text-left font-medium">From</th>
@@ -297,10 +309,8 @@ export function MessagesPanel({
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                          msg.status === "sent" &&
-                            "bg-green-50 text-green-700",
-                          msg.status === "failed" &&
-                            "bg-red-50 text-red-700",
+                          msg.status === "sent" && "bg-green-50 text-green-700",
+                          msg.status === "failed" && "bg-red-50 text-red-700",
                           msg.status === "pending" &&
                             "bg-yellow-50 text-yellow-700",
                         )}

@@ -981,7 +981,9 @@ export default function UploadPanel({
                       Filename
                     </th>
                     <th className="px-3 py-2 text-left font-medium">Status</th>
-                    <th className="px-3 py-2 text-right font-medium">Duration</th>
+                    <th className="px-3 py-2 text-right font-medium">
+                      Duration
+                    </th>
                     <th className="px-3 py-2 text-left font-medium">Message</th>
                     <th className="px-3 py-2 text-center font-medium">
                       Active

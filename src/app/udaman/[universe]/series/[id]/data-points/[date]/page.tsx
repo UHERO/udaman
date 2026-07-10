@@ -67,7 +67,9 @@ export default async function DataPointVintagesPage({
               <TableRow key={`vintage-${i}`} className={getColor(v.color)}>
                 <TableCell className="text-end font-semibold">
                   {v.value != null
-                    ? Number(v.value).toFixed(internalDecimals(metadata.s_decimals ?? 1))
+                    ? Number(v.value).toFixed(
+                        internalDecimals(metadata.s_decimals ?? 1),
+                      )
                     : "-"}
                 </TableCell>
                 <TableCell>

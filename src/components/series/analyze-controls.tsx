@@ -14,7 +14,6 @@ import { formatLevel } from "@catalog/utils/format";
 import {
   AlertTriangle,
   ArrowLeft,
-  ArrowRightLeft,
   BarChart3,
   Calendar,
   Check,
@@ -25,7 +24,6 @@ import {
   Pencil,
   Plus,
   Trash2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -70,7 +68,6 @@ import {
   computeOverlaysMulti,
   LevelChart,
   SERIES_COLORS,
-  TRANSFORMATION_LABELS,
   type BarMode,
   type ChartRow,
   type Overlay,
@@ -183,15 +180,15 @@ function FreqDateInput({
         }
       }}
       className={cn(
-        "text-muted-foreground w-24 border-b bg-transparent px-0.5 py-0.5 font-mono text-sm outline-none transition-colors",
-        "focus:border-blue-500 focus:text-foreground",
+        "text-muted-foreground w-24 border-b bg-transparent px-0.5 py-0.5 font-mono text-sm transition-colors outline-none",
+        "focus:text-foreground focus:border-blue-500",
         invalid ? "border-red-400" : "border-stone-300 dark:border-stone-600",
       )}
     />
   );
 }
 
-function ControlPanel({ children }: { children: React.ReactNode }) {
+function _ControlPanel({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col gap-2 py-1">{children}</div>
@@ -200,7 +197,7 @@ function ControlPanel({ children }: { children: React.ReactNode }) {
 }
 
 /** Overlays that use the rolling window parameter */
-const ROLLING_OVERLAYS: Overlay[] = ["rollingMean", "rollingStdDev"];
+const _ROLLING_OVERLAYS: Overlay[] = ["rollingMean", "rollingStdDev"];
 
 /** Periods per year by frequency code */
 const PERIODS_PER_YEAR: Record<string, number> = {
@@ -1724,7 +1721,10 @@ interface AnalyzeControlsProps {
   selectedStatsId?: string | null;
   onSelectStats?: (id: string) => void;
   onExpressionChange?: (id: string, expression: string) => void;
-  onVisibilityChange?: (id: string, visibility: AnalyzerEntry["visibility"]) => void;
+  onVisibilityChange?: (
+    id: string,
+    visibility: AnalyzerEntry["visibility"],
+  ) => void;
   onAxisChange?: (id: string, axis: "left" | "right") => void;
   onRemove?: (id: string) => void;
   onAddCompareYoY?: (id: string) => void;
@@ -1735,7 +1735,7 @@ export function AnalyzeControls({
   unitShortLabel,
   currentFreqCode,
   compareSeries: compareSeriesData,
-  universe,
+  universe: _universe,
   timelineEvents = [],
   controlledVisibility,
   controlledAxes,
@@ -1749,12 +1749,12 @@ export function AnalyzeControls({
   onRemove,
   onAddCompareYoY,
 }: AnalyzeControlsProps) {
-
   const searchParams = useSearchParams();
 
-  const seriesVisibility = controlledVisibility ?? new Map<number, "gray" | "hidden">();
+  const seriesVisibility =
+    controlledVisibility ?? new Map<number, "gray" | "hidden">();
 
-  const [barMode, setBarMode] = useState<BarMode>(() =>
+  const [barMode, _setBarMode] = useState<BarMode>(() =>
     parseBarMode(searchParams.get("barMode")),
   );
   const [overlays, setOverlays] = useState<Overlay[]>(() =>
@@ -2184,7 +2184,11 @@ export function AnalyzeControls({
   // Apply overlays on the first visible left-axis series (only when 1 visible)
   const compareFullDataWithOverlays = useMemo(() => {
     if (compareFullData.length === 0) return compareFullData;
-    if (leftVisibleCount === 1 && overlays.length > 0 && leftFirstVisibleIndex >= 0) {
+    if (
+      leftVisibleCount === 1 &&
+      overlays.length > 0 &&
+      leftFirstVisibleIndex >= 0
+    ) {
       return computeOverlaysMulti(
         compareFullData,
         overlays,
@@ -2273,7 +2277,8 @@ export function AnalyzeControls({
       brushRange.startIndex,
       brushRange.endIndex + 1,
     );
-    const sKey = `series_${selectedStatsSeriesIndex ?? 0}` as keyof (typeof sliced)[0];
+    const sKey =
+      `series_${selectedStatsSeriesIndex ?? 0}` as keyof (typeof sliced)[0];
     const levels = sliced
       .map((r) => r[sKey] as number)
       .filter((v): v is number => v != null && !isNaN(v));
@@ -2337,326 +2342,320 @@ export function AnalyzeControls({
   const fmt = (v: number) => formatLevel(v, decimals, unitShortLabel);
 
   return (
-      <div className="flex flex-col gap-3">
-        {/* Stats & range bar */}
-        <div className="flex items-start justify-between gap-6 py-1">
-          <div className="grid grid-cols-5 gap-x-5 gap-y-1">
-            <StatCell
-              label="Mean"
-              value={rangeStats ? fmt(rangeStats.mean) : "—"}
-            />
-            <StatCell
-              label="Median"
-              value={rangeStats ? fmt(rangeStats.median) : "—"}
-            />
-            <StatCell
-              label="Std Dev"
-              value={rangeStats ? fmt(rangeStats.stdDev) : "—"}
-            />
-            <StatCell
-              label="Min"
-              value={rangeStats ? fmt(rangeStats.min) : "—"}
-            />
-            <StatCell
-              label="Max"
-              value={rangeStats ? fmt(rangeStats.max) : "—"}
-            />
-            <StatCell
-              label="Total"
-              value={rangeStats ? fmt(rangeStats.total) : "—"}
-            />
-            <StatCell
-              label="Change"
-              value={rangeStats ? fmt(rangeStats.change) : "—"}
-            />
-            <StatCell
-              label="% Change"
-              value={
-                rangeStats?.pctChange != null
-                  ? `${rangeStats.pctChange.toFixed(2)}%`
-                  : "—"
-              }
-            />
-            <StatCell
-              label="CAGR"
-              value={
-                rangeStats?.cagr != null
-                  ? `${rangeStats.cagr.toFixed(2)}%`
-                  : "—"
-              }
-            />
-            <StatCell
-              label="Obs"
-              value={rangeStats ? String(rangeStats.n) : "—"}
-            />
-          </div>
-          <Separator orientation="vertical" className="h-auto self-stretch" />
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                {RANGE_PRESETS.filter(
-                  (p) =>
-                    p.minPPY <=
-                    (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
-                ).map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    onClick={() => handlePresetClick(p.years, p.label)}
-                    className={`h-7 rounded-md border px-2.5 text-xs font-medium transition-colors ${
-                      rangePreset === p.label
-                        ? "border-blue-300 bg-blue-50 text-blue-700"
-                        : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {rangeStats && (
-              <div className="flex items-center gap-1.5">
-                <FreqDateInput
-                  dateStr={rangeStats.startDate}
-                  freqCode={currentFreqCode}
-                  onCommit={(iso) => {
-                    const idx = findClosestDateIndex(chartData, iso, "start");
-                    setBrushRange((prev) => ({
-                      startIndex: Math.min(idx, prev.endIndex),
-                      endIndex: prev.endIndex,
-                    }));
-                    setRangePreset("");
-                  }}
-                />
-                <span className="text-muted-foreground text-sm">—</span>
-                <FreqDateInput
-                  dateStr={rangeStats.endDate}
-                  freqCode={currentFreqCode}
-                  onCommit={(iso) => {
-                    const idx = findClosestDateIndex(chartData, iso, "end");
-                    setBrushRange((prev) => ({
-                      startIndex: prev.startIndex,
-                      endIndex: Math.max(idx, prev.startIndex),
-                    }));
-                    setRangePreset("");
-                  }}
-                />
-              </div>
-            )}
-          </div>
-          {timelineEvents.length > 0 && (
-            <>
-              <Separator
-                orientation="vertical"
-                className="h-auto self-stretch"
-              />
-              <TimelineControl
-                timelineEvents={timelineEvents}
-                selectedEventTypes={selectedEventTypes}
-                onSelectedEventTypesChange={setSelectedEventTypes}
-              />
-            </>
-          )}
-          <Separator orientation="vertical" className="h-auto self-stretch" />
-          {/* Units for compared series */}
-          <div className="flex min-w-32 flex-col gap-1">
-            <span className="text-muted-foreground text-xs">Units</span>
-            <div className="flex flex-wrap gap-2">
-              {compareUnits.map(([label, indices]) => {
-                // Determine which axes this unit group spans
-                const axes = new Set(
-                  indices.map((i) => seriesAxisMap.get(i) ?? "left"),
-                );
-                const axisTags = hasRightAxis
-                  ? [...axes].map((a) => (a === "left" ? "L" : "R")).join(",")
-                  : null;
-                return (
-                  <span
-                    key={label}
-                    className="flex items-center gap-1 text-sm font-medium"
-                  >
-                    {compareUnits.length > 1 &&
-                      indices.map((i) => (
-                        <span
-                          key={i}
-                          className="inline-block h-2.5 w-2.5 rounded-full"
-                          style={{
-                            backgroundColor:
-                              SERIES_COLORS[i % SERIES_COLORS.length],
-                          }}
-                        />
-                      ))}
-                    {label}
-                    {axisTags && (
-                      <span className="text-muted-foreground text-[10px] font-normal">
-                        ({axisTags})
-                      </span>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-          {compareUnits.length > 2 && !hasRightAxis && (
-            <div className="flex items-center gap-1.5 text-amber-600">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              <span className="text-xs">
-                Series with mismatched units share a single axis
-              </span>
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Combined axis panels: series list + controls */}
-        {(() => {
-          const leftEntries = entries?.filter((e) => e.axis !== "right") ?? [];
-          const rightEntries = entries?.filter((e) => e.axis === "right") ?? [];
-
-          // Build stable color map from entries
-          const colorMap = new Map<string, string>();
-          entries?.forEach((e, i) => {
-            colorMap.set(e.id, SERIES_COLORS[i % SERIES_COLORS.length]);
-          });
-
-          const renderSeriesList = (axisEntries: AnalyzerEntry[]) =>
-            axisEntries.length > 0 ? (
-              <div className="max-h-[200px] space-y-0.5 overflow-y-auto">
-                {axisEntries.map((entry) => (
-                  <AnalyzerSeriesRow
-                    key={entry.id}
-                    entry={entry}
-                    color={colorMap.get(entry.id) ?? SERIES_COLORS[0]}
-                    isStatsSelected={selectedStatsId === entry.id}
-                    onSelectStats={onSelectStats}
-                    onExpressionChange={onExpressionChange ?? (() => {})}
-                    onVisibilityChange={onVisibilityChange ?? (() => {})}
-                    onAxisChange={onAxisChange ?? (() => {})}
-                    onRemove={onRemove ?? (() => {})}
-                    onCompareYoY={
-                      onAddCompareYoY
-                        ? (id: string) => {
-                            setRightChartType("column");
-                            setRightTransformation("yoy");
-                            onAddCompareYoY(id);
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
-            ) : (
-              <span className="text-muted-foreground px-1 text-xs italic">
-                No series
-              </span>
-            );
-
-          return (
-            <div className="grid grid-cols-2 gap-4">
-              {/* Left Axis panel */}
-              <div className="flex flex-col gap-2 rounded-md border p-2">
-                <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
-                  Left Axis
-                </span>
-                {entries && renderSeriesList(leftEntries)}
-                <Separator />
-                <AxisColumn
-                  overlays={overlays}
-                  onOverlaysChange={setOverlays}
-                  transform={transformation}
-                  onTransformChange={setTransformation}
-                  chartType={leftChartType}
-                  onChartTypeChange={setLeftChartType}
-                  indexBaseDate={effectiveIndexBaseDate}
-                  onIndexBaseDateChange={setIndexBaseDate}
-                  availableDates={availableDates}
-                  rollingWindow={rollingWindow}
-                  onRollingWindowChange={setRollingWindow}
-                  stdDevMultiplier={stdDevMultiplier}
-                  onStdDevMultiplierChange={setStdDevMultiplier}
-                  freqCode={currentFreqCode}
-                  stats={chartStats}
-                  fmtMean={fmt}
-                  showOverlays={leftVisibleCount <= 1}
-                />
-              </div>
-              {/* Right Axis panel */}
-              <div className="flex flex-col gap-2 rounded-md border p-2">
-                <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
-                  Right Axis
-                </span>
-                {entries && renderSeriesList(rightEntries)}
-                <Separator />
-                <AxisColumn
-                  overlays={rightOverlays}
-                  onOverlaysChange={setRightOverlays}
-                  transform={rightTransformation}
-                  onTransformChange={setRightTransformation}
-                  chartType={rightChartType}
-                  onChartTypeChange={setRightChartType}
-                  indexBaseDate={effectiveIndexBaseDate}
-                  onIndexBaseDateChange={setIndexBaseDate}
-                  availableDates={availableDates}
-                  rollingWindow={rollingWindow}
-                  onRollingWindowChange={setRollingWindow}
-                  stdDevMultiplier={stdDevMultiplier}
-                  onStdDevMultiplierChange={setStdDevMultiplier}
-                  freqCode={currentFreqCode}
-                  stats={chartStats}
-                  fmtMean={fmt}
-                  showOverlays={rightVisibleCount <= 1}
-                />
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Multi-series level chart with brush */}
-        <div className="w-full py-2">
-          <LevelChart
-            data={compareFullDataWithOverlays}
-            decimals={decimals}
-            freqCode={currentFreqCode}
-            seriesNames={compareSeriesNames}
-            seriesVisibility={seriesVisibility}
-            seriesAxisMap={seriesAxisMap}
-            leftAxisLabel={leftAxisLabel}
-            rightAxisLabel={rightAxisLabel}
-            seriesUnitLabels={seriesUnitLabels}
-            selectedEvents={selectedEvents}
-            overlays={leftVisibleCount === 1 ? overlays : []}
-            stats={leftVisibleCount === 1 ? chartStats ?? undefined : undefined}
-            unitShortLabel={unitShortLabel}
-            stdDevMultiplier={stdDevMultiplier}
-            brushStartIndex={brushRange.startIndex}
-            brushEndIndex={brushRange.endIndex}
-            onBrushChange={handleBrushChange}
-            indexBaseYear={
-              transformation === "indexToYear" ? indexBaseYear : undefined
+    <div className="flex flex-col gap-3">
+      {/* Stats & range bar */}
+      <div className="flex items-start justify-between gap-6 py-1">
+        <div className="grid grid-cols-5 gap-x-5 gap-y-1">
+          <StatCell
+            label="Mean"
+            value={rangeStats ? fmt(rangeStats.mean) : "—"}
+          />
+          <StatCell
+            label="Median"
+            value={rangeStats ? fmt(rangeStats.median) : "—"}
+          />
+          <StatCell
+            label="Std Dev"
+            value={rangeStats ? fmt(rangeStats.stdDev) : "—"}
+          />
+          <StatCell
+            label="Min"
+            value={rangeStats ? fmt(rangeStats.min) : "—"}
+          />
+          <StatCell
+            label="Max"
+            value={rangeStats ? fmt(rangeStats.max) : "—"}
+          />
+          <StatCell
+            label="Total"
+            value={rangeStats ? fmt(rangeStats.total) : "—"}
+          />
+          <StatCell
+            label="Change"
+            value={rangeStats ? fmt(rangeStats.change) : "—"}
+          />
+          <StatCell
+            label="% Change"
+            value={
+              rangeStats?.pctChange != null
+                ? `${rangeStats.pctChange.toFixed(2)}%`
+                : "—"
             }
-            indexDate={
-              transformation === "indexToYear"
-                ? effectiveIndexBaseDate
-                : undefined
+          />
+          <StatCell
+            label="CAGR"
+            value={
+              rangeStats?.cagr != null ? `${rangeStats.cagr.toFixed(2)}%` : "—"
             }
-            leftChartType={leftChartType}
-            rightChartType={rightChartType}
+          />
+          <StatCell
+            label="Obs"
+            value={rangeStats ? String(rangeStats.n) : "—"}
           />
         </div>
+        <Separator orientation="vertical" className="h-auto self-stretch" />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {RANGE_PRESETS.filter(
+                (p) =>
+                  p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
+              ).map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => handlePresetClick(p.years, p.label)}
+                  className={`h-7 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                    rangePreset === p.label
+                      ? "border-blue-300 bg-blue-50 text-blue-700"
+                      : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {rangeStats && (
+            <div className="flex items-center gap-1.5">
+              <FreqDateInput
+                dateStr={rangeStats.startDate}
+                freqCode={currentFreqCode}
+                onCommit={(iso) => {
+                  const idx = findClosestDateIndex(chartData, iso, "start");
+                  setBrushRange((prev) => ({
+                    startIndex: Math.min(idx, prev.endIndex),
+                    endIndex: prev.endIndex,
+                  }));
+                  setRangePreset("");
+                }}
+              />
+              <span className="text-muted-foreground text-sm">—</span>
+              <FreqDateInput
+                dateStr={rangeStats.endDate}
+                freqCode={currentFreqCode}
+                onCommit={(iso) => {
+                  const idx = findClosestDateIndex(chartData, iso, "end");
+                  setBrushRange((prev) => ({
+                    startIndex: prev.startIndex,
+                    endIndex: Math.max(idx, prev.startIndex),
+                  }));
+                  setRangePreset("");
+                }}
+              />
+            </div>
+          )}
+        </div>
+        {timelineEvents.length > 0 && (
+          <>
+            <Separator orientation="vertical" className="h-auto self-stretch" />
+            <TimelineControl
+              timelineEvents={timelineEvents}
+              selectedEventTypes={selectedEventTypes}
+              onSelectedEventTypesChange={setSelectedEventTypes}
+            />
+          </>
+        )}
+        <Separator orientation="vertical" className="h-auto self-stretch" />
+        {/* Units for compared series */}
+        <div className="flex min-w-32 flex-col gap-1">
+          <span className="text-muted-foreground text-xs">Units</span>
+          <div className="flex flex-wrap gap-2">
+            {compareUnits.map(([label, indices]) => {
+              // Determine which axes this unit group spans
+              const axes = new Set(
+                indices.map((i) => seriesAxisMap.get(i) ?? "left"),
+              );
+              const axisTags = hasRightAxis
+                ? [...axes].map((a) => (a === "left" ? "L" : "R")).join(",")
+                : null;
+              return (
+                <span
+                  key={label}
+                  className="flex items-center gap-1 text-sm font-medium"
+                >
+                  {compareUnits.length > 1 &&
+                    indices.map((i) => (
+                      <span
+                        key={i}
+                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        style={{
+                          backgroundColor:
+                            SERIES_COLORS[i % SERIES_COLORS.length],
+                        }}
+                      />
+                    ))}
+                  {label}
+                  {axisTags && (
+                    <span className="text-muted-foreground text-[10px] font-normal">
+                      ({axisTags})
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+        {compareUnits.length > 2 && !hasRightAxis && (
+          <div className="flex items-center gap-1.5 text-amber-600">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-xs">
+              Series with mismatched units share a single axis
+            </span>
+          </div>
+        )}
+      </div>
 
-        <Separator />
+      <Separator />
 
-        {/* Multi-series data table */}
-        <AnalyzeDataTable
-          rows={tableData}
+      {/* Combined axis panels: series list + controls */}
+      {(() => {
+        const leftEntries = entries?.filter((e) => e.axis !== "right") ?? [];
+        const rightEntries = entries?.filter((e) => e.axis === "right") ?? [];
+
+        // Build stable color map from entries
+        const colorMap = new Map<string, string>();
+        entries?.forEach((e, i) => {
+          colorMap.set(e.id, SERIES_COLORS[i % SERIES_COLORS.length]);
+        });
+
+        const renderSeriesList = (axisEntries: AnalyzerEntry[]) =>
+          axisEntries.length > 0 ? (
+            <div className="max-h-[200px] space-y-0.5 overflow-y-auto">
+              {axisEntries.map((entry) => (
+                <AnalyzerSeriesRow
+                  key={entry.id}
+                  entry={entry}
+                  color={colorMap.get(entry.id) ?? SERIES_COLORS[0]}
+                  isStatsSelected={selectedStatsId === entry.id}
+                  onSelectStats={onSelectStats}
+                  onExpressionChange={onExpressionChange ?? (() => {})}
+                  onVisibilityChange={onVisibilityChange ?? (() => {})}
+                  onAxisChange={onAxisChange ?? (() => {})}
+                  onRemove={onRemove ?? (() => {})}
+                  onCompareYoY={
+                    onAddCompareYoY
+                      ? (id: string) => {
+                          setRightChartType("column");
+                          setRightTransformation("yoy");
+                          onAddCompareYoY(id);
+                        }
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <span className="text-muted-foreground px-1 text-xs italic">
+              No series
+            </span>
+          );
+
+        return (
+          <div className="grid grid-cols-2 gap-4">
+            {/* Left Axis panel */}
+            <div className="flex flex-col gap-2 rounded-md border p-2">
+              <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
+                Left Axis
+              </span>
+              {entries && renderSeriesList(leftEntries)}
+              <Separator />
+              <AxisColumn
+                overlays={overlays}
+                onOverlaysChange={setOverlays}
+                transform={transformation}
+                onTransformChange={setTransformation}
+                chartType={leftChartType}
+                onChartTypeChange={setLeftChartType}
+                indexBaseDate={effectiveIndexBaseDate}
+                onIndexBaseDateChange={setIndexBaseDate}
+                availableDates={availableDates}
+                rollingWindow={rollingWindow}
+                onRollingWindowChange={setRollingWindow}
+                stdDevMultiplier={stdDevMultiplier}
+                onStdDevMultiplierChange={setStdDevMultiplier}
+                freqCode={currentFreqCode}
+                stats={chartStats}
+                fmtMean={fmt}
+                showOverlays={leftVisibleCount <= 1}
+              />
+            </div>
+            {/* Right Axis panel */}
+            <div className="flex flex-col gap-2 rounded-md border p-2">
+              <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
+                Right Axis
+              </span>
+              {entries && renderSeriesList(rightEntries)}
+              <Separator />
+              <AxisColumn
+                overlays={rightOverlays}
+                onOverlaysChange={setRightOverlays}
+                transform={rightTransformation}
+                onTransformChange={setRightTransformation}
+                chartType={rightChartType}
+                onChartTypeChange={setRightChartType}
+                indexBaseDate={effectiveIndexBaseDate}
+                onIndexBaseDateChange={setIndexBaseDate}
+                availableDates={availableDates}
+                rollingWindow={rollingWindow}
+                onRollingWindowChange={setRollingWindow}
+                stdDevMultiplier={stdDevMultiplier}
+                onStdDevMultiplierChange={setStdDevMultiplier}
+                freqCode={currentFreqCode}
+                stats={chartStats}
+                fmtMean={fmt}
+                showOverlays={rightVisibleCount <= 1}
+              />
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Multi-series level chart with brush */}
+      <div className="w-full py-2">
+        <LevelChart
+          data={compareFullDataWithOverlays}
           decimals={decimals}
-          unitShortLabel={unitShortLabel}
+          freqCode={currentFreqCode}
           seriesNames={compareSeriesNames}
-          activeTransformation={transformation}
-          rightTransformation={rightTransformation}
+          seriesVisibility={seriesVisibility}
           seriesAxisMap={seriesAxisMap}
+          leftAxisLabel={leftAxisLabel}
+          rightAxisLabel={rightAxisLabel}
+          seriesUnitLabels={seriesUnitLabels}
+          selectedEvents={selectedEvents}
+          overlays={leftVisibleCount === 1 ? overlays : []}
+          stats={leftVisibleCount === 1 ? (chartStats ?? undefined) : undefined}
+          unitShortLabel={unitShortLabel}
+          stdDevMultiplier={stdDevMultiplier}
+          brushStartIndex={brushRange.startIndex}
+          brushEndIndex={brushRange.endIndex}
+          onBrushChange={handleBrushChange}
+          indexBaseYear={
+            transformation === "indexToYear" ? indexBaseYear : undefined
+          }
+          indexDate={
+            transformation === "indexToYear"
+              ? effectiveIndexBaseDate
+              : undefined
+          }
+          leftChartType={leftChartType}
+          rightChartType={rightChartType}
         />
       </div>
+
+      <Separator />
+
+      {/* Multi-series data table */}
+      <AnalyzeDataTable
+        rows={tableData}
+        decimals={decimals}
+        unitShortLabel={unitShortLabel}
+        seriesNames={compareSeriesNames}
+        activeTransformation={transformation}
+        rightTransformation={rightTransformation}
+        seriesAxisMap={seriesAxisMap}
+      />
+    </div>
   );
 }

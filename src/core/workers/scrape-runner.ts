@@ -1,22 +1,20 @@
-// Ensure all date operations use Hawaii Standard Time.
-process.env.TZ = "Pacific/Honolulu";
-
-import {
-  closeBrowser,
-} from "@/core/crawlers/qpub/browser";
+import { closeBrowser } from "@/core/crawlers/qpub/browser";
 import {
   buildUrl,
   isBlockedTime,
+  ISLANDS,
   isScrapePeriodActive,
   msUntilUnblocked,
   type IslandCode,
-  ISLANDS,
 } from "@/core/crawlers/qpub/config";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 import { processNightly } from "./processors/qpub-nightly";
 import { processScrape } from "./processors/qpub-scrape";
+
+// Ensure all date operations use Hawaii Standard Time.
+process.env.TZ = "Pacific/Honolulu";
 
 const log = createLogger("scrape-runner");
 
@@ -161,9 +159,7 @@ async function run() {
 
     // 2. Check scrape period
     if (!isScrapePeriodActive()) {
-      log.info(
-        "Outside scrape period (blocked in Jan/Feb/Aug) — exiting",
-      );
+      log.info("Outside scrape period (blocked in Jan/Feb/Aug) — exiting");
       break;
     }
 
@@ -201,7 +197,10 @@ async function run() {
       .filter((item) => {
         const islandCode = item.island_code as IslandCode;
         if (!(islandCode in ISLANDS)) {
-          log.warn({ tmk: item.tmk, island: islandCode }, "Unknown island code — skipping");
+          log.warn(
+            { tmk: item.tmk, island: islandCode },
+            "Unknown island code — skipping",
+          );
           return false;
         }
         return true;

@@ -102,8 +102,8 @@ export default function DbedtSidebar({
   const activeGroupsMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     categories.forEach((group) => {
-      map[group.name] = Object.values(group.children || {}).some(
-        (item: any) => activeOptionsMap[item.id],
+      map[group.name] = (group.children || []).some(
+        (item) => activeOptionsMap[item.id],
       );
     });
     return map;
