@@ -1,5 +1,9 @@
-import type { Browser, BrowserContext, Page } from "playwright-core";
-import { chromium } from "playwright-extra";
+import { mkdirSync } from "fs";
+import os from "os";
+import path from "path";
+
+import type { BrowserContext, Page } from "playwright-core";
+import { chromium, firefox } from "playwright-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
 import { createLogger } from "@/core/observability/logger";
@@ -11,10 +15,26 @@ const log = createLogger("qpub-browser");
 const stealth = StealthPlugin();
 stealth.enabledEvasions.delete("user-agent-override");
 chromium.use(stealth);
+firefox.use(stealth);
+
+// ─── Browser type selection ───────────────────────────────────────────
+
+type BrowserName = "chromium" | "firefox";
+let browserName: BrowserName = "chromium";
+
+/** Set which browser engine to use. Must be called before first getPage(). */
+export function setBrowserType(name: string): void {
+  if (name === "firefox" || name === "chromium") {
+    browserName = name;
+  } else {
+    throw new Error(
+      `Unsupported browser: ${name} (use "chromium" or "firefox")`,
+    );
+  }
+}
 
 // ─── Shared browser state ─────────────────────────────────────────────
 
-let browser: Browser | null = null;
 let context: BrowserContext | null = null;
 const idlePages: Page[] = [];
 
@@ -30,20 +50,68 @@ function randomViewport() {
   };
 }
 
-/** Launch browser + context if not already running */
-async function ensureBrowser(): Promise<BrowserContext> {
-  if (browser && context) return context;
+// ─── Session warmup ───────────────────────────────────────────────────
 
-  log.info("Launching headless Chromium with stealth plugin");
-  browser = await chromium.launch({
+/** Visit QPub homepage and county search page to establish session cookies. */
+async function warmup(ctx: BrowserContext): Promise<void> {
+  const page = ctx.pages()[0] ?? (await ctx.newPage());
+
+  try {
+    log.info("Warming up — visiting QPub homepage");
+    await page.goto("https://qpublic.schneidercorp.com", {
+      waitUntil: "domcontentloaded",
+      timeout: 30_000,
+    });
+    await new Promise((r) => setTimeout(r, 3_000 + Math.random() * 2_000));
+
+    log.info("Warming up — visiting county search page");
+    await page.goto(
+      "https://qpublic.schneidercorp.com/Application.aspx?App=HonoluluCountyHI&PageType=Search",
+      { waitUntil: "domcontentloaded", timeout: 30_000 },
+    );
+    await new Promise((r) => setTimeout(r, 3_000 + Math.random() * 2_000));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.warn({ error: msg }, "Warmup navigation failed — continuing anyway");
+  }
+
+  // Return warmup page to the pool for reuse
+  try {
+    await page.goto("about:blank");
+    idlePages.push(page);
+  } catch {
+    // discard if broken
+  }
+
+  log.info("Warmup complete");
+}
+
+// ─── Browser lifecycle ────────────────────────────────────────────────
+
+/** Launch browser with persistent context if not already running. */
+async function ensureBrowser(): Promise<BrowserContext> {
+  if (context) return context;
+
+  const launcher = browserName === "firefox" ? firefox : chromium;
+  const dataDir = path.join(os.homedir(), ".qpub-browser", browserName);
+  mkdirSync(dataDir, { recursive: true });
+
+  log.info({ browser: browserName }, "Launching browser with persistent context");
+
+  context = await launcher.launchPersistentContext(dataDir, {
     headless: false,
-    args: [
-      "--disable-backgrounding-occluded-windows",
-      "--disable-renderer-backgrounding",
-    ],
+    viewport: randomViewport(),
+    ...(browserName === "chromium"
+      ? {
+          args: [
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
+          ],
+        }
+      : {}),
   });
-  context = await browser.newContext({ viewport: randomViewport() });
-  log.info("Browser ready");
+
+  await warmup(context);
   return context;
 }
 
@@ -69,7 +137,7 @@ export function removeFromPool(page: Page): void {
   if (idx !== -1) idlePages.splice(idx, 1);
 }
 
-/** Shut down browser and context — called on worker shutdown */
+/** Shut down browser and context — called on worker shutdown. */
 export async function closeBrowser(): Promise<void> {
   idlePages.length = 0;
   if (context) {
@@ -79,14 +147,6 @@ export async function closeBrowser(): Promise<void> {
       // ignore
     }
     context = null;
-  }
-  if (browser) {
-    try {
-      await browser.close();
-    } catch {
-      // ignore
-    }
-    browser = null;
   }
   log.info("Browser closed");
 }

@@ -1,4 +1,8 @@
-import { closeBrowser, releasePage } from "@/core/crawlers/qpub/browser";
+import {
+  closeBrowser,
+  releasePage,
+  setBrowserType,
+} from "@/core/crawlers/qpub/browser";
 import {
   buildUrl,
   isBlockedTime,
@@ -20,6 +24,14 @@ import { processScrape } from "./processors/qpub-scrape";
 
 // Ensure all date operations use Hawaii Standard Time.
 process.env.TZ = "Pacific/Honolulu";
+
+// ─── Browser selection (CLI arg) ──────────────────────────────────────
+// Usage: bun run scraper [chromium|firefox]
+
+const browserArg = process.argv[2];
+if (browserArg) {
+  setBrowserType(browserArg);
+}
 
 const log = createLogger("scrape-runner");
 
