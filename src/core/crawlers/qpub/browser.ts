@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 
 import type { BrowserContext, Page } from "playwright-core";
-import { chromium, firefox } from "playwright-extra";
+import { chromium, firefox, webkit } from "playwright-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
 import { createLogger } from "@/core/observability/logger";
@@ -16,19 +16,21 @@ const stealth = StealthPlugin();
 stealth.enabledEvasions.delete("user-agent-override");
 chromium.use(stealth);
 firefox.use(stealth);
+webkit.use(stealth);
 
 // ─── Browser type selection ───────────────────────────────────────────
 
-type BrowserName = "chromium" | "firefox";
+const SUPPORTED_BROWSERS = ["chromium", "firefox", "webkit"] as const;
+type BrowserName = (typeof SUPPORTED_BROWSERS)[number];
 let browserName: BrowserName = "chromium";
 
 /** Set which browser engine to use. Must be called before first getPage(). */
 export function setBrowserType(name: string): void {
-  if (name === "firefox" || name === "chromium") {
-    browserName = name;
+  if (SUPPORTED_BROWSERS.includes(name as BrowserName)) {
+    browserName = name as BrowserName;
   } else {
     throw new Error(
-      `Unsupported browser: ${name} (use "chromium" or "firefox")`,
+      `Unsupported browser: "${name}" (use ${SUPPORTED_BROWSERS.join(", ")})`,
     );
   }
 }
@@ -92,7 +94,8 @@ async function warmup(ctx: BrowserContext): Promise<void> {
 async function ensureBrowser(): Promise<BrowserContext> {
   if (context) return context;
 
-  const launcher = browserName === "firefox" ? firefox : chromium;
+  const launchers = { chromium, firefox, webkit } as const;
+  const launcher = launchers[browserName];
   const dataDir = path.join(os.homedir(), ".qpub-browser", browserName);
   mkdirSync(dataDir, { recursive: true });
 

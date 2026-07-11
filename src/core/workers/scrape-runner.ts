@@ -26,11 +26,16 @@ import { processScrape } from "./processors/qpub-scrape";
 process.env.TZ = "Pacific/Honolulu";
 
 // ─── Browser selection (CLI arg) ──────────────────────────────────────
-// Usage: bun run scraper [chromium|firefox]
+// Usage: bun run scraper [chromium|firefox|webkit]
 
 const browserArg = process.argv[2];
 if (browserArg) {
-  setBrowserType(browserArg);
+  try {
+    setBrowserType(browserArg);
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  }
 }
 
 const log = createLogger("scrape-runner");
