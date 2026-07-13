@@ -611,6 +611,7 @@ model users {
   universe_rel           universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_users_universe")
   accounts               accounts[]
   sessions               sessions[]
+  RegistryPosts          RegistryPosts[]
 
   @@index([universe], map: "index_users_on_universe")
 }
@@ -764,6 +765,25 @@ model oauth_access_tokens {
 
   @@index([user_id], map: "idx_oauth_access_tokens_user_id")
   @@index([expires_at], map: "idx_oauth_access_tokens_expires_at")
+}
+
+model RegistryPosts {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(500)
+  source      String   @db.VarChar(255)
+  access      String   @db.VarChar(255)
+  owner       String   @db.VarChar(255)
+  contact     String   @db.VarChar(255)
+  format      String   @db.VarChar(16)
+  security    String   @db.VarChar(32)
+  description String   @db.Text
+  author_id   Int
+  created_at  DateTime @default(now()) @db.DateTime(0)
+  updated_at  DateTime @default(now()) @updatedAt @db.DateTime(0)
+  author      users    @relation(fields: [author_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_registry_posts_author")
+
+  @@index([author_id], map: "idx_registry_posts_author_id")
+  @@map("registry_posts")
 }
 
 enum users_role {

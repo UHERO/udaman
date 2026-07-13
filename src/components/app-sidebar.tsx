@@ -32,6 +32,7 @@ import {
   KeyRound,
   Landmark,
   Layers,
+  Library,
   ListOrdered,
   LogOut,
   MapPin,
@@ -91,6 +92,11 @@ const MODE_BRANDING: Record<
   },
   docs: { icon: BookOpen, title: "Docs", subtitle: "Documentation" },
   uhu: { icon: Wrench, title: "UHU", subtitle: "UHERO Utilities" },
+  "data-registry": {
+    icon: Library,
+    title: "Data Registry",
+    subtitle: "Upstream Data Sources",
+  },
 };
 
 const RAIL_ITEMS = [
@@ -121,6 +127,13 @@ const RAIL_ITEMS = [
     icon: BookOpen,
     href: "/docs",
     match: "/docs",
+    roles: ["internal", "admin", "dev"],
+  },
+  {
+    label: "Data Registry",
+    icon: Library,
+    href: "/data-registry",
+    match: "/data-registry",
     roles: ["internal", "admin", "dev"],
   },
 ] as const;
@@ -213,7 +226,7 @@ export function AppSidebar({
     universe: string;
   };
   universes?: { name: string; description: string | null }[];
-  mode?: "udaman" | "admin" | "hhdb" | "docs";
+  mode?: "udaman" | "admin" | "hhdb" | "docs" | "data-registry";
 }) {
   const params = useParams();
   const pathname = usePathname();
