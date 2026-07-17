@@ -28,13 +28,14 @@ process.env.TZ = "Pacific/Honolulu";
 // ─── Browser selection (CLI arg) ──────────────────────────────────────
 // Usage: bun run scraper [chromium|firefox|webkit]
 
+let validArgs = true;
 const browserArg = process.argv[2];
 if (browserArg) {
   try {
     setBrowserType(browserArg);
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
-    process.exit(1);
+    validArgs = false;
   }
 }
 
@@ -369,7 +370,9 @@ process.on("SIGINT", shutdown);
 
 // ─── Start ─────────────────────────────────────────────────────────────
 
-run().catch((err) => {
-  log.error({ err: err.message }, "Scrape runner crashed");
-  process.exit(1);
-});
+if (validArgs) {
+  run().catch((err) => {
+    log.error({ err: err.message }, "Scrape runner crashed");
+    process.exit(1);
+  });
+}
