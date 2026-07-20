@@ -4,14 +4,13 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { SeriesSummary } from "@catalog/types";
 import { SeasonalAdjustment } from "@catalog/types/shared";
+import { isoDate } from "@catalog/utils/time";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { format } from "date-fns";
-
 import {
   Table,
   TableBody,
@@ -79,7 +78,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
       header: "First",
       cell: ({ row }) => {
         const date = row.getValue<Date | null>("minDate");
-        return date ? format(date, "yyyy-MM-dd") : "-";
+        return date ? isoDate(date) : "-";
       },
     },
     {
@@ -87,7 +86,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
       header: "Last",
       cell: ({ row }) => {
         const date = row.getValue<Date | null>("maxDate");
-        return date ? format(date, "yyyy-MM-dd") : "-";
+        return date ? isoDate(date) : "-";
       },
     },
     {

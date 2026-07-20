@@ -2,15 +2,13 @@
 
 import { DataPoint } from "@catalog/types/shared";
 import { formatLevel } from "@catalog/utils/format";
-import { dpAgeCode, uheroDate } from "@catalog/utils/time";
+import { dpAgeCode, freqDate, isoDate } from "@catalog/utils/time";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { format } from "date-fns";
-
 import {
   Table,
   TableBody,
@@ -50,6 +48,7 @@ export const SeriesDataTable = ({
     xseriesId: number;
     universe: string;
     seriesId: number;
+    frequency?: string | null;
   };
 }) => {
   const { setHoveredDate } = useSeriesHover();
@@ -83,7 +82,7 @@ export const SeriesDataTable = ({
     {
       accessorKey: "date",
       header: "Date",
-      cell: ({ row }) => uheroDate(row.getValue("date")),
+      cell: ({ row }) => freqDate(row.getValue("date"), options.frequency),
     },
     {
       accessorKey: "value",
@@ -92,7 +91,7 @@ export const SeriesDataTable = ({
         const val = cell.getValue() as number | null;
         const displayValue = isNumber(val) ? formatLevel(val, decimals) : "-";
         const rowDate = row.getValue("date") as Date;
-        const dateStr = format(rowDate, "yyyy-MM-dd");
+        const dateStr = isoDate(rowDate);
         return (
           <DataPointTooltip
             value={displayValue}

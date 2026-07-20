@@ -69,6 +69,7 @@ export default async function SeriesPage({
                 xseriesId: metadata.xs_id,
                 universe,
                 seriesId: id,
+                frequency: metadata.xs_frequency,
               }}
             />
           </div>

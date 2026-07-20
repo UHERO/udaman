@@ -101,17 +101,64 @@ function generateYears(
   return years;
 }
 
+/**
+ * MySQL DATE columns are calendar dates with no time zone, but the driver
+ * materializes them as JS Dates at UTC midnight. Formatting those through
+ * local-time APIs (date-fns `format`, `toLocaleDateString`) shifts them back
+ * a day anywhere west of UTC — always go through these helpers instead.
+ */
+
+/** DATE-column value → "yyyy-MM-dd" string, using the UTC calendar day. */
+function isoDate(date: Date | string): string {
+  return typeof date === "string"
+    ? date.slice(0, 10)
+    : date.toISOString().slice(0, 10);
+}
+
+/** DATE-column value → a local Date on the same calendar day, safe for date-fns `format`. */
+function utcDay(date: Date | string): Date {
+  const [y, m, d] = isoDate(date).split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * Format a DATE-column value at a series' native frequency resolution:
+ * year → "2025", quarter → "2025Q1", month → "2025-01", anything else
+ * (semi/week/day/unknown) → "yyyy-MM-dd". Accepts full frequency names
+ * ("month") or letter codes ("M").
+ */
+function freqDate(date: Date | string, freq?: string | null): string {
+  const iso = isoDate(date);
+  switch (freq?.toLowerCase()) {
+    case "year":
+    case "annual":
+    case "a":
+      return iso.slice(0, 4);
+    case "quarter":
+    case "q": {
+      const q = Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1;
+      return `${iso.slice(0, 4)}Q${q}`;
+    }
+    case "month":
+    case "m":
+      return iso.slice(0, 7);
+    default:
+      return iso;
+  }
+}
+
 /** Try to keep display formats consistent across all systems */
-const uheroDate = (date: Date, freq?: string) => {
+const uheroDate = (date: Date | string, freq?: string) => {
+  const day = utcDay(date);
   switch (freq) {
     case "M":
-      return format(date, "MMM yyyy");
+      return format(day, "MMM yyyy");
     case "Q":
-      return format(date, "yyyy QQQ");
+      return format(day, "yyyy QQQ");
     case "A":
-      return format(date, "yyyy");
+      return format(day, "yyyy");
     default:
-      return format(date, "yyyy-MM-dd");
+      return format(day, "yyyy-MM-dd");
   }
 };
 
@@ -207,6 +254,9 @@ function formatHstTimestamp(dateInput: Date | string | null): string {
 
 export {
   generateDates,
+  isoDate,
+  utcDay,
+  freqDate,
   uheroDate,
   dpAgeCode,
   formatRuntime,
