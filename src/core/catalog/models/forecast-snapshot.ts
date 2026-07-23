@@ -24,17 +24,17 @@ export type SerializedForecastSnapshot = ReturnType<ForecastSnapshot["toJSON"]>;
 /**
  * Format a Date matching Ruby's `created_at.utc.to_s`: "YYYY-MM-DD HH:MM:SS UTC".
  *
- * Rails stored DATETIME values in UTC, but MariaDB DATETIME columns are timezone-
- * unaware. Bun's SQL driver interprets them as local time, so the JS Date object's
- * local accessors (getHours, etc.) correspond to the raw DB value — which is what
- * Rails used to compute the MD5 hash. We use local accessors here to reproduce the
- * same string the Rails app hashed.
+ * Rails stored DATETIME values in UTC, and Bun's SQL driver parses the timezone-
+ * unaware column as UTC, so the Date's UTC accessors reproduce the raw DB value —
+ * the exact string Rails hashed. Local accessors would shift by the machine's UTC
+ * offset and break every file lookup on non-UTC hosts (verified against the
+ * hashed filenames Rails wrote to disk).
  */
 function formatRubyUtcDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
-    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} UTC`
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
+    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} UTC`
   );
 }
 
