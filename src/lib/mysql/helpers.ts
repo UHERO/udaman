@@ -1,3 +1,5 @@
+import { toHstSql } from "@catalog/utils/time";
+
 import { mysql } from "./db";
 
 /**
@@ -12,6 +14,10 @@ function toSnakeCase(str: string): string {
  * Builds a snake_case column object for use with Bun's sql(obj, ...keys) syntax
  * Auto-converts camelCase keys to snake_case column names
  * Handles boolean -> 0/1 conversion for TINYINT columns
+ * Converts Date instants to HST wall-clock strings so DATETIME columns stay
+ * consistent with NOW()-stamped values (see the HST convention in
+ * @catalog/utils/time — the driver would otherwise serialize the UTC
+ * representation, 10 hours ahead)
  *
  * sample input: { name: "New Name", dataListId: 5, hidden: true }
  * sample output: { name: "New Name", data_list_id: 5, hidden: 1 }
@@ -28,7 +34,13 @@ function buildUpdateObject<T extends Record<string, unknown>>(
     if (value !== undefined) {
       const column = columnOverrides?.[key] ?? toSnakeCase(key);
       result[column] =
-        typeof value === "boolean" ? (value ? 1 : 0) : (value as string | number | null);
+        typeof value === "boolean"
+          ? value
+            ? 1
+            : 0
+          : value instanceof Date
+            ? toHstSql(value)
+            : (value as string | number | null);
     }
   }
   return result;

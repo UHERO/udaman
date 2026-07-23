@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbAppealJSON } from "@catalog/models/hhdb-appeal";
+import { isoDate } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -26,7 +27,7 @@ const columns: ColumnDef<HhdbAppealJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? isoDate(v) : "";
     },
   },
   {

@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbAccessoryStructureJSON } from "@catalog/models/hhdb-accessory-structure";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -36,7 +37,7 @@ const columns: ColumnDef<HhdbAccessoryStructureJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
 ];

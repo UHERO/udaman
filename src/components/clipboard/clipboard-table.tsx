@@ -7,8 +7,7 @@ import type {
   ClipboardSeriesRow,
 } from "@catalog/collections/clipboard-collection";
 import type { ClipboardAction } from "@catalog/controllers/clipboard";
-import { formatHstTimestamp } from "@catalog/utils/time";
-import { format } from "date-fns";
+import { formatHstTimestamp, isoDate } from "@catalog/utils/time";
 import {
   ChevronDown,
   Eraser,
@@ -394,14 +393,10 @@ export function ClipboardTable({
                     {row.sourceDescription ?? "-"}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {row.minDate
-                      ? format(new Date(row.minDate), "yyyy-MM-dd")
-                      : "-"}
+                    {row.minDate ? isoDate(row.minDate) : "-"}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {row.maxDate
-                      ? format(new Date(row.maxDate), "yyyy-MM-dd")
-                      : "-"}
+                    {row.maxDate ? isoDate(row.maxDate) : "-"}
                   </TableCell>
                   <TableCell>
                     <Button

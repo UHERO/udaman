@@ -4,13 +4,14 @@ import type {
   HhdbCondoProjectJSON,
   HhdbCondoUnitJSON,
 } from "@catalog/models/hhdb-condo";
+import { isoDate } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const dateFmt = (v: unknown) => {
   const s = v as string | null;
-  return s ? new Date(s).toLocaleDateString() : "";
+  return s ? isoDate(s) : "";
 };
 
 const projectColumns: ColumnDef<HhdbCondoProjectJSON, unknown>[] = [

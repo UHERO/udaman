@@ -5,6 +5,7 @@ import type {
   SeriesMetadata,
 } from "@catalog/types/shared";
 import { numBool } from "@catalog/utils";
+import { formatHst } from "@catalog/utils/time";
 
 import { cn } from "@/lib/utils";
 
@@ -126,15 +127,11 @@ export function MetaDataTable({
     },
     {
       name: "Created at",
-      value: metadata.s_created_at
-        ? new Date(metadata.s_created_at).toDateString()
-        : "-",
+      value: formatHst(metadata.s_created_at, "EEE MMM dd yyyy"),
     },
     {
       name: "Updated at",
-      value: metadata.s_updated_at
-        ? new Date(metadata.s_updated_at).toDateString()
-        : "-",
+      value: formatHst(metadata.s_updated_at, "EEE MMM dd yyyy"),
     },
     ...(isDev ? [{ name: "XID (devs only)", value: metadata.xs_id }] : []),
     { name: "Internal ID", value: metadata.s_id },

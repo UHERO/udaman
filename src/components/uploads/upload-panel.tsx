@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { formatHst } from "@catalog/utils/time";
 import {
   AlertTriangle,
   Check,
@@ -401,7 +402,8 @@ export default function UploadPanel({
           id: uploadId,
           status: "processing",
           filename: file.name,
-          uploadAt: new Date().toISOString(),
+          // HST wall-clock ISO, matching how server rows serialize (see utils/time)
+          uploadAt: new Date(Date.now() - 10 * 3600_000).toISOString(),
           active: false,
           lastError: null,
           lastErrorAt: null,
@@ -995,7 +997,7 @@ export default function UploadPanel({
                     <tr key={u.id} className="hover:bg-muted/30">
                       <td className="px-3 py-1.5 text-xs whitespace-nowrap">
                         {u.uploadAt
-                          ? new Date(u.uploadAt).toLocaleString()
+                          ? formatHst(u.uploadAt, "M/d/yyyy, h:mm:ss a")
                           : "—"}
                       </td>
                       <td

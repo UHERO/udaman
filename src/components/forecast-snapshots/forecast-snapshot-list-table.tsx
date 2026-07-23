@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { SerializedForecastSnapshot } from "@catalog/models/forecast-snapshot";
+import { formatHst } from "@catalog/utils/time";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -103,7 +104,7 @@ export function ForecastSnapshotListTable({ data }: Props) {
                   </TableCell>
                   <TableCell>
                     {snap.updatedAt
-                      ? new Date(snap.updatedAt).toLocaleDateString()
+                      ? formatHst(snap.updatedAt, "M/d/yyyy")
                       : "-"}
                   </TableCell>
                   <TableCell>

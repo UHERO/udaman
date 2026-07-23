@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbOwnerJSON } from "@catalog/models/hhdb-owner";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -22,7 +23,7 @@ const columns: ColumnDef<HhdbOwnerJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
   {
@@ -31,7 +32,7 @@ const columns: ColumnDef<HhdbOwnerJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
 ];

@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbResidentialAdditionJSON } from "@catalog/models/hhdb-residential-addition";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -21,7 +22,7 @@ const columns: ColumnDef<HhdbResidentialAdditionJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
 ];

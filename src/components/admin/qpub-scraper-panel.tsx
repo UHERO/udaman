@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { formatHst } from "@catalog/utils/time";
 import { Eraser, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 
 import {
@@ -24,25 +25,24 @@ import {
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
+/** For true instants (client refresh time) — rendered as Hawaii clock time. */
 function formatTime(d: Date): string {
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `${hh}:${mm}:${ss}`;
+  return d.toLocaleTimeString("en-US", {
+    timeZone: "Pacific/Honolulu",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
 }
 
 function fmt(n: number): string {
   return n.toLocaleString();
 }
 
+/** For DB DATETIME values (HST wall-clock), e.g. record updated_at. */
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatHst(dateStr, "MMM d, h:mm a");
 }
 
 // ─── Pipeline status row ────────────────────────────────────────────

@@ -6,6 +6,8 @@ import {
   getIslandCode,
   getJsonPath,
 } from "@/core/crawlers/qpub/config";
+import { toHstSql } from "@catalog/utils/time";
+
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { parseDollarValue } from "@/core/crawlers/qpub/parse-utils";
@@ -99,9 +101,10 @@ export function getAssessmentPropertyClass(
   return null;
 }
 
-/** Format a Date for SQL insertion (YYYY-MM-DD HH:MM:SS) */
+/** Format an instant for SQL insertion (YYYY-MM-DD HH:MM:SS) as HST
+ *  wall-clock, consistent with NOW()-stamped DATETIME columns. */
 export function sqlDate(d: Date): string {
-  return d.toISOString().slice(0, 19).replace("T", " ");
+  return toHstSql(d);
 }
 
 /**

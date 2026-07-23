@@ -8,7 +8,7 @@ import type {
   DownloadDetail,
   LogEntrySerialized,
 } from "@catalog/controllers/downloads";
-import { format } from "date-fns";
+import { formatHst } from "@catalog/utils/time";
 import {
   ArrowRightLeft,
   CircleAlert,
@@ -32,7 +32,7 @@ import {
 
 function formatDate(iso: string | null): string {
   if (!iso) return "-";
-  return format(new Date(iso), "yyyy-MM-dd");
+  return formatHst(iso, "yyyy-MM-dd");
 }
 
 /** Group log entries by URL, preserving order */

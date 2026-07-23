@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import { formatHst } from "@catalog/utils/time";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -320,7 +321,7 @@ export function MessagesPanel({
                       </span>
                     </td>
                     <td className="px-3 py-2 text-xs tabular-nums">
-                      {new Date(msg.created_at).toLocaleString()}
+                      {formatHst(msg.created_at, "M/d/yyyy, h:mm:ss a")}
                     </td>
                   </tr>
                 ))}

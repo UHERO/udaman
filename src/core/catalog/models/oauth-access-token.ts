@@ -4,6 +4,8 @@
  * `{ userId, userEmail }` shape the MCP route hands to tool registration.
  */
 
+import { hstToInstant } from "../utils/time";
+
 export type OAuthAccessTokenAttrs = {
   id: number;
   token_hash: string;
@@ -34,7 +36,9 @@ class OAuthAccessToken {
     this.userId = attrs.user_id;
     this.userEmail = attrs.user_email;
     this.scope = attrs.scope ?? "mcp";
-    this.expiresAt = new Date(attrs.expires_at as string | Date);
+    // expires_at holds HST wall-clock — convert to a true instant so
+    // isExpired() compares correctly against new Date()
+    this.expiresAt = hstToInstant(attrs.expires_at as string | Date);
     this.revokedAt = attrs.revoked_at
       ? new Date(attrs.revoked_at as string | Date)
       : null;

@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbHistoricalTaxPaymentJSON } from "@catalog/models/hhdb-historical-tax-payment";
+import { isoDate } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -27,7 +28,7 @@ const columns: ColumnDef<HhdbHistoricalTaxPaymentJSON, unknown>[] = [
     enableSorting: false,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? isoDate(v) : "";
     },
   },
   {

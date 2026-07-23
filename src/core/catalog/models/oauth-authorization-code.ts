@@ -5,6 +5,8 @@
  * collection on first use to prevent replay.
  */
 
+import { hstToInstant } from "../utils/time";
+
 import { verifyPkceChallenge } from "@/lib/oauth/pkce";
 
 export type OAuthAuthorizationCodeAttrs = {
@@ -43,7 +45,9 @@ class OAuthAuthorizationCode {
     this.scope = attrs.scope ?? "mcp";
     this.codeChallenge = attrs.code_challenge;
     this.codeChallengeMethod = attrs.code_challenge_method ?? "S256";
-    this.expiresAt = new Date(attrs.expires_at as string | Date);
+    // expires_at holds HST wall-clock — convert to a true instant so
+    // isExpired() compares correctly against new Date()
+    this.expiresAt = hstToInstant(attrs.expires_at as string | Date);
     this.consumedAt = attrs.consumed_at
       ? new Date(attrs.consumed_at as string | Date)
       : null;

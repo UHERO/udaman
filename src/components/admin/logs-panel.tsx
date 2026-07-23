@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { formatHst } from "@catalog/utils/time";
 import {
   ChevronDown,
   ChevronLeft,
@@ -56,14 +57,22 @@ function LevelBadge({ level }: { level: string }) {
   );
 }
 
+/** For DB DATETIME values (HST wall-clock), e.g. app_logs.created_at. */
 function formatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  const mon = d.toLocaleString("en-US", { month: "short" });
-  const day = d.getDate();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `${mon} ${day}, ${hh}:${mm}:${ss}`;
+  return formatHst(iso, "MMM d, HH:mm:ss");
+}
+
+/** For true epoch-ms instants (e.g. pino log `time` fields). */
+function formatEpochTimestamp(ms: number): string {
+  return new Date(ms).toLocaleString("en-US", {
+    timeZone: "Pacific/Honolulu",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
 }
 
 const PAGE_SIZE = 50;
@@ -481,9 +490,7 @@ const HIDDEN_FIELDS = new Set([
 
 function parseServerLog(line: string) {
   const parsed = JSON.parse(line);
-  const time = parsed.time
-    ? formatTimestamp(new Date(parsed.time).toISOString())
-    : "";
+  const time = parsed.time ? formatEpochTimestamp(Number(parsed.time)) : "";
   const level =
     parsed.level === 30
       ? "info"

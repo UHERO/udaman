@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbYardImprovementJSON } from "@catalog/models/hhdb-yard-improvement";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -18,7 +19,7 @@ const columns: ColumnDef<HhdbYardImprovementJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
 ];

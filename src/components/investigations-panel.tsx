@@ -7,6 +7,7 @@ import type {
   AdminAction,
   EnrichedReloadJob,
 } from "@catalog/collections/reload-job-collection";
+import { formatHst } from "@catalog/utils/time";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,29 +41,9 @@ const ADMIN_ACTIONS: { action: AdminAction; label: string }[] = [
   { action: "sync_nas", label: "Sync files from NAS" },
 ];
 
-const SHORT_MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
 function formatDate(date: Date | string | null): string {
   if (!date) return "";
-  const d = new Date(date);
-  const mon = SHORT_MONTHS[d.getMonth()];
-  const day = d.getDate();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${mon} ${day}, ${hh}:${mm}`;
+  return formatHst(date, "MMM d, HH:mm");
 }
 
 function formatDuration(

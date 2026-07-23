@@ -38,36 +38,27 @@ import {
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-const SHORT_MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
+/** Epoch-ms instants (BullMQ job/queue times) rendered as Hawaii clock time. */
 function formatDate(ts: number | null): string {
   if (!ts) return "";
-  const d = new Date(ts);
-  const mon = SHORT_MONTHS[d.getMonth()];
-  const day = d.getDate();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${mon} ${day}, ${hh}:${mm}`;
+  return new Date(ts).toLocaleString("en-US", {
+    timeZone: "Pacific/Honolulu",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
 }
 
 function formatTime(d: Date): string {
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `${hh}:${mm}:${ss}`;
+  return d.toLocaleTimeString("en-US", {
+    timeZone: "Pacific/Honolulu",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
 }
 
 function formatDuration(start: number | null, end: number | null): string {

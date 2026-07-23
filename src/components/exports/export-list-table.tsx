@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { SerializedExport } from "@catalog/models/export";
+import { formatHst } from "@catalog/utils/time";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -99,7 +100,7 @@ export function ExportListTable({ data }: Props) {
                   <TableCell>{exp.seriesCount}</TableCell>
                   <TableCell>
                     {exp.updatedAt
-                      ? new Date(exp.updatedAt).toLocaleDateString()
+                      ? formatHst(exp.updatedAt, "M/d/yyyy")
                       : "-"}
                   </TableCell>
                   <TableCell>

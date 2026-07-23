@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbSaleJSON } from "@catalog/models/hhdb-sale";
+import { isoDate } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -14,7 +15,7 @@ const columns: ColumnDef<HhdbSaleJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? isoDate(v) : "";
     },
   },
   {
@@ -40,7 +41,7 @@ const columns: ColumnDef<HhdbSaleJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? isoDate(v) : "";
     },
   },
   { accessorKey: "documentType", header: "Doc Type", enableSorting: true },

@@ -61,18 +61,14 @@ function normalizeFreq(freq: string): string {
   return map[f] ?? f;
 }
 
-/** Normalize a DB date column (Bun's mysql driver returns Date objects for
- *  DATE/DATETIME columns) to a plain YYYY-MM-DD string. */
+/** Normalize a DB DATE column to a plain YYYY-MM-DD string. The driver
+ *  returns DATE values as Dates anchored at UTC midnight, so the UTC
+ *  calendar day (toISOString) is the stored day on any machine — local
+ *  accessors would shift it back a day on hosts west of UTC. */
 function toDateStr(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
   if (value instanceof Date) {
-    // Use local-time components, not toISOString(), to avoid UTC-shift when a
-    // DATE column like "2026-04-08" comes back as a local-midnight Date that
-    // lands on the previous day in UTC.
-    const y = value.getFullYear();
-    const m = String(value.getMonth() + 1).padStart(2, "0");
-    const d = String(value.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+    return value.toISOString().slice(0, 10);
   }
   return String(value).slice(0, 10);
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { internalDecimals } from "@catalog/utils/format";
-import { format } from "date-fns";
+import { formatHst } from "@catalog/utils/time";
 
 import {
   TooltipContent,
@@ -72,7 +72,7 @@ export function DataPointTooltip({
                       : "-"}
                   </td>
                   <td className="py-0.5 pr-2">
-                    {format(new Date(v.created_at), "MMM d, yyyy")}
+                    {formatHst(v.created_at, "MMM d, yyyy")}
                   </td>
                   <td className="py-0.5">{v.data_source_id}</td>
                 </tr>

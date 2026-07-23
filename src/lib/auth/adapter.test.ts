@@ -1,3 +1,4 @@
+import { hstToInstant } from "@catalog/utils/time";
 import { mysql } from "@database/mysql";
 
 import { MySqlAdapter } from "./mysql-adapter";
@@ -30,7 +31,7 @@ runBasicTests({
         name: (row.name as string) ?? null,
         image: (row.image as string) ?? null,
         emailVerified: row.email_verified
-          ? new Date(row.email_verified as string | number | Date)
+          ? hstToInstant(row.email_verified as string | Date)
           : null,
       };
     },
@@ -45,7 +46,7 @@ runBasicTests({
         id: String(row.id),
         sessionToken: row.session_token as string,
         userId: String(row.user_id),
-        expires: new Date(row.expires as string | number | Date),
+        expires: hstToInstant(row.expires as string | Date),
       };
     },
     async account({
@@ -94,7 +95,7 @@ runBasicTests({
       return {
         identifier: row.identifier as string,
         token: row.token as string,
-        expires: new Date(row.expires as string | number | Date),
+        expires: hstToInstant(row.expires as string | Date),
       };
     },
   },

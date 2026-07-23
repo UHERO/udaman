@@ -3,6 +3,11 @@ import { createLogger } from "@/core/observability/logger";
 import { Mailer } from "./mailer";
 import { DBEDT_UPLOAD_RECIPIENTS } from "./recipients";
 
+/** Current time as an HST wall-clock string, labeled, for email display. */
+function hstNowLabel(): string {
+  return `${new Date().toLocaleString("en-US", { timeZone: "Pacific/Honolulu" })} HST`;
+}
+
 /**
  * Notification mailer for DBEDT uploads (Econ + Tour).
  *
@@ -57,7 +62,7 @@ export async function sendDbedtUploadStarted(
     <table style="border-collapse: collapse;">
       <tr><td style="padding: 4px 12px 4px 0; color: #666;">Upload ID</td><td style="padding: 4px 0;">${esc(input.uploadId)}</td></tr>
       <tr><td style="padding: 4px 12px 4px 0; color: #666;">Filename</td><td style="padding: 4px 0; font-family: monospace;">${esc(input.filename)}</td></tr>
-      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Started at</td><td style="padding: 4px 0;">${esc(new Date().toLocaleString())}</td></tr>
+      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Started at</td><td style="padding: 4px 0;">${esc(hstNowLabel())}</td></tr>
     </table>
     `,
   );
@@ -106,7 +111,7 @@ export async function sendDbedtUploadCompleted(
     <table style="border-collapse: collapse;">
       <tr><td style="padding: 4px 12px 4px 0; color: #666;">Upload ID</td><td style="padding: 4px 0;">${esc(input.uploadId)}</td></tr>
       <tr><td style="padding: 4px 12px 4px 0; color: #666;">Filename</td><td style="padding: 4px 0; font-family: monospace;">${esc(input.filename)}</td></tr>
-      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Finished at</td><td style="padding: 4px 0;">${esc(new Date().toLocaleString())}</td></tr>
+      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Finished at</td><td style="padding: 4px 0;">${esc(hstNowLabel())}</td></tr>
       ${detailsRow}
     </table>
     `,

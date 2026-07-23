@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { formatHst } from "@catalog/utils/time";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,11 +49,7 @@ const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
 
 function formatDate(iso: string | null): string {
   if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatHst(iso, "MMM d, yyyy");
 }
 
 export default function UsersPanel({ users }: { users: SerializedUser[] }) {

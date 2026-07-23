@@ -3,7 +3,12 @@ import type {
   SeasonalAdjustment,
   Universe,
 } from "../types/shared";
-import { addDaysStr, addMonthsStr, daysBetweenStr } from "../utils/time";
+import {
+  addDaysStr,
+  addMonthsStr,
+  daysBetweenStr,
+  hstToday,
+} from "../utils/time";
 
 // ─── Name parsing ────────────────────────────────────────────────────
 // Series names follow the pattern: PREFIX@GEO.FREQ
@@ -2068,12 +2073,7 @@ class Series {
             this.trimPeriodEnd.getMonth() + 1,
             this.trimPeriodEnd.getDate(),
           )
-        : null) ??
-      fmtDate(
-        new Date().getFullYear(),
-        new Date().getMonth() + 1,
-        new Date().getDate(),
-      );
+        : null) ?? hstToday();
 
     if (!start) {
       // No start date even after defaults — return data as-is

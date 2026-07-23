@@ -63,7 +63,7 @@ export function SeriesChart({ data }: { data: DataPoint[] }) {
           type="number"
           domain={["dataMin", "dataMax"]}
           ticks={[chartData[0].date, chartData[chartData.length - 1].date]}
-          tickFormatter={(ts) => new Date(ts).getFullYear().toString()}
+          tickFormatter={(ts) => new Date(ts).getUTCFullYear().toString()}
           tick={{ fontSize: 10 }}
           axisLine={false}
           tickLine={false}

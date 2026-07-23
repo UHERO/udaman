@@ -6,9 +6,7 @@ import {
   format,
   fromUnixTime,
   isAfter,
-  isToday,
   isValid,
-  isYesterday,
   parseISO,
   startOfMonth,
   startOfQuarter,
@@ -162,13 +160,89 @@ const uheroDate = (date: Date | string, freq?: string) => {
   }
 };
 
+/**
+ * ── HST timestamp convention ─────────────────────────────────────────
+ * DATETIME columns store Hawaii wall-clock time (stamped by SQL NOW();
+ * both dev and prod MariaDB run with time_zone = SYSTEM = Pacific/Honolulu,
+ * and Hawaii has no DST so the offset is a fixed -10:00). The driver anchors
+ * whatever it reads as UTC, so a stored "2026-07-22 21:01" arrives as a JS
+ * Date claiming 21:01Z — the Date's *UTC* fields ARE the Hawaii wall-clock,
+ * and any serialized ISO string's "Z" suffix is a lie.
+ *
+ * Rules:
+ *  - Display DATETIME values via formatHst/formatHstTimestamp — never through
+ *    locale-aware APIs (toLocaleString, date-fns format on the raw Date).
+ *  - Elapsed-time math: convert to a true instant with hstToInstant first.
+ *  - Writing from JS: never pass a raw Date as a DATETIME param (the driver
+ *    serializes its UTC representation, 10h ahead of NOW()) — use toHstSql,
+ *    or just SQL NOW().
+ */
+
+const HST_OFFSET_MS = 10 * 60 * 60 * 1000;
+
+/**
+ * DATETIME-column value → a local Date carrying the same wall-clock fields,
+ * safe for date-fns `format` on any machine. Accepts the driver's UTC-anchored
+ * Date, its serialized ISO string, or a naive "YYYY-MM-DD HH:MM:SS" string.
+ */
+function hstFields(dbValue: Date | string): Date {
+  if (typeof dbValue === "string") {
+    const m = dbValue.match(
+      /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/,
+    );
+    if (m && !/(?:[Zz]|[+-]\d{2}:?\d{2})$/.test(dbValue)) {
+      // Naive wall-clock string — take the fields as-is.
+      return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? "0"));
+    }
+    dbValue = new Date(dbValue);
+  }
+  return new Date(
+    dbValue.getUTCFullYear(),
+    dbValue.getUTCMonth(),
+    dbValue.getUTCDate(),
+    dbValue.getUTCHours(),
+    dbValue.getUTCMinutes(),
+    dbValue.getUTCSeconds(),
+  );
+}
+
+/** DATETIME-column value (HST wall-clock) → the true epoch instant it names. */
+function hstToInstant(dbValue: Date | string): Date {
+  const d = typeof dbValue === "string" ? new Date(dbValue) : dbValue;
+  return new Date(d.getTime() + HST_OFFSET_MS);
+}
+
+/** True instant (Date or epoch ms) → "YYYY-MM-DD HH:MM:SS.mmm" HST wall-clock,
+ *  for writing into a DATETIME column alongside NOW()-stamped values.
+ *  Milliseconds are included; columns without fractional precision truncate. */
+function toHstSql(instant: Date | number): string {
+  const ms = typeof instant === "number" ? instant : instant.getTime();
+  return new Date(ms - HST_OFFSET_MS).toISOString().slice(0, 23).replace("T", " ");
+}
+
+/** Current Hawaii calendar date as "YYYY-MM-DD". */
+function hstToday(): string {
+  return new Date(Date.now() - HST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** Format a DATETIME-column value (HST wall-clock) with a date-fns pattern. */
+function formatHst(
+  dbValue: Date | string | null | undefined,
+  fmt: string = "yyyy-MM-dd HH:mm",
+): string {
+  if (!dbValue) return "-";
+  const w = hstFields(dbValue);
+  if (isNaN(w.getTime())) return "-";
+  return format(w, fmt);
+}
+
 /** Generates the age field in series table. Taken from JP's ruby version. Unsure why
  * they settled on the 100 day and 10 month intervals.
  */
 function dpAgeCode(updatedAt: string, pseudoHistory: boolean) {
   const now = new Date();
-  const createdAt = new Date(updatedAt);
-  const days = differenceInDays(now, createdAt);
+  const createdAt = hstToInstant(updatedAt);
+  const days = Math.max(0, differenceInDays(now, createdAt));
   const months = Math.round(days / 30.0);
 
   const prefix = pseudoHistory ? "*" : "";
@@ -237,19 +311,20 @@ function daysBetweenStr(a: string, b: string): number {
 }
 
 /**
- * Format a UTC date/string as an HST timestamp with relative day labels.
- * Returns "Today, HH:mm", "Yesterday, HH:mm", or "yyyy/MM/dd, HH:mm".
+ * Format a DATETIME-column value (HST wall-clock) with relative day labels.
+ * Returns "Today, HH:mm", "Yesterday, HH:mm", or "yyyy/MM/dd, HH:mm",
+ * where "Today" means the current Hawaii calendar day.
  */
 function formatHstTimestamp(dateInput: Date | string | null): string {
   if (!dateInput) return "-";
-  const utc = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-  if (isNaN(utc.getTime())) return "-";
-  // Shift to HST (UTC-10, no DST) so date-fns compares against local "today"
-  const hst = new Date(utc.getTime() - 10 * 60 * 60 * 1000);
-  const time = format(hst, "HH:mm");
-  if (isToday(hst)) return `Today, ${time}`;
-  if (isYesterday(hst)) return `Yesterday, ${time}`;
-  return `${format(hst, "yyyy/MM/dd")}, ${time}`;
+  const w = hstFields(dateInput);
+  if (isNaN(w.getTime())) return "-";
+  const time = format(w, "HH:mm");
+  const day = format(w, "yyyy-MM-dd");
+  const today = hstToday();
+  if (day === today) return `Today, ${time}`;
+  if (day === addDaysStr(today, -1)) return `Yesterday, ${time}`;
+  return `${format(w, "yyyy/MM/dd")}, ${time}`;
 }
 
 export {
@@ -258,6 +333,11 @@ export {
   utcDay,
   freqDate,
   uheroDate,
+  hstFields,
+  hstToInstant,
+  toHstSql,
+  hstToday,
+  formatHst,
   dpAgeCode,
   formatRuntime,
   formatHstTimestamp,

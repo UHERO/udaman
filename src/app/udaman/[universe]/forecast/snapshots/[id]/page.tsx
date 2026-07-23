@@ -1,3 +1,5 @@
+import { formatHst } from "@catalog/utils/time";
+
 import { getSnapshotDataAction } from "@/actions/forecast-snapshots";
 import { ForecastSnapshotCharts } from "@/components/forecast-snapshots/forecast-snapshot-charts";
 
@@ -22,7 +24,7 @@ export default async function Page({
       </h1>
       {data.snapshot.updatedAt && (
         <p className="text-muted-foreground text-xs">
-          Last update: {new Date(data.snapshot.updatedAt).toLocaleDateString()}
+          Last update: {formatHst(data.snapshot.updatedAt, "M/d/yyyy")}
         </p>
       )}
       {data.snapshot.comments && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { formatHst } from "@catalog/utils/time";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -89,11 +90,7 @@ export function ChangePasswordDialog({
   }
 
   const memberSince = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+    ? formatHst(user.createdAt, "MMMM d, yyyy")
     : null;
 
   return (

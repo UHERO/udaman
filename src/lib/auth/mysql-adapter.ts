@@ -4,7 +4,13 @@ import type {
   AdapterSession,
   AdapterUser,
 } from "@auth/core/adapters";
+import { hstToInstant, toHstSql } from "@catalog/utils/time";
 import { mysql } from "@database/mysql";
+
+// DATETIME columns hold Hawaii wall-clock (see the HST convention in
+// @catalog/utils/time). Auth.js works in true instants, so convert with
+// toHstSql on write and hstToInstant on read — otherwise expiry checks
+// drift by the 10h offset.
 
 // ─── Row → Auth.js object mappers ────────────────────────────────────
 
@@ -15,7 +21,7 @@ function toAdapterUser(row: Record<string, unknown>): AdapterUser {
     name: (row.name as string) ?? null,
     image: (row.image as string) ?? null,
     emailVerified: row.email_verified
-      ? new Date(row.email_verified as string | number | Date)
+      ? hstToInstant(row.email_verified as string | Date)
       : null,
   };
 }
@@ -27,7 +33,7 @@ function toAdapterSession(
     id: String(row.id),
     sessionToken: row.session_token as string,
     userId: String(row.user_id),
-    expires: new Date(row.expires as string | number | Date),
+    expires: hstToInstant(row.expires as string | Date),
   };
 }
 
@@ -60,7 +66,7 @@ export function MySqlAdapter(): Adapter {
       const { email, name, image, emailVerified } = user;
       await mysql`
         INSERT INTO users (email, name, image, email_verified, role, universe, created_at, updated_at)
-        VALUES (${email}, ${name ?? null}, ${image ?? null}, ${emailVerified}, 'internal', 'UHERO', NOW(), NOW())
+        VALUES (${email}, ${name ?? null}, ${image ?? null}, ${emailVerified ? toHstSql(emailVerified) : null}, 'internal', 'UHERO', NOW(), NOW())
       `;
       const rows = await mysql`
         SELECT id, email, name, image, email_verified
@@ -109,6 +115,7 @@ export function MySqlAdapter(): Adapter {
       )[0];
       if (!current) throw new Error(`User not found: ${id}`);
 
+      // Normalize to true instants before writing back
       const merged = {
         email: data.email ?? (current.email as string),
         name: data.name !== undefined ? data.name : current.name,
@@ -116,7 +123,9 @@ export function MySqlAdapter(): Adapter {
         emailVerified:
           data.emailVerified !== undefined
             ? data.emailVerified
-            : current.email_verified,
+            : current.email_verified
+              ? hstToInstant(current.email_verified as Date)
+              : null,
       };
 
       await mysql`
@@ -124,18 +133,18 @@ export function MySqlAdapter(): Adapter {
           email = ${merged.email},
           name = ${merged.name ?? null},
           image = ${merged.image ?? null},
-          email_verified = ${merged.emailVerified ?? null},
+          email_verified = ${merged.emailVerified ? toHstSql(merged.emailVerified) : null},
           updated_at = NOW()
         WHERE id = ${numericId}
       `;
 
-      return toAdapterUser({
-        id: numericId,
+      return {
+        id: String(numericId),
         email: merged.email,
-        name: merged.name,
-        image: merged.image,
-        email_verified: merged.emailVerified,
-      });
+        name: (merged.name as string) ?? null,
+        image: (merged.image as string) ?? null,
+        emailVerified: merged.emailVerified ?? null,
+      };
     },
 
     async deleteUser(userId) {
@@ -189,7 +198,7 @@ export function MySqlAdapter(): Adapter {
     async createSession({ sessionToken, userId, expires }) {
       await mysql`
         INSERT INTO sessions (session_token, user_id, expires)
-        VALUES (${sessionToken}, ${parseInt(userId)}, ${expires})
+        VALUES (${sessionToken}, ${parseInt(userId)}, ${toHstSql(expires)})
       `;
       const rows = await mysql`
         SELECT id, session_token, user_id, expires
@@ -214,7 +223,7 @@ export function MySqlAdapter(): Adapter {
           id: String(row.s_id),
           sessionToken: row.session_token as string,
           userId: String(row.user_id),
-          expires: new Date(row.expires as string | number | Date),
+          expires: hstToInstant(row.expires as string | Date),
         },
         user: toAdapterUser({
           id: row.u_id,
@@ -229,7 +238,7 @@ export function MySqlAdapter(): Adapter {
     async updateSession({ sessionToken, ...data }) {
       if (data.expires) {
         await mysql`
-          UPDATE sessions SET expires = ${data.expires}
+          UPDATE sessions SET expires = ${toHstSql(data.expires)}
           WHERE session_token = ${sessionToken}
         `;
       }
@@ -257,7 +266,7 @@ export function MySqlAdapter(): Adapter {
     async createVerificationToken({ identifier, token, expires }) {
       await mysql`
         INSERT INTO verification_tokens (identifier, token, expires)
-        VALUES (${identifier}, ${token}, ${expires})
+        VALUES (${identifier}, ${token}, ${toHstSql(expires)})
       `;
       return { identifier, token, expires };
     },
@@ -279,7 +288,7 @@ export function MySqlAdapter(): Adapter {
       return {
         identifier: row.identifier as string,
         token: row.token as string,
-        expires: new Date(row.expires as string | number | Date),
+        expires: hstToInstant(row.expires as string | Date),
       };
     },
   };

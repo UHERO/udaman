@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ExportSeriesRow } from "@catalog/collections/export-collection";
+import { utcDay } from "@catalog/utils/time";
+import { format } from "date-fns";
 import { Ban, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,12 +37,8 @@ import {
 
 function formatDate(date: Date | string | null): string {
   if (!date) return "-";
-  const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: undefined,
-  });
+  // Observation DATE values: format the UTC calendar day (see utils/time)
+  return format(utcDay(date), "MMM yyyy");
 }
 
 interface Props {

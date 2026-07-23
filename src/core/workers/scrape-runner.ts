@@ -12,6 +12,7 @@ import {
   type IslandCode,
 } from "@/core/crawlers/qpub/config";
 import { isCaptchaResolved } from "@/core/crawlers/qpub/scrape";
+import { hstToday } from "@catalog/utils/time";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
@@ -56,7 +57,9 @@ let running = true;
 let lastNightlyDate: string | null = null;
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  // Hawaii calendar day, so the "already ran tonight" guard rolls over at
+  // HST midnight — consistent with the HST-based cutoff logic below.
+  return hstToday();
 }
 
 /**

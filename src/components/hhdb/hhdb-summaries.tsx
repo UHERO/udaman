@@ -41,6 +41,7 @@ function displayValue(val: string): string {
     const d = new Date(val);
     if (!isNaN(d.getTime())) {
       return d.toLocaleDateString("en-US", {
+        timeZone: "UTC",
         weekday: "short",
         year: "numeric",
         month: "short",
