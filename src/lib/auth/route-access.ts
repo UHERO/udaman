@@ -97,18 +97,6 @@ export const ROUTES: RouteEntry[] = [
     ],
   },
   {
-    label: "Downloads",
-    path: "/downloads",
-    icon: ArrowDownToLine,
-    roles: ["internal", "admin", "dev"],
-  },
-  {
-    label: "Exports",
-    path: "/exports",
-    icon: ArrowLeftFromLine,
-    roles: ["internal", "admin", "dev"],
-  },
-  {
     label: "Investigations",
     path: "/investigations",
     icon: SearchSlash,
@@ -153,6 +141,18 @@ export const ROUTES: RouteEntry[] = [
         universes: ["HHF"],
       },
     ],
+  },
+   {
+    label: "Downloads",
+    path: "/downloads",
+    icon: ArrowDownToLine,
+    roles: ["internal", "admin", "dev"],
+  },
+  {
+    label: "Exports",
+    path: "/exports",
+    icon: ArrowLeftFromLine,
+    roles: ["internal", "admin", "dev"],
   },
   // ── Rail routes (top-level, absolute paths) ──
   {
