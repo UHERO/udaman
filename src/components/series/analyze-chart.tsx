@@ -772,7 +772,17 @@ export function applyTransformationMulti(
       }
       case "ytd": {
         // Year-to-date cumulative % change from first obs of the year
+        const PPY: Record<string, number> = {
+          D: 365,
+          W: 52,
+          M: 12,
+          Q: 4,
+          S: 2,
+          A: 1,
+        };
+        const ppy = PPY[freqCode ?? "M"] ?? 12;
         let yearStart: number | null = null;
+        let yearStartIndex = -1;
         let currentYear = "";
         const orig = rows.map((r) => r[key] as number | null);
         rows = rows.map((row, i) => {
@@ -781,14 +791,16 @@ export function applyTransformationMulti(
           if (yr !== currentYear) {
             currentYear = yr;
             yearStart = orig[i];
+            yearStartIndex = i;
             return { ...row, [key]: null }; // first obs of year has no YTD
           }
-          if (yearStart == null || yearStart === 0)
+          const priorYtd =
+            (orig[i - ppy] ?? NaN) - (orig[yearStartIndex - ppy] ?? NaN);
+          if (yearStart == null || !Number.isFinite(priorYtd) || priorYtd === 0)
             return { ...row, [key]: null };
           return {
             ...row,
-            [key]:
-              (((orig[i] as number) - yearStart) / Math.abs(yearStart)) * 100,
+            [key]: (((orig[i] as number) - yearStart) / priorYtd - 1) * 100,
           };
         });
         break;
@@ -817,11 +829,11 @@ export function applyTransformationMulti(
           }
           const idx = periodIdx;
           periodIdx++;
-          if (firstVal <= 0 || v <= 0 || idx === 0)
+          if (orig[i - 1] == null || orig[i - 1]! <= 0 || v <= 0 || idx === 0)
             return { ...row, [key]: null };
           return {
             ...row,
-            [key]: (Math.pow(v / firstVal, ppy / idx) - 1) * 100,
+            [key]: (Math.pow(v / orig[i - 1]!, ppy) - 1) * 100,
           };
         });
         break;

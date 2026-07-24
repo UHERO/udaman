@@ -1194,10 +1194,12 @@ const PRIMARY_TRANSFORMS: Array<{
     label: "YTD %",
     formula: (
       <span>
-        (x<sub>t</sub> &minus; x<sub>Jan</sub>) / x<sub>Jan</sub> &times; 100
+        [(x<sub>t</sub> &minus; x<sub>year start,t</sub>) / (x
+        <sub>t&minus;ppy</sub> &minus; x<sub>year start,t&minus;ppy</sub>) &minus; 1]{" "}
+        &times; 100
       </span>
     ),
-    description: "Year-to-date percent change from first period of year",
+    description: "YTD growth vs. previous year",
   },
   {
     value: "pop",
@@ -1225,7 +1227,7 @@ const PRIMARY_TRANSFORMS: Array<{
     label: "CAGR",
     formula: (
       <span>
-        ((x<sub>n</sub>/x<sub>1</sub>)<sup>ppy/(n&minus;1)</sup> &minus; 1)
+        ((x<sub>t</sub> / x<sub>t&minus;1</sub>)<sup>ppy</sup> &minus; 1)
         &times; 100
       </span>
     ),
