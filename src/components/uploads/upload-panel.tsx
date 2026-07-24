@@ -577,11 +577,22 @@ export default function UploadPanel({
     setStage("archiving");
 
     try {
-      await fetch(`${apiEndpoint}/archive`, {
+      const res = await fetch(`${apiEndpoint}/archive`, {
         method: "POST",
         body: file,
         headers: { "x-upload-id": String(uploadId) },
       });
+      if (!res.ok) {
+        // fetch does not throw on HTTP errors (e.g. a proxy 413 on large
+        // files) — surface them or the DB filename silently goes stale.
+        const body = await res.text().catch(() => "");
+        reportUploadError("archiving", `HTTP ${res.status}: ${body}`, {
+          uploadId,
+        });
+        toast.warning(
+          "Data loaded, but archiving the original file failed — the download link for this upload won't work.",
+        );
+      }
     } catch (err) {
       // Non-critical — data is already loaded. Still log so we can see if
       // archive failures are common.
@@ -590,6 +601,9 @@ export default function UploadPanel({
         uploadId,
         stack: err instanceof Error ? err.stack : undefined,
       });
+      toast.warning(
+        "Data loaded, but archiving the original file failed — the download link for this upload won't work.",
+      );
     }
 
     // --- Done ---
