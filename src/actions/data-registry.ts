@@ -9,12 +9,12 @@
 
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { Session } from "next-auth";
+import { revalidatePath } from "next/cache";
 
-import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import type { DataRegistryFormType } from "@/app/data-registry/dr-form";
 import type { RegistryListType } from "@/app/data-registry/dr-table";
+import { insertAndGetId, mysql } from "@/lib/mysql/db";
 
 type RegistryResult = { success: true } | { success: false; error: string };
 
@@ -144,7 +144,17 @@ export async function createDataSouce(
       `INSERT INTO registry_posts
        (title, source, access, owner, contact, format, security, description, author_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [title, source, access, owner, contact, format, security, description, authorId],
+      [
+        title,
+        source,
+        access,
+        owner,
+        contact,
+        format,
+        security,
+        description,
+        authorId,
+      ],
     );
     revalidatePath("/data-registry");
     return { success: true };

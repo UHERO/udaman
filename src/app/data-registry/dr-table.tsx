@@ -1,17 +1,15 @@
 "use client";
 
 import { useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { deleteDataSouce } from "@/actions/data-registry";
-import { Prisma } from "@prisma/client";
-import { ChevronDown, Info, Trash2 } from "lucide-react";
 import { type Session } from "next-auth";
 import { useTheme } from "next-themes";
-
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Prisma } from "@prisma/client";
+import { ChevronDown, Info, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { cn } from "@/lib/utils";
+import { deleteDataSouce } from "@/actions/data-registry";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -44,12 +42,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
-import {
-  DataRegistryForm,
-  runToast,
-  type InitialFormValues,
-} from "./dr-form";
+import { DataRegistryForm, runToast, type InitialFormValues } from "./dr-form";
 import { securityColors } from "./utils";
 
 export type RegistryListType = Prisma.RegistryPostsGetPayload<{
@@ -68,7 +63,7 @@ const DataRegistryTable = ({
   const theme = useTheme();
 
   return (
-    <Table>
+    <Table className="m-5">
       <TableCaption>A list of all UHERO source data sets.</TableCaption>
 
       <TableHeader>
@@ -97,7 +92,8 @@ const DataRegistryTable = ({
                   className={cn(
                     theme.theme === "dark"
                       ? "group-data-[state=open]/collapsible:bg-accent"
-                      : "group-data-[state=open]/collapsible:bg-cyan-600/10"
+                      : "group-data-[state=open]/collapsible:bg-cyan-600/10",
+                    "cursor-pointer",
                   )}
                 >
                   <TableCell className="max-w-[200px] truncate font-medium md:w-[300px]">
@@ -115,7 +111,7 @@ const DataRegistryTable = ({
                   </TableCell>
                   <TableCell>{item.contact}</TableCell>
                   <TableCell className="">
-                    <p className="w-fit rounded-full bg-blue-400/20 px-4 py-1 text-center text-xs text-primary">
+                    <p className="text-primary w-fit rounded-full bg-blue-400/20 px-4 py-1 text-center text-xs">
                       {item.author?.email}
                     </p>
                   </TableCell>
@@ -123,7 +119,7 @@ const DataRegistryTable = ({
                     <span
                       className={cn(
                         securityColors[item.security],
-                        "rounded-full px-4 py-1  text-xs text-zinc-800"
+                        "rounded-full px-4 py-1 text-xs text-zinc-800",
                       )}
                     >
                       {item.security}
@@ -139,8 +135,8 @@ const DataRegistryTable = ({
                                 user?.user.role == "ADMIN" ||
                                   user?.user.email == item.author.email
                                   ? "pointer-events-auto opacity-100"
-                                  : "pointer-events-none  opacity-50",
-                                "flex flex-col items-center gap-2  md:flex-row"
+                                  : "pointer-events-none opacity-50",
+                                "flex flex-col items-center gap-2 md:flex-row",
                               )}
                             >
                               <DataRegistryForm
@@ -175,7 +171,7 @@ const DataRegistryTable = ({
                     </TooltipProvider>
                   </TableCell>
                   <TableCell>
-                    <ChevronDown className="ml-auto size-5  text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    <ChevronDown className="ml-auto size-5 text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                   </TableCell>
                 </TableRow>
               </CollapsibleTrigger>
@@ -216,7 +212,7 @@ const DataRegistryTable = ({
                         <span
                           className={cn(
                             securityColors[item.security],
-                            "rounded-full  px-3  text-zinc-800"
+                            "rounded-full px-3 text-zinc-800",
                           )}
                         >
                           {item.security}
@@ -262,7 +258,7 @@ function ConfirmDialog({ item }: { item: RegistryListType }) {
 
   return (
     <Dialog>
-      <DialogTrigger>
+      <DialogTrigger className="cursor-pointer">
         <div className="flex gap-x-2">
           <div className="rounded-lg bg-red-200/70 px-2 py-1 text-red-500 duration-100 ease-in-out hover:-translate-y-px">
             <Trash2 size={18} />
@@ -280,10 +276,12 @@ function ConfirmDialog({ item }: { item: RegistryListType }) {
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline" className="cursor-pointer">
+              Cancel
+            </Button>
           </DialogClose>
           <DialogClose asChild>
-            <Button onClick={() => handleDelete()}>
+            <Button onClick={() => handleDelete()} className="cursor-pointer">
               {isPending ? <Loader /> : <Trash2 size={14} />}
             </Button>
           </DialogClose>

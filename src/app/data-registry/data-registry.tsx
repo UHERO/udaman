@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { OctagonAlert, Search } from "lucide-react";
 import { type Session } from "next-auth";
+import { OctagonAlert, Search } from "lucide-react";
 
 import {
   Card,
@@ -45,13 +45,13 @@ export default function DataRegistry({
   }, [registryList]);
 
   return (
-    <div className="flex w-full flex-col gap-x-5">
+    <div className="flex w-full flex-col gap-x-5 px-10">
       {registryList.length > 0 ? (
         <div className="flex flex-col gap-y-5">
           <div className="flex w-full items-end justify-between gap-x-5">
             <div className="w-full max-w-lg">
               <Label
-                className="pl-1 text-xs font-semibold text-primary md:text-sm"
+                className="text-primary pl-1 text-xs font-semibold md:text-sm"
                 htmlFor="search"
               >
                 Search entries:
@@ -60,10 +60,10 @@ export default function DataRegistry({
               <div className="relative w-full">
                 <Search
                   size={16}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  className="text-muted-foreground absolute top-1/2 left-2 -translate-y-1/2"
                 />
                 <Input
-                  className="pl-8 text-xs text-muted-foreground md:text-sm"
+                  className="text-muted-foreground pl-8 text-xs md:text-sm"
                   type="search"
                   onChange={(e) => {
                     setDataInView(filterByText(registryList, e.target.value));
@@ -78,7 +78,7 @@ export default function DataRegistry({
           <DataRegistryTable registryList={dataInView} user={user} />
         </div>
       ) : (
-        <Card className="mx-auto w-full md:max-w-3xl">
+        <Card className="mx-auto w-full shadow-none md:max-w-3xl">
           <CardHeader className="text-center">
             <CardTitle className="flex justify-center gap-x-2 text-center">
               <OctagonAlert size={24} />

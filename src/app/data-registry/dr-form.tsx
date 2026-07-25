@@ -1,16 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { createDataSouce, updateDataSouce } from "@/actions/data-registry";
+import { Controller, useForm } from "react-hook-form";
+import { type Session } from "next-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FilePlus2, SquarePen } from "lucide-react";
-import { type Session } from "next-auth";
-import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
-import { toast } from "sonner";
-
-import { cn } from "@/lib/utils";
+import { createDataSouce, updateDataSouce } from "@/actions/data-registry";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,7 +26,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Loader } from "@/components/ui/loader";
 import {
   Select,
   SelectContent,
@@ -36,7 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader } from "@/components/ui/loader";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 import { SecurityInfoLink } from "./dr-table";
 import { formats, securityColors, securityLevels } from "./utils";
@@ -114,13 +113,13 @@ export function DataRegistryForm({
         runToast(
           toast,
           "Success",
-          isUpdate ? "Updated data source." : "Added new data source."
+          isUpdate ? "Updated data source." : "Added new data source.",
         );
       } else {
         runToast(
           toast,
           "Error",
-          (res.error as string) ?? "Failed to save entry."
+          (res.error as string) ?? "Failed to save entry.",
         );
       }
 
@@ -136,11 +135,11 @@ export function DataRegistryForm({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className="w-fit" asChild>
         {isUpdate ? (
-          <button className="rounded-lg bg-blue-400/20 px-2 py-1 text-cyan-600 duration-100 ease-in-out hover:-translate-y-px">
+          <button className="cursor-pointer rounded-lg bg-blue-400/20 px-2 py-1 text-cyan-600 duration-100 ease-in-out hover:-translate-y-px">
             <SquarePen size={18} />
           </button>
         ) : (
-          <Button variant={"outline"} type="button">
+          <Button variant={"outline"} type="button" className="cursor-pointer">
             <FilePlus2 size={18} />
             <span>Add New Data Source</span>
           </Button>
@@ -235,13 +234,14 @@ export function DataRegistryForm({
                     <SelectTrigger
                       id="form-rhf-demo-format"
                       aria-invalid={fieldState.invalid}
+                      className="cursor-pointer"
                     >
                       <SelectValue placeholder="CSV" />
                     </SelectTrigger>
                     <SelectContent>
                       {formats.map((format, idx) => (
                         <SelectItem
-                          className="cursor-pointer hover:bg-secondary"
+                          className="hover:bg-secondary cursor-pointer"
                           value={format}
                           key={`format-${idx}-${format}`}
                         >
@@ -272,20 +272,21 @@ export function DataRegistryForm({
                     <SelectTrigger
                       id="form-rhf-demo-security"
                       aria-invalid={fieldState.invalid}
+                      className="cursor-pointer"
                     >
                       <SelectValue placeholder="Select security level" />
                     </SelectTrigger>
                     <SelectContent>
                       {securityLevels.map((sec, idx) => (
                         <SelectItem
-                          className="cursor-pointer hover:bg-secondary"
+                          className="hover:bg-secondary cursor-pointer"
                           value={sec}
                           key={`${idx}-${sec}`}
                         >
                           <span
                             className={cn(
                               securityColors[sec],
-                              "rounded-full px-3 py-0.5 text-zinc-800"
+                              "rounded-full px-3 py-0.5 text-zinc-800",
                             )}
                           >
                             {sec}
@@ -380,11 +381,16 @@ export function DataRegistryForm({
                 type="button"
                 variant="outline"
                 onClick={() => form.reset()}
+                className="cursor-pointer"
               >
                 Reset
               </Button>
             )}
-            <Button type="submit" form="form-rhf-demo">
+            <Button
+              type="submit"
+              form="form-rhf-demo"
+              className="cursor-pointer"
+            >
               {isSubmitting ? <Loader /> : "Submit"}
             </Button>
           </Field>
