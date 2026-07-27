@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { formatLevel } from "@catalog/utils/format";
+import { addMonthsStr } from "@catalog/utils/time";
 import {
   Area,
   Bar,
@@ -103,7 +104,8 @@ export type Transformation =
   | "ytd"
   | "pop"
   | "levelChange"
-  | "cagr";
+  | "cagr"
+  | "agr";
 
 export const formatDate = (d: string) => d;
 
@@ -771,42 +773,39 @@ export function applyTransformationMulti(
         break;
       }
       case "ytd": {
-        // Year-to-date cumulative % change from first obs of the year
-        const PPY: Record<string, number> = {
-          D: 365,
-          W: 52,
-          M: 12,
-          Q: 4,
-          S: 2,
-          A: 1,
-        };
-        const ppy = PPY[freqCode ?? "M"] ?? 12;
-        let yearStart: number | null = null;
-        let yearStartIndex = -1;
-        let currentYear = "";
+        // Mirrors Series.ytd() (= ytdSum().yoy()): cumulative sum from each
+        // calendar-year start, then % change vs the same date one year
+        // earlier — so the chart agrees with the YTD column in the table.
         const orig = rows.map((r) => r[key] as number | null);
-        rows = rows.map((row, i) => {
-          if (orig[i] == null) return row;
+        const ytdSum = new Map<string, number>();
+        let trackYear = "";
+        let cumSum = 0;
+        rows.forEach((row, i) => {
+          const v = orig[i];
+          if (v == null) return;
           const yr = row.date.slice(0, 4);
-          if (yr !== currentYear) {
-            currentYear = yr;
-            yearStart = orig[i];
-            yearStartIndex = i;
-            return { ...row, [key]: null }; // first obs of year has no YTD
+          if (yr !== trackYear) {
+            trackYear = yr;
+            cumSum = 0;
           }
-          const priorYtd =
-            (orig[i - ppy] ?? NaN) - (orig[yearStartIndex - ppy] ?? NaN);
-          if (yearStart == null || !Number.isFinite(priorYtd) || priorYtd === 0)
-            return { ...row, [key]: null };
-          return {
-            ...row,
-            [key]: (((orig[i] as number) - yearStart) / priorYtd - 1) * 100,
-          };
+          cumSum += v;
+          ytdSum.set(row.date, cumSum);
+        });
+        rows = rows.map((row) => {
+          const cur = ytdSum.get(row.date);
+          if (cur == null) return { ...row, [key]: null };
+          const prior = ytdSum.get(addMonthsStr(row.date, -12));
+          if (prior == null) return { ...row, [key]: null };
+          // Near-zero denominator guard, same as the model's pctChange
+          if (Math.abs(prior) < 1e-10)
+            return { ...row, [key]: cur === 0 ? 0 : null };
+          return { ...row, [key]: (cur / prior - 1) * 100 };
         });
         break;
       }
       case "cagr": {
-        // Running CAGR from first observation
+        // Running CAGR: annualized growth from the first observation in
+        // view to each point: (x_t/x_1)^(ppy/periods elapsed) - 1
         const PPY: Record<string, number> = {
           D: 365,
           W: 52,
@@ -829,11 +828,34 @@ export function applyTransformationMulti(
           }
           const idx = periodIdx;
           periodIdx++;
-          if (orig[i - 1] == null || orig[i - 1]! <= 0 || v <= 0 || idx === 0)
-            return { ...row, [key]: null };
+          if (firstVal <= 0 || v <= 0) return { ...row, [key]: null };
           return {
             ...row,
-            [key]: (Math.pow(v / orig[i - 1]!, ppy) - 1) * 100,
+            [key]: (Math.pow(v / firstVal, ppy / idx) - 1) * 100,
+          };
+        });
+        break;
+      }
+      case "agr": {
+        // Annualized period-over-period growth: (x_t/x_{t-1})^ppy - 1
+        const PPY: Record<string, number> = {
+          D: 365,
+          W: 52,
+          M: 12,
+          Q: 4,
+          S: 2,
+          A: 1,
+        };
+        const ppy = PPY[freqCode ?? "M"] ?? 12;
+        const orig = rows.map((r) => r[key] as number | null);
+        rows = rows.map((row, i) => {
+          const v = orig[i];
+          if (v == null) return row;
+          const p = orig[i - 1];
+          if (p == null || p <= 0 || v <= 0) return { ...row, [key]: null };
+          return {
+            ...row,
+            [key]: (Math.pow(v / p, ppy) - 1) * 100,
           };
         });
         break;
@@ -858,6 +880,7 @@ export const TRANSFORMATION_LABELS: Record<Transformation, string> = {
   pop: "PoP %",
   levelChange: "LVL Chg",
   cagr: "CAGR",
+  agr: "AGR",
 };
 
 /* ------------------------------------------------------------------ */

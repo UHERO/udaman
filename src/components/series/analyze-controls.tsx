@@ -380,6 +380,7 @@ const VALID_TRANSFORMATIONS = new Set<Transformation>([
   "pop",
   "levelChange",
   "cagr",
+  "agr",
 ]);
 
 const VALID_BAR_MODES = new Set<BarMode>(["yoy", "ytd", "levelChange", "pop"]);
@@ -1172,7 +1173,10 @@ const PRIMARY_TRANSFORMS: Array<{
     label: "Index",
     formula: (
       <span>
-        y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100
+        y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100,
+        <br />
+        where x<sub>base</sub> = value at the selected base period (index =
+        100)
       </span>
     ),
     description:
@@ -1183,23 +1187,25 @@ const PRIMARY_TRANSFORMS: Array<{
     label: "YOY %",
     formula: (
       <span>
-        (x<sub>t</sub> &minus; x<sub>t&minus;4</sub>) / x<sub>t&minus;4</sub>{" "}
-        &times; 100
+        (x<sub>t</sub> &minus; x<sub>t&minus;ppy</sub>) / x
+        <sub>t&minus;ppy</sub> &times; 100,
+        <br />
+        where ppy = periods per year (12 monthly, 4 quarterly)
       </span>
     ),
-    description: "Year-over-year percent change",
+    description: "Percent change vs. same period last year",
   },
   {
     value: "ytd",
     label: "YTD %",
     formula: (
       <span>
-        [(x<sub>t</sub> &minus; x<sub>year start,t</sub>) / (x
-        <sub>t&minus;ppy</sub> &minus; x<sub>year start,t&minus;ppy</sub>) &minus; 1]{" "}
-        &times; 100
+        (YTD<sub>t</sub> / YTD<sub>t−1yr</sub> − 1) × 100,
+        <br />
+        where YTD<sub>t</sub> = x<sub>Jan(t)</sub> + ⋯ + x<sub>t</sub>
       </span>
     ),
-    description: "YTD growth vs. previous year",
+    description: "Year-over-year % change in YTD total",
   },
   {
     value: "pop",
@@ -1227,11 +1233,28 @@ const PRIMARY_TRANSFORMS: Array<{
     label: "CAGR",
     formula: (
       <span>
-        ((x<sub>t</sub> / x<sub>t&minus;1</sub>)<sup>ppy</sup> &minus; 1)
-        &times; 100
+        ((x<sub>t</sub> / x<sub>1</sub>)<sup>ppy/(t&minus;1)</sup> &minus; 1)
+        &times; 100,
+        <br />
+        where x<sub>1</sub> = first observation in view, t&minus;1 = periods
+        since it, ppy = periods per year
       </span>
     ),
-    description: "Compound annual growth rate",
+    description: "Compound annual growth rate since the start of the window",
+  },
+  {
+    value: "agr",
+    label: "AGR",
+    formula: (
+      <span>
+        ((x<sub>t</sub> / x<sub>t&minus;1</sub>)<sup>ppy</sup> &minus; 1)
+        &times; 100,
+        <br />
+        where ppy = periods per year (12 monthly, 4 quarterly)
+      </span>
+    ),
+    description:
+      "Annualized growth rate: period-over-period change compounded to an annual rate",
   },
 ];
 
@@ -1247,7 +1270,9 @@ const MORE_TRANSFORMS: Array<{
     label: "Z-Score",
     formula: (
       <span>
-        z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
+        z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;,
+        <br />
+        where x̄, &sigma; = sample mean and std dev of the series
       </span>
     ),
     description: "Standard score: how many std devs from the mean",
@@ -1257,7 +1282,9 @@ const MORE_TRANSFORMS: Array<{
     label: "Dev. from Trend",
     formula: (
       <span>
-        d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
+        d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t),
+        <br />
+        where &alpha; + &beta;t = OLS linear trend fit to the series
       </span>
     ),
     description: "Residual from OLS linear trend",
@@ -1494,7 +1521,9 @@ function AxisColumn({
       ? PRIMARY_TRANSFORMS
       : PRIMARY_TRANSFORMS.filter(
           (t) =>
-            !["yoy", "ytd", "pop", "levelChange", "cagr"].includes(t.value),
+            !["yoy", "ytd", "pop", "levelChange", "cagr", "agr"].includes(
+              t.value,
+            ),
         );
 
   return (
