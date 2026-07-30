@@ -1,44 +1,21 @@
+// Ensure all date operations use Hawaii Standard Time.
+process.env.TZ = "Pacific/Honolulu";
+
 import {
   closeBrowser,
-  releasePage,
-  setBrowserType,
 } from "@/core/crawlers/qpub/browser";
 import {
   buildUrl,
   isBlockedTime,
-  ISLANDS,
   isScrapePeriodActive,
   msUntilUnblocked,
   type IslandCode,
+  ISLANDS,
 } from "@/core/crawlers/qpub/config";
-import { isCaptchaResolved } from "@/core/crawlers/qpub/scrape";
-import { hstToday } from "@catalog/utils/time";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
-import type { Page } from "playwright-core";
-
-import { errorMessage, processLoad } from "./processors/qpub-load";
-import { processNightly } from "./processors/qpub-nightly";
-import { processParse } from "./processors/qpub-parse";
 import { processScrape } from "./processors/qpub-scrape";
-
-// Ensure all date operations use Hawaii Standard Time.
-process.env.TZ = "Pacific/Honolulu";
-
-// ─── Browser selection (CLI arg) ──────────────────────────────────────
-// Usage: bun run scraper [chromium|firefox|webkit]
-
-let validArgs = true;
-const browserArg = process.argv[2];
-if (browserArg) {
-  try {
-    setBrowserType(browserArg);
-  } catch (e) {
-    console.error(e instanceof Error ? e.message : String(e));
-    validArgs = false;
-  }
-}
 
 const log = createLogger("scrape-runner");
 
@@ -46,43 +23,19 @@ const CLAIM_SIZE = 3;
 const STALE_MONTHS = 6;
 const CLAIM_TIMEOUT_MINUTES = 5;
 const MAX_RETRIES = 10;
-const SCRAPE_CUTOFF_HOUR = 22; // 10pm — stop scraping, let batch loader work
+const SCRAPE_CUTOFF_HOUR = 22; // 10pm — stop scraping for the day
 const WEEKLY_SLEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const RETRY_SLEEP_MS = 30_000;
 const CAPTCHA_DELAY_MS = 5 * 60_000;
 
+// Occasional long pause between batches. The per-request 4–20s jitter keeps a
+// steady rhythm that becomes recognizable over a multi-week scrape, so rarely
+// dropping offline for a stretch breaks up the long-run traffic pattern.
+const LONG_SLEEP_CHANCE = 1 / 1000;
+const LONG_SLEEP_MIN_MS = 60_000; // 1 minute
+const LONG_SLEEP_MAX_MS = 60 * 60_000; // 60 minutes
+
 let running = true;
-
-/** Track which calendar day we last ran nightly parse+load (YYYY-MM-DD) */
-let lastNightlyDate: string | null = null;
-
-function todayStr(): string {
-  // Hawaii calendar day, so the "already ran tonight" guard rolls over at
-  // HST midnight — consistent with the HST-based cutoff logic below.
-  return hstToday();
-}
-
-/**
- * Run nightly parse+load if we haven't already done so today.
- * Called when scraping is done for the day (10pm cutoff or no stale records).
- */
-async function runNightlyIfNeeded(): Promise<void> {
-  const today = todayStr();
-  if (lastNightlyDate === today) {
-    log.info("Nightly parse+load already ran today — skipping");
-    return;
-  }
-
-  try {
-    const result = await processNightly();
-    log.info(result);
-    lastNightlyDate = today;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    log.error({ error: msg }, "Nightly parse+load failed");
-    // Don't set lastNightlyDate — allow retry on next iteration
-  }
-}
 
 // ─── Claiming ─────────────────────────────────────────────────────────
 
@@ -155,6 +108,26 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+/**
+ * With low probability, go offline for 1–60 minutes before claiming the next
+ * batch. Closes the browser first so we're not holding an idle session, which
+ * also means the next batch comes back with a fresh viewport/fingerprint.
+ */
+async function maybeLongSleep(): Promise<void> {
+  if (Math.random() >= LONG_SLEEP_CHANCE) return;
+
+  const ms =
+    LONG_SLEEP_MIN_MS +
+    Math.random() * (LONG_SLEEP_MAX_MS - LONG_SLEEP_MIN_MS);
+
+  log.info(
+    { sleepMinutes: +(ms / 60_000).toFixed(1) },
+    "Random long sleep — pausing between batches",
+  );
+  await closeBrowser();
+  await sleep(ms);
+}
+
 // ─── Stale count ───────────────────────────────────────────────────────
 
 async function countStale(): Promise<number> {
@@ -166,50 +139,6 @@ async function countStale(): Promise<number> {
   return Number(rows[0]?.cnt ?? 0);
 }
 
-// ─── Inline parse+load ────────────────────────────────────────────────
-
-type PendingRow = { tmk: string; island_code: string; parse_status: string };
-
-/**
- * Process previously-scraped records (parse → load) until the stop signal
- * fires or no pending records remain. Runs concurrently with the scrape
- * batch so the 4–20 s delay per page is used productively.
- */
-async function processPendingRecords(signal: {
-  stop: boolean;
-}): Promise<number> {
-  let count = 0;
-  while (!signal.stop && running) {
-    const rows = await rawQuery<PendingRow>(
-      `SELECT s.tmk, p.island_code, s.parse_status
-       FROM scrape_status s
-       JOIN properties p ON s.tmk = p.tmk
-       WHERE s.scrape_status = 'success'
-         AND (s.parse_status IN ('pending','failed')
-              OR s.load_status IN ('pending','failed'))
-       LIMIT 1`,
-    );
-    if (rows.length === 0) break;
-
-    const { tmk, island_code, parse_status } = rows[0];
-    try {
-      if (parse_status !== "success") {
-        await processParse({ tmk, island: island_code }, (msg) =>
-          log.debug(msg),
-        );
-      }
-      await processLoad({ tmk }, (msg) => log.debug(msg));
-      count++;
-    } catch (e) {
-      log.error(
-        { tmk, error: errorMessage(e) },
-        "Inline parse+load failed",
-      );
-    }
-  }
-  return count;
-}
-
 // ─── Main loop ─────────────────────────────────────────────────────────
 
 async function run() {
@@ -219,8 +148,8 @@ async function run() {
     // 1. Check if there's anything stale to scrape
     const staleCount = await countStale();
     if (staleCount === 0) {
-      log.info("All records current — running nightly then sleeping 1 week");
-      await runNightlyIfNeeded();
+      log.info("All records current — sleeping 1 week");
+      await closeBrowser();
       await sleep(WEEKLY_SLEEP_MS);
       continue;
     }
@@ -229,7 +158,9 @@ async function run() {
 
     // 2. Check scrape period
     if (!isScrapePeriodActive()) {
-      log.info("Outside scrape period (blocked in Jan/Feb/Aug) — exiting");
+      log.info(
+        "Outside scrape period (blocked in Jan/Feb/Aug) — exiting",
+      );
       break;
     }
 
@@ -245,16 +176,19 @@ async function run() {
       continue;
     }
 
-    // 4. Past 10pm cutoff — close browser, run nightly, sleep until 5am
+    // 4. Past 10pm cutoff — close browser and sleep until 5am
     if (isPastCutoff()) {
-      log.info("Past 10pm scrape cutoff — running nightly parse+load");
+      log.info("Past 10pm scrape cutoff — sleeping until 5am");
       await closeBrowser();
-      await runNightlyIfNeeded();
       await sleep(msUntil5am());
       continue;
     }
 
-    // 5. Claim items
+    // 5. Occasional long pause to vary the long-run request pattern
+    await maybeLongSleep();
+    if (!running) break;
+
+    // 6. Claim items
     const claimed = await claimItems();
     if (claimed.length === 0) {
       log.info("All items locked by other workers — retrying in 30s");
@@ -262,15 +196,12 @@ async function run() {
       continue;
     }
 
-    // 6. Scrape all claimed items concurrently (each opens its own browser tab)
+    // 7. Scrape all claimed items concurrently (each opens its own browser tab)
     const scrapeJobs = claimed
       .filter((item) => {
         const islandCode = item.island_code as IslandCode;
         if (!(islandCode in ISLANDS)) {
-          log.warn(
-            { tmk: item.tmk, island: islandCode },
-            "Unknown island code — skipping",
-          );
+          log.warn({ tmk: item.tmk, island: islandCode }, "Unknown island code — skipping");
           return false;
         }
         return true;
@@ -298,61 +229,18 @@ async function run() {
         }
       });
 
-    // Run parse+load for previously scraped records while this batch scrapes.
-    // The scrape jobs spend most of their time on network I/O and randomDelay(),
-    // so we use that idle time to process pending records concurrently.
-    const inlineSignal = { stop: false };
-    const [results] = await Promise.all([
-      Promise.allSettled(scrapeJobs).then((r) => {
-        inlineSignal.stop = true;
-        return r;
-      }),
-      processPendingRecords(inlineSignal).then((count) => {
-        if (count > 0)
-          log.info({ count }, "Inline parse+load completed during scrape");
-      }),
-    ]);
+    const results = await Promise.allSettled(scrapeJobs);
 
-    // Collect captcha pages from batch results
-    const captchaPages: Page[] = results
-      .filter(
-        (r) =>
-          r.status === "fulfilled" &&
-          r.value?.page &&
-          (r.value.status === "captcha" || r.value.status === "blocked"),
-      )
-      .map((r) => (r as PromiseFulfilledResult<{ page: Page }>).value.page);
-
-    if (captchaPages.length > 0) {
-      log.warn(
-        { count: captchaPages.length },
-        "Captcha detected — pages left open for manual solving. Monitoring...",
-      );
-
-      const pollInterval = 5_000;
-      const maxPolls = CAPTCHA_DELAY_MS / pollInterval;
-      let resolved = false;
-
-      for (let i = 0; i < maxPolls && running; i++) {
-        await sleep(pollInterval);
-
-        for (const page of captchaPages) {
-          if (await isCaptchaResolved(page)) {
-            log.info("Captcha solved by user — resuming scraping");
-            resolved = true;
-            break;
-          }
-        }
-        if (resolved) break;
-      }
-
-      if (!resolved) {
-        log.info("Captcha backoff expired — releasing pages");
-      }
-
-      for (const page of captchaPages) {
-        await releasePage(page);
-      }
+    // If any scrape hit captcha/blocked, pause before the next batch
+    const wasBlocked = results.some(
+      (r) =>
+        r.status === "fulfilled" &&
+        r.value &&
+        (r.value.status === "captcha" || r.value.status === "blocked"),
+    );
+    if (wasBlocked) {
+      log.warn("Captcha/block in batch — pausing before next claim");
+      await sleep(CAPTCHA_DELAY_MS);
     }
   }
 
@@ -373,9 +261,7 @@ process.on("SIGINT", shutdown);
 
 // ─── Start ─────────────────────────────────────────────────────────────
 
-if (validArgs) {
-  run().catch((err) => {
-    log.error({ err: err.message }, "Scrape runner crashed");
-    process.exit(1);
-  });
-}
+run().catch((err) => {
+  log.error({ err: err.message }, "Scrape runner crashed");
+  process.exit(1);
+});
