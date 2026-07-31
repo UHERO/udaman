@@ -91,9 +91,10 @@ export function startHeartbeat(): void {
   if (timer) return;
 
   void beat();
+  // Deliberately NOT unref'd: the runner should stay alive as long as it is
+  // heartbeating, and shutdown goes through process.exit() rather than
+  // waiting for the event loop to drain.
   timer = setInterval(() => void beat(), HEARTBEAT_INTERVAL_MS);
-  // Don't hold the event loop open on shutdown.
-  timer.unref?.();
 
   log.info({ id, hostname, pid }, "Heartbeat started");
 }

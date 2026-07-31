@@ -366,6 +366,7 @@ async function run() {
   }
 
   log.info("Scrape runner shutting down");
+  shuttingDown = true;
   await closeBrowser();
   await stopHeartbeat();
   process.exit(0);
@@ -381,9 +382,53 @@ function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
+// ─── Exit diagnostics ──────────────────────────────────────────────────
+
+// This process is supposed to run for weeks. Any exit that isn't our own
+// shutdown path is a bug, and the default behaviour — a silent exit(0) when
+// the event loop drains — leaves nothing in the log to work from.
+
+/** Set once we intentionally tear down, so the exit hook can stay quiet. */
+let shuttingDown = false;
+
+process.on("uncaughtException", (err) => {
+  log.error(
+    { err: err?.message ?? String(err), stack: err?.stack },
+    "Uncaught exception",
+  );
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  const err = reason as Error | undefined;
+  log.error(
+    { err: err?.message ?? String(reason), stack: err?.stack },
+    "Unhandled promise rejection",
+  );
+  process.exit(1);
+});
+
+// beforeExit fires when the loop has drained but the process could still be
+// revived — the signature of a silent exit, and the case we can't otherwise see.
+process.on("beforeExit", (code) => {
+  if (shuttingDown) return;
+  log.error(
+    { code, running },
+    "Event loop drained unexpectedly — nothing left to keep the runner alive",
+  );
+});
+
+process.on("exit", (code) => {
+  if (shuttingDown) return;
+  log.error({ code, running }, "Scrape runner exited unexpectedly");
+});
+
 // ─── Start ─────────────────────────────────────────────────────────────
 
 run().catch((err) => {
-  log.error({ err: err.message }, "Scrape runner crashed");
+  log.error(
+    { err: err?.message ?? String(err), stack: err?.stack },
+    "Scrape runner crashed",
+  );
   process.exit(1);
 });
