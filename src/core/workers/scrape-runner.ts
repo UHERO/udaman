@@ -1,21 +1,26 @@
 // Ensure all date operations use Hawaii Standard Time.
 process.env.TZ = "Pacific/Honolulu";
 
-import {
-  closeBrowser,
-} from "@/core/crawlers/qpub/browser";
+import { closeBrowser } from "@/core/crawlers/qpub/browser";
 import {
   buildUrl,
   isBlockedTime,
+  ISLANDS,
   isScrapePeriodActive,
   msUntilUnblocked,
   type IslandCode,
-  ISLANDS,
 } from "@/core/crawlers/qpub/config";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
-import { processScrape } from "./processors/qpub-scrape";
+import { processScrape, type ScrapeResult } from "./processors/qpub-scrape";
+import {
+  recordCaptcha,
+  recordScraped,
+  setScraperState,
+  startHeartbeat,
+  stopHeartbeat,
+} from "./scraper-heartbeat";
 
 const log = createLogger("scrape-runner");
 
@@ -28,6 +33,14 @@ const WEEKLY_SLEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const RETRY_SLEEP_MS = 30_000;
 const CAPTCHA_DELAY_MS = 5 * 60_000;
 
+// Captchas cluster: once one appears the next requests usually get them too,
+// and short 5-minute pauses just burn through claims without clearing the
+// block. After this many in a row, back off properly instead.
+const MAX_CONSECUTIVE_CAPTCHAS = 3;
+const CAPTCHA_BACKOFF_MS = 45 * 60_000; // 45 minutes
+const CAPTCHA_BACKOFF_JITTER_MIN_MS = 60_000; // + 1 minute
+const CAPTCHA_BACKOFF_JITTER_MAX_MS = 15 * 60_000; // + up to 15 minutes
+
 // Occasional long pause between batches. The per-request 4–20s jitter keeps a
 // steady rhythm that becomes recognizable over a multi-week scrape, so rarely
 // dropping offline for a stretch breaks up the long-run traffic pattern.
@@ -36,6 +49,9 @@ const LONG_SLEEP_MIN_MS = 60_000; // 1 minute
 const LONG_SLEEP_MAX_MS = 60 * 60_000; // 60 minutes
 
 let running = true;
+
+/** Captchas/blocks seen since the last successful scrape. */
+let consecutiveCaptchas = 0;
 
 // ─── Claiming ─────────────────────────────────────────────────────────
 
@@ -117,15 +133,89 @@ async function maybeLongSleep(): Promise<void> {
   if (Math.random() >= LONG_SLEEP_CHANCE) return;
 
   const ms =
-    LONG_SLEEP_MIN_MS +
-    Math.random() * (LONG_SLEEP_MAX_MS - LONG_SLEEP_MIN_MS);
+    LONG_SLEEP_MIN_MS + Math.random() * (LONG_SLEEP_MAX_MS - LONG_SLEEP_MIN_MS);
 
+  const minutes = +(ms / 60_000).toFixed(1);
   log.info(
-    { sleepMinutes: +(ms / 60_000).toFixed(1) },
+    { sleepMinutes: minutes },
     "Random long sleep — pausing between batches",
   );
+  setScraperState("sleeping", `random long sleep ${minutes}m`);
   await closeBrowser();
   await sleep(ms);
+}
+
+// ─── Captcha backoff ───────────────────────────────────────────────────
+
+/**
+ * Close any pages processScrape handed back on captcha/blocked.
+ *
+ * Those pages are deliberately not returned to the idle pool — a page sitting
+ * on a captcha shouldn't be recycled — which makes disposing of them the
+ * caller's job. Skipping this leaks one window per captcha, and captchas
+ * arrive in clusters.
+ */
+async function disposeCaptchaPages(
+  results: PromiseSettledResult<ScrapeResult | null>[],
+): Promise<void> {
+  for (const r of results) {
+    if (r.status !== "fulfilled" || !r.value?.page) continue;
+    try {
+      await r.value.page.close();
+    } catch {
+      // Already gone (context torn down elsewhere) — nothing to clean up.
+    }
+  }
+}
+
+/**
+ * Tally a finished batch's outcomes into the consecutive-captcha counter.
+ *
+ * Results are walked in order so a success mid-batch resets the streak —
+ * only an unbroken run of captchas/blocks counts toward the backoff.
+ * Hard errors are ignored: they say nothing about whether we're blocked.
+ */
+function tallyCaptchas(
+  results: PromiseSettledResult<{ status: string } | null>[],
+): void {
+  for (const r of results) {
+    if (r.status !== "fulfilled" || !r.value) continue;
+    const { status } = r.value;
+    if (status === "captcha" || status === "blocked") {
+      consecutiveCaptchas++;
+      recordCaptcha();
+    } else if (status === "success") {
+      consecutiveCaptchas = 0;
+      recordScraped();
+    }
+  }
+}
+
+/**
+ * After MAX_CONSECUTIVE_CAPTCHAS in a row, stop hammering: shut the browser
+ * down entirely and sit out 45 minutes plus 1–15 minutes of jitter. Returns
+ * true if the long backoff ran.
+ */
+async function captchaBackoffIfNeeded(): Promise<boolean> {
+  if (consecutiveCaptchas < MAX_CONSECUTIVE_CAPTCHAS) return false;
+
+  const ms =
+    CAPTCHA_BACKOFF_MS +
+    CAPTCHA_BACKOFF_JITTER_MIN_MS +
+    Math.random() *
+      (CAPTCHA_BACKOFF_JITTER_MAX_MS - CAPTCHA_BACKOFF_JITTER_MIN_MS);
+
+  const minutes = +(ms / 60_000).toFixed(1);
+  log.warn(
+    { consecutiveCaptchas, sleepMinutes: minutes },
+    "Consecutive captcha limit hit — closing browser and backing off",
+  );
+  setScraperState("backoff", `captcha backoff ${minutes}m`);
+
+  await closeBrowser();
+  await sleep(ms);
+  consecutiveCaptchas = 0;
+  return true;
 }
 
 // ─── Stale count ───────────────────────────────────────────────────────
@@ -143,12 +233,14 @@ async function countStale(): Promise<number> {
 
 async function run() {
   log.info("Scrape runner started");
+  startHeartbeat();
 
   while (running) {
     // 1. Check if there's anything stale to scrape
     const staleCount = await countStale();
     if (staleCount === 0) {
       log.info("All records current — sleeping 1 week");
+      setScraperState("idle", "all records current — sleeping 1 week");
       await closeBrowser();
       await sleep(WEEKLY_SLEEP_MS);
       continue;
@@ -158,18 +250,18 @@ async function run() {
 
     // 2. Check scrape period
     if (!isScrapePeriodActive()) {
-      log.info(
-        "Outside scrape period (blocked in Jan/Feb/Aug) — exiting",
-      );
+      log.info("Outside scrape period (blocked in Jan/Feb/Aug) — exiting");
       break;
     }
 
     // 3. Check blocked time (backup 7-8pm, night 11pm-5am)
     if (isBlockedTime()) {
       const delayMs = msUntilUnblocked();
-      log.info(
-        { delayMinutes: Math.round(delayMs / 60_000) },
-        "Blocked time window — sleeping",
+      const delayMinutes = Math.round(delayMs / 60_000);
+      log.info({ delayMinutes }, "Blocked time window — sleeping");
+      setScraperState(
+        "blocked-window",
+        `blocked window — ${delayMinutes}m left`,
       );
       await closeBrowser();
       await sleep(delayMs);
@@ -179,6 +271,7 @@ async function run() {
     // 4. Past 10pm cutoff — close browser and sleep until 5am
     if (isPastCutoff()) {
       log.info("Past 10pm scrape cutoff — sleeping until 5am");
+      setScraperState("sleeping", "past 10pm cutoff — until 5am");
       await closeBrowser();
       await sleep(msUntil5am());
       continue;
@@ -192,16 +285,25 @@ async function run() {
     const claimed = await claimItems();
     if (claimed.length === 0) {
       log.info("All items locked by other workers — retrying in 30s");
+      setScraperState("idle", "waiting on claims held by other workers");
       await sleep(RETRY_SLEEP_MS);
       continue;
     }
+
+    setScraperState(
+      "scraping",
+      `${staleCount.toLocaleString()} stale remaining`,
+    );
 
     // 7. Scrape all claimed items concurrently (each opens its own browser tab)
     const scrapeJobs = claimed
       .filter((item) => {
         const islandCode = item.island_code as IslandCode;
         if (!(islandCode in ISLANDS)) {
-          log.warn({ tmk: item.tmk, island: islandCode }, "Unknown island code — skipping");
+          log.warn(
+            { tmk: item.tmk, island: islandCode },
+            "Unknown island code — skipping",
+          );
           return false;
         }
         return true;
@@ -231,7 +333,15 @@ async function run() {
 
     const results = await Promise.allSettled(scrapeJobs);
 
-    // If any scrape hit captcha/blocked, pause before the next batch
+    // 8. Every job has settled, so it's now safe to tear down browser state —
+    //    doing it mid-batch would pull the context out from under siblings.
+    await disposeCaptchaPages(results);
+    tallyCaptchas(results);
+
+    // 9. Escalate to a long backoff once captchas stack up; otherwise fall
+    //    back to the short pause when this batch saw any captcha/block.
+    if (await captchaBackoffIfNeeded()) continue;
+
     const wasBlocked = results.some(
       (r) =>
         r.status === "fulfilled" &&
@@ -239,13 +349,25 @@ async function run() {
         (r.value.status === "captcha" || r.value.status === "blocked"),
     );
     if (wasBlocked) {
-      log.warn("Captcha/block in batch — pausing before next claim");
+      log.warn(
+        { consecutiveCaptchas },
+        "Captcha/block in batch — pausing before next claim",
+      );
+      setScraperState(
+        "backoff",
+        `captcha pause (${consecutiveCaptchas} in a row)`,
+      );
+      // Drop the session so the next batch starts fresh. processScrape used to
+      // do this itself, mid-batch, which is what tore the context out from
+      // under the other concurrent jobs and forced a relaunch each time.
+      await closeBrowser();
       await sleep(CAPTCHA_DELAY_MS);
     }
   }
 
   log.info("Scrape runner shutting down");
   await closeBrowser();
+  await stopHeartbeat();
   process.exit(0);
 }
 
