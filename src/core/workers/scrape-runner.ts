@@ -210,7 +210,12 @@ async function captchaBackoffIfNeeded(): Promise<boolean> {
     { consecutiveCaptchas, sleepMinutes: minutes },
     "Consecutive captcha limit hit — closing browser and backing off",
   );
-  setScraperState("backoff", `captcha backoff ${minutes}m`);
+  // Distinct from the short pause: this is the state worth walking over to the
+  // machine for, so it gets its own label rather than sharing "captcha-pause".
+  setScraperState(
+    "captcha-sleep",
+    `${consecutiveCaptchas} captchas in a row — sleeping ${minutes}m`,
+  );
 
   await closeBrowser();
   await sleep(ms);
@@ -354,8 +359,8 @@ async function run() {
         "Captcha/block in batch — pausing before next claim",
       );
       setScraperState(
-        "backoff",
-        `captcha pause (${consecutiveCaptchas} in a row)`,
+        "captcha-pause",
+        `captcha pause (${consecutiveCaptchas} of ${MAX_CONSECUTIVE_CAPTCHAS} before long sleep)`,
       );
       // Drop the session so the next batch starts fresh. processScrape used to
       // do this itself, mid-batch, which is what tore the context out from

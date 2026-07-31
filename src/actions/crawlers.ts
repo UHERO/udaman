@@ -36,10 +36,13 @@ export type CountyProgress = {
   percent: number;
 };
 
-/** A scrape-runner process reporting in via scraper_heartbeats. */
+/** A worker process reporting in via scraper_heartbeats. */
 export type ScraperInstance = {
   id: string;
-  hostname: string;
+  /** WORKER_NAME if set, else the OS hostname. */
+  workerName: string;
+  /** OS hostname — may differ from workerName, and drifts across networks. */
+  host: string;
   pid: number;
   state: string;
   detail: string | null;
@@ -116,7 +119,8 @@ type CountyRow = {
 type ActivityRow = { scraped_today: number; scraped_this_month: number };
 type HeartbeatRow = {
   id: string;
-  hostname: string;
+  worker_name: string;
+  host: string;
   pid: number;
   state: string;
   detail: string | null;
@@ -139,18 +143,19 @@ type FailedRow = {
 async function getScraperInstances(): Promise<ScraperInstance[]> {
   try {
     const rows = await rawQuery<HeartbeatRow>(
-      `SELECT id, hostname, pid, state, detail, scraped_count, captcha_count,
+      `SELECT id, worker_name, host, pid, state, detail, scraped_count, captcha_count,
               TIMESTAMPDIFF(SECOND, started_at, NOW())   AS uptime_s,
               TIMESTAMPDIFF(SECOND, last_seen_at, NOW()) AS last_seen_s
        FROM scraper_heartbeats
-       ORDER BY hostname, pid`,
+       ORDER BY worker_name, pid`,
     );
 
     return rows.map((r) => {
       const lastSeenSeconds = Number(r.last_seen_s);
       return {
         id: r.id,
-        hostname: r.hostname,
+        workerName: r.worker_name,
+        host: r.host,
         pid: Number(r.pid),
         state: r.state,
         detail: r.detail,
@@ -339,6 +344,49 @@ export async function resetFailedRecords(): Promise<number> {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "resetFailedRecords failed");
     AppLogCollection.logError(err, { userId, name: "crawler.reset_failed" });
+    throw err;
+  }
+}
+
+// ─── Clear Stale Scrapers ───────────────────────────────────────────
+
+/**
+ * Remove heartbeat rows that have stopped reporting.
+ *
+ * A worker deletes its own row on clean shutdown, but a crash — or a machine
+ * whose hostname changed, leaving its old identity orphaned — leaves a row
+ * that will never update again. This clears exactly the rows the dashboard
+ * shows as stale; a live worker re-registers within one heartbeat interval,
+ * so clearing an active one by mistake is self-correcting.
+ */
+export async function clearStaleScrapers(): Promise<number> {
+  const { userId } = await requirePermission("worker", "execute");
+  log.info("clearStaleScrapers action called");
+
+  try {
+    const result = await rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM scraper_heartbeats
+       WHERE last_seen_at < NOW() - INTERVAL ${HEARTBEAT_STALE_SECONDS} SECOND`,
+    );
+    const count = Number(result[0]?.cnt ?? 0);
+
+    if (count > 0) {
+      await rawQuery(
+        `DELETE FROM scraper_heartbeats
+         WHERE last_seen_at < NOW() - INTERVAL ${HEARTBEAT_STALE_SECONDS} SECOND`,
+      );
+    }
+
+    invalidateCache();
+    log.info({ count }, "clearStaleScrapers action completed");
+    return count;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "clearStaleScrapers failed");
+    AppLogCollection.logError(err, {
+      userId,
+      name: "crawler.clear_stale_scrapers",
+    });
     throw err;
   }
 }

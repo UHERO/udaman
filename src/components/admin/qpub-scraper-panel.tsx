@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { formatHst } from "@catalog/utils/time";
-import { Eraser, Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { Eraser, Loader2, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 
 import {
   clearPendingRecords,
+  clearStaleScrapers,
   getQpubDashboardStats,
   resetFailedRecords,
   type CountyProgress,
@@ -151,33 +152,75 @@ function StageRow({
 
 // ─── Scraper instances ──────────────────────────────────────────────
 
+/** Mirrors MAX_CONSECUTIVE_CAPTCHAS in scrape-runner.ts (worker-only module). */
+const MAX_CONSECUTIVE_CAPTCHAS = 3;
+
 const STATE_STYLES: Record<string, string> = {
   scraping: "bg-green-100 text-green-800",
-  backoff: "bg-red-100 text-red-800",
+  // The long backoff is the one that warrants going and looking at the machine,
+  // so it reads louder than the routine short pause.
+  "captcha-sleep": "bg-red-200 font-semibold text-red-900",
+  "captcha-pause": "bg-orange-100 text-orange-800",
   sleeping: "bg-blue-100 text-blue-800",
   "blocked-window": "bg-blue-100 text-blue-800",
   idle: "bg-gray-100 text-gray-800",
   starting: "bg-yellow-100 text-yellow-800",
 };
 
-function ScraperInstances({ instances }: { instances: ScraperInstance[] }) {
+function ScraperInstances({
+  instances,
+  onClearStale,
+  isClearingStale,
+}: {
+  instances: ScraperInstance[];
+  onClearStale: () => void;
+  isClearingStale: boolean;
+}) {
   const active = instances.filter((i) => i.active);
+  const staleCount = instances.length - active.length;
+  const captchaStuck = active.filter((i) => i.state === "captcha-sleep");
 
   return (
     <Section
       title="Scrapers"
       titleSuffix={
-        <span
-          className={
-            active.length > 0
-              ? "font-normal text-green-700"
-              : "text-muted-foreground font-normal"
-          }
-        >
-          ({active.length} active)
-        </span>
+        <>
+          <span
+            className={
+              active.length > 0
+                ? "font-normal text-green-700"
+                : "text-muted-foreground font-normal"
+            }
+          >
+            ({active.length} active)
+          </span>
+          {staleCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-3 h-7"
+              onClick={onClearStale}
+              disabled={isClearingStale}
+            >
+              {isClearingStale ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Clear Stale ({staleCount})
+            </Button>
+          )}
+        </>
       }
     >
+      {captchaStuck.length > 0 && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {captchaStuck.length === 1
+            ? `${captchaStuck[0].workerName} hit ${MAX_CONSECUTIVE_CAPTCHAS} captchas in a row and is sleeping`
+            : `${captchaStuck.length} workers hit ${MAX_CONSECUTIVE_CAPTCHAS} captchas in a row and are sleeping`}
+          {" — worth checking the machine."}
+        </div>
+      )}
       {instances.length === 0 ? (
         <p className="text-muted-foreground text-sm">
           No scrapers reporting in. Start one with{" "}
@@ -190,6 +233,7 @@ function ScraperInstances({ instances }: { instances: ScraperInstance[] }) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Worker</TableHead>
               <TableHead>Host</TableHead>
               <TableHead className="text-right">PID</TableHead>
               <TableHead>State</TableHead>
@@ -206,15 +250,18 @@ function ScraperInstances({ instances }: { instances: ScraperInstance[] }) {
                 key={i.id}
                 className={i.active ? undefined : "opacity-50"}
               >
-                <TableCell className="font-mono text-xs">
+                <TableCell className="text-xs font-medium">
                   <span className="inline-flex items-center gap-1.5">
                     <span
                       className={`inline-block h-2 w-2 rounded-full ${
                         i.active ? "bg-green-500" : "bg-gray-400"
                       }`}
                     />
-                    {i.hostname}
+                    {i.workerName}
                   </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground max-w-48 truncate font-mono text-xs">
+                  {i.host}
                 </TableCell>
                 <TableCell className="text-right font-mono text-xs">
                   {i.pid}
@@ -341,6 +388,7 @@ export default function QpubScraperPanel({
   const [isPending, startTransition] = useTransition();
   const [isResetting, startResetTransition] = useTransition();
   const [isClearing, startClearTransition] = useTransition();
+  const [isClearingStale, startClearStaleTransition] = useTransition();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
@@ -369,6 +417,15 @@ export default function QpubScraperPanel({
     startResetTransition(async () => {
       const count = await resetFailedRecords();
       setActionMessage(`Reset ${count} failed records`);
+      refresh();
+    });
+  }
+
+  function handleClearStale() {
+    setActionMessage(null);
+    startClearStaleTransition(async () => {
+      const count = await clearStaleScrapers();
+      setActionMessage(`Cleared ${count} stale scraper records`);
       refresh();
     });
   }
@@ -445,7 +502,11 @@ export default function QpubScraperPanel({
       <Separator />
 
       {/* Running scrapers */}
-      <ScraperInstances instances={stats.instances} />
+      <ScraperInstances
+        instances={stats.instances}
+        onClearStale={handleClearStale}
+        isClearingStale={isClearingStale}
+      />
 
       <Separator />
 

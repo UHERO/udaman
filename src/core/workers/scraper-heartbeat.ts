@@ -24,7 +24,10 @@ export type ScraperState =
   | "starting"
   | "scraping"
   | "sleeping"
-  | "backoff"
+  /** Short pause after 1–2 captchas in a batch. */
+  | "captcha-pause"
+  /** Long backoff after MAX_CONSECUTIVE_CAPTCHAS — worth looking at the machine. */
+  | "captcha-sleep"
   | "blocked-window"
   | "idle";
 
@@ -33,9 +36,22 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 /** Rows older than this are shown as stale/dead by the dashboard. */
 export const HEARTBEAT_STALE_SECONDS = 120;
 
-const hostname = os.hostname();
+/**
+ * Stable identity for this process.
+ *
+ * os.hostname() is NOT stable on macOS: with `HostName` unset (the default),
+ * the OS derives the running hostname from DHCP/reverse-DNS, so the same
+ * machine reports 's200n209.soc.hawaii.edu' on one network and 'Kaisers.local'
+ * on another — and a new DHCP lease can change it again. Since the heartbeat
+ * row is keyed on this, an unstable name means one machine registers under
+ * several identities and leaves orphan rows behind.
+ *
+ * Set WORKER_NAME in each machine's .env to pin it. Hostname is only a fallback.
+ */
+const osHostname = os.hostname();
+const workerName = process.env.WORKER_NAME?.trim() || osHostname;
 const pid = process.pid;
-const id = `${hostname}:${pid}`;
+const id = `${workerName}:${pid}`;
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let state: ScraperState = "starting";
@@ -48,15 +64,25 @@ async function beat(): Promise<void> {
   try {
     await rawQuery(
       `INSERT INTO scraper_heartbeats
-         (id, hostname, pid, state, detail, scraped_count, captcha_count, started_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+         (id, worker_name, host, pid, state, detail, scraped_count, captcha_count, started_at, last_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
        ON DUPLICATE KEY UPDATE
+         host=VALUES(host),
          state=VALUES(state),
          detail=VALUES(detail),
          scraped_count=VALUES(scraped_count),
          captcha_count=VALUES(captcha_count),
          last_seen_at=NOW()`,
-      [id, hostname, pid, state, detail, scrapedCount, captchaCount],
+      [
+        id,
+        workerName,
+        osHostname,
+        pid,
+        state,
+        detail,
+        scrapedCount,
+        captchaCount,
+      ],
     );
   } catch (e) {
     // Never let heartbeat trouble take the scraper down — it's diagnostics.
@@ -96,7 +122,13 @@ export function startHeartbeat(): void {
   // waiting for the event loop to drain.
   timer = setInterval(() => void beat(), HEARTBEAT_INTERVAL_MS);
 
-  log.info({ id, hostname, pid }, "Heartbeat started");
+  if (!process.env.WORKER_NAME) {
+    log.warn(
+      { osHostname },
+      "WORKER_NAME is not set — falling back to the OS hostname, which is not stable across networks. Set WORKER_NAME in .env to keep this worker's dashboard identity consistent.",
+    );
+  }
+  log.info({ id, workerName, osHostname, pid }, "Heartbeat started");
 }
 
 /**
