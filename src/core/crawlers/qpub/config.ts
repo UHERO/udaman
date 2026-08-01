@@ -96,21 +96,25 @@ export const QPUB_CONFIG = {
 // ─── Scrape periods ──────────────────────────────────────────────
 
 /**
- * Scrape period: '2026-1' (Mar–Jul) or '2026-2' (Sep–Dec).
- * Throws if called in Jan, Feb, or Aug (county update / blocked months).
+ * Scrape period: '2026-1' (Mar–Aug) or '2026-2' (Sep–Dec).
+ * Throws if called in Jan or Feb (county update / blocked months).
+ *
+ * August used to be blocked alongside Jan/Feb. It now belongs to period 1 so
+ * a pass that started in March keeps writing into the same {period} directory
+ * rather than splitting across two mid-run.
  */
 export function getScrapePeriod(date: Date = new Date()): string {
   const year = date.getFullYear();
   const month = date.getMonth() + 1; // 1-indexed
-  if (month >= 3 && month <= 7) return `${year}-1`;
+  if (month >= 3 && month <= 8) return `${year}-1`;
   if (month >= 9 && month <= 12) return `${year}-2`;
   throw new Error(`No active scrape period in month ${month}`);
 }
 
-/** Whether scraping is currently allowed (blocked in Jan, Feb, Aug) */
+/** Whether scraping is currently allowed (blocked in Jan and Feb) */
 export function isScrapePeriodActive(date: Date = new Date()): boolean {
   const month = date.getMonth() + 1;
-  return (month >= 3 && month <= 7) || (month >= 9 && month <= 12);
+  return month >= 3 && month <= 12;
 }
 
 // ─── TMK helpers ──────────────────────────────────────────────────────

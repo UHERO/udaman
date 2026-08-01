@@ -234,8 +234,6 @@ function ScraperInstances({
           <TableHeader>
             <TableRow>
               <TableHead>Worker</TableHead>
-              <TableHead>Host</TableHead>
-              <TableHead className="text-right">PID</TableHead>
               <TableHead>State</TableHead>
               <TableHead>Detail</TableHead>
               <TableHead className="text-right">Scraped</TableHead>
@@ -259,12 +257,6 @@ function ScraperInstances({
                     />
                     {i.workerName}
                   </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground max-w-48 truncate font-mono text-xs">
-                  {i.host}
-                </TableCell>
-                <TableCell className="text-right font-mono text-xs">
-                  {i.pid}
                 </TableCell>
                 <TableCell>
                   <span

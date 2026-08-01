@@ -255,7 +255,7 @@ async function run() {
 
     // 2. Check scrape period
     if (!isScrapePeriodActive()) {
-      log.info("Outside scrape period (blocked in Jan/Feb/Aug) — exiting");
+      log.info("Outside scrape period (blocked in Jan/Feb) — exiting");
       break;
     }
 
