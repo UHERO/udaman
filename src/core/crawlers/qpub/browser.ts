@@ -38,6 +38,8 @@ export function setBrowserType(name: string): void {
 // ─── Shared browser state ─────────────────────────────────────────────
 
 let context: BrowserContext | null = null;
+/** In-flight launch, shared by concurrent ensureBrowser() callers. */
+let launchPromise: Promise<BrowserContext> | null = null;
 const idlePages: Page[] = [];
 
 /** Random desktop viewport (same strategy as old scraper) */
@@ -90,18 +92,19 @@ async function warmup(ctx: BrowserContext): Promise<void> {
 
 // ─── Browser lifecycle ────────────────────────────────────────────────
 
-/** Launch browser with persistent context if not already running. */
-async function ensureBrowser(): Promise<BrowserContext> {
-  if (context) return context;
-
+/** Do the actual launch + warmup. Only ever called via ensureBrowser(). */
+async function launchContext(): Promise<BrowserContext> {
   const launchers = { chromium, firefox, webkit } as const;
   const launcher = launchers[browserName];
   const dataDir = path.join(os.homedir(), ".qpub-browser", browserName);
   mkdirSync(dataDir, { recursive: true });
 
-  log.info({ browser: browserName }, "Launching browser with persistent context");
+  log.info(
+    { browser: browserName, dataDir },
+    "Launching browser with persistent context",
+  );
 
-  context = await launcher.launchPersistentContext(dataDir, {
+  const ctx = await launcher.launchPersistentContext(dataDir, {
     headless: false,
     viewport: randomViewport(),
     ...(browserName === "chromium"
@@ -114,8 +117,42 @@ async function ensureBrowser(): Promise<BrowserContext> {
       : {}),
   });
 
-  await warmup(context);
-  return context;
+  await warmup(ctx);
+  return ctx;
+}
+
+/**
+ * Launch the browser if not already running, safely under concurrency.
+ *
+ * The runner scrapes CLAIM_SIZE items at once, so several callers hit this at
+ * the same instant on a cold start. Checking `context` alone is not enough —
+ * it is only assigned after the await, so every caller would pass the guard
+ * and launch its own browser against the SAME persistent dataDir. Chromium
+ * single-instance-locks that directory, so the extra launches block on the
+ * profile lock (silently, and indefinitely on Windows).
+ *
+ * Memoising the in-flight promise means concurrent callers all await one launch.
+ */
+async function ensureBrowser(): Promise<BrowserContext> {
+  if (context) return context;
+
+  if (!launchPromise) {
+    launchPromise = launchContext().then(
+      (ctx) => {
+        context = ctx;
+        launchPromise = null;
+        return ctx;
+      },
+      (err) => {
+        // Clear on failure so a later batch can retry rather than reusing a
+        // permanently rejected promise.
+        launchPromise = null;
+        throw err;
+      },
+    );
+  }
+
+  return launchPromise;
 }
 
 /** Get a page from the pool, or create a new one if none are idle. */
@@ -143,6 +180,18 @@ export function removeFromPool(page: Page): void {
 /** Shut down browser and context — called on worker shutdown. */
 export async function closeBrowser(): Promise<void> {
   idlePages.length = 0;
+
+  // If a launch is still in flight, wait for it before tearing down —
+  // otherwise it completes after this returns and leaves an orphan browser
+  // holding the profile lock, which blocks every future launch.
+  if (launchPromise) {
+    try {
+      await launchPromise;
+    } catch {
+      // Launch failed; nothing to close.
+    }
+  }
+
   if (context) {
     try {
       await context.close();
@@ -151,5 +200,7 @@ export async function closeBrowser(): Promise<void> {
     }
     context = null;
   }
+
+  launchPromise = null;
   log.info("Browser closed");
 }
