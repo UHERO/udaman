@@ -1,4 +1,4 @@
-import { lstatSync, mkdirSync, rmSync } from "fs";
+import { mkdirSync } from "fs";
 import os from "os";
 import path from "path";
 
@@ -44,16 +44,6 @@ const idlePages: Page[] = [];
 
 /** Cap on how long a browser launch may hang before we treat it as failed. */
 const LAUNCH_TIMEOUT_MS = 60_000;
-
-/**
- * Chrome's single-instance lock files inside a user-data-dir.
- *
- * On POSIX these are symlinks, on Windows real files. If a Chrome using this
- * profile dies without cleaning up, the next launch prints "Opening in
- * existing browser session", hands off to the (now dead) instance and exits 0
- * — so Playwright waits on a CDP pipe that will never open.
- */
-const CHROME_LOCK_FILES = ["SingletonLock", "SingletonCookie", "SingletonSocket"];
 
 /** Random desktop viewport (same strategy as old scraper) */
 function randomViewport() {
@@ -105,59 +95,23 @@ async function warmup(ctx: BrowserContext): Promise<void> {
 
 // ─── Browser lifecycle ────────────────────────────────────────────────
 
-/**
- * Delete Chrome's single-instance lock files from a profile directory.
- *
- * Only safe because this profile is used exclusively by the scraper and only
- * one runner per machine can hold it — Chrome permits a single instance per
- * user-data-dir regardless. Called only after a launch has already failed, so
- * the happy path never touches these.
- */
-function clearStaleProfileLock(dataDir: string): string[] {
-  const removed: string[] = [];
-  for (const name of CHROME_LOCK_FILES) {
-    const target = path.join(dataDir, name);
-    // lstatSync rather than existsSync: on POSIX these are symlinks, and a
-    // dangling one still needs removing but reports false from existsSync.
-    let present: boolean;
-    try {
-      lstatSync(target);
-      present = true;
-    } catch {
-      present = false;
-    }
-    if (!present) continue;
-
-    try {
-      rmSync(target, { force: true });
-      removed.push(name);
-    } catch {
-      // Locked by a live process — the caller reports the real failure.
-    }
-  }
-  return removed;
-}
-
-/** True for the "profile already locked" failure specifically. */
-function isProfileLockError(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return (
-    msg.includes("Opening in existing browser session") ||
-    (msg.includes("launchPersistentContext") && msg.includes("Timeout"))
-  );
-}
-
-/** Launch the browser once, with the configured profile. */
-async function launchOnce(dataDir: string): Promise<BrowserContext> {
+/** Do the actual launch + warmup. Only ever called via ensureBrowser(). */
+async function launchContext(): Promise<BrowserContext> {
   const launchers = { chromium, firefox, webkit } as const;
   const launcher = launchers[browserName];
+  const dataDir = path.join(os.homedir(), ".qpub-browser", browserName);
+  mkdirSync(dataDir, { recursive: true });
+
+  log.info(
+    { browser: browserName, dataDir },
+    "Launching browser with persistent context",
+  );
 
   const startedAt = Date.now();
   const ctx = await launcher.launchPersistentContext(dataDir, {
     headless: false,
     viewport: randomViewport(),
-    // Without this the launch can hang for minutes instead of failing — a
-    // visible browser window sitting at about:blank with nothing in the log.
+    // Fail instead of hanging forever when the profile is already in use.
     timeout: LAUNCH_TIMEOUT_MS,
     ...(browserName === "chromium"
       ? {
@@ -175,50 +129,6 @@ async function launchOnce(dataDir: string): Promise<BrowserContext> {
     { launchMs: Date.now() - startedAt, pages: ctx.pages().length },
     "Browser launched — starting warmup",
   );
-
-  return ctx;
-}
-
-/** Do the actual launch + warmup. Only ever called via ensureBrowser(). */
-async function launchContext(): Promise<BrowserContext> {
-  const dataDir = path.join(os.homedir(), ".qpub-browser", browserName);
-  mkdirSync(dataDir, { recursive: true });
-
-  log.info(
-    { browser: browserName, dataDir },
-    "Launching browser with persistent context",
-  );
-
-  let ctx: BrowserContext;
-  try {
-    ctx = await launchOnce(dataDir);
-  } catch (err) {
-    if (!isProfileLockError(err)) throw err;
-
-    // A previous browser died without releasing the profile. Chrome sees the
-    // stale lock, prints "Opening in existing browser session", hands off to
-    // the dead instance and exits 0 — so Playwright waits on a pipe that never
-    // opens. Drop the lock and try once more.
-    const removed = clearStaleProfileLock(dataDir);
-
-    if (removed.length === 0) {
-      // No lock files to clear, so a live Chrome still owns the profile (or the
-      // failure was never really about the lock). Don't invent a diagnosis —
-      // surface the original error with a pointer.
-      log.error(
-        { dataDir },
-        "Browser launch failed and no stale lock files were found — a Chrome process is probably still running with this profile",
-      );
-      throw err;
-    }
-
-    log.warn(
-      { dataDir, removed },
-      "Cleared stale Chrome profile lock left by a dead session — retrying launch",
-    );
-    ctx = await launchOnce(dataDir);
-    log.info({ dataDir }, "Browser launched after clearing stale profile lock");
-  }
 
   await warmup(ctx);
   return ctx;
