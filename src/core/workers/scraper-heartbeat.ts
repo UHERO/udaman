@@ -1,9 +1,16 @@
-import os from "os";
-
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
-const log = createLogger("scraper-heartbeat");
+import {
+  OS_HOSTNAME,
+  WORKER_ID,
+  WORKER_NAME,
+  WORKER_NAME_IS_PINNED,
+  WORKER_PID,
+  workerBindings,
+} from "./worker-identity";
+
+const log = createLogger("scraper-heartbeat", workerBindings());
 
 /**
  * Liveness heartbeat for the scrape runner.
@@ -29,6 +36,8 @@ export type ScraperState =
   /** Long backoff after MAX_CONSECUTIVE_CAPTCHAS — worth looking at the machine. */
   | "captcha-sleep"
   | "blocked-window"
+  /** Can't write to the NAS — the runner has given up and exited. */
+  | "storage-error"
   | "idle";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -36,22 +45,12 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 /** Rows older than this are shown as stale/dead by the dashboard. */
 export const HEARTBEAT_STALE_SECONDS = 120;
 
-/**
- * Stable identity for this process.
- *
- * os.hostname() is NOT stable on macOS: with `HostName` unset (the default),
- * the OS derives the running hostname from DHCP/reverse-DNS, so the same
- * machine reports 's200n209.soc.hawaii.edu' on one network and 'Kaisers.local'
- * on another — and a new DHCP lease can change it again. Since the heartbeat
- * row is keyed on this, an unstable name means one machine registers under
- * several identities and leaves orphan rows behind.
- *
- * Set WORKER_NAME in each machine's .env to pin it. Hostname is only a fallback.
- */
-const osHostname = os.hostname();
-const workerName = process.env.WORKER_NAME?.trim() || osHostname;
-const pid = process.pid;
-const id = `${workerName}:${pid}`;
+// Identity lives in worker-identity.ts — the heartbeat row, the log lines and
+// the error text written to scrape_status all have to agree on the name.
+const osHostname = OS_HOSTNAME;
+const workerName = WORKER_NAME;
+const pid = WORKER_PID;
+const id = WORKER_ID;
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let state: ScraperState = "starting";
@@ -102,6 +101,14 @@ export function setScraperState(next: ScraperState, nextDetail?: string): void {
   void beat();
 }
 
+/**
+ * Write the current state and wait for it to land. For the shutdown paths,
+ * where the process exits before setScraperState's background write finishes.
+ */
+export async function flushHeartbeat(): Promise<void> {
+  await beat();
+}
+
 /** Count scrapes that completed successfully. */
 export function recordScraped(count = 1): void {
   scrapedCount += count;
@@ -122,7 +129,7 @@ export function startHeartbeat(): void {
   // waiting for the event loop to drain.
   timer = setInterval(() => void beat(), HEARTBEAT_INTERVAL_MS);
 
-  if (!process.env.WORKER_NAME) {
+  if (!WORKER_NAME_IS_PINNED) {
     log.warn(
       { osHostname },
       "WORKER_NAME is not set — falling back to the OS hostname, which is not stable across networks. Set WORKER_NAME in .env to keep this worker's dashboard identity consistent.",
@@ -134,12 +141,21 @@ export function startHeartbeat(): void {
 /**
  * Stop heartbeating and remove this process's row, so a clean shutdown
  * disappears from the dashboard immediately rather than aging out.
+ *
+ * Pass `keepRow` when the process is dying of something someone needs to see —
+ * a NAS that can't be written to, say. Deleting the row there would erase the
+ * only record of which machine failed and why; the row ages out on its own
+ * after HEARTBEAT_STALE_SECONDS and can be cleared from the dashboard.
  */
-export async function stopHeartbeat(): Promise<void> {
+export async function stopHeartbeat(
+  options: { keepRow?: boolean } = {},
+): Promise<void> {
   if (timer) {
     clearInterval(timer);
     timer = null;
   }
+
+  if (options.keepRow) return;
 
   try {
     await rawQuery(`DELETE FROM scraper_heartbeats WHERE id = ?`, [id]);

@@ -13,7 +13,33 @@ export type ScrapeResult = {
   tmk: string;
   htmlSaved: boolean;
   error?: string;
+  /**
+   * The scrape itself may have worked, but the HTML couldn't be written to the
+   * NAS. Nothing was kept, so the TMK has to be scraped again — and every
+   * subsequent scrape on this machine will fail the same way until the mount
+   * is fixed. Callers should stop rather than burn through claims.
+   */
+  storageFailure?: boolean;
 };
+
+// ─── Storage failures ─────────────────────────────────────────────────
+
+/**
+ * Thrown when the scraped HTML can't be written to the NAS.
+ *
+ * Distinct from a scrape error so the runner can tell "this parcel failed"
+ * from "this machine can't save anything" — typically an unmounted share, where
+ * mkdir -p walks up to /Volumes and comes back EACCES.
+ */
+export class StorageError extends Error {
+  readonly path: string;
+
+  constructor(message: string, path: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "StorageError";
+    this.path = path;
+  }
+}
 
 // ─── Delay ────────────────────────────────────────────────────────────
 
@@ -102,16 +128,55 @@ export async function checkPageStatus(page: Page): Promise<PageStatus> {
 
 // ─── Save to NAS ──────────────────────────────────────────────────────
 
-/** Save HTML file to the NAS filesystem */
+/**
+ * Save HTML file to the NAS filesystem.
+ *
+ * Any failure here is raised as a StorageError: the page has already been
+ * fetched at this point, so a write that doesn't land means the request was
+ * spent for nothing and the TMK still needs scraping.
+ */
 export async function saveHtml(tmk: string, html: string): Promise<void> {
   const htmlDir = getHtmlPath(tmk);
 
-  if (!existsSync(htmlDir)) {
-    await fs.mkdir(htmlDir, { recursive: true });
-  }
+  try {
+    if (!existsSync(htmlDir)) {
+      await fs.mkdir(htmlDir, { recursive: true });
+    }
 
-  const safeName = tmk.replace(/\//g, "-");
-  await fs.writeFile(path.join(htmlDir, `${safeName}.html`), html);
+    const safeName = tmk.replace(/\//g, "-");
+    await fs.writeFile(path.join(htmlDir, `${safeName}.html`), html);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new StorageError(`Cannot save HTML to ${htmlDir}: ${msg}`, htmlDir, {
+      cause: e,
+    });
+  }
+}
+
+/**
+ * Verify the NAS is mounted and writable before the runner starts working.
+ *
+ * Catches the common case — the share isn't mounted, so QPUB_CONFIG.NAS_PATH
+ * points at a directory that doesn't exist and can't be created — before we
+ * spend requests fetching pages we'd have nowhere to put.
+ */
+export async function checkStorageWritable(): Promise<{
+  ok: boolean;
+  path: string;
+  error?: string;
+}> {
+  const dir = path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.HTML_DIR);
+  const probe = path.join(dir, `.write-probe-${process.pid}`);
+
+  try {
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(probe, "");
+    await fs.unlink(probe);
+    return { ok: true, path: dir };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, path: dir, error: msg };
+  }
 }
 
 // ─── Captcha resolution check ────────────────────────────────────────
@@ -178,6 +243,15 @@ export async function scrapeTmk(
     return { status: "no_data", tmk, htmlSaved: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    if (e instanceof StorageError) {
+      return {
+        status: "error",
+        tmk,
+        htmlSaved: false,
+        error: msg,
+        storageFailure: true,
+      };
+    }
     return { status: "error", tmk, htmlSaved: false, error: msg };
   }
 }

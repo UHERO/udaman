@@ -10,19 +10,22 @@ import {
   msUntilUnblocked,
   type IslandCode,
 } from "@/core/crawlers/qpub/config";
+import { checkStorageWritable } from "@/core/crawlers/qpub/scrape";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 import { processScrape, type ScrapeResult } from "./processors/qpub-scrape";
 import {
+  flushHeartbeat,
   recordCaptcha,
   recordScraped,
   setScraperState,
   startHeartbeat,
   stopHeartbeat,
 } from "./scraper-heartbeat";
+import { WORKER_NAME, workerBindings } from "./worker-identity";
 
-const log = createLogger("scrape-runner");
+const log = createLogger("scrape-runner", workerBindings());
 
 const CLAIM_SIZE = 3;
 const STALE_MONTHS = 6;
@@ -52,6 +55,13 @@ let running = true;
 
 /** Captchas/blocks seen since the last successful scrape. */
 let consecutiveCaptchas = 0;
+
+/**
+ * Set when the runner stops because of a machine-level problem rather than a
+ * normal shutdown — currently only "can't write to the NAS". Drives a non-zero
+ * exit and keeps the heartbeat row around so the dashboard shows why.
+ */
+let fatalError: string | null = null;
 
 // ─── Claiming ─────────────────────────────────────────────────────────
 
@@ -234,11 +244,48 @@ async function countStale(): Promise<number> {
   return Number(rows[0]?.cnt ?? 0);
 }
 
+// ─── Fatal halt ────────────────────────────────────────────────────────
+
+/**
+ * Stop the runner on a problem that won't clear by retrying.
+ *
+ * The NAS being unwritable is the case this exists for: every scrape after it
+ * burns a request against a site that rate-limits us and throws the HTML away,
+ * so continuing costs claims and gains nothing. Exits non-zero so a supervisor
+ * sees the failure, and leaves the heartbeat row in place — deleting it would
+ * erase the only record of which machine stopped and why.
+ */
+async function halt(reason: string, detail: string): Promise<never> {
+  fatalError = reason;
+  running = false;
+  shuttingDown = true;
+
+  log.error({ worker: WORKER_NAME, reason }, "Fatal error — stopping runner");
+  setScraperState("storage-error", detail);
+  await flushHeartbeat();
+
+  await closeBrowser();
+  await stopHeartbeat({ keepRow: true });
+  process.exit(1);
+}
+
 // ─── Main loop ─────────────────────────────────────────────────────────
 
 async function run() {
-  log.info("Scrape runner started");
+  log.info({ worker: WORKER_NAME }, "Scrape runner started");
   startHeartbeat();
+
+  // Scraping is only worth doing if the HTML can be kept. Check the mount
+  // before spending any requests rather than discovering it a page at a time.
+  const storage = await checkStorageWritable();
+  if (!storage.ok) {
+    await halt(
+      `Storage not writable at ${storage.path}: ${storage.error}`,
+      "NAS is not writable — nothing scraped could be saved",
+    );
+    return;
+  }
+  log.info({ path: storage.path }, "Storage is writable");
 
   while (running) {
     // 1. Check if there's anything stale to scrape
@@ -343,7 +390,20 @@ async function run() {
     await disposeCaptchaPages(results);
     tallyCaptchas(results);
 
-    // 9. Escalate to a long backoff once captchas stack up; otherwise fall
+    // 9. A save that failed means this machine can't keep what it scrapes —
+    //    the rows are already marked failed, so stop before claiming more.
+    const storageFailure = results.find(
+      (r) => r.status === "fulfilled" && r.value?.storageFailure,
+    );
+    if (storageFailure?.status === "fulfilled") {
+      await halt(
+        storageFailure.value?.error ?? "Storage failure",
+        "cannot save scraped HTML — check the NAS mount",
+      );
+      return;
+    }
+
+    // 10. Escalate to a long backoff once captchas stack up; otherwise fall
     //    back to the short pause when this batch saw any captcha/block.
     if (await captchaBackoffIfNeeded()) continue;
 
@@ -424,6 +484,13 @@ process.on("beforeExit", (code) => {
 });
 
 process.on("exit", (code) => {
+  if (fatalError) {
+    log.error(
+      { code, worker: WORKER_NAME, fatalError },
+      "Scrape runner stopped on a fatal error",
+    );
+    return;
+  }
   if (shuttingDown) return;
   log.error({ code, running }, "Scrape runner exited unexpectedly");
 });

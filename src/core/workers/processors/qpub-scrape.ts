@@ -2,12 +2,16 @@ import { getPage, releasePage } from "@/core/crawlers/qpub/browser";
 import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
+import { tagWithWorker } from "../worker-identity";
+
 import type { Page } from "playwright-core";
 
 export type ScrapeResult = {
   status: "success" | "captcha" | "blocked" | "error";
   error?: string;
   page?: Page; // set when captcha/blocked — caller owns this page
+  /** The HTML couldn't be written to disk — the runner should stop. */
+  storageFailure?: boolean;
 };
 
 export async function processScrape(
@@ -36,19 +40,24 @@ export async function processScrape(
         `UPDATE scrape_status
          SET retry_count = retry_count + 1, error = ?
          WHERE tmk = ?`,
-        [result.error ?? result.status, tmk],
+        // Tagged with the worker: several machines share this table, and the
+        // dashboard renders the error column verbatim.
+        [tagWithWorker(result.error ?? result.status), tmk],
       );
       handedOff = true;
       return { status: result.status, error: result.error ?? "detected", page };
     } else {
-      // error status
+      // error status — including a scrape that fetched fine but couldn't be
+      // saved. Nothing was written, so it counts as a failure either way and
+      // has to be picked up again on a later pass.
+      const error = result.error ?? "Unknown scrape error";
       await rawQuery(
         `UPDATE scrape_status
          SET scrape_status='failed', retry_count = retry_count + 1, error = ?
          WHERE tmk = ?`,
-        [result.error ?? "Unknown scrape error", tmk],
+        [tagWithWorker(error), tmk],
       );
-      return { status: "error", error: result.error ?? "Unknown scrape error" };
+      return { status: "error", error, storageFailure: result.storageFailure };
     }
   } finally {
     if (!handedOff) {

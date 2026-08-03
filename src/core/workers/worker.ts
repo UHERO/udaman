@@ -5,12 +5,13 @@ import { createLogger } from "@/core/observability/logger";
 import { redisConnection } from "./connection";
 import { processors } from "./processors";
 import { registerSchedules } from "./scheduler";
+import { workerBindings } from "./worker-identity";
 
 // Ensure all date operations use Hawaii Standard Time.
 // Must be set before any module that touches Date is imported.
 process.env.TZ = "Pacific/Honolulu";
 
-const log = createLogger("worker");
+const log = createLogger("worker", workerBindings());
 
 // ─── Dispatch function ───────────────────────────────────────────────
 

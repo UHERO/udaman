@@ -16,8 +16,12 @@ const appEventLog = pino(
   pino.destination({ dest: "./logs/app-events.log", mkdir: true, sync: false }),
 );
 
-function createLogger(name: string) {
-  return logger.child({ name });
+/**
+ * Named child logger. Extra `bindings` are attached to every line — worker
+ * processes pass `workerBindings()` so multi-machine logs identify themselves.
+ */
+function createLogger(name: string, bindings?: Record<string, unknown>) {
+  return logger.child({ name, ...bindings });
 }
 
 type Logger = ReturnType<typeof createLogger>;
