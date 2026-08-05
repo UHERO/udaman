@@ -4,7 +4,10 @@
       "Bash(find:*)",
       "mcp__ide__getDiagnostics",
       "Bash(ls:*)",
-      "Bash(bun test *)"
+      "Bash(bun test *)",
+      "Bash(bunx prettier *)",
+      "Bash(bunx tsc *)",
+      "Bash(bunx eslint *)"
     ]
   }
 }

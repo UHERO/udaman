@@ -1,8 +1,16 @@
 import { existsSync, readdirSync, statSync } from "fs";
 import path from "path";
 
-/** Auto-detect NAS mount point (mac / linux / windows) */
+/**
+ * Auto-detect NAS mount point (mac / linux / windows).
+ *
+ * QPUB_NAS_PATH overrides the search — for a machine that mounts the share
+ * somewhere unusual, and for dry-running the repair pass against a copy.
+ */
 function findNASPath(): string {
+  const override = process.env.QPUB_NAS_PATH?.trim();
+  if (override) return override;
+
   const platform = process.platform;
 
   if (platform === "darwin") {
@@ -231,6 +239,27 @@ function safeDirList(dir: string): string[] {
   } catch {
     return [];
   }
+}
+
+/** Period directories present on the NAS, newest first (e.g. ['2026-1','2025-2']) */
+export function listPeriods(): string[] {
+  const baseDir = path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.HTML_DIR);
+  return safeDirList(baseDir)
+    .filter((d) => /^\d{4}-[12]$/.test(d))
+    .sort()
+    .reverse();
+}
+
+/**
+ * Newest period directory on the NAS, or null when none exist.
+ *
+ * Read off disk rather than derived from getScrapePeriod(): a pass that runs
+ * past its calendar period keeps writing into the directory it started in, so
+ * the newest directory is what's actually being filled — which is not always
+ * the period today's date maps to.
+ */
+export function latestPeriod(): string | null {
+  return listPeriods()[0] ?? null;
 }
 
 /**

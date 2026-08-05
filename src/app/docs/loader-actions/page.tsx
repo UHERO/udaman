@@ -610,8 +610,8 @@ Series.search("TOUR").first`}
           <MethodBlock
             name="get_last_incomplete_year"
             evalName="get_last_incomplete_year"
-            description="Extract only the data from the current (incomplete) calendar year. Useful for isolating the most recent partial-year data."
-            example={`"E_NF@HI.M".ts.get_last_incomplete_year`}
+            description="Extract only the data from the current (incomplete) calendar year. Useful for isolating the most recent partial-year data. Returns nothing when the data already ends on a year boundary (December for .M, Q4 for .Q) — that means there is no partial year to patch. An optional date argument forces an explicit cutoff instead, bypassing that check; use it when the loader that owns the complete years has gone stale and the guard is rejecting years nothing else is filling."
+            example={`"E_NF@HI.M".ts.get_last_incomplete_year\n"E_NF@HI.M".ts.get_last_incomplete_year("2022-01-01")`}
           />
           <MethodBlock
             name="get_last_complete_december"

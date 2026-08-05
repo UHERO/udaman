@@ -2001,8 +2001,27 @@ class Series {
     return s;
   }
 
-  /** Get data for the last incomplete year (current year if not finished). */
-  getLastIncompleteYear(): Series {
+  /**
+   * Get data for the last incomplete year (current year if not finished).
+   *
+   * `startDate` forces an explicit cutoff instead, bypassing both the
+   * last-observation lookup and the December guard — Rails calls this
+   * "special handling for unusual cases where we want to force a specific
+   * cutoff" (tmp/lib/series_data_adjustment.rb:72).
+   *
+   * The case it exists for: this method is normally paired with a loader
+   * that owns the complete years, so it only has to patch the ragged tail.
+   * When that other loader's source goes stale, the guard starts rejecting
+   * years nobody is filling, and for a self-referential eval like
+   * `apply_ns_growth_rate_sa` the resulting gap propagates forward — each
+   * missing period removes the anchor the next one needs. Forcing the
+   * cutoff lets the series heal past the gap.
+   */
+  getLastIncompleteYear(startDate?: string | null): Series {
+    // Explicit cutoff wins outright. End date is left to trim()'s default
+    // (trimPeriodEnd, else today), matching Rails' `trim(start_date, nil)`.
+    if (startDate) return this.trim(startDate);
+
     const lastObs = this.lastObservation;
     if (!lastObs) {
       const s = new Series({ name: `No data because no incomplete year` });

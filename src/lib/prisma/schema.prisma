@@ -893,3 +893,25 @@ enum messages_status {
   sent
   failed
 }
+
+model approvals {
+  id                  Int            @id @default(autoincrement())
+  type                approvals_type @default(pre_release)
+  universe            String         @default("UHERO") @db.VarChar(10)
+  name                String         @db.VarChar(500)
+  author              String         @db.VarChar(255)
+  author_user_id      Int
+  target_release_date DateTime?      @db.Date
+  form_data           Json
+  deleted_at          DateTime?      @db.DateTime(0)
+  created_at          DateTime       @default(now()) @db.Timestamp(0)
+  updated_at          DateTime       @default(now()) @db.DateTime(0)
+
+  @@index([universe, created_at], map: "idx_approvals_universe_created")
+  @@index([author_user_id], map: "idx_approvals_author_user")
+  @@index([type, target_release_date], map: "idx_approvals_type_release")
+}
+
+enum approvals_type {
+  pre_release
+}

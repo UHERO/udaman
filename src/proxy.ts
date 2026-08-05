@@ -26,7 +26,7 @@ const APP_DEFAULTS: Record<string, string> = {
 };
 
 /** Top-level routes that live outside /udaman/{universe} */
-const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs"];
+const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs", "/comms"];
 
 /**
  * Extract the app name from the request Host header.
@@ -120,7 +120,7 @@ export async function proxy(request: NextRequest) {
 
     // ── App-specific logic (udaman: auth + universe normalization) ──
     if (app === "udaman") {
-      // Top-level app routes (/admin, /hhdb, /docs) — rewrite directly
+      // Top-level app routes (/admin, /hhdb, /docs, /comms) — rewrite directly
       const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
 
       if (isTopLevel) {
@@ -203,7 +203,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // ── Direct access (no subdomain / localhost dev) ──────────────────
-  const protectedPrefixes = ["/udaman", "/admin", "/hhdb", "/docs"];
+  const protectedPrefixes = ["/udaman", "/admin", "/hhdb", "/docs", "/comms"];
   const isProtected = protectedPrefixes.some(
     (p) => pathname.startsWith(p) && pathname !== "/udaman",
   );
@@ -216,7 +216,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/udaman", request.url));
   }
 
-  // Top-level routes: /admin, /hhdb, /docs
+  // Top-level routes: /admin, /hhdb, /docs, /comms
   const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
   if (isTopLevel) {
     const token = await getToken({

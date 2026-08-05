@@ -19,6 +19,7 @@ import {
   ClipboardList,
   FileSpreadsheet,
   LineChart,
+  Megaphone,
   SearchSlash,
   Shield,
   TableProperties,
@@ -142,7 +143,7 @@ export const ROUTES: RouteEntry[] = [
       },
     ],
   },
-   {
+  {
     label: "Downloads",
     path: "/downloads",
     icon: ArrowDownToLine,
@@ -181,6 +182,14 @@ export const ROUTES: RouteEntry[] = [
     roles: ["internal", "admin", "dev"],
     universes: ["UHERO"],
     location: "rail",
+  },
+  {
+    label: "Comms",
+    path: "/comms",
+    icon: Megaphone,
+    roles: ["internal", "admin", "dev"],
+    location: "rail",
+    children: [{ label: "Pre-Release Form", path: "/comms/pub-form" }],
   },
   {
     label: "Docs",
@@ -276,7 +285,7 @@ export function isRouteAllowed(
   pathname: string,
 ): boolean {
   // ── Top-level routes: /admin/..., /hhdb/..., /docs/... ──
-  const topLevelPrefixes = ["/admin", "/hhdb", "/docs"];
+  const topLevelPrefixes = ["/admin", "/hhdb", "/docs", "/comms"];
   for (const prefix of topLevelPrefixes) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) {
       for (const entry of ROUTES) {

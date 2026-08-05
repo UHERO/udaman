@@ -36,6 +36,7 @@ import {
   LogOut,
   Mail,
   MapPin,
+  Megaphone,
   PlusSquare,
   Receipt,
   ScrollText,
@@ -91,6 +92,11 @@ const MODE_BRANDING: Record<
     subtitle: "Housing Database",
   },
   docs: { icon: BookOpen, title: "Docs", subtitle: "Documentation" },
+  comms: {
+    icon: Megaphone,
+    title: "Comms",
+    subtitle: "Communications",
+  },
   uhu: { icon: Wrench, title: "UHU", subtitle: "UHERO Utilities" },
 };
 
@@ -116,6 +122,13 @@ const RAIL_ITEMS = [
     href: "/admin",
     match: "/admin",
     roles: ["admin", "dev"],
+  },
+  {
+    label: "Comms",
+    icon: Megaphone,
+    href: "/comms",
+    match: "/comms",
+    roles: ["internal", "admin", "dev"],
   },
   {
     label: "Docs",
@@ -210,6 +223,11 @@ const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
   { title: "Transactions", url: "/hhdb/tables/transactions", icon: ScrollText },
 ];
 
+const COMMS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
+  { title: "Overview", url: "/comms", icon: Info },
+  { title: "Pre-Release Form", url: "/comms/pub-form", icon: Megaphone },
+];
+
 const DOCS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
   { title: "IT Infrastructure", url: "/docs/it-infrastructure", icon: Server },
   {
@@ -235,7 +253,7 @@ export function AppSidebar({
     universe: string;
   };
   universes?: { name: string; description: string | null }[];
-  mode?: "udaman" | "admin" | "hhdb" | "docs";
+  mode?: "udaman" | "admin" | "hhdb" | "docs" | "comms";
 }) {
   const params = useParams();
   const pathname = usePathname();
@@ -266,6 +284,7 @@ export function AppSidebar({
     }
     if (mode === "hhdb") return HHDB_NAV_ITEMS;
     if (mode === "docs") return DOCS_NAV_ITEMS;
+    if (mode === "comms") return COMMS_NAV_ITEMS;
     return sidebarRoutes.map((entry) => ({
       title: entry.label,
       url: prefixUrl(entry.path, universe),

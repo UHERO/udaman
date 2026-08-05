@@ -34,6 +34,8 @@ const segmentLabels: Record<string, string> = {
   "forecast-upload": "Forecast Upload",
   "data-tools": "Data Tools",
   docs: "Docs",
+  comms: "Comms",
+  "pub-form": "Pre-Release Form",
   "it-infrastructure": "IT Infrastructure",
   tsd: "TSD Convert & Inspect",
   new: "New",
@@ -105,6 +107,19 @@ function parsePathname(pathname: string): AppPrefix {
       rootHref: "/docs",
       crumbSegments: segments,
       basePath: "/docs",
+    };
+  }
+
+  if (pathname.startsWith("/comms")) {
+    const segments = pathname
+      .replace(/^\/comms\/?/, "")
+      .split("/")
+      .filter(Boolean);
+    return {
+      rootLabel: "Comms",
+      rootHref: "/comms",
+      crumbSegments: segments,
+      basePath: "/comms",
     };
   }
 

@@ -179,6 +179,83 @@ export async function checkStorageWritable(): Promise<{
   }
 }
 
+// ─── Saved-file classification ───────────────────────────────────────
+
+/**
+ * What a file sitting on the NAS actually turned out to be.
+ *
+ * "valid" covers both parcel profiles and condo-project pages — the repair
+ * pass only cares whether the scrape produced something worth keeping.
+ */
+export type SavedFileVerdict =
+  | "valid"
+  | "cloudflare-challenge"
+  | "cloudflare-block"
+  | "captcha"
+  | "shell"
+  | "unknown";
+
+/** Bytes of the file the verdict can be reached from. */
+export const CLASSIFY_HEAD_BYTES = 32 * 1024;
+
+/** Below this a page is too small to be a profile — see detectPageStatus. */
+export const MIN_PROFILE_BYTES = 5_000;
+
+/**
+ * Classify a saved HTML file from its opening bytes.
+ *
+ * Only the head is needed: a real qPublic profile announces itself in
+ * `<title>qPublic - <County> - Report: <parcel></title>`, which lands within
+ * the first ~6 KB of every known-good file (condo-project pages included).
+ * That matters at ~600k files on a network share, where reading each 200 KB
+ * file in full is the difference between minutes and hours.
+ *
+ * Deliberately stricter than parse.ts's detectPageStatus, which only spots a
+ * captcha via "recaptcha" + "we're sorry" and a shell via a length check — a
+ * Cloudflare "Just a moment..." interstitial is ~32 KB and has neither, so it
+ * reads as "unknown" there and gets silently skipped instead of re-scraped.
+ */
+export function classifySavedHtml(
+  head: string,
+  sizeBytes: number,
+): SavedFileVerdict {
+  if (sizeBytes < MIN_PROFILE_BYTES) return "shell";
+
+  const lower = head.toLowerCase();
+
+  // Checked before the title: a block page has a <title> of its own.
+  if (
+    lower.includes("sorry, you have been blocked") ||
+    lower.includes("cloudflare ray id")
+  ) {
+    return "cloudflare-block";
+  }
+
+  const titleMatch = head.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = titleMatch?.[1]?.trim() ?? "";
+  if (title.includes("qPublic") && title.includes("Report:")) return "valid";
+
+  if (
+    title.includes("Just a moment") ||
+    lower.includes("cf_chl") ||
+    lower.includes("challenge-platform")
+  ) {
+    return "cloudflare-challenge";
+  }
+
+  if (
+    lower.includes("g-recaptcha") ||
+    lower.includes('id="btnsubmit"') ||
+    (lower.includes("recaptcha") && lower.includes("we're sorry"))
+  ) {
+    return "captcha";
+  }
+
+  if (!lower.includes("<body")) return "shell";
+
+  return "unknown";
+}
+
 // ─── Captcha resolution check ────────────────────────────────────────
 
 /** Re-check whether a captcha page has been solved (e.g. manually by the user). */

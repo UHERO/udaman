@@ -2,6 +2,7 @@ import { createLogger } from "@/core/observability/logger";
 
 import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
+import { runRepair } from "./processors/qpub-repair";
 import {
   rebuildAll,
   rebuildTable,
@@ -25,6 +26,10 @@ Commands:
   rebuild-table <table>         Rebuild a single table (all phases)
   rebuild-all                   Rebuild all tables (all phases)
 
+  repair                        Sync scrape_status to what's on the NAS.
+                                Dry run unless --execute. Defaults to the
+                                newest period directory on disk.
+
   parse-extract                 Phase 1+2: Parse HTML→JSON, extract JSON→JSONL table files
   load                          Phase 3: Load JSONL files into local DB via mariadb CLI
   load-table <table>            Phase 3: Load a single table into local DB
@@ -35,6 +40,11 @@ Options:
   --island <code>               Filter by island (1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai)
   --period <period>             Filter by NAS period dir (e.g., 2026-1)
   --force-parse                 Force re-parse even when JSON is newer than HTML
+
+Repair options:
+  --execute                     Apply changes (repair is a dry run without it)
+  --keep-bad-files              Don't delete captcha/shell/blocked files
+  --reset-missing               Also clear rows with no file in the period
 
 Valid tables:
   ${tables}
@@ -51,6 +61,9 @@ function parseArgs() {
   let island: string | undefined;
   let period: string | undefined;
   let forceParse = false;
+  let execute = false;
+  let keepBadFiles = false;
+  let resetMissing = false;
 
   const tableCommands = ["rebuild-table", "load-table", "sync-table"];
 
@@ -61,20 +74,56 @@ function parseArgs() {
       period = args[++i];
     } else if (args[i] === "--force-parse") {
       forceParse = true;
+    } else if (args[i] === "--execute") {
+      execute = true;
+    } else if (args[i] === "--keep-bad-files") {
+      keepBadFiles = true;
+    } else if (args[i] === "--reset-missing") {
+      resetMissing = true;
     } else if (!table && tableCommands.includes(command)) {
       table = args[i];
     }
   }
 
-  return { command, table, island, period, forceParse };
+  return {
+    command,
+    table,
+    island,
+    period,
+    forceParse,
+    execute,
+    keepBadFiles,
+    resetMissing,
+  };
 }
 
 async function run() {
-  const { command, table, island, period, forceParse } = parseArgs();
+  const {
+    command,
+    table,
+    island,
+    period,
+    forceParse,
+    execute,
+    keepBadFiles,
+    resetMissing,
+  } = parseArgs();
 
   switch (command) {
     case "nightly": {
       const result = await processNightly();
+      log.info(result);
+      break;
+    }
+
+    case "repair": {
+      const result = await runRepair({
+        island,
+        period,
+        execute,
+        keepBadFiles,
+        resetMissing,
+      });
       log.info(result);
       break;
     }
