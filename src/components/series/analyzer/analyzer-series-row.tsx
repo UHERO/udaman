@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { editableToExpr, exprToEditable } from "./expr-utils";
 import type { AnalyzerEntry } from "./types";
 
 interface AnalyzerSeriesRowProps {
@@ -34,23 +35,6 @@ interface AnalyzerSeriesRowProps {
   onAxisChange: (id: string, axis: "left" | "right") => void;
   onRemove: (id: string) => void;
   onCompareYoY?: (id: string) => void;
-}
-
-/** Convert expression to a user-friendly display string.
- *  `"VIS@HAW.Q".ts` → `VIS@HAW.Q`; complex expressions shown as-is */
-function exprToEditable(expr: string): string {
-  const m = expr.match(/^"([^"]+)"\.tsn?$/);
-  return m ? m[1] : expr;
-}
-
-/** Wrap a plain series name back into eval syntax.
- *  If the input already looks like an expression (contains quotes, dots-after-quotes,
- *  operators, etc.) it's returned as-is. */
-function editableToExpr(input: string): string {
-  // Already looks like an expression (has quotes or .ts/.tsn suffix)
-  if (input.includes('"')) return input;
-  // Plain series name like VIS@HAW.Q → "VIS@HAW.Q".ts
-  return `"${input}".ts`;
 }
 
 export function AnalyzerSeriesRow({
@@ -83,6 +67,10 @@ export function AnalyzerSeriesRow({
       onExpressionChange(entry.id, expr);
     }
   }
+
+  // A failed evaluation leaves the last good data on the chart, so the input
+  // text and what's plotted disagree until the expression is fixed.
+  const isStale = Boolean(entry.error) && !entry.loading;
 
   const opacity =
     entry.visibility === "hidden"
@@ -126,7 +114,11 @@ export function AnalyzerSeriesRow({
       {/* Expression input */}
       <Input
         ref={inputRef}
-        className="focus:border-input h-7 flex-1 border-transparent font-mono text-xs shadow-none"
+        className={`focus:border-input h-7 flex-1 font-mono text-xs shadow-none ${
+          isStale
+            ? "border-amber-500/70 bg-amber-50 dark:bg-amber-950/20"
+            : "border-transparent"
+        }`}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
@@ -148,15 +140,22 @@ export function AnalyzerSeriesRow({
         <Loader2 className="text-muted-foreground h-3.5 w-3.5 shrink-0 animate-spin" />
       )}
 
-      {/* Error indicator */}
-      {entry.error && !entry.loading && (
+      {/* Error indicator — chart still shows the last valid result */}
+      {isStale && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="shrink-0 cursor-default text-xs text-red-500">
+            <span className="shrink-0 cursor-default text-xs text-amber-600 dark:text-amber-500">
               ✕
             </span>
           </TooltipTrigger>
-          <TooltipContent side="top">{entry.error}</TooltipContent>
+          <TooltipContent side="top" className="max-w-xs">
+            <p>{entry.error}</p>
+            {entry.data.length > 0 && (
+              <p className="mt-1 opacity-80">
+                Showing the last result that evaluated ({entry.name}).
+              </p>
+            )}
+          </TooltipContent>
         </Tooltip>
       )}
 

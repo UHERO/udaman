@@ -189,7 +189,7 @@ function applyAggOp(values: number[], op: AggOp): number {
 }
 
 /** Apply a single arithmetic operation. Returns null for NaN/Infinity. */
-function doArithmetic(a: number, op: string, b: number): number | null {
+export function doArithmetic(a: number, op: string, b: number): number | null {
   let result: number;
   switch (op) {
     case "+":
@@ -322,6 +322,15 @@ class Series {
   #data: Map<string, number> | null = null;
   #trimStart: Date | null = null;
   #trimEnd: Date | null = null;
+
+  /**
+   * True when this Series is a stand-in for a bare number in eval arithmetic
+   * (a numeric literal, or the result of `.average`). Its data holds a single
+   * entry under the "scalar" key rather than real dates. Never persisted, and
+   * never inherited by the result of an operation — arithmetic on a wrapper
+   * produces an ordinary dated Series.
+   */
+  isScalarWrapper = false;
 
   constructor(attrs: SeriesAttrs) {
     // series
@@ -1005,9 +1014,20 @@ class Series {
     const values = [...this.data.values()];
     const count = values.length;
     const avg = count > 0 ? values.reduce((s, v) => s + v, 0) / count : 0;
-    const s = new Series({ name: `__scalar_${avg}` });
-    s.data = new Map([["scalar", avg]]);
+    return Series.scalar(avg);
+  }
+
+  /** Wrap a bare number so it can travel through eval arithmetic. */
+  static scalar(value: number): Series {
+    const s = new Series({ name: `__scalar_${value}` });
+    s.data = new Map([["scalar", value]]);
+    s.isScalarWrapper = true;
     return s;
+  }
+
+  /** The wrapped number, or null when this is an ordinary dated Series. */
+  get scalarValue(): number | null {
+    return this.isScalarWrapper ? (this.data.get("scalar") ?? null) : null;
   }
 
   /**

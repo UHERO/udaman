@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { transformSeriesAction } from "@/actions/series-actions";
 import type { TimelineEventForChart } from "@/components/series/analyze-chart";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 
+import { AnalyzerCalculate } from "./analyzer-calculate";
 import { AnalyzerSearch } from "./analyzer-search";
+import { editableToExpr, exprToDisplayName } from "./expr-utils";
 import type { AnalyzerEntry } from "./types";
 
 interface AnalyzerProps {
@@ -21,19 +24,6 @@ interface AnalyzerProps {
 /** Convert a bare series name to an eval expression */
 function nameToExpr(name: string): string {
   return `"${name}".ts`;
-}
-
-/** Extract a display name from an expression, e.g. '"E_NF@HI.M".ts' → 'E_NF@HI.M' */
-function exprToDisplayName(expr: string): string {
-  // Simple series reference: "NAME".ts → NAME
-  const simpleMatch = expr.match(/^"([^"]+)"\.tsn?$/);
-  if (simpleMatch) return simpleMatch[1];
-
-  // Modified expression: extract first quoted series name → NAME (modified)
-  const firstQuoted = expr.match(/"([^"]+)"/);
-  if (firstQuoted) return `${firstQuoted[1]} (modified)`;
-
-  return expr;
 }
 
 export function Analyzer({
@@ -181,14 +171,57 @@ export function Analyzer({
     [evaluateEntry],
   );
 
+  /** Add a calculation typed into the Calculate box.
+   *  Evaluates first and only adds the entry once it succeeds, so a bad
+   *  expression never leaves a broken row behind — the error goes to a toast
+   *  and the text stays in the input for correction. */
+  const handleAddExpression = useCallback(
+    async (input: string): Promise<boolean> => {
+      const expression = editableToExpr(input.trim());
+      const result = await transformSeriesAction(expression);
+
+      if ("error" in result) {
+        toast.error("Could not evaluate calculation", {
+          description: result.error,
+        });
+        return false;
+      }
+
+      if (result.series.data.length === 0) {
+        toast.warning("Calculation produced no data points", {
+          description: expression,
+        });
+        return false;
+      }
+
+      setEntries((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          expression,
+          name: exprToDisplayName(expression),
+          data: result.series.data,
+          unitShortLabel: result.unitShortLabel ?? null,
+          decimals: result.series.decimals,
+          frequencyCode: result.series.frequencyCode ?? null,
+          visibility: "active",
+          axis: "left",
+          loading: false,
+          error: null,
+        },
+      ]);
+      return true;
+    },
+    [],
+  );
+
   const handleExpressionChange = useCallback(
     (id: string, expression: string) => {
+      // Deliberately not renaming here: on a failed evaluation the entry keeps
+      // its previous data, and relabeling it now would show one series' values
+      // under another's name.  `evaluateEntry` renames once the eval succeeds.
       setEntries((prev) =>
-        prev.map((e) =>
-          e.id === id
-            ? { ...e, expression, name: exprToDisplayName(expression) }
-            : e,
-        ),
+        prev.map((e) => (e.id === id ? { ...e, expression } : e)),
       );
       evaluateEntry(id, expression);
     },
@@ -372,7 +405,10 @@ export function Analyzer({
         </p>
       </div>
 
-      <AnalyzerSearch currentNames={currentNames} onAdd={handleAdd} />
+      <div className="flex flex-col gap-2 lg:flex-row lg:gap-3">
+        <AnalyzerSearch currentNames={currentNames} onAdd={handleAdd} />
+        <AnalyzerCalculate onSubmit={handleAddExpression} />
+      </div>
 
       {compareSeries.length > 0 && (
         <AnalyzeControls

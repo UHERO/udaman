@@ -118,7 +118,7 @@ export function AnalyzerSearch({ currentNames, onAdd }: AnalyzerSearchProps) {
         <PopoverTrigger asChild>
           <form
             onSubmit={handleSubmit}
-            className="flex w-full items-center rounded-sm border"
+            className="flex w-full items-center overflow-hidden rounded-sm border"
           >
             <HoverCard openDelay={200}>
               <HoverCardTrigger asChild>
@@ -126,7 +126,7 @@ export function AnalyzerSearch({ currentNames, onAdd }: AnalyzerSearchProps) {
                   type="button"
                   size="icon"
                   variant="secondary"
-                  className="rounded-r-none"
+                  className="shrink-0 self-stretch rounded-none"
                 >
                   <Info className="h-4 w-4" />
                 </Button>
