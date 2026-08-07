@@ -2,7 +2,7 @@ import type { ApprovalJSON, PublicationType } from "@catalog/models/approval";
 import { PUBLICATION_TYPE_LABELS } from "@catalog/models/approval";
 import { Check, Square } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
 function formatDate(value: string | null): string | null {
@@ -66,6 +66,7 @@ function CheckRow({ label, checked }: { label: string; checked: boolean }) {
   );
 }
 
+/** A titled block. Sections are divided by <Separator />, not cards. */
 function Section({
   title,
   children,
@@ -74,14 +75,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="divide-y">{children}</dl>
-      </CardContent>
-    </Card>
+    <section className="space-y-2">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      {children}
+    </section>
   );
 }
 
@@ -97,102 +94,123 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
       : publicationType;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Section title="A. Publication details">
-        <Row label="Title">{approval.name}</Row>
-        <Row label="Publication type">{publicationTypeLabel}</Row>
-        <Row label="Lead author">{approval.author}</Row>
-        <Row label="All authors and contributors">{d.contributors}</Row>
-        <Row label="Target release date">
-          {formatDate(approval.targetReleaseDate)}
-        </Row>
-        <Row label="Link to draft">
-          {d.documentUrl ? (
-            <a
-              href={d.documentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ublue break-all underline underline-offset-2"
-            >
-              {d.documentUrl}
-            </a>
-          ) : null}
-        </Row>
+        <dl className="divide-y">
+          <Row label="Title">{approval.name}</Row>
+          <Row label="Publication type">{publicationTypeLabel}</Row>
+          <Row label="Lead author">{approval.author}</Row>
+          <Row label="All authors and contributors">{d.contributors}</Row>
+          <Row label="Target release date">
+            {formatDate(approval.targetReleaseDate)}
+          </Row>
+          <Row label="Link to draft">
+            {d.documentUrl ? (
+              <a
+                href={d.documentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ublue break-all underline underline-offset-2"
+              >
+                {d.documentUrl}
+              </a>
+            ) : null}
+          </Row>
+        </dl>
       </Section>
+
+      <Separator />
 
       <Section title="B. Disclosures">
-        <Row label="Conflicts of interest">{d.conflictsOfInterest}</Row>
-        <Row label="Funding source(s)">{d.fundingSources}</Row>
-        <Row label="Data restrictions">{d.dataRestrictions}</Row>
-        <Row label="Use of AI">
-          {d.aiUsage === "none"
-            ? "No AI was used in preparing the work"
-            : "AI was used; its use followed applicable University of Hawaiʻi guidance"}
-        </Row>
+        <dl className="divide-y">
+          <Row label="Conflicts of interest">{d.conflictsOfInterest}</Row>
+          <Row label="Funding source(s)">{d.fundingSources}</Row>
+          <Row label="Data restrictions">{d.dataRestrictions}</Row>
+          <Row label="Use of AI">
+            {d.aiUsage === "none"
+              ? "No AI was used in preparing the work"
+              : "AI was used; its use followed applicable University of Hawaiʻi guidance"}
+          </Row>
+        </dl>
       </Section>
+
+      <Separator />
 
       <Section title="C. Development and prior review">
-        <Row label="Reviewers and contributors">{d.reviewers}</Row>
-        <Row label="Stakeholder input">{d.stakeholderInput}</Row>
+        <dl className="divide-y">
+          <Row label="Reviewers and contributors">{d.reviewers}</Row>
+          <Row label="Stakeholder input">{d.stakeholderInput}</Row>
+        </dl>
       </Section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            D. Lead author certification
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="divide-y">
-            <CheckRow
-              label="The work is accurate, has integrity, and is appropriately presented, including any AI-assisted content."
-              checked={d.certAccurate}
-            />
-            <CheckRow
-              label="The evidence and methods support the conclusions."
-              checked={d.certEvidence}
-            />
-            <CheckRow
-              label="Uncertainties, assumptions, and limitations are clearly stated."
-              checked={d.certUncertainties}
-            />
-            <CheckRow
-              label="The work complies with applicable UH policies, research protocols, disclosure requirements, and professional standards."
-              checked={d.certCompliance}
-            />
-            <dl>
-              <Row label="Certified by">
-                {approval.author}
-                {formatTimestamp(approval.createdAt)
-                  ? ` — ${formatTimestamp(approval.createdAt)}`
-                  : ""}
+      <Separator />
+
+      <Section title="D. Lead author certification">
+        <div className="divide-y">
+          <CheckRow
+            label="The work is accurate, has integrity, and is appropriately presented, including any AI-assisted content."
+            checked={d.certAccurate}
+          />
+          <CheckRow
+            label="The evidence and methods support the conclusions."
+            checked={d.certEvidence}
+          />
+          <CheckRow
+            label="Uncertainties, assumptions, and limitations are clearly stated."
+            checked={d.certUncertainties}
+          />
+          <CheckRow
+            label="The work complies with applicable UH policies, research protocols, disclosure requirements, and professional standards."
+            checked={d.certCompliance}
+          />
+          <dl>
+            <Row label="Certified by">
+              {approval.author}
+              {formatTimestamp(approval.createdAt)
+                ? ` — ${formatTimestamp(approval.createdAt)}`
+                : ""}
+            </Row>
+            {approval.updatedAt && approval.updatedAt !== approval.createdAt ? (
+              <Row label="Last edited">
+                {formatTimestamp(approval.updatedAt)}
               </Row>
-              {approval.updatedAt &&
-              approval.updatedAt !== approval.createdAt ? (
-                <Row label="Last edited">
-                  {formatTimestamp(approval.updatedAt)}
-                </Row>
-              ) : null}
-            </dl>
-          </div>
-        </CardContent>
-      </Card>
+            ) : null}
+          </dl>
+        </div>
+      </Section>
+
+      <Separator />
 
       <Section title="E. Availability and dissemination">
-        <Row label="Available on release day for media">
-          {d.availableOnRelease === "yes" ? "Yes" : "No"}
-        </Row>
-        <Row label="Contact name">{d.mediaContactName}</Row>
-        <Row label="Contact email">{d.mediaContactEmail}</Row>
-        <Row label="Contact phone">{d.mediaContactPhone}</Row>
+        <dl className="divide-y">
+          <Row label="Available on release day for media">
+            {d.availableOnRelease === "yes" ? "Yes" : "No"}
+          </Row>
+          <Row label="Contact name">{d.mediaContactName}</Row>
+          <Row label="Contact email">{d.mediaContactEmail}</Row>
+          <Row label="Contact phone">{d.mediaContactPhone}</Row>
+        </dl>
       </Section>
 
+      <Separator />
+
       <Section title="Notification">
-        <Row label="Notified on submission">
-          {d.notifiedRecipients?.length
-            ? d.notifiedRecipients.join(", ")
-            : null}
-        </Row>
+        <dl className="divide-y">
+          <Row label="Notified on submission">
+            {d.notifiedRecipients?.length ? (
+              <details>
+                <summary className="text-muted-foreground hover:text-foreground w-fit cursor-pointer">
+                  Click to see recipients ({d.notifiedRecipients.length})
+                </summary>
+                <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+                  {d.notifiedRecipients.map((address) => (
+                    <li key={address}>{address}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </Row>
+        </dl>
       </Section>
     </div>
   );

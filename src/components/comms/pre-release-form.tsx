@@ -16,13 +16,6 @@ import { z } from "zod";
 
 import { createApproval, updateApproval } from "@/actions/approvals";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -41,7 +34,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 /** Split a comma/semicolon/newline-separated address list into trimmed entries. */
 function parseRecipients(raw: string): string[] {
@@ -216,15 +211,45 @@ const CERTIFICATIONS = [
   },
 ] as const;
 
+/** A titled block of fields. Sections are divided by <Separator />, not cards. */
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {description ? (
+          <p className="text-muted-foreground text-sm">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function PreReleaseForm({
   mode,
   approval,
   authorName,
+  standardRecipients,
 }: {
   mode: "create" | "edit";
   approval?: ApprovalJSON | null;
   /** Signed-in user — always the lead author, shown read-only in section D. */
   authorName: string;
+  /**
+   * The fixed notification list, passed down from the server page so the
+   * mailer module stays server-only rather than being pulled into the
+   * client bundle.
+   */
+  standardRecipients: string[];
 }) {
   const router = useRouter();
   const listHref = "/comms/pub-form";
@@ -290,19 +315,20 @@ export function PreReleaseForm({
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      {/* ── A. Publication details ──────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>A. Publication details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup className="gap-4">
-            <Field data-invalid={!!errors.name}>
-              <FieldLabel htmlFor="name">Title</FieldLabel>
-              <Input id="name" {...form.register("name")} />
-              <FieldError errors={[errors.name]} />
-            </Field>
+      <FormSection title="A. Publication details">
+        <FieldGroup className="gap-4">
+          <Field data-invalid={!!errors.name}>
+            <FieldLabel htmlFor="name">Title</FieldLabel>
+            <Input id="name" {...form.register("name")} />
+            <FieldError errors={[errors.name]} />
+          </Field>
 
+          <div
+            className={cn(
+              "grid gap-4",
+              publicationType === "other" && "sm:grid-cols-2",
+            )}
+          >
             <Field data-invalid={!!errors.publicationType}>
               <FieldLabel htmlFor="publicationType">
                 Publication type
@@ -316,7 +342,7 @@ export function PreReleaseForm({
                   )
                 }
               >
-                <SelectTrigger id="publicationType">
+                <SelectTrigger id="publicationType" className="w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -342,28 +368,30 @@ export function PreReleaseForm({
                 <FieldError errors={[errors.publicationTypeOther]} />
               </Field>
             )}
+          </div>
 
-            <Field>
-              <FieldLabel htmlFor="leadAuthor">Lead author</FieldLabel>
-              <Input id="leadAuthor" value={authorName} disabled readOnly />
-              <FieldDescription>
-                Taken from your account. The lead author submits this form.
-              </FieldDescription>
-            </Field>
+          <Field>
+            <FieldLabel htmlFor="leadAuthor">Lead author</FieldLabel>
+            <Input id="leadAuthor" value={authorName} disabled readOnly />
+            <FieldDescription>
+              Taken from your account. The lead author submits this form.
+            </FieldDescription>
+          </Field>
 
-            <Field data-invalid={!!errors.contributors}>
-              <FieldLabel htmlFor="contributors">
-                All authors and substantial contributors
-              </FieldLabel>
-              <Textarea
-                id="contributors"
-                rows={4}
-                placeholder="Names and roles; note any non-UHERO affiliations"
-                {...form.register("contributors")}
-              />
-              <FieldError errors={[errors.contributors]} />
-            </Field>
+          <Field data-invalid={!!errors.contributors}>
+            <FieldLabel htmlFor="contributors">
+              All authors and substantial contributors
+            </FieldLabel>
+            <Textarea
+              id="contributors"
+              rows={4}
+              placeholder="Names and roles; note any non-UHERO affiliations"
+              {...form.register("contributors")}
+            />
+            <FieldError errors={[errors.contributors]} />
+          </Field>
 
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field data-invalid={!!errors.targetReleaseDate}>
               <FieldLabel htmlFor="targetReleaseDate">
                 Target release date
@@ -371,7 +399,6 @@ export function PreReleaseForm({
               <Input
                 id="targetReleaseDate"
                 type="date"
-                className="w-auto"
                 {...form.register("targetReleaseDate")}
               />
               <FieldError errors={[errors.targetReleaseDate]} />
@@ -389,210 +416,190 @@ export function PreReleaseForm({
               </FieldDescription>
               <FieldError errors={[errors.documentUrl]} />
             </Field>
-          </FieldGroup>
-        </CardContent>
-      </Card>
+          </div>
+        </FieldGroup>
+      </FormSection>
 
-      {/* ── B. Disclosures ──────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>B. Disclosures</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup className="gap-4">
-            <Field data-invalid={!!errors.conflictsOfInterest}>
-              <FieldLabel htmlFor="conflictsOfInterest">
-                Conflicts of interest
-              </FieldLabel>
-              <Textarea
-                id="conflictsOfInterest"
-                rows={3}
-                placeholder='Financial, personal, or professional interests that bear on the work. Enter "none" if applicable.'
-                {...form.register("conflictsOfInterest")}
-              />
-              <FieldError errors={[errors.conflictsOfInterest]} />
-            </Field>
+      <Separator />
 
-            <Field data-invalid={!!errors.fundingSources}>
-              <FieldLabel htmlFor="fundingSources">
-                Funding source(s)
-              </FieldLabel>
-              <Textarea
-                id="fundingSources"
-                rows={3}
-                {...form.register("fundingSources")}
-              />
-              <FieldError errors={[errors.fundingSources]} />
-            </Field>
+      <FormSection title="B. Disclosures">
+        <FieldGroup className="gap-4">
+          <Field data-invalid={!!errors.conflictsOfInterest}>
+            <FieldLabel htmlFor="conflictsOfInterest">
+              Conflicts of interest
+            </FieldLabel>
+            <Textarea
+              id="conflictsOfInterest"
+              rows={3}
+              placeholder='Financial, personal, or professional interests that bear on the work. Enter "none" if applicable.'
+              {...form.register("conflictsOfInterest")}
+            />
+            <FieldError errors={[errors.conflictsOfInterest]} />
+          </Field>
 
-            <Field data-invalid={!!errors.dataRestrictions}>
-              <FieldLabel htmlFor="dataRestrictions">
-                Data restrictions or confidentiality obligations
-              </FieldLabel>
-              <Textarea
-                id="dataRestrictions"
-                rows={3}
-                placeholder="Anything affecting interpretation or release"
-                {...form.register("dataRestrictions")}
-              />
-              <FieldError errors={[errors.dataRestrictions]} />
-            </Field>
+          <Field data-invalid={!!errors.fundingSources}>
+            <FieldLabel htmlFor="fundingSources">Funding source(s)</FieldLabel>
+            <Textarea
+              id="fundingSources"
+              rows={3}
+              {...form.register("fundingSources")}
+            />
+            <FieldError errors={[errors.fundingSources]} />
+          </Field>
 
-            <Field data-invalid={!!errors.aiUsage}>
-              <FieldLabel>Use of AI</FieldLabel>
-              <RadioGroup
-                value={form.watch("aiUsage")}
-                onValueChange={(v) =>
-                  form.setValue("aiUsage", v as FormValues["aiUsage"])
-                }
-                className="gap-2"
-              >
-                <Field orientation="horizontal">
-                  <RadioGroupItem value="none" id="ai-none" />
-                  <FieldLabel htmlFor="ai-none" className="font-normal">
-                    No AI was used in preparing this work
-                  </FieldLabel>
-                </Field>
-                <Field orientation="horizontal">
-                  <RadioGroupItem value="followed_guidance" id="ai-guidance" />
-                  <FieldLabel htmlFor="ai-guidance" className="font-normal">
-                    AI was used, and its use followed applicable University of
-                    Hawaiʻi guidance
-                  </FieldLabel>
-                </Field>
-              </RadioGroup>
-              <FieldError errors={[errors.aiUsage]} />
-            </Field>
-          </FieldGroup>
-        </CardContent>
-      </Card>
+          <Field data-invalid={!!errors.dataRestrictions}>
+            <FieldLabel htmlFor="dataRestrictions">
+              Data restrictions or confidentiality obligations
+            </FieldLabel>
+            <Textarea
+              id="dataRestrictions"
+              rows={3}
+              placeholder="Anything affecting interpretation or release"
+              {...form.register("dataRestrictions")}
+            />
+            <FieldError errors={[errors.dataRestrictions]} />
+          </Field>
 
-      {/* ── C. Development and prior review ─────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>C. Development and prior review</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup className="gap-4">
-            <Field data-invalid={!!errors.reviewers}>
-              <FieldLabel htmlFor="reviewers">
-                Who commented on, reviewed, or contributed during development
-              </FieldLabel>
-              <Textarea
-                id="reviewers"
-                rows={3}
-                {...form.register("reviewers")}
-              />
-              <FieldError errors={[errors.reviewers]} />
-            </Field>
-
-            <Field data-invalid={!!errors.stakeholderInput}>
-              <FieldLabel htmlFor="stakeholderInput">
-                Stakeholder input already sought, if any
-              </FieldLabel>
-              <Textarea
-                id="stakeholderInput"
-                rows={3}
-                {...form.register("stakeholderInput")}
-              />
-              <FieldError errors={[errors.stakeholderInput]} />
-            </Field>
-          </FieldGroup>
-        </CardContent>
-      </Card>
-
-      {/* ── D. Lead author certification ────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>D. Lead author certification</CardTitle>
-          <CardDescription>
-            On behalf of all authors. Confirm each — all four are required.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup className="gap-4">
-            {/*
-              orientation="horizontal" is required here, not cosmetic: the
-              default vertical variant applies `[&>*]:w-full` to every direct
-              child, which overrides the Checkbox's own `size-4` and stretches
-              it across the card.
-            */}
-            {CERTIFICATIONS.map((cert) => (
-              <Field
-                key={cert.key}
-                orientation="horizontal"
-                data-invalid={!!errors[cert.key]}
-              >
-                <Checkbox
-                  id={cert.key}
-                  checked={form.watch(cert.key)}
-                  onCheckedChange={(checked) =>
-                    form.setValue(cert.key, checked === true, {
-                      shouldValidate: form.formState.isSubmitted,
-                    })
-                  }
-                />
-                <FieldContent>
-                  <FieldLabel htmlFor={cert.key} className="font-normal">
-                    {cert.label}
-                  </FieldLabel>
-                  <FieldError errors={[errors[cert.key]]} />
-                </FieldContent>
+          <Field data-invalid={!!errors.aiUsage}>
+            <FieldLabel>Use of AI</FieldLabel>
+            <RadioGroup
+              value={form.watch("aiUsage")}
+              onValueChange={(v) =>
+                form.setValue("aiUsage", v as FormValues["aiUsage"])
+              }
+              className="gap-2"
+            >
+              <Field orientation="horizontal">
+                <RadioGroupItem value="none" id="ai-none" />
+                <FieldLabel htmlFor="ai-none" className="font-normal">
+                  No AI was used in preparing this work
+                </FieldLabel>
               </Field>
-            ))}
+              <Field orientation="horizontal">
+                <RadioGroupItem value="followed_guidance" id="ai-guidance" />
+                <FieldLabel htmlFor="ai-guidance" className="font-normal">
+                  AI was used, and its use followed applicable University of
+                  Hawaiʻi guidance
+                </FieldLabel>
+              </Field>
+            </RadioGroup>
+            <FieldError errors={[errors.aiUsage]} />
+          </Field>
+        </FieldGroup>
+      </FormSection>
 
-            <FieldDescription>
-              Certified by <strong>{authorName}</strong>
-              {approval?.createdAt
-                ? ` — submitted ${new Date(approval.createdAt).toLocaleDateString()}`
-                : " on submission"}
-              .
-            </FieldDescription>
-          </FieldGroup>
-        </CardContent>
-      </Card>
+      <Separator />
 
-      {/* ── E. Availability and dissemination ───────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>E. Availability and dissemination</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup className="gap-4">
-            <Field>
-              <FieldLabel>
-                Lead author available on release day for media inquiries
-              </FieldLabel>
-              <RadioGroup
-                value={availableOnRelease}
-                onValueChange={(v) =>
-                  form.setValue(
-                    "availableOnRelease",
-                    v as FormValues["availableOnRelease"],
-                  )
+      <FormSection title="C. Development and prior review">
+        <FieldGroup className="gap-4">
+          <Field data-invalid={!!errors.reviewers}>
+            <FieldLabel htmlFor="reviewers">
+              Who commented on, reviewed, or contributed during development
+            </FieldLabel>
+            <Textarea id="reviewers" rows={3} {...form.register("reviewers")} />
+            <FieldError errors={[errors.reviewers]} />
+          </Field>
+
+          <Field data-invalid={!!errors.stakeholderInput}>
+            <FieldLabel htmlFor="stakeholderInput">
+              Stakeholder input already sought, if any
+            </FieldLabel>
+            <Textarea
+              id="stakeholderInput"
+              rows={3}
+              {...form.register("stakeholderInput")}
+            />
+            <FieldError errors={[errors.stakeholderInput]} />
+          </Field>
+        </FieldGroup>
+      </FormSection>
+
+      <Separator />
+
+      <FormSection
+        title="D. Lead author certification"
+        description="On behalf of all authors. Confirm each — all four are required."
+      >
+        <FieldGroup className="gap-4">
+          {/*
+            orientation="horizontal" is required here, not cosmetic: the
+            default vertical variant applies `[&>*]:w-full` to every direct
+            child, which overrides the Checkbox's own `size-4` and stretches
+            it across the row.
+          */}
+          {CERTIFICATIONS.map((cert) => (
+            <Field
+              key={cert.key}
+              orientation="horizontal"
+              data-invalid={!!errors[cert.key]}
+            >
+              <Checkbox
+                id={cert.key}
+                checked={form.watch(cert.key)}
+                onCheckedChange={(checked) =>
+                  form.setValue(cert.key, checked === true, {
+                    shouldValidate: form.formState.isSubmitted,
+                  })
                 }
-                className="flex gap-6"
-              >
-                <Field orientation="horizontal" className="w-auto">
-                  <RadioGroupItem value="yes" id="avail-yes" />
-                  <FieldLabel htmlFor="avail-yes" className="font-normal">
-                    Yes
-                  </FieldLabel>
-                </Field>
-                <Field orientation="horizontal" className="w-auto">
-                  <RadioGroupItem value="no" id="avail-no" />
-                  <FieldLabel htmlFor="avail-no" className="font-normal">
-                    No
-                  </FieldLabel>
-                </Field>
-              </RadioGroup>
+              />
+              <FieldContent>
+                <FieldLabel htmlFor={cert.key} className="font-normal">
+                  {cert.label}
+                </FieldLabel>
+                <FieldError errors={[errors[cert.key]]} />
+              </FieldContent>
             </Field>
+          ))}
 
+          <FieldDescription>
+            Certified by <strong>{authorName}</strong>
+            {approval?.createdAt
+              ? ` — submitted ${new Date(approval.createdAt).toLocaleDateString()}`
+              : " on submission"}
+            .
+          </FieldDescription>
+        </FieldGroup>
+      </FormSection>
+
+      <Separator />
+
+      <FormSection title="E. Availability and dissemination">
+        <FieldGroup className="gap-4">
+          <Field>
+            <FieldLabel>
+              Lead author available on release day for media inquiries
+            </FieldLabel>
+            <RadioGroup
+              value={availableOnRelease}
+              onValueChange={(v) =>
+                form.setValue(
+                  "availableOnRelease",
+                  v as FormValues["availableOnRelease"],
+                )
+              }
+              className="flex gap-6"
+            >
+              <Field orientation="horizontal" className="w-auto">
+                <RadioGroupItem value="yes" id="avail-yes" />
+                <FieldLabel htmlFor="avail-yes" className="font-normal">
+                  Yes
+                </FieldLabel>
+              </Field>
+              <Field orientation="horizontal" className="w-auto">
+                <RadioGroupItem value="no" id="avail-no" />
+                <FieldLabel htmlFor="avail-no" className="font-normal">
+                  No
+                </FieldLabel>
+              </Field>
+            </RadioGroup>
+          </Field>
+
+          <div className="grid gap-4 sm:grid-cols-3">
             <Field data-invalid={!!errors.mediaContactName}>
               <FieldLabel htmlFor="mediaContactName">
                 {availableOnRelease === "yes"
                   ? "Contact name"
-                  : "Alternate media contact name"}
+                  : "Alternate contact"}
               </FieldLabel>
               <Input
                 id="mediaContactName"
@@ -619,36 +626,46 @@ export function PreReleaseForm({
               />
               <FieldError errors={[errors.mediaContactPhone]} />
             </Field>
-          </FieldGroup>
-        </CardContent>
-      </Card>
+          </div>
+        </FieldGroup>
+      </FormSection>
 
-      {/* ── Notification ────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Notification</CardTitle>
-          <CardDescription>
-            The standard UHERO recipients are always notified on submission.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Separator />
+
+      <FormSection
+        title="Notification"
+        description="The standard UHERO recipients are always notified on submission."
+      >
+        <FieldGroup className="gap-4">
           <Field data-invalid={!!errors.additionalRecipients}>
             <FieldLabel htmlFor="additionalRecipients">
               Additional recipients
             </FieldLabel>
-            <Textarea
+            <Input
               id="additionalRecipients"
-              rows={2}
               placeholder="someone@hawaii.edu, another@hawaii.edu"
               {...form.register("additionalRecipients")}
             />
             <FieldDescription>
-              Comma or newline separated. CC&apos;d on the submission email.
+              Comma separated. CC&apos;d on the submission email.
             </FieldDescription>
             <FieldError errors={[errors.additionalRecipients]} />
           </Field>
-        </CardContent>
-      </Card>
+
+          <details className="text-sm">
+            <summary className="text-muted-foreground hover:text-foreground w-fit cursor-pointer">
+              Click to see recipients
+            </summary>
+            <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+              {standardRecipients.map((address) => (
+                <li key={address}>{address}</li>
+              ))}
+            </ul>
+          </details>
+        </FieldGroup>
+      </FormSection>
+
+      <Separator />
 
       <div className="flex justify-end gap-2 pb-8">
         <Button

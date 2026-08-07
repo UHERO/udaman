@@ -1,4 +1,5 @@
 import { PreReleaseForm } from "@/components/comms/pre-release-form";
+import { PRE_RELEASE_RECIPIENTS } from "@/core/mailers/recipients";
 import { requireAuth } from "@/lib/auth/dal";
 
 export default async function Page() {
@@ -14,7 +15,11 @@ export default async function Page() {
           recipients.
         </p>
       </div>
-      <PreReleaseForm mode="create" authorName={authorName} />
+      <PreReleaseForm
+        mode="create"
+        authorName={authorName}
+        standardRecipients={[...PRE_RELEASE_RECIPIENTS]}
+      />
     </div>
   );
 }

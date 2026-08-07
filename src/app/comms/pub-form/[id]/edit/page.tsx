@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getApproval } from "@/actions/approvals";
 import { PreReleaseForm } from "@/components/comms/pre-release-form";
+import { PRE_RELEASE_RECIPIENTS } from "@/core/mailers/recipients";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 import { NotFoundError } from "@/lib/errors";
 
@@ -45,6 +46,7 @@ export default async function Page({
         mode="edit"
         approval={approval}
         authorName={approval.author}
+        standardRecipients={[...PRE_RELEASE_RECIPIENTS]}
       />
     </div>
   );
