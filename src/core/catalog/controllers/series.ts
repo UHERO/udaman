@@ -1,5 +1,3 @@
-import "server-only";
-
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import GeographyCollection from "@catalog/collections/geography-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";

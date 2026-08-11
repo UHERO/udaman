@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
 import HhdbAccessoryStructureCollection from "../collections/hhdb-accessory-structure-collection";

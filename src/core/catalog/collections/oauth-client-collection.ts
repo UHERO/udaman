@@ -5,8 +5,6 @@
  * Generates new `client_id` values as 32 bytes of randomness in base64url.
  */
 
-import "server-only";
-
 import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { randomBase64Url } from "@/lib/oauth/pkce";
 

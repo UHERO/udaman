@@ -1,5 +1,3 @@
-import "server-only";
-
 import { sendPreReleaseSubmitted } from "@/core/mailers/pre-release-mailer";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 import { createLogger } from "@/core/observability/logger";

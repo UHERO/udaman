@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
 import UniverseCollection from "../collections/universe-collection";

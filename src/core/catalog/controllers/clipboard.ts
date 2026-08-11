@@ -1,5 +1,3 @@
-import "server-only";
-
 import ClipboardCollection from "@catalog/collections/clipboard-collection";
 import type {
   ClipboardLoaderRow,

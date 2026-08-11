@@ -1,5 +1,3 @@
-import "server-only";
-
 /**
  * Hardcoded notification recipient lists.
  *

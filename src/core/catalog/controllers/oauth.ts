@@ -15,8 +15,6 @@
  * All failures throw a typed OAuthError so routes can render RFC-compliant JSON.
  */
 
-import "server-only";
-
 import { isEmailAllowed } from "@/lib/auth/auth-whitelist";
 
 import OAuthAccessTokenCollection from "../collections/oauth-access-token-collection";

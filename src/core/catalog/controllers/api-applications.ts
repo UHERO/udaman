@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
 import ApiApplicationCollection from "../collections/api-application-collection";

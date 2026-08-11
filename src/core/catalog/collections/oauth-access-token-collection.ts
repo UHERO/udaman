@@ -5,8 +5,6 @@
  * `revokeByUser(userId)` bulk-sets `revoked_at` for emergency lockout.
  */
 
-import "server-only";
-
 import { toHstSql } from "@catalog/utils/time";
 
 import { insertAndGetId, mysql } from "@/lib/mysql/db";

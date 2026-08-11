@@ -6,8 +6,6 @@
  * call won the race, `false` otherwise (prevents code replay).
  */
 
-import "server-only";
-
 import { toHstSql } from "@catalog/utils/time";
 
 import { insertAndGetId, mysql } from "@/lib/mysql/db";

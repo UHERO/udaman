@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
 import TimelineEventCollection from "../collections/timeline-event-collection";
