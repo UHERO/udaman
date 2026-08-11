@@ -5,25 +5,65 @@ export const APPROVAL_TYPES = ["pre_release"] as const;
 export type ApprovalType = (typeof APPROVAL_TYPES)[number];
 
 export const PUBLICATION_TYPES = [
-  "working_paper",
-  "policy_brief",
-  "blog_post",
-  "dataset",
+  "briefs",
+  "insights",
   "forecast",
-  "press_release",
+  "working_paper",
+  "publication",
+  "focus_video",
+  "report",
   "other",
 ] as const;
 export type PublicationType = (typeof PUBLICATION_TYPES)[number];
 
 export const PUBLICATION_TYPE_LABELS: Record<PublicationType, string> = {
+  briefs: "Briefs",
+  insights: "Insights",
+  forecast: "Forecast",
   working_paper: "Working paper",
+  publication: "Publication",
+  focus_video: "Focus video",
+  report: "Report",
+  other: "Other",
+};
+
+/**
+ * Types no longer offered in the picker.
+ *
+ * Submissions keep whatever value they were saved with, so the read-only views
+ * still need labels for these. Editing such a submission moves the old type
+ * into the "Other" free-text box (see the form).
+ */
+export const RETIRED_PUBLICATION_TYPE_LABELS: Record<string, string> = {
   policy_brief: "Policy brief",
   blog_post: "Blog post",
   dataset: "Dataset",
-  forecast: "Forecast",
   press_release: "Press release",
-  other: "Other",
 };
+
+export function isPublicationType(value: string): value is PublicationType {
+  return (PUBLICATION_TYPES as readonly string[]).includes(value);
+}
+
+/** Human label for a stored type, including retired and unrecognized values. */
+export function publicationTypeLabel(type: string): string {
+  return (
+    PUBLICATION_TYPE_LABELS[type as PublicationType] ??
+    RETIRED_PUBLICATION_TYPE_LABELS[type] ??
+    type
+  );
+}
+
+/** Label for display, with the submitter's own wording appended for "Other". */
+export function formatPublicationType(data: {
+  publicationType: string;
+  publicationTypeOther?: string | null;
+}): string {
+  const label = publicationTypeLabel(data.publicationType);
+  return data.publicationType === "other" && data.publicationTypeOther
+    ? `${label} — ${data.publicationTypeOther}`
+    : label;
+}
 
 /**
  * Body of the UHERO Pre-Release Form, stored in `approvals.form_data`.
@@ -63,8 +103,18 @@ export type PreReleaseFormData = {
   mediaContactEmail: string;
   mediaContactPhone: string;
 
-  /** Extra addresses the submitter asked us to notify, beyond the standard list. */
-  additionalRecipients: string[];
+  /**
+   * Everyone the submitter chose to notify. Seeded from PRE_RELEASE_RECIPIENTS
+   * on a new form, then freely added to or removed from before submitting.
+   */
+  recipients: string[];
+  /**
+   * Extra addresses on top of a then-fixed standard list.
+   *
+   * @deprecated Superseded by `recipients`, which carries the whole list. Kept
+   * so submissions saved before the list became editable still read back.
+   */
+  additionalRecipients?: string[];
   /** Who we actually emailed, resolved at submit time. Audit trail. */
   notifiedRecipients: string[];
 };

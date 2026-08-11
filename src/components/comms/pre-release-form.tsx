@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import type {
@@ -7,10 +8,13 @@ import type {
   PreReleaseFormData,
 } from "@catalog/models/approval";
 import {
+  isPublicationType,
   PUBLICATION_TYPE_LABELS,
   PUBLICATION_TYPES,
+  publicationTypeLabel,
 } from "@catalog/models/approval";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -38,15 +42,26 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-/** Split a comma/semicolon/newline-separated address list into trimmed entries. */
+/** Split a comma/semicolon/whitespace-separated address list into trimmed entries. */
 function parseRecipients(raw: string): string[] {
   return raw
-    .split(/[,;\n]/)
+    .split(/[,;\s]+/)
     .map((s) => s.trim())
     .filter(Boolean);
 }
 
+function isEmail(address: string): boolean {
+  return z.string().email().safeParse(address).success;
+}
+
 const CERT_MESSAGE = "All four certifications must be confirmed to submit";
+
+/**
+ * Textareas open one row tall and grow with what's typed — most answers here
+ * are a line or two, and a column of tall empty boxes buries the form. `min-h-9`
+ * matches the Input height and overrides the component's own `min-h-16`.
+ */
+const TEXTAREA_CLASS = "field-sizing-content min-h-9 resize-y";
 
 const formSchema = z
   .object({
@@ -84,7 +99,7 @@ const formSchema = z
     mediaContactEmail: z.string(),
     mediaContactPhone: z.string(),
 
-    additionalRecipients: z.string(),
+    recipients: z.array(z.string()),
   })
   .superRefine((v, ctx) => {
     if (v.publicationType === "other" && !v.publicationTypeOther.trim()) {
@@ -125,13 +140,19 @@ const formSchema = z
       }
     }
 
-    const bad = parseRecipients(v.additionalRecipients).filter(
-      (a) => !z.string().email().safeParse(a).success,
-    );
+    if (!v.recipients.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["recipients"],
+        message: "Notify at least one recipient",
+      });
+    }
+
+    const bad = v.recipients.filter((a) => !isEmail(a));
     if (bad.length) {
       ctx.addIssue({
         code: "custom",
-        path: ["additionalRecipients"],
+        path: ["recipients"],
         message: `Not valid email addresses: ${bad.join(", ")}`,
       });
     }
@@ -139,7 +160,7 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>;
 
-const EMPTY: FormValues = {
+const EMPTY: Omit<FormValues, "recipients"> = {
   name: "",
   publicationType: "working_paper",
   publicationTypeOther: "",
@@ -160,15 +181,42 @@ const EMPTY: FormValues = {
   mediaContactName: "",
   mediaContactEmail: "",
   mediaContactPhone: "",
-  additionalRecipients: "",
 };
 
-function toFormValues(approval: ApprovalJSON): FormValues {
+/**
+ * A submission saved under a type we no longer offer can't be represented in
+ * the picker, and leaving it selected would fail enum validation on save. Move
+ * it into "Other" so its meaning survives the edit.
+ */
+function toFormPublicationType(d: PreReleaseFormData): {
+  publicationType: FormValues["publicationType"];
+  publicationTypeOther: string;
+} {
+  const stored = d.publicationType;
+  if (!stored) {
+    return { publicationType: "working_paper", publicationTypeOther: "" };
+  }
+  if (isPublicationType(stored)) {
+    return {
+      publicationType: stored,
+      publicationTypeOther: d.publicationTypeOther ?? "",
+    };
+  }
+  return {
+    publicationType: "other",
+    publicationTypeOther:
+      d.publicationTypeOther || publicationTypeLabel(stored),
+  };
+}
+
+function toFormValues(
+  approval: ApprovalJSON,
+  standardRecipients: string[],
+): FormValues {
   const d = approval.formData;
   return {
     name: approval.name,
-    publicationType: d.publicationType ?? "working_paper",
-    publicationTypeOther: d.publicationTypeOther ?? "",
+    ...toFormPublicationType(d),
     contributors: d.contributors ?? "",
     targetReleaseDate: approval.targetReleaseDate ?? "",
     documentUrl: d.documentUrl ?? "",
@@ -186,7 +234,11 @@ function toFormValues(approval: ApprovalJSON): FormValues {
     mediaContactName: d.mediaContactName ?? "",
     mediaContactEmail: d.mediaContactEmail ?? "",
     mediaContactPhone: d.mediaContactPhone ?? "",
-    additionalRecipients: (d.additionalRecipients ?? []).join(", "),
+    // Submissions predating the editable list stored only the extras, with the
+    // standard list implied — same fallback the mailer uses.
+    recipients: d.recipients ?? [
+      ...new Set([...standardRecipients, ...(d.additionalRecipients ?? [])]),
+    ],
   };
 }
 
@@ -222,8 +274,8 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4">
-      <div className="space-y-1">
+    <section className="space-y-2">
+      <div className="space-y-0.5">
         <h2 className="text-lg font-semibold">{title}</h2>
         {description ? (
           <p className="text-muted-foreground text-sm">{description}</p>
@@ -231,6 +283,132 @@ function FormSection({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * Editable notification list.
+ *
+ * Seeded with the standard recipients, but every entry is removable — the list
+ * that survives here is exactly who gets mailed on submission.
+ */
+function RecipientEditor({
+  value,
+  onChange,
+  standardRecipients,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+  standardRecipients: string[];
+}) {
+  const [draft, setDraft] = useState("");
+  const [draftError, setDraftError] = useState<string | null>(null);
+
+  const missingStandard = standardRecipients.filter(
+    (a) => !value.some((v) => v.toLowerCase() === a.toLowerCase()),
+  );
+
+  function addDraft() {
+    const entries = parseRecipients(draft);
+    if (!entries.length) {
+      setDraftError(null);
+      return;
+    }
+
+    const bad = entries.filter((a) => !isEmail(a));
+    if (bad.length) {
+      setDraftError(`Not valid email addresses: ${bad.join(", ")}`);
+      return;
+    }
+
+    // Adding someone already on the list is a no-op, not an error.
+    const existing = new Set(value.map((a) => a.toLowerCase()));
+    const fresh = entries.filter((a) => !existing.has(a.toLowerCase()));
+
+    onChange([...value, ...fresh]);
+    setDraft("");
+    setDraftError(null);
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {/* Add controls stack in their own column so the list beside them can
+          grow without pushing the input down the page. */}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Input
+            value={draft}
+            placeholder="someone@hawaii.edu"
+            aria-label="Add a recipient"
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (draftError) setDraftError(null);
+            }}
+            // Enter would otherwise submit the whole form.
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addDraft();
+              }
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0 cursor-pointer"
+            onClick={addDraft}
+          >
+            <Plus className="size-4" />
+            Add
+          </Button>
+        </div>
+
+        {draftError ? (
+          <p className="text-destructive text-sm">{draftError}</p>
+        ) : null}
+
+        {missingStandard.length ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground h-auto cursor-pointer px-0 py-0"
+            onClick={() => onChange([...value, ...missingStandard])}
+          >
+            <RotateCcw className="size-3" />
+            Restore {missingStandard.length} standard recipient
+            {missingStandard.length === 1 ? "" : "s"}
+          </Button>
+        ) : null}
+      </div>
+
+      {value.length ? (
+        <ul className="divide-y self-start rounded-md border">
+          {value.map((address) => (
+            <li
+              key={address}
+              className="flex items-center justify-between gap-2 py-1 pr-1 pl-3 text-sm"
+            >
+              <span className="truncate">{address}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground size-7 cursor-pointer"
+                aria-label={`Remove ${address}`}
+                onClick={() => onChange(value.filter((a) => a !== address))}
+              >
+                <X className="size-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted-foreground self-start rounded-md border border-dashed p-3 text-sm">
+          No recipients — nobody will be notified.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -245,9 +423,9 @@ export function PreReleaseForm({
   /** Signed-in user — always the lead author, shown read-only in section D. */
   authorName: string;
   /**
-   * The fixed notification list, passed down from the server page so the
+   * The default notification list, passed down from the server page so the
    * mailer module stays server-only rather than being pulled into the
-   * client bundle.
+   * client bundle. Seeds the editable list; not a floor.
    */
   standardRecipients: string[];
 }) {
@@ -260,12 +438,15 @@ export function PreReleaseForm({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: approval ? toFormValues(approval) : EMPTY,
+    defaultValues: approval
+      ? toFormValues(approval, standardRecipients)
+      : { ...EMPTY, recipients: standardRecipients },
   });
 
   const errors = form.formState.errors;
   const publicationType = form.watch("publicationType");
   const availableOnRelease = form.watch("availableOnRelease");
+  const recipients = form.watch("recipients");
 
   async function onSubmit(values: FormValues) {
     const formData: PreReleaseFormData = {
@@ -287,7 +468,7 @@ export function PreReleaseForm({
       mediaContactName: values.mediaContactName,
       mediaContactEmail: values.mediaContactEmail,
       mediaContactPhone: values.mediaContactPhone,
-      additionalRecipients: parseRecipients(values.additionalRecipients),
+      recipients: values.recipients,
       // Set server-side at submit time; ignored on the way in.
       notifiedRecipients: [],
     };
@@ -314,9 +495,9 @@ export function PreReleaseForm({
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <FormSection title="A. Publication details">
-        <FieldGroup className="gap-4">
+        <FieldGroup className="gap-3">
           <Field data-invalid={!!errors.name}>
             <FieldLabel htmlFor="name">Title</FieldLabel>
             <Input id="name" {...form.register("name")} />
@@ -325,7 +506,7 @@ export function PreReleaseForm({
 
           <div
             className={cn(
-              "grid gap-4",
+              "grid gap-3",
               publicationType === "other" && "sm:grid-cols-2",
             )}
           >
@@ -370,28 +551,15 @@ export function PreReleaseForm({
             )}
           </div>
 
-          <Field>
-            <FieldLabel htmlFor="leadAuthor">Lead author</FieldLabel>
-            <Input id="leadAuthor" value={authorName} disabled readOnly />
-            <FieldDescription>
-              Taken from your account. The lead author submits this form.
-            </FieldDescription>
-          </Field>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field>
+              <FieldLabel htmlFor="leadAuthor">Lead author</FieldLabel>
+              <Input id="leadAuthor" value={authorName} disabled readOnly />
+              <FieldDescription>
+                Taken from your account. The lead author submits this form.
+              </FieldDescription>
+            </Field>
 
-          <Field data-invalid={!!errors.contributors}>
-            <FieldLabel htmlFor="contributors">
-              All authors and substantial contributors
-            </FieldLabel>
-            <Textarea
-              id="contributors"
-              rows={4}
-              placeholder="Names and roles; note any non-UHERO affiliations"
-              {...form.register("contributors")}
-            />
-            <FieldError errors={[errors.contributors]} />
-          </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
             <Field data-invalid={!!errors.targetReleaseDate}>
               <FieldLabel htmlFor="targetReleaseDate">
                 Target release date
@@ -417,20 +585,35 @@ export function PreReleaseForm({
               <FieldError errors={[errors.documentUrl]} />
             </Field>
           </div>
+
+          <Field data-invalid={!!errors.contributors}>
+            <FieldLabel htmlFor="contributors">
+              All authors and substantial contributors
+            </FieldLabel>
+            <Textarea
+              id="contributors"
+              rows={1}
+              className={TEXTAREA_CLASS}
+              placeholder="Names and roles; note any non-UHERO affiliations"
+              {...form.register("contributors")}
+            />
+            <FieldError errors={[errors.contributors]} />
+          </Field>
         </FieldGroup>
       </FormSection>
 
       <Separator />
 
       <FormSection title="B. Disclosures">
-        <FieldGroup className="gap-4">
+        <FieldGroup className="gap-3">
           <Field data-invalid={!!errors.conflictsOfInterest}>
             <FieldLabel htmlFor="conflictsOfInterest">
               Conflicts of interest
             </FieldLabel>
             <Textarea
               id="conflictsOfInterest"
-              rows={3}
+              rows={1}
+              className={TEXTAREA_CLASS}
               placeholder='Financial, personal, or professional interests that bear on the work. Enter "none" if applicable.'
               {...form.register("conflictsOfInterest")}
             />
@@ -441,7 +624,8 @@ export function PreReleaseForm({
             <FieldLabel htmlFor="fundingSources">Funding source(s)</FieldLabel>
             <Textarea
               id="fundingSources"
-              rows={3}
+              rows={1}
+              className={TEXTAREA_CLASS}
               {...form.register("fundingSources")}
             />
             <FieldError errors={[errors.fundingSources]} />
@@ -453,7 +637,8 @@ export function PreReleaseForm({
             </FieldLabel>
             <Textarea
               id="dataRestrictions"
-              rows={3}
+              rows={1}
+              className={TEXTAREA_CLASS}
               placeholder="Anything affecting interpretation or release"
               {...form.register("dataRestrictions")}
             />
@@ -467,7 +652,7 @@ export function PreReleaseForm({
               onValueChange={(v) =>
                 form.setValue("aiUsage", v as FormValues["aiUsage"])
               }
-              className="gap-2"
+              className="gap-1"
             >
               <Field orientation="horizontal">
                 <RadioGroupItem value="none" id="ai-none" />
@@ -491,12 +676,17 @@ export function PreReleaseForm({
       <Separator />
 
       <FormSection title="C. Development and prior review">
-        <FieldGroup className="gap-4">
+        <FieldGroup className="gap-3">
           <Field data-invalid={!!errors.reviewers}>
             <FieldLabel htmlFor="reviewers">
               Who commented on, reviewed, or contributed during development
             </FieldLabel>
-            <Textarea id="reviewers" rows={3} {...form.register("reviewers")} />
+            <Textarea
+              id="reviewers"
+              rows={1}
+              className={TEXTAREA_CLASS}
+              {...form.register("reviewers")}
+            />
             <FieldError errors={[errors.reviewers]} />
           </Field>
 
@@ -506,7 +696,8 @@ export function PreReleaseForm({
             </FieldLabel>
             <Textarea
               id="stakeholderInput"
-              rows={3}
+              rows={1}
+              className={TEXTAREA_CLASS}
               {...form.register("stakeholderInput")}
             />
             <FieldError errors={[errors.stakeholderInput]} />
@@ -520,7 +711,8 @@ export function PreReleaseForm({
         title="D. Lead author certification"
         description="On behalf of all authors. Confirm each — all four are required."
       >
-        <FieldGroup className="gap-4">
+        {/* gap-1: these are one-line checkbox rows, not labelled inputs. */}
+        <FieldGroup className="gap-1">
           {/*
             orientation="horizontal" is required here, not cosmetic: the
             default vertical variant applies `[&>*]:w-full` to every direct
@@ -551,7 +743,7 @@ export function PreReleaseForm({
             </Field>
           ))}
 
-          <FieldDescription>
+          <FieldDescription className="mt-2">
             Certified by <strong>{authorName}</strong>
             {approval?.createdAt
               ? ` — submitted ${new Date(approval.createdAt).toLocaleDateString()}`
@@ -564,7 +756,7 @@ export function PreReleaseForm({
       <Separator />
 
       <FormSection title="E. Availability and dissemination">
-        <FieldGroup className="gap-4">
+        <FieldGroup className="gap-3">
           <Field>
             <FieldLabel>
               Lead author available on release day for media inquiries
@@ -594,7 +786,7 @@ export function PreReleaseForm({
             </RadioGroup>
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Field data-invalid={!!errors.mediaContactName}>
               <FieldLabel htmlFor="mediaContactName">
                 {availableOnRelease === "yes"
@@ -634,34 +826,22 @@ export function PreReleaseForm({
 
       <FormSection
         title="Notification"
-        description="The standard UHERO recipients are always notified on submission."
+        description="Everyone on this list is emailed the submitted form. It starts with the standard UHERO recipients — add or remove anyone before submitting."
       >
-        <FieldGroup className="gap-4">
-          <Field data-invalid={!!errors.additionalRecipients}>
-            <FieldLabel htmlFor="additionalRecipients">
-              Additional recipients
-            </FieldLabel>
-            <Input
-              id="additionalRecipients"
-              placeholder="someone@hawaii.edu, another@hawaii.edu"
-              {...form.register("additionalRecipients")}
+        <FieldGroup className="gap-3">
+          <Field data-invalid={!!errors.recipients}>
+            <FieldLabel>Recipients</FieldLabel>
+            <RecipientEditor
+              value={recipients}
+              standardRecipients={standardRecipients}
+              onChange={(next) =>
+                form.setValue("recipients", next, {
+                  shouldValidate: form.formState.isSubmitted,
+                })
+              }
             />
-            <FieldDescription>
-              Comma separated. CC&apos;d on the submission email.
-            </FieldDescription>
-            <FieldError errors={[errors.additionalRecipients]} />
+            <FieldError errors={[errors.recipients]} />
           </Field>
-
-          <details className="text-sm">
-            <summary className="text-muted-foreground hover:text-foreground w-fit cursor-pointer">
-              Click to see recipients
-            </summary>
-            <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
-              {standardRecipients.map((address) => (
-                <li key={address}>{address}</li>
-              ))}
-            </ul>
-          </details>
         </FieldGroup>
       </FormSection>
 

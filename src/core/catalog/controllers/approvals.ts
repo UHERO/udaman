@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sendPreReleaseSubmitted } from "@/core/mailers/pre-release-mailer";
-import { PRE_RELEASE_RECIPIENTS } from "@/core/mailers/recipients";
+import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 import { createLogger } from "@/core/observability/logger";
 import { AuthorizationError } from "@/lib/errors";
 
@@ -70,10 +70,7 @@ export async function createApproval({
   log.info({ name: payload.name }, "creating approval");
 
   // Record who we're about to notify, so the saved form is its own audit trail.
-  const notifiedRecipients = [
-    ...PRE_RELEASE_RECIPIENTS,
-    ...(payload.formData.additionalRecipients ?? []),
-  ];
+  const notifiedRecipients = resolvePreReleaseRecipients(payload.formData);
   const data = await ApprovalCollection.create({
     ...payload,
     formData: { ...payload.formData, notifiedRecipients },
@@ -89,7 +86,7 @@ export async function createApproval({
     targetReleaseDate: data.toJSON().targetReleaseDate,
     submittedAt: data.createdAt ?? new Date(),
     formData: data.formData,
-    additionalRecipients: data.formData.additionalRecipients,
+    recipients: notifiedRecipients,
   }).catch((err) => {
     log.error(
       { err: err instanceof Error ? err.message : String(err), id: data.id },

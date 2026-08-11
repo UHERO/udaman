@@ -15,10 +15,43 @@ export const DBEDT_UPLOAD_RECIPIENTS: readonly string[] = [
 ];
 
 /**
- * Standard recipients for pre-release form submissions.
+ * Default recipients for pre-release form submissions.
  *
- * TODO: replace this placeholder with the real comms/leadership list.
- * Submitters can add further addresses per-submission on the form itself,
- * which are CC'd on top of this list.
+ * These seed the notification list on the form. Submitters can add addresses
+ * or remove any of these per-submission, so this is a default rather than a
+ * floor — the list actually mailed is stored on the submission itself.
  */
-export const PRE_RELEASE_RECIPIENTS: readonly string[] = ["wood2@hawaii.edu"];
+export const PRE_RELEASE_RECIPIENTS: readonly string[] = [
+  "wood2@hawaii.edu",
+  "kburnett@hawaii.edu",
+  "cawada@hawaii.edu",
+  "bondsmit@hawaii.edu",
+  "cdmoore@hawaii.edu",
+  "kracoma2@hawaii.edu",
+  "vward@hawaii.edu",
+];
+
+/**
+ * The address list to mail for a pre-release submission.
+ *
+ * Current forms carry the whole list in `recipients`. Submissions saved before
+ * the list became editable only stored the extras, with PRE_RELEASE_RECIPIENTS
+ * implied — hence the fallback.
+ */
+export function resolvePreReleaseRecipients(formData: {
+  recipients?: string[];
+  additionalRecipients?: string[];
+}): string[] {
+  const clean = (list: readonly string[]) =>
+    list.map((a) => a.trim()).filter(Boolean);
+
+  if (Array.isArray(formData.recipients)) {
+    return [...new Set(clean(formData.recipients))];
+  }
+  return [
+    ...new Set([
+      ...PRE_RELEASE_RECIPIENTS,
+      ...clean(formData.additionalRecipients ?? []),
+    ]),
+  ];
+}

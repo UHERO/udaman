@@ -3,7 +3,10 @@ import "server-only";
 import { createLogger } from "@/core/observability/logger";
 
 import UserCollection from "../collections/user-collection";
-import type { CreateUserPayload } from "../collections/user-collection";
+import type {
+  CreateUserPayload,
+  UpdateUserPayload,
+} from "../collections/user-collection";
 
 const log = createLogger("catalog.users");
 
@@ -31,6 +34,27 @@ export async function createUser(payload: CreateUserPayload) {
   const data = await UserCollection.create(payload);
   log.info({ id: data.id, email: data.email }, "user created");
   return { data, message: `User ${data.email} created` };
+}
+
+export async function updateUser({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateUserPayload;
+}) {
+  // Never log the password itself — only whether one was supplied.
+  log.info(
+    {
+      id,
+      fields: Object.keys(payload),
+      passwordChanged: payload.password !== undefined,
+    },
+    "updating user",
+  );
+  const data = await UserCollection.update(id, payload);
+  log.info({ id: data.id }, "user updated");
+  return { data, message: `User ${data.email} updated` };
 }
 
 export async function updateUserRole({

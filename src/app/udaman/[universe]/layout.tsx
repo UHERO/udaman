@@ -6,7 +6,6 @@ import type { Universe } from "@catalog/types/shared";
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { NavSearchInput } from "@/components/nav-search";
-import { PageViewLogger } from "@/components/page-view-logger";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -78,7 +77,6 @@ export default async function UniverseLayout({
         </header>
         {children}
       </SidebarInset>
-      <PageViewLogger userId={parseInt(user.id) || 0} />
     </SidebarProvider>
   );
 }

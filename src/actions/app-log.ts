@@ -6,14 +6,43 @@ import {
   type AppLogRow,
 } from "@catalog/collections/app-log-collection";
 
-import { requireAuth } from "@/lib/auth/dal";
+import { getSession, requireAuth } from "@/lib/auth/dal";
 import { AuthorizationError } from "@/lib/errors";
 
-/** Log a page view from the client. Fire-and-forget. */
-export async function logPageViewAction(pathname: string, userId?: number) {
-  AppLogCollection.log({
+/**
+ * Normalize a browser pathname into the route we want to record.
+ *
+ * On the subdomain deployments the proxy rewrites `/uhero/series` to the
+ * internal `/udaman/uhero/series`, so the browser never shows the `/udaman`
+ * prefix — but hitting the app directly (localhost, or udaman.…/udaman/…)
+ * does. Strip it so the same page produces one name in both environments.
+ * Trailing slashes are dropped for the same reason.
+ */
+function normalizePathname(pathname: string): string {
+  let path = pathname.split("?")[0].split("#")[0];
+  if (path.startsWith("/udaman/")) path = path.slice("/udaman".length);
+  else if (path === "/udaman") path = "/";
+  if (path.length > 1) path = path.replace(/\/+$/, "");
+  return path || "/";
+}
+
+/**
+ * Log a page view from the client. Fire-and-forget.
+ *
+ * The user is resolved from the session on the server — never trusted from the
+ * caller — and anonymous views (login page, unauthenticated redirects) are
+ * skipped so the table stays a record of who did what.
+ */
+export async function logPageViewAction(pathname: string) {
+  if (!pathname || !pathname.startsWith("/")) return;
+
+  const session = await getSession();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  if (!userId || Number.isNaN(userId)) return;
+
+  await AppLogCollection.log({
     category: "page_view",
-    name: pathname,
+    name: normalizePathname(pathname),
     userId,
   });
 }

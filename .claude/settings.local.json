@@ -7,7 +7,10 @@
       "Bash(bun test *)",
       "Bash(bunx prettier *)",
       "Bash(bunx tsc *)",
-      "Bash(bunx eslint *)"
+      "Bash(bunx eslint *)",
+      "Bash(npx prettier *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)"
     ]
   }
 }

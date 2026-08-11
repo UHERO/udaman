@@ -1,12 +1,14 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import UserCollection from "@catalog/collections/user-collection";
 import { mysql } from "@database/mysql";
 import { compare } from "bcryptjs";
 
 import { DEVISE_PEPPER } from "@/lib/auth/pepper";
 
 import { isEmailAllowed } from "./auth-whitelist";
+import { resolveClientIp } from "./client-ip";
 import { MySqlAdapter } from "./mysql-adapter";
 
 const adapter = MySqlAdapter();
@@ -159,6 +161,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (url.startsWith(baseUrl)) return url;
       return baseUrl;
+    },
+  },
+  events: {
+    /**
+     * Devise-style sign-in tracking. Fires once per actual sign-in — both
+     * Credentials and Google — and never on JWT refresh, so `current_sign_in_at`
+     * marks when the session began, not when the user was last active. (For
+     * "last active", read the page_view rows in app_logs.)
+     */
+    async signIn({ user }) {
+      const id = Number(user?.id);
+      if (!id || Number.isNaN(id)) return;
+      await UserCollection.recordSignIn(id, await resolveClientIp());
     },
   },
 });

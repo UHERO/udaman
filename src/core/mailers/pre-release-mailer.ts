@@ -1,20 +1,16 @@
-import type {
-  PreReleaseFormData,
-  PublicationType,
-} from "@catalog/models/approval";
-import { PUBLICATION_TYPE_LABELS } from "@catalog/models/approval";
+import type { PreReleaseFormData } from "@catalog/models/approval";
+import { formatPublicationType } from "@catalog/models/approval";
 
 import { createLogger } from "@/core/observability/logger";
 
 import { Mailer } from "./mailer";
-import { PRE_RELEASE_RECIPIENTS } from "./recipients";
+import { resolvePreReleaseRecipients } from "./recipients";
 
 /**
  * Notification mailer for UHERO Pre-Release Form submissions.
  *
- * Submitting the form is the approval, so there's a single notification: the
- * standard recipient list is in To:, and any addresses the submitter added on
- * the form are CC'd.
+ * Submitting the form is the approval, so there's a single notification, sent
+ * to whichever addresses the submitter left on the form's recipient list.
  */
 
 const log = createLogger("mailer.pre-release");
@@ -76,15 +72,6 @@ function checkRow(label: string, checked: boolean): string {
   </tr>`;
 }
 
-function publicationTypeLabel(data: PreReleaseFormData): string {
-  const label =
-    PUBLICATION_TYPE_LABELS[data.publicationType as PublicationType] ??
-    data.publicationType;
-  return data.publicationType === "other" && data.publicationTypeOther
-    ? `${label} — ${data.publicationTypeOther}`
-    : label;
-}
-
 export type PreReleaseSubmittedInput = {
   approvalId: number;
   universe: string;
@@ -95,8 +82,8 @@ export type PreReleaseSubmittedInput = {
   targetReleaseDate: string | null;
   submittedAt: Date;
   formData: PreReleaseFormData;
-  /** Extra addresses to CC beyond the standard list */
-  additionalRecipients?: string[];
+  /** Addresses to notify. Falls back to the list stored on the form. */
+  recipients?: string[];
 };
 
 export async function sendPreReleaseSubmitted(
@@ -118,7 +105,7 @@ export async function sendPreReleaseSubmitted(
     ${section(
       "A. Publication details",
       row("Title", input.name) +
-        row("Publication type", publicationTypeLabel(d)) +
+        row("Publication type", formatPublicationType(d)) +
         row("Lead author", input.author) +
         row("Contributors", d.contributors) +
         row("Target release date", input.targetReleaseDate) +
@@ -183,16 +170,23 @@ export async function sendPreReleaseSubmitted(
     `,
   );
 
-  const cc = (input.additionalRecipients ?? []).filter(Boolean);
+  const to = (input.recipients ?? resolvePreReleaseRecipients(d)).filter(
+    Boolean,
+  );
+
+  // The submitter can clear the whole list, so there is nowhere to send. Say so
+  // rather than handing the transport an empty To:.
+  if (!to.length) {
+    log.warn(
+      { approvalId: input.approvalId },
+      "Pre-release submission has no recipients; skipping email",
+    );
+    return;
+  }
 
   log.info(
-    { approvalId: input.approvalId, ccCount: cc.length },
+    { approvalId: input.approvalId, recipientCount: to.length },
     "Sending pre-release submitted email",
   );
-  await Mailer.email({
-    to: [...PRE_RELEASE_RECIPIENTS],
-    cc: cc.length ? cc : undefined,
-    subject,
-    html,
-  });
+  await Mailer.email({ to, subject, html });
 }

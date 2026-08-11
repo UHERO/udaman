@@ -1,5 +1,5 @@
-import type { ApprovalJSON, PublicationType } from "@catalog/models/approval";
-import { PUBLICATION_TYPE_LABELS } from "@catalog/models/approval";
+import type { ApprovalJSON } from "@catalog/models/approval";
+import { formatPublicationType } from "@catalog/models/approval";
 import { Check, Square } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
@@ -85,20 +85,12 @@ function Section({
 export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
   const d = approval.formData;
 
-  const publicationType =
-    PUBLICATION_TYPE_LABELS[d.publicationType as PublicationType] ??
-    d.publicationType;
-  const publicationTypeLabel =
-    d.publicationType === "other" && d.publicationTypeOther
-      ? `${publicationType} — ${d.publicationTypeOther}`
-      : publicationType;
-
   return (
     <div className="space-y-6">
       <Section title="A. Publication details">
         <dl className="divide-y">
           <Row label="Title">{approval.name}</Row>
-          <Row label="Publication type">{publicationTypeLabel}</Row>
+          <Row label="Publication type">{formatPublicationType(d)}</Row>
           <Row label="Lead author">{approval.author}</Row>
           <Row label="All authors and contributors">{d.contributors}</Row>
           <Row label="Target release date">
