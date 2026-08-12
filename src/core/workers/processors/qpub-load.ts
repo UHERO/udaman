@@ -9,7 +9,7 @@ import {
 import { toHstSql } from "@catalog/utils/time";
 
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
-import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
+import { condoUnitRows, parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { parseDollarValue } from "@/core/crawlers/qpub/parse-utils";
 import { insertAndGetId, rawQuery } from "@/lib/mysql/hhdb";
 
@@ -981,10 +981,7 @@ export async function loadCondoProject(
   if (data.status !== "condo_project") return;
 
   const parcel = data.parcel_information as Row | undefined;
-  const unitInfo = data.condominium_apartment_unit_information as
-    | Row
-    | undefined;
-  const units = (unitInfo?.table_data ?? []) as Row[];
+  const units = condoUnitRows(data) as Row[];
 
   // Upsert condominium_projects — only set fields from QPub, don't overwrite DCCA fields
   const existing = await rawQuery<{ tmk: string }>(

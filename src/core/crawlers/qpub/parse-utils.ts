@@ -8,6 +8,41 @@
 import type { HTMLElement } from "node-html-parser";
 
 /**
+ * Bytes from the END of a saved file needed to answer hasNoParcelRecord().
+ *
+ * qPublic prints the "no data available" notice just above the contact
+ * footer — measured 8.8–12.8 KB from EOF on Oahu, Hawaii and Kauai pages
+ * ranging from 57 KB to 178 KB. Reading from the end is what makes the check
+ * affordable over the NAS; the marker's offset from the *start* tracks file
+ * size and would need the whole document.
+ */
+export const NO_RECORD_TAIL_BYTES = 32 * 1024;
+
+/**
+ * True when qPublic served a page for a TMK it has no record of.
+ *
+ * The tell is not a "not found" message — the page renders as a normal report,
+ * keeps the "qPublic … Report:" title and even the words "Parcel Number", so
+ * every cheaper signal calls it a success. What distinguishes it is the footer
+ * notice listing the modules with no data: on a real profile that list holds
+ * only optional sections, and on a phantom parcel it leads with the core
+ * "Parcel Information".
+ *
+ * Verified against every fixture (none list Parcel Information) and against
+ * live pages on Oahu, Hawaii and Kauai. Size is not a usable proxy: Hawaii
+ * serves these at 170–190 KB, larger than plenty of real profiles.
+ */
+export function hasNoParcelRecord(text: string): boolean {
+  const marker = text.lastIndexOf("No data available for the following modules");
+  if (marker === -1) return false;
+
+  // Bound the scan to the notice itself — "Parcel Information" appears
+  // elsewhere on the page as a section heading on real profiles.
+  const list = text.slice(marker, marker + 1_000);
+  return /Parcel Information/i.test(list);
+}
+
+/**
  * Cleans and normalizes text content
  */
 export function cleanText(text: string | undefined | null): string {

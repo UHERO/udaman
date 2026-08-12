@@ -82,13 +82,22 @@ CREATE TABLE properties (
     zip VARCHAR(10) COMMENT 'ZIP code from address list',
     latitude DECIMAL(10, 8) COMMENT 'Geographic latitude coordinate',
     longitude DECIMAL(11, 8) COMMENT 'Geographic longitude coordinate',
+    -- State parcel list reconciliation (see qpub parcel-list).
+    -- Declared here, not only in the ALTER migration: the rebuild pipeline
+    -- dumps this table over the remote one, so a column missing from this
+    -- definition is dropped on every sync. Values are mirrored from
+    -- scrape_status, which is the durable side.
+    in_parcel_list TINYINT(1) NULL DEFAULT NULL COMMENT '1 = present in the state parcel list, 0 = absent, NULL = never checked',
+    parcel_list_version VARCHAR(16) NULL COMMENT 'Vintage of the list that set in_parcel_list, e.g. 2026-8',
+    parcel_list_checked_at DATETIME NULL COMMENT 'When in_parcel_list was last evaluated',
     -- Metadata
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_island (island_code),
     INDEX idx_property_class (property_class(100)),
     INDEX idx_location (location_address(100)),
-    INDEX idx_zip (zip)
+    INDEX idx_zip (zip),
+    INDEX idx_in_parcel_list (in_parcel_list)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Primary property table - one record per TMK';
 
 -- ============================================================================

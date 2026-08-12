@@ -5,11 +5,12 @@ import path from "path";
 import type { Page } from "playwright-core";
 
 import { getHtmlPath, QPUB_CONFIG } from "./config";
+import { hasNoParcelRecord } from "./parse-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
 export type ScrapeResult = {
-  status: "success" | "no_data" | "captcha" | "blocked" | "error";
+  status: "success" | "no_data" | "no_record" | "captcha" | "blocked" | "error";
   tmk: string;
   htmlSaved: boolean;
   error?: string;
@@ -20,6 +21,12 @@ export type ScrapeResult = {
    * is fixed. Callers should stop rather than burn through claims.
    */
   storageFailure?: boolean;
+  /**
+   * Set only when the page is a condo master, so its unit roster can be
+   * queued. Withheld otherwise: this is a ~200 KB string and the vast
+   * majority of scrapes have nothing to discover from it.
+   */
+  condoMasterHtml?: string;
 };
 
 // ─── Storage failures ─────────────────────────────────────────────────
@@ -179,6 +186,20 @@ export async function checkStorageWritable(): Promise<{
   }
 }
 
+// ─── Condo master detection ──────────────────────────────────────────
+
+/**
+ * Cheap test for a condo master before paying for a full parse.
+ *
+ * Every county that publishes a unit roster renders it into a table whose id
+ * contains "gvwCondos". Checking the raw string first means only the ~2% of
+ * pages that are masters get parsed. Maui publishes no roster, so its masters
+ * correctly return false.
+ */
+export function looksLikeCondoMaster(html: string): boolean {
+  return html.includes("gvwCondos");
+}
+
 // ─── Saved-file classification ───────────────────────────────────────
 
 /**
@@ -189,6 +210,8 @@ export async function checkStorageWritable(): Promise<{
  */
 export type SavedFileVerdict =
   | "valid"
+  /** Fetched fine, but the county has no parcel at this TMK. */
+  | "no-record"
   | "cloudflare-challenge"
   | "cloudflare-block"
   | "captcha"
@@ -202,13 +225,17 @@ export const CLASSIFY_HEAD_BYTES = 32 * 1024;
 export const MIN_PROFILE_BYTES = 5_000;
 
 /**
- * Classify a saved HTML file from its opening bytes.
+ * Classify a saved HTML file from its two ends — never the ~200 KB between.
  *
- * Only the head is needed: a real qPublic profile announces itself in
- * `<title>qPublic - <County> - Report: <parcel></title>`, which lands within
- * the first ~6 KB of every known-good file (condo-project pages included).
- * That matters at ~600k files on a network share, where reading each 200 KB
- * file in full is the difference between minutes and hours.
+ * The head settles most of it: a real qPublic profile announces itself in
+ * `<title>qPublic - <County> - Report: <parcel></title>`, within the first
+ * ~6 KB of every known-good file (condo-project pages included). At ~600k
+ * files on a network share, that is the difference between minutes and hours.
+ *
+ * `tail` is optional and decides one thing the head cannot: whether a
+ * profile-looking page is actually a TMK the county has no parcel for. Omit it
+ * and such a page classifies as "valid" — the safe direction, since retiring a
+ * real parcel is the costlier mistake.
  *
  * Deliberately stricter than parse.ts's detectPageStatus, which only spots a
  * captcha via "recaptcha" + "we're sorry" and a shell via a length check — a
@@ -218,6 +245,7 @@ export const MIN_PROFILE_BYTES = 5_000;
 export function classifySavedHtml(
   head: string,
   sizeBytes: number,
+  tail?: string,
 ): SavedFileVerdict {
   if (sizeBytes < MIN_PROFILE_BYTES) return "shell";
 
@@ -233,7 +261,11 @@ export function classifySavedHtml(
 
   const titleMatch = head.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const title = titleMatch?.[1]?.trim() ?? "";
-  if (title.includes("qPublic") && title.includes("Report:")) return "valid";
+  if (title.includes("qPublic") && title.includes("Report:")) {
+    // A phantom parcel gets this far — same title, same shell. Only the
+    // footer notice separates it, which is why the tail is read at all.
+    return tail && hasNoParcelRecord(tail) ? "no-record" : "valid";
+  }
 
   if (
     title.includes("Just a moment") ||
@@ -310,7 +342,22 @@ export async function scrapeTmk(
       // Jitter after successful page load — simulates dwell time
       await randomDelay();
       await saveHtml(tmk, pageResult.html);
-      return { status: "success", tmk, htmlSaved: true };
+
+      // The fetch worked; the county simply has no parcel here. Saved anyway
+      // so the file stands as the record of that answer — deleting it would
+      // leave repair seeing a row with no file and re-queueing the TMK.
+      if (hasNoParcelRecord(pageResult.html)) {
+        return { status: "no_record", tmk, htmlSaved: true };
+      }
+
+      return {
+        status: "success",
+        tmk,
+        htmlSaved: true,
+        condoMasterHtml: looksLikeCondoMaster(pageResult.html)
+          ? pageResult.html
+          : undefined,
+      };
     }
 
     // Unknown / no data — still save what we got for debugging

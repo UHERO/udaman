@@ -12,7 +12,11 @@ import type { HTMLElement } from "node-html-parser";
 import { getIslandCode } from "./config";
 import { normalizeProperty } from "./normalize-property";
 import { SECTION_PARSERS } from "./parse-sections";
-import { cleanText, normalizeNumericValues } from "./parse-utils";
+import {
+  cleanText,
+  hasNoParcelRecord,
+  normalizeNumericValues,
+} from "./parse-utils";
 
 export interface ParsedProperty {
   tmk: string;
@@ -54,7 +58,11 @@ function detectPageStatus(html: string, root: HTMLElement): string {
   );
 
   if (hasParcelNumber) {
-    return "success";
+    // A page for a TMK the county has no record of still renders the report
+    // shell, title and the words "Parcel Number", so it reaches this point
+    // looking like a success. Extracting it would write an empty properties
+    // row over a real one.
+    return hasNoParcelRecord(html) ? "no_record" : "success";
   }
 
   return "unknown";
@@ -329,6 +337,40 @@ function getSectionTitle(section: HTMLElement): string | null {
 }
 
 /**
+ * Section keys that can hold a condo master's roster of units.
+ *
+ * The counties title the same table differently — Oahu and Hawaii use
+ * "Condominium/Apartment Unit Information", Kauai uses "CPR/Condo/Apt Unit
+ * Information" — and the title is what the section key is derived from. Code
+ * that only knew the first name silently found zero units on every Kauai
+ * master, despite the table being present and identically shaped.
+ *
+ * Maui publishes no unit roster on the master page at all, so no key here
+ * will match one.
+ */
+export const CONDO_UNIT_SECTIONS = [
+  "condominium_apartment_unit_information",
+  "cpr_condo_apt_unit_information",
+] as const;
+
+/** The unit rows from a parsed condo master, whichever section holds them. */
+export function condoUnitRows(
+  parsed: ParsedProperty,
+): Record<string, unknown>[] {
+  for (const key of CONDO_UNIT_SECTIONS) {
+    const section = parsed[key] as
+      | { table_data?: unknown[] }
+      | undefined
+      | null;
+    const rows = section?.table_data;
+    if (Array.isArray(rows) && rows.length > 0) {
+      return rows as Record<string, unknown>[];
+    }
+  }
+  return [];
+}
+
+/**
  * Main parsing function - extracts all data from the HTML
  */
 export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
@@ -425,9 +467,10 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
       }
     }
 
-    // Special handling for Condominium/Apartment Unit Information section
+    // Special handling for the condo master's unit roster — under either of
+    // the county-specific section titles.
     if (
-      sectionTitle === "condominium_apartment_unit_information" &&
+      (CONDO_UNIT_SECTIONS as readonly string[]).includes(sectionTitle) &&
       sectionData.table_data
     ) {
       (sectionData.table_data as Record<string, unknown>[]).forEach((row) => {

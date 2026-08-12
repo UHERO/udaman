@@ -2,6 +2,8 @@ import { createLogger } from "@/core/observability/logger";
 
 import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
+import { backfillCondoUnits } from "./processors/qpub-enqueue";
+import { runParcelList } from "./processors/qpub-parcel-list";
 import { runRepair } from "./processors/qpub-repair";
 import {
   rebuildAll,
@@ -30,6 +32,13 @@ Commands:
                                 Dry run unless --execute. Defaults to the
                                 newest period directory on disk.
 
+  parcel-list                   Flag TMKs by whether the State's statewide
+                                parcel list still contains them. Deletes
+                                nothing. Dry run unless --execute.
+
+  condo-units                   Queue condo units listed on masters already
+                                scraped to the NAS. Dry run unless --execute.
+
   parse-extract                 Phase 1+2: Parse HTML→JSON, extract JSON→JSONL table files
   load                          Phase 3: Load JSONL files into local DB via mariadb CLI
   load-table <table>            Phase 3: Load a single table into local DB
@@ -45,6 +54,13 @@ Repair options:
   --execute                     Apply changes (repair is a dry run without it)
   --keep-bad-files              Don't delete captcha/shell/blocked files
   --reset-missing               Also clear rows with no file in the period
+
+Parcel-list options:
+  --execute                     Apply changes (dry run without it)
+  --file <csv>                  Statewide parcel CSV (default: newest on the NAS)
+  --properties-only             Skip the CSV; re-mirror scrape_status flags onto
+                                properties (run after a rebuild recreates it)
+  --add-new                     Queue parcels the State lists that we don't have
 
 Valid tables:
   ${tables}
@@ -64,6 +80,9 @@ function parseArgs() {
   let execute = false;
   let keepBadFiles = false;
   let resetMissing = false;
+  let file: string | undefined;
+  let propertiesOnly = false;
+  let addNew = false;
 
   const tableCommands = ["rebuild-table", "load-table", "sync-table"];
 
@@ -80,6 +99,12 @@ function parseArgs() {
       keepBadFiles = true;
     } else if (args[i] === "--reset-missing") {
       resetMissing = true;
+    } else if (args[i] === "--file" && args[i + 1]) {
+      file = args[++i];
+    } else if (args[i] === "--properties-only") {
+      propertiesOnly = true;
+    } else if (args[i] === "--add-new") {
+      addNew = true;
     } else if (!table && tableCommands.includes(command)) {
       table = args[i];
     }
@@ -94,6 +119,9 @@ function parseArgs() {
     execute,
     keepBadFiles,
     resetMissing,
+    file,
+    propertiesOnly,
+    addNew,
   };
 }
 
@@ -107,11 +135,31 @@ async function run() {
     execute,
     keepBadFiles,
     resetMissing,
+    file,
+    propertiesOnly,
+    addNew,
   } = parseArgs();
 
   switch (command) {
     case "nightly": {
       const result = await processNightly();
+      log.info(result);
+      break;
+    }
+
+    case "parcel-list": {
+      const result = await runParcelList({
+        file,
+        execute,
+        propertiesOnly,
+        addNew,
+      });
+      log.info(result);
+      break;
+    }
+
+    case "condo-units": {
+      const result = await backfillCondoUnits({ period, island, execute });
       log.info(result);
       break;
     }

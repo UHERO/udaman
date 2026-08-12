@@ -82,6 +82,8 @@ async function claimItems(): Promise<ClaimedItem[]> {
        AND s.scrape_status != 'pending'
        AND s.updated_at < NOW() - INTERVAL ${CLAIM_TIMEOUT_MINUTES} MINUTE
        AND s.retry_count < ${MAX_RETRIES}
+       -- qPublic has no parcel here; re-asking only spends requests
+       AND (s.no_results IS NULL OR s.no_results = 0)
      ORDER BY s.scraped_at ASC
      LIMIT ${CLAIM_SIZE}
      FOR UPDATE SKIP LOCKED`,
@@ -239,7 +241,8 @@ async function countStale(): Promise<number> {
   const rows = await rawQuery<{ cnt: number }>(
     `SELECT COUNT(*) AS cnt FROM scrape_status
      WHERE (scraped_at < NOW() - INTERVAL ${STALE_MONTHS} MONTH OR scraped_at IS NULL)
-       AND retry_count < ${MAX_RETRIES}`,
+       AND retry_count < ${MAX_RETRIES}
+       AND (no_results IS NULL OR no_results = 0)`,
   );
   return Number(rows[0]?.cnt ?? 0);
 }

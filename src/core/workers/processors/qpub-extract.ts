@@ -18,6 +18,7 @@ import path from "path";
 
 import { getIslandCode } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
+import { condoUnitRows } from "@/core/crawlers/qpub/parse";
 import {
   dec,
   GENERIC_SECTION_MAP,
@@ -805,10 +806,7 @@ function extractCondominium(items: ExtractItem[]): {
     if (data.status !== "condo_project") continue;
 
     const parcel = data.parcel_information as Row | undefined;
-    const unitInfo = data.condominium_apartment_unit_information as
-      | Row
-      | undefined;
-    const unitRows = (unitInfo?.table_data ?? []) as Row[];
+    const unitRows = condoUnitRows(data) as Row[];
     const improvInfo =
       (data.residential_improvement_information as Row | undefined) ??
       (data.improvement_information as Row | undefined);

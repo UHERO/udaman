@@ -84,7 +84,9 @@ export async function processNightly(): Promise<string> {
      FROM scrape_status s
      JOIN properties p ON s.tmk = p.tmk
      WHERE s.scrape_status = 'success'
-       AND (s.parse_status IN ('pending','failed') OR s.load_status IN ('pending','failed'))`,
+       AND (s.parse_status IN ('pending','failed') OR s.load_status IN ('pending','failed'))
+       -- No parcel to parse; these would fail every night forever
+       AND (s.no_results IS NULL OR s.no_results = 0)`,
   );
 
   // Build a tmk → island_code map for processParse

@@ -12,6 +12,7 @@
  * opening bytes, and brings the table in line:
  *
  *   valid profile  → scrape_status='success', scraped_at = the file's mtime
+ *   no qPublic record → retired via no_results, file kept as the record of it
  *   anything else  → back to needing a scrape, and the junk file is deleted
  *
  * Dry-run unless --execute. The dry run writes the full list of doomed files
@@ -22,6 +23,7 @@ import fs from "fs/promises";
 import { statSync } from "fs";
 import path from "path";
 
+import { NO_RECORD_TAIL_BYTES } from "@/core/crawlers/qpub/parse-utils";
 import {
   CLASSIFY_HEAD_BYTES,
   classifySavedHtml,
@@ -76,13 +78,32 @@ type Classified = {
 
 // ─── File classification ────────────────────────────────────────────
 
-/** Read the first `bytes` of a file without pulling the whole thing over the wire. */
-async function readHead(filePath: string, bytes: number): Promise<string> {
+/**
+ * Read the opening and closing bytes of a file in one open.
+ *
+ * The verdict needs both ends: the title near the top identifies a profile,
+ * and the "no data available" notice sits 9-13 KB from EOF — the only thing
+ * separating a real parcel from a phantom one. Neither end needs the ~200 KB
+ * in between.
+ */
+async function readEnds(
+  filePath: string,
+  size: number,
+): Promise<{ head: string; tail: string }> {
   const handle = await fs.open(filePath, "r");
   try {
-    const buf = Buffer.alloc(bytes);
-    const { bytesRead } = await handle.read(buf, 0, bytes, 0);
-    return buf.subarray(0, bytesRead).toString("utf-8");
+    const headLen = Math.min(CLASSIFY_HEAD_BYTES, size);
+    const headBuf = Buffer.alloc(headLen);
+    await handle.read(headBuf, 0, headLen, 0);
+
+    const tailLen = Math.min(NO_RECORD_TAIL_BYTES, size);
+    const tailBuf = Buffer.alloc(tailLen);
+    await handle.read(tailBuf, 0, tailLen, size - tailLen);
+
+    return {
+      head: headBuf.toString("utf-8"),
+      tail: tailBuf.toString("utf-8"),
+    };
   } finally {
     await handle.close();
   }
@@ -91,12 +112,12 @@ async function readHead(filePath: string, bytes: number): Promise<string> {
 async function classifyFile(filePath: string): Promise<Classified> {
   const tmk = tmkFromFilePath(filePath);
   const stat = statSync(filePath);
-  const head = await readHead(filePath, CLASSIFY_HEAD_BYTES);
+  const { head, tail } = await readEnds(filePath, stat.size);
 
   return {
     tmk,
     filePath,
-    verdict: classifySavedHtml(head, stat.size),
+    verdict: classifySavedHtml(head, stat.size, tail),
     mtime: stat.mtime,
     sizeBytes: stat.size,
   };
@@ -229,6 +250,32 @@ async function markNeedsScrape(
 }
 
 /**
+ * Retire TMKs the county has no parcel for.
+ *
+ * Only sets the flag: scraped_at was already stamped from the file's mtime
+ * alongside the valid files, because the page genuinely was fetched then. The
+ * no_results flag, not a falsified timestamp, is what keeps these out of the
+ * queues.
+ */
+async function markNoRecord(tmks: string[]): Promise<number> {
+  let affected = 0;
+
+  for (const batch of chunk(tmks, UPDATE_CHUNK_SIZE)) {
+    const placeholders = batch.map(() => "?").join(",");
+    const result = (await rawQuery(
+      `UPDATE scrape_status
+       SET scrape_status='success', retry_count=0,
+           no_results=1, no_results_at=NOW(), error=?
+       WHERE tmk IN (${placeholders})`,
+      ["repair: no qPublic record for this TMK", ...batch],
+    )) as unknown as { affectedRows?: number };
+    affected += result?.affectedRows ?? 0;
+  }
+
+  return affected;
+}
+
+/**
  * Clear rows whose file never showed up for this period.
  *
  * Unlike the bad-file path this leaves parse/load alone: those may reflect
@@ -324,7 +371,12 @@ export async function runRepair(opts: RepairOptions = {}): Promise<string> {
   const known = classified.filter((c) => knownTmks.has(c.tmk));
 
   const valid = known.filter((c) => c.verdict === "valid");
-  const bad = known.filter((c) => c.verdict !== "valid");
+  // A phantom parcel is a real answer, not junk: its file stays on disk and
+  // its row is retired instead of being sent back round the queue.
+  const noRecord = known.filter((c) => c.verdict === "no-record");
+  const bad = known.filter(
+    (c) => c.verdict !== "valid" && c.verdict !== "no-record",
+  );
 
   // Rows the table claims but this period has no file for.
   const onDisk = new Set(classified.map((c) => c.tmk));
@@ -341,6 +393,7 @@ ${Object.entries(verdicts)
   .join("\n")}
 
 Valid, in table      ${valid.length.toLocaleString()}   → scraped_at set from file mtime
+No qPublic record    ${noRecord.length.toLocaleString()}   → retired from the queue, file kept
 Bad, in table        ${bad.length.toLocaleString()}   → back to needing a scrape${keepBadFiles ? "" : ", file deleted"}
 Files w/o a row      ${orphans.length.toLocaleString()}   → reported only (TMK not in properties)
 Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "back to needing a scrape" : "reported only (pass --reset-missing to clear)"}
@@ -368,15 +421,17 @@ Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "
 
   if (!execute) {
     const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
-    const summary = `Repair (dry run): ${valid.length} valid, ${bad.length} bad, ${orphans.length} orphan files, ${missing.length} rows without a file (${elapsed}s). Re-run with --execute to apply.`;
+    const summary = `Repair (dry run): ${valid.length} valid, ${noRecord.length} no-record, ${bad.length} bad, ${orphans.length} orphan files, ${missing.length} rows without a file (${elapsed}s). Re-run with --execute to apply.`;
     console.log(`\n${summary}\n`);
     log.info(summary);
     return summary;
   }
 
-  // 5. Apply — valid files first, bucketed by the HST day of their mtime
+  // 5. Apply — stamp scraped_at from mtime, bucketed by HST day.
+  //    Phantom parcels are included: the page really was fetched on that date,
+  //    and it's the no_results flag rather than staleness that retires them.
   const byDay = new Map<string, string[]>();
-  for (const c of valid) {
+  for (const c of [...valid, ...noRecord]) {
     const day = toHstSql(c.mtime).slice(0, 10);
     const list = byDay.get(day);
     if (list) list.push(c.tmk);
@@ -391,6 +446,16 @@ Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "
     { rows: scrapedUpdated, days: byDay.size },
     `Marked ${scrapedUpdated.toLocaleString()} rows scraped from file mtimes`,
   );
+
+  // 5b. Phantom parcels — flagged, file left alone.
+  let retired = 0;
+  if (noRecord.length > 0) {
+    retired = await markNoRecord(noRecord.map((c) => c.tmk));
+    log.info(
+      { rows: retired },
+      `Retired ${retired.toLocaleString()} TMKs with no qPublic record`,
+    );
+  }
 
   // 6. Bad files — one statement per verdict so the stored error says which
   let rescrapeUpdated = 0;
@@ -440,7 +505,7 @@ Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "
 
   const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
   const summary =
-    `Repair: ${scrapedUpdated} rows synced to disk, ${rescrapeUpdated} sent back for re-scraping, ` +
+    `Repair: ${scrapedUpdated} rows synced to disk, ${retired} retired (no qPublic record), ${rescrapeUpdated} sent back for re-scraping, ` +
     `${deleted} files deleted${deleteFailed ? ` (${deleteFailed} failed)` : ""}` +
     `${resetMissing ? `, ${missingUpdated} missing-file rows cleared` : ""} ` +
     `(${elapsed}s)`;
