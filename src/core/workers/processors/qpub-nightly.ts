@@ -80,9 +80,13 @@ export async function processNightly(): Promise<string> {
 
   // Query TMKs needing work: scrape succeeded but parse or load still pending/failed
   const rows = await rawQuery<StatusRow>(
-    `SELECT s.tmk, p.island_code, s.parse_status
+    // island_code from the TMK, not a join on properties — see claimItems().
+    // That table is recreated from parsed HTML on every sync, so joining it
+    // here would strand exactly the rows that most need reprocessing: the ones
+    // whose properties row went missing. Loading recreates it, so letting them
+    // through is what heals them.
+    `SELECT s.tmk, LEFT(s.tmk, 1) AS island_code, s.parse_status
      FROM scrape_status s
-     JOIN properties p ON s.tmk = p.tmk
      WHERE s.scrape_status = 'success'
        AND (s.parse_status IN ('pending','failed') OR s.load_status IN ('pending','failed'))
        -- No parcel to parse; these would fail every night forever

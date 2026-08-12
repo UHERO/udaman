@@ -6,15 +6,19 @@ import { useRouter } from "next/navigation";
 import type {
   ApprovalJSON,
   PreReleaseFormData,
+  PublicationType,
 } from "@catalog/models/approval";
 import {
+  AI_USE_LABELS,
+  AI_USES,
+  isAiUse,
   isPublicationType,
   PUBLICATION_TYPE_LABELS,
   PUBLICATION_TYPES,
   publicationTypeLabel,
 } from "@catalog/models/approval";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, RotateCcw, X } from "lucide-react";
+import { ChevronsUpDown, Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -30,6 +34,11 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -69,6 +78,7 @@ const formSchema = z
     name: z.string().min(1, "Title is required"),
     publicationType: z.enum(PUBLICATION_TYPES),
     publicationTypeOther: z.string(),
+    secondaryPublicationTypes: z.array(z.enum(PUBLICATION_TYPES)),
     contributors: z
       .string()
       .min(1, "List all authors and substantial contributors"),
@@ -82,6 +92,8 @@ const formSchema = z
     fundingSources: z.string().min(1, 'Required — enter "none" if applicable'),
     dataRestrictions: z.string(),
     aiUsage: z.enum(["none", "followed_guidance"]),
+    aiUses: z.array(z.enum(AI_USES)),
+    aiUsageOther: z.string(),
 
     // C — Development and prior review
     reviewers: z.string(),
@@ -108,6 +120,25 @@ const formSchema = z
         path: ["publicationTypeOther"],
         message: "Describe the publication type",
       });
+    }
+
+    // Disclosing that AI was used without saying how leaves the reviewer with
+    // less than the "no AI" answer would have given them.
+    if (v.aiUsage === "followed_guidance") {
+      if (!v.aiUses.length) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["aiUses"],
+          message: "Select at least one way AI was used",
+        });
+      }
+      if (v.aiUses.includes("other") && !v.aiUsageOther.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["aiUsageOther"],
+          message: "Describe the other use",
+        });
+      }
     }
 
     if (
@@ -164,6 +195,7 @@ const EMPTY: Omit<FormValues, "recipients"> = {
   name: "",
   publicationType: "working_paper",
   publicationTypeOther: "",
+  secondaryPublicationTypes: [],
   contributors: "",
   targetReleaseDate: "",
   documentUrl: "",
@@ -171,6 +203,8 @@ const EMPTY: Omit<FormValues, "recipients"> = {
   fundingSources: "",
   dataRestrictions: "",
   aiUsage: "none",
+  aiUses: [],
+  aiUsageOther: "",
   reviewers: "",
   stakeholderInput: "",
   certAccurate: false,
@@ -217,6 +251,11 @@ function toFormValues(
   return {
     name: approval.name,
     ...toFormPublicationType(d),
+    // Drop anything retired or unrecognized rather than feeding the enum a
+    // value the picker can't show.
+    secondaryPublicationTypes: (d.secondaryPublicationTypes ?? []).filter(
+      isPublicationType,
+    ),
     contributors: d.contributors ?? "",
     targetReleaseDate: approval.targetReleaseDate ?? "",
     documentUrl: d.documentUrl ?? "",
@@ -224,6 +263,8 @@ function toFormValues(
     fundingSources: d.fundingSources ?? "",
     dataRestrictions: d.dataRestrictions ?? "",
     aiUsage: d.aiUsage ?? "none",
+    aiUses: (d.aiUses ?? []).filter(isAiUse),
+    aiUsageOther: d.aiUsageOther ?? "",
     reviewers: d.reviewers ?? "",
     stakeholderInput: d.stakeholderInput ?? "",
     certAccurate: d.certAccurate ?? false,
@@ -283,6 +324,85 @@ function FormSection({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * Multi-select for the formats derived from the primary one.
+ *
+ * "Other" is excluded — it only means anything alongside the free-text box
+ * next to the primary picker, and one box can't describe two things.
+ */
+function SecondaryTypeSelect({
+  value,
+  onChange,
+  primary,
+}: {
+  value: PublicationType[];
+  onChange: (next: PublicationType[]) => void;
+  primary: PublicationType;
+}) {
+  const options = PUBLICATION_TYPES.filter(
+    (t) => t !== "other" && t !== primary,
+  );
+
+  const summary =
+    value.length === 0
+      ? "None"
+      : value.length === 1
+        ? PUBLICATION_TYPE_LABELS[value[0]]
+        : `${value.length} selected`;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          id="secondaryPublicationTypes"
+          className="w-full cursor-pointer justify-between font-normal"
+        >
+          <span className={cn(!value.length && "text-muted-foreground")}>
+            {summary}
+          </span>
+          <ChevronsUpDown className="size-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] p-1"
+      >
+        {options.map((type) => {
+          const checked = value.includes(type);
+          return (
+            <button
+              key={type}
+              type="button"
+              className="hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
+              onClick={() =>
+                onChange(
+                  checked
+                    ? value.filter((t) => t !== type)
+                    : [...value, type].sort(
+                        (a, b) =>
+                          PUBLICATION_TYPES.indexOf(a) -
+                          PUBLICATION_TYPES.indexOf(b),
+                      ),
+                )
+              }
+            >
+              {/* The row owns the click; the box is display only. */}
+              <Checkbox
+                checked={checked}
+                className="pointer-events-none"
+                tabIndex={-1}
+              />
+              {PUBLICATION_TYPE_LABELS[type]}
+            </button>
+          );
+        })}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -445,19 +565,49 @@ export function PreReleaseForm({
 
   const errors = form.formState.errors;
   const publicationType = form.watch("publicationType");
+  const secondaryTypes = form.watch("secondaryPublicationTypes");
+  const aiUsage = form.watch("aiUsage");
+  const aiUses = form.watch("aiUses");
   const availableOnRelease = form.watch("availableOnRelease");
   const recipients = form.watch("recipients");
+
+  /** Picking a primary type has to evict it from the derived list. */
+  function setPrimaryType(next: PublicationType) {
+    form.setValue("publicationType", next);
+    form.setValue(
+      "secondaryPublicationTypes",
+      secondaryTypes.filter((t) => t !== next),
+    );
+  }
+
+  function toggleAiUse(use: FormValues["aiUses"][number], checked: boolean) {
+    form.setValue(
+      "aiUses",
+      checked ? [...aiUses, use] : aiUses.filter((u) => u !== use),
+      { shouldValidate: form.formState.isSubmitted },
+    );
+  }
 
   async function onSubmit(values: FormValues) {
     const formData: PreReleaseFormData = {
       publicationType: values.publicationType,
       publicationTypeOther: values.publicationTypeOther.trim() || null,
+      secondaryPublicationTypes: values.secondaryPublicationTypes.filter(
+        (t) => t !== values.publicationType,
+      ),
       documentUrl: values.documentUrl.trim() || null,
       contributors: values.contributors,
       conflictsOfInterest: values.conflictsOfInterest,
       fundingSources: values.fundingSources,
       dataRestrictions: values.dataRestrictions,
       aiUsage: values.aiUsage,
+      // Don't keep answers to a question the final form no longer asks.
+      aiUses: values.aiUsage === "followed_guidance" ? values.aiUses : [],
+      aiUsageOther:
+        values.aiUsage === "followed_guidance" &&
+        values.aiUses.includes("other")
+          ? values.aiUsageOther.trim() || null
+          : null,
       reviewers: values.reviewers,
       stakeholderInput: values.stakeholderInput,
       certAccurate: values.certAccurate,
@@ -506,22 +656,15 @@ export function PreReleaseForm({
 
           <div
             className={cn(
-              "grid gap-3",
-              publicationType === "other" && "sm:grid-cols-2",
+              "grid gap-3 sm:grid-cols-2",
+              publicationType === "other" && "sm:grid-cols-3",
             )}
           >
             <Field data-invalid={!!errors.publicationType}>
-              <FieldLabel htmlFor="publicationType">
-                Publication type
-              </FieldLabel>
+              <FieldLabel htmlFor="publicationType">Primary type</FieldLabel>
               <Select
                 value={publicationType}
-                onValueChange={(v) =>
-                  form.setValue(
-                    "publicationType",
-                    v as FormValues["publicationType"],
-                  )
-                }
+                onValueChange={(v) => setPrimaryType(v as PublicationType)}
               >
                 <SelectTrigger id="publicationType" className="w-full">
                   <SelectValue placeholder="Select type" />
@@ -535,6 +678,23 @@ export function PreReleaseForm({
                 </SelectContent>
               </Select>
               <FieldError errors={[errors.publicationType]} />
+            </Field>
+
+            <Field data-invalid={!!errors.secondaryPublicationTypes}>
+              <FieldLabel htmlFor="secondaryPublicationTypes">
+                Secondary types
+              </FieldLabel>
+              <SecondaryTypeSelect
+                value={secondaryTypes}
+                primary={publicationType}
+                onChange={(next) =>
+                  form.setValue("secondaryPublicationTypes", next)
+                }
+              />
+              <FieldDescription>
+                Other formats cut from the same work, if any.
+              </FieldDescription>
+              <FieldError errors={[errors.secondaryPublicationTypes]} />
             </Field>
 
             {publicationType === "other" && (
@@ -648,7 +808,7 @@ export function PreReleaseForm({
           <Field data-invalid={!!errors.aiUsage}>
             <FieldLabel>Use of AI</FieldLabel>
             <RadioGroup
-              value={form.watch("aiUsage")}
+              value={aiUsage}
               onValueChange={(v) =>
                 form.setValue("aiUsage", v as FormValues["aiUsage"])
               }
@@ -670,6 +830,51 @@ export function PreReleaseForm({
             </RadioGroup>
             <FieldError errors={[errors.aiUsage]} />
           </Field>
+
+          {aiUsage === "followed_guidance" && (
+            <Field
+              data-invalid={!!errors.aiUses || !!errors.aiUsageOther}
+              // Indented to read as a follow-up to the radio above it.
+              className="border-muted ml-1.5 border-l pl-4"
+            >
+              <FieldLabel>How AI was used</FieldLabel>
+              <div className="flex flex-wrap gap-x-5 gap-y-1">
+                {AI_USES.map((use) => (
+                  <Field
+                    key={use}
+                    orientation="horizontal"
+                    className="w-auto gap-2"
+                  >
+                    <Checkbox
+                      id={`ai-use-${use}`}
+                      checked={aiUses.includes(use)}
+                      onCheckedChange={(checked) =>
+                        toggleAiUse(use, checked === true)
+                      }
+                    />
+                    <FieldLabel
+                      htmlFor={`ai-use-${use}`}
+                      className="font-normal"
+                    >
+                      {AI_USE_LABELS[use]}
+                    </FieldLabel>
+                  </Field>
+                ))}
+              </div>
+              <FieldError errors={[errors.aiUses]} />
+
+              {aiUses.includes("other") && (
+                <Input
+                  id="aiUsageOther"
+                  aria-label="Describe the other use of AI"
+                  placeholder="Describe the other use"
+                  className="mt-1"
+                  {...form.register("aiUsageOther")}
+                />
+              )}
+              <FieldError errors={[errors.aiUsageOther]} />
+            </Field>
+          )}
         </FieldGroup>
       </FormSection>
 

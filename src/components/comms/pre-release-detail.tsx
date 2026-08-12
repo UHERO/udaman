@@ -1,5 +1,9 @@
 import type { ApprovalJSON } from "@catalog/models/approval";
-import { formatPublicationType } from "@catalog/models/approval";
+import {
+  formatAiUsage,
+  formatPublicationType,
+  formatSecondaryTypes,
+} from "@catalog/models/approval";
 import { Check, Square } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
@@ -90,7 +94,10 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
       <Section title="A. Publication details">
         <dl className="divide-y">
           <Row label="Title">{approval.name}</Row>
-          <Row label="Publication type">{formatPublicationType(d)}</Row>
+          <Row label="Primary type">{formatPublicationType(d)}</Row>
+          <Row label="Secondary types">
+            {formatSecondaryTypes(d.secondaryPublicationTypes)}
+          </Row>
           <Row label="Lead author">{approval.author}</Row>
           <Row label="All authors and contributors">{d.contributors}</Row>
           <Row label="Target release date">
@@ -118,11 +125,7 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
           <Row label="Conflicts of interest">{d.conflictsOfInterest}</Row>
           <Row label="Funding source(s)">{d.fundingSources}</Row>
           <Row label="Data restrictions">{d.dataRestrictions}</Row>
-          <Row label="Use of AI">
-            {d.aiUsage === "none"
-              ? "No AI was used in preparing the work"
-              : "AI was used; its use followed applicable University of Hawaiʻi guidance"}
-          </Row>
+          <Row label="Use of AI">{formatAiUsage(d)}</Row>
         </dl>
       </Section>
 

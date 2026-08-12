@@ -65,6 +65,53 @@ export function formatPublicationType(data: {
     : label;
 }
 
+/** Comma-joined labels for the derived formats, or null when there are none. */
+export function formatSecondaryTypes(
+  types: string[] | null | undefined,
+): string | null {
+  if (!types?.length) return null;
+  return types.map(publicationTypeLabel).join(", ");
+}
+
+/** Ways AI may have contributed, asked only when AI was used at all. */
+export const AI_USES = [
+  "editing",
+  "drafting",
+  "background",
+  "code_data",
+  "other",
+] as const;
+export type AiUse = (typeof AI_USES)[number];
+
+export const AI_USE_LABELS: Record<AiUse, string> = {
+  editing: "Editing",
+  drafting: "Drafting",
+  background: "Background",
+  code_data: "Code/data",
+  other: "Other",
+};
+
+export function isAiUse(value: string): value is AiUse {
+  return (AI_USES as readonly string[]).includes(value);
+}
+
+/** One-line summary of the AI disclosure, including which uses were checked. */
+export function formatAiUsage(data: {
+  aiUsage: "none" | "followed_guidance";
+  aiUses?: string[] | null;
+  aiUsageOther?: string | null;
+}): string {
+  if (data.aiUsage === "none") return "No AI used in preparing the work";
+
+  const base = "AI used; followed applicable University of Hawaiʻi guidance";
+  const uses = (data.aiUses ?? []).map((use) =>
+    use === "other" && data.aiUsageOther
+      ? `Other — ${data.aiUsageOther}`
+      : (AI_USE_LABELS[use as AiUse] ?? use),
+  );
+  return uses.length ? `${base} (${uses.join(", ")})` : base;
+}
+
 /**
  * Body of the UHERO Pre-Release Form, stored in `approvals.form_data`.
  *
@@ -75,8 +122,16 @@ export function formatPublicationType(data: {
  */
 export type PreReleaseFormData = {
   // A — Publication details
+  /** The format this work is primarily released as. */
   publicationType: PublicationType;
   publicationTypeOther: string | null;
+  /**
+   * Further formats derived from the primary one — a Focus video or an
+   * Insights post cut from the same working paper, say. "other" is not
+   * offered here; a derived format that needs describing belongs in its own
+   * submission.
+   */
+  secondaryPublicationTypes: PublicationType[];
   documentUrl: string | null;
   contributors: string;
 
@@ -86,6 +141,10 @@ export type PreReleaseFormData = {
   dataRestrictions: string;
   /** "none" = no AI used; "followed_guidance" = AI used, per UH guidance. */
   aiUsage: "none" | "followed_guidance";
+  /** Which kinds of assistance. Only meaningful when aiUsage is "followed_guidance". */
+  aiUses: AiUse[];
+  /** Free text, required when aiUses includes "other". */
+  aiUsageOther: string | null;
 
   // C — Development and prior review
   reviewers: string;

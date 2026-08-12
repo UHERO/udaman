@@ -1,5 +1,9 @@
 import type { PreReleaseFormData } from "@catalog/models/approval";
-import { formatPublicationType } from "@catalog/models/approval";
+import {
+  formatAiUsage,
+  formatPublicationType,
+  formatSecondaryTypes,
+} from "@catalog/models/approval";
 
 import { createLogger } from "@/core/observability/logger";
 
@@ -105,7 +109,11 @@ export async function sendPreReleaseSubmitted(
     ${section(
       "A. Publication details",
       row("Title", input.name) +
-        row("Publication type", formatPublicationType(d)) +
+        row("Primary type", formatPublicationType(d)) +
+        row(
+          "Secondary types",
+          formatSecondaryTypes(d.secondaryPublicationTypes),
+        ) +
         row("Lead author", input.author) +
         row("Contributors", d.contributors) +
         row("Target release date", input.targetReleaseDate) +
@@ -117,12 +125,7 @@ export async function sendPreReleaseSubmitted(
       row("Conflicts of interest", d.conflictsOfInterest) +
         row("Funding sources", d.fundingSources) +
         row("Data restrictions", d.dataRestrictions) +
-        row(
-          "AI use",
-          d.aiUsage === "none"
-            ? "No AI used in preparing the work"
-            : "AI used; followed applicable University of Hawaiʻi guidance",
-        ),
+        row("AI use", formatAiUsage(d)),
     )}
 
     ${section(

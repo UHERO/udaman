@@ -74,10 +74,21 @@ async function claimItems(): Promise<ClaimedItem[]> {
   // Use a single query to claim items atomically.
   // MariaDB doesn't support SKIP LOCKED in the same way as MySQL 8+,
   // so we use a transaction with FOR UPDATE SKIP LOCKED.
+  // island_code is derived from the TMK rather than joined from properties.
+  //
+  // The join used to be here purely to fetch that column, and it quietly cost
+  // us the queue: properties is rebuilt from parsed HTML on every sync, so any
+  // TMK that stopped parsing loses its row while its scrape_status row lives
+  // on. An INNER JOIN then hides it from claiming forever — 7,151 rows as of
+  // Aug 2026 — and because countStale() doesn't join, the runner reported work
+  // it could never claim and sat idle.
+  //
+  // The value is redundant anyway: island_code is the TMK's leading digit, and
+  // properties agreed with that on all 593,144 rows. Unknown codes are still
+  // filtered downstream against ISLANDS.
   const rows = await rawQuery<ClaimedItem>(
-    `SELECT s.tmk, p.island_code
+    `SELECT s.tmk, LEFT(s.tmk, 1) AS island_code
      FROM scrape_status s
-     JOIN properties p ON s.tmk = p.tmk
      WHERE (s.scraped_at < NOW() - INTERVAL ${STALE_MONTHS} MONTH OR s.scraped_at IS NULL)
        AND s.scrape_status != 'pending'
        AND s.updated_at < NOW() - INTERVAL ${CLAIM_TIMEOUT_MINUTES} MINUTE
