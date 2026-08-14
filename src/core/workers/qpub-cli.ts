@@ -4,6 +4,7 @@ import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
 import { backfillCondoUnits } from "./processors/qpub-enqueue";
 import { runParcelList } from "./processors/qpub-parcel-list";
+import { runParseAudit } from "./processors/qpub-parse-audit";
 import { runRepair } from "./processors/qpub-repair";
 import {
   rebuildAll,
@@ -39,6 +40,11 @@ Commands:
   condo-units                   Queue condo units listed on masters already
                                 scraped to the NAS. Dry run unless --execute.
 
+  parse-audit                   Report data the pipeline is dropping: empty
+                                tables, dead columns, per-county gaps, numeric
+                                strings and identity collisions. Read-only;
+                                run between parse-extract and load.
+
   parse-extract                 Phase 1+2: Parse HTML→JSON, extract JSON→JSONL table files
   load                          Phase 3: Load JSONL files into local DB via mariadb CLI
   load-table <table>            Phase 3: Load a single table into local DB
@@ -54,6 +60,10 @@ Repair options:
   --execute                     Apply changes (repair is a dry run without it)
   --keep-bad-files              Don't delete captcha/shell/blocked files
   --reset-missing               Also clear rows with no file in the period
+
+Parse-audit options:
+  --staging <dir>               Staging dir (default: the extract's own)
+  --sample <n>                  Pages to sample for section coverage (0 skips)
 
 Parcel-list options:
   --execute                     Apply changes (dry run without it)
@@ -83,6 +93,8 @@ function parseArgs() {
   let file: string | undefined;
   let propertiesOnly = false;
   let addNew = false;
+  let staging: string | undefined;
+  let sample: number | undefined;
 
   const tableCommands = ["rebuild-table", "load-table", "sync-table"];
 
@@ -105,6 +117,10 @@ function parseArgs() {
       propertiesOnly = true;
     } else if (args[i] === "--add-new") {
       addNew = true;
+    } else if (args[i] === "--staging" && args[i + 1]) {
+      staging = args[++i];
+    } else if (args[i] === "--sample" && args[i + 1]) {
+      sample = Number(args[++i]);
     } else if (!table && tableCommands.includes(command)) {
       table = args[i];
     }
@@ -122,6 +138,8 @@ function parseArgs() {
     file,
     propertiesOnly,
     addNew,
+    staging,
+    sample,
   };
 }
 
@@ -138,6 +156,8 @@ async function run() {
     file,
     propertiesOnly,
     addNew,
+    staging,
+    sample,
   } = parseArgs();
 
   switch (command) {
@@ -153,6 +173,17 @@ async function run() {
         execute,
         propertiesOnly,
         addNew,
+      });
+      log.info(result);
+      break;
+    }
+
+    case "parse-audit": {
+      const result = await runParseAudit({
+        stagingDir: staging,
+        period,
+        island,
+        sample,
       });
       log.info(result);
       break;
