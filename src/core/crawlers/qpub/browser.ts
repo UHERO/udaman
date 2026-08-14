@@ -168,9 +168,35 @@ async function ensureBrowser(): Promise<BrowserContext> {
   return launchPromise;
 }
 
+/**
+ * Thrown when the browser itself can't be started.
+ *
+ * Distinct from a page-level failure because it says nothing about the parcel
+ * and everything about the machine: a missing executable, a Playwright/driver
+ * version mismatch, a profile lock. None of those clear by retrying, so the
+ * runner treats this as fatal rather than moving on to the next TMK.
+ */
+export class BrowserUnavailableError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "BrowserUnavailableError";
+  }
+}
+
 /** Get a page from the pool, or create a new one if none are idle. */
 export async function getPage(): Promise<Page> {
-  const ctx = await ensureBrowser();
+  let ctx: BrowserContext;
+  try {
+    ctx = await ensureBrowser();
+  } catch (e) {
+    // Typed at the boundary rather than matched on message text later —
+    // "Executable doesn't exist", version mismatches and profile-lock timeouts
+    // all word themselves differently, but all mean the same thing here.
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new BrowserUnavailableError(`Browser failed to launch: ${msg}`, {
+      cause: e,
+    });
+  }
   return idlePages.pop() ?? ctx.newPage();
 }
 

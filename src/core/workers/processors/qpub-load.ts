@@ -549,7 +549,7 @@ export async function loadResidentialImprovements(
         half_bath: int(b.half_bath),
         occupancy: str(b.occupancy),
         framing: str(b.framing),
-        percent_complete: str(b.percent_complete),
+        percent_complete: parsePercent(b.percent_complete),
         heating_cooling: str(b.heating_cooling),
         exterior_wall: str(b.exterior_wall),
         roof_material: str(b.roof_material),
@@ -607,7 +607,7 @@ export async function loadCommercialImprovements(
       gross_building_description: str(b.gross_building_description),
       building_square_footage: str(b.building_square_footage),
       building_type: str(b.building_type),
-      percent_complete: str(b.percent_complete),
+      percent_complete: parsePercent(b.percent_complete),
       value: int(b.value),
     };
 
@@ -653,7 +653,7 @@ export async function loadCommercialImprovements(
           str(b.gross_building_description),
           str(b.building_type),
           str(b.building_square_footage),
-          str(b.percent_complete),
+          parsePercent(b.percent_complete),
           int(b.value),
         ],
       );
@@ -925,6 +925,31 @@ export async function loadPermits(
   }
 }
 
+/**
+ * Drop the rollup row from a Current Tax Bill table.
+ *
+ * qPublic renders a trailing summary line under the real per-period rows —
+ * blank Tax Period, description "Tax Bill with Interest computed through
+ * <date>", and amounts that are the column totals. It isn't a bill.
+ *
+ * Keeping it was expensive twice over. It made up 44.5% of current_tax_bills
+ * (452,518 of 1,016,290 rows), and because its description carries a date that
+ * advances with every scrape, change detection could never match it — each
+ * load stored yet another version of the same non-bill.
+ *
+ * Blank tax_period is the test: every real row names a period ("2025-2",
+ * "PRIOR"), and every blank-period row on record is one of these rollups.
+ */
+export function isTaxBillRollupRow(row: Row): boolean {
+  const period = row.tax_period;
+  return period === null || period === undefined || String(period).trim() === "";
+}
+
+/** The real per-period bills, with the rollup line removed. */
+export function realTaxBillRows(rows: Row[]): Row[] {
+  return rows.filter((r) => !isTaxBillRollupRow(r));
+}
+
 export async function loadCurrentTaxBills(
   tmk: string,
   data: ParsedProperty,
@@ -934,7 +959,7 @@ export async function loadCurrentTaxBills(
   const taxBillInfo = data.current_tax_bill_information as Row | undefined;
   if (!taxBillInfo) return;
 
-  const bills = (taxBillInfo.table_data ?? []) as Row[];
+  const bills = realTaxBillRows((taxBillInfo.table_data ?? []) as Row[]);
   if (bills.length === 0) return;
 
   const year = observedYear ?? getMaxTaxYear(data);
@@ -1061,7 +1086,16 @@ export async function loadCondoProject(
 
 /** Identity field definitions for generic snapshot tables */
 const GENERIC_IDENTITY_FIELDS: Record<string, string[]> = {
-  yard_improvements: ["description", "year_built"],
+  // area and building_number are part of the identity, not the data. A parcel
+  // routinely carries two structures of the same kind and vintage — two
+  // "FRAME UTILITY SHED"s built in 1926, 60 sqft and 454 sqft — and on
+  // (description, year_built) alone 32 of 144 sampled rows collided.
+  //
+  // That is worse than a mislabel. upsertSnapshot compares against the LATEST
+  // row per identity, so two colliding structures each see the other's row as
+  // "changed" and insert a new version; the pair then doubles on every load.
+  // With area and building_number included, collisions fall to 2 of 144.
+  yard_improvements: ["building_number", "description", "year_built", "area"],
   residential_additions: ["card", "line"],
   agricultural_assessments: [], // compare all data fields
   accessory_structures: ["building_number", "description"],
@@ -1075,6 +1109,7 @@ async function loadGenericSnapshot(
   rows: Row[],
   scrapedAt: Date = new Date(),
   observedYear?: number,
+  sectionKey?: string,
 ): Promise<void> {
   if (rows.length === 0) return;
 
@@ -1098,15 +1133,20 @@ async function loadGenericSnapshot(
         .toLowerCase()
         .replace(/[^\w\s]/g, "")
         .replace(/\s+/g, "_");
+      const column = resolveColumnName(snakeKey, columnNames, [
+        sectionKey ?? "",
+        tableName,
+      ]);
       if (
-        columnNames.has(snakeKey) &&
-        snakeKey !== "id" &&
-        snakeKey !== "tmk" &&
-        snakeKey !== "created_at" &&
-        snakeKey !== "scraped_at" &&
-        snakeKey !== "last_year_observed"
+        column &&
+        column !== "id" &&
+        column !== "tmk" &&
+        column !== "created_at" &&
+        column !== "scraped_at" &&
+        column !== "last_year_observed"
       ) {
-        matched[snakeKey] = value;
+        const parse = COLUMN_VALUE_PARSERS[column];
+        matched[column] = parse ? parse(value) : value;
       }
     }
 
@@ -1165,14 +1205,175 @@ async function loadGenericSnapshot(
 }
 
 // Section name → DB table mapping for generic loading
+/**
+ * Parsed section key -> destination table.
+ *
+ * The keys are derived from the section heading on the page, so they have to
+ * be the headings qPublic actually renders — and those differ by county
+ * ("Residential Additions" on Oahu, "Additions" on Maui). Four of the six
+ * entries here never matched anything, which is why yard_improvements,
+ * residential_additions, accessory_structures and dedications sat empty from
+ * the beginning: loadGenericSections looks up data[sectionName], missed, and
+ * moved on without a word.
+ *
+ * The verified keys come first; the original guesses are kept below them as
+ * harmless aliases in case some county does use that wording.
+ */
 export const GENERIC_SECTION_MAP: Record<string, string> = {
+  // Verified against parsed pages and fixtures.
+  other_building_and_yard_improvements: "yard_improvements",
+  residential_additions: "residential_additions",
+  additions: "residential_additions", // Maui
+  // Maui's equivalent of Other Building and Yard Improvements — same
+  // structures, different heading and a packed size cell (see
+  // SECTION_ROW_TRANSFORMS). accessory_structures is left unused.
+  accessory_information: "yard_improvements",
+  dedications: "dedications",
+  agricultural_assessment_information: "agricultural_assessments",
+  appeal_information: "appeals",
+
+  // Unobserved spellings, retained as aliases.
   yard_improvement_information: "yard_improvements",
   residential_addition_information: "residential_additions",
-  agricultural_assessment_information: "agricultural_assessments",
-  accessory_structure_information: "accessory_structures",
-  appeal_information: "appeals",
   dedication_information: "dedications",
 };
+
+/**
+ * Map a parsed field name onto a real column.
+ *
+ * qPublic nests some column headers under a group header and the parser joins
+ * the two, so the Dedications table yields "dedications_number_of_dedications"
+ * for a column called "number_of_dedications". Both the loader and the
+ * extractor matched on the exact name, so those values were silently dropped.
+ *
+ * Only a prefix naming the section or the table is stripped — a general
+ * "any column that is a suffix" rule would map something like total_area onto
+ * area and quietly corrupt it.
+ */
+export function resolveColumnName(
+  snakeKey: string,
+  columns: Set<string>,
+  prefixes: string[],
+): string | null {
+  if (columns.has(snakeKey)) return snakeKey;
+
+  const alias = FIELD_ALIASES[snakeKey];
+  if (alias && columns.has(alias)) return alias;
+
+  for (const prefix of prefixes) {
+    if (!prefix || !snakeKey.startsWith(`${prefix}_`)) continue;
+    const stripped = snakeKey.slice(prefix.length + 1);
+    if (columns.has(stripped)) return stripped;
+  }
+
+  return null;
+}
+
+/**
+ * County-specific spellings of the same field.
+ *
+ * Oahu and Hawaii head the value column of a yard improvement "Gross Building
+ * Value"; Maui calls the same thing "Value". They are one column.
+ */
+const FIELD_ALIASES: Record<string, string> = {
+  gross_building_value: "value",
+};
+
+/**
+ * Split Maui's "Dimensions/Units" cell into its three parts.
+ *
+ * The cell always reads "<dimensions> <area> / <quantity>" — e.g. "0x0 320 / 1"
+ * is a 320 sqft structure, quantity 1. Verified against every distinct value in
+ * a 251-file Maui sample (47 values, none deviating), with quantities above one
+ * genuinely occurring ("0x0 1008 / 2").
+ *
+ * Returns null when the cell doesn't have that shape, so an unexpected format
+ * is dropped rather than silently mis-split.
+ */
+export function parseDimensionsUnits(
+  value: unknown,
+): { dimensions: string; area: number; quantity: number } | null {
+  if (value === null || value === undefined) return null;
+
+  const match = String(value)
+    .trim()
+    .match(/^(\S+)\s+([\d,]+(?:\.\d+)?)\s*\/\s*([\d,]+(?:\.\d+)?)$/);
+  if (!match) return null;
+
+  const area = Number(match[2].replace(/,/g, ""));
+  const quantity = Number(match[3].replace(/,/g, ""));
+  if (!Number.isFinite(area) || !Number.isFinite(quantity)) return null;
+
+  return { dimensions: match[1], area, quantity };
+}
+
+/**
+ * "100%" -> 100. Blank or unparseable -> null.
+ *
+ * qPublic writes this as a formatted string; int() can't help because
+ * parseDollarValue strips $ , ( ) but not %. Surveyed values are only ever
+ * "", "100%" and "0%", so a whole number is the right shape.
+ */
+export function parsePercent(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const cleaned = String(value).trim().replace(/%$/, "");
+  if (cleaned === "") return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? Math.round(n) : null;
+}
+
+/**
+ * Columns stored as numbers whose scraped form is a formatted string.
+ *
+ * Applied by the generic section path in both the loader and the extractor,
+ * which otherwise pass cell text straight through. Oahu writes area with
+ * thousands separators ("297,000") while the Maui split already yields a
+ * number, so without this one column holds both shapes — and area is part of
+ * the yard_improvements identity, where a formatting difference would read as
+ * a different structure.
+ */
+export const COLUMN_VALUE_PARSERS: Record<string, (v: unknown) => number | null> =
+  {
+    area: int,
+    percent_complete: parsePercent,
+  };
+
+/**
+ * Per-section row rewrites applied before columns are matched.
+ *
+ * The generic loader maps field names onto columns one-for-one, which can't
+ * express "one cell becomes three". Anything needing that lands here.
+ */
+export const SECTION_ROW_TRANSFORMS: Record<string, (row: Row) => Row> = {
+  // Maui files its yard improvements under "Accessory Information" with the
+  // size packed into a single cell. Unpacked, the row is the same shape the
+  // other counties already produce.
+  accessory_information: (row) => {
+    const parts = parseDimensionsUnits(row.dimensions_units);
+    if (!parts) return row;
+    const { dimensions_units: _dropped, ...rest } = row;
+    return { ...rest, ...parts };
+  },
+};
+
+/**
+ * The data rows inside a parsed section.
+ *
+ * Most sections put them under `table_data`, but the key is derived from the
+ * table's id, so Maui's Accessory Information — rendered by a control named
+ * grdSales — arrives under `sales`. Falling back to the first array-valued
+ * property keeps that working without naming every variant.
+ */
+export function sectionRows(sectionData: Row): Row[] {
+  const tableData = sectionData.table_data;
+  if (Array.isArray(tableData)) return tableData as Row[];
+  if (Array.isArray(sectionData)) return sectionData as Row[];
+
+  const firstArray = Object.values(sectionData).find(Array.isArray);
+  if (firstArray) return firstArray as Row[];
+
+  return [sectionData];
+}
 
 async function loadGenericSections(
   tmk: string,
@@ -1184,13 +1385,20 @@ async function loadGenericSections(
     const sectionData = data[sectionName] as Row | undefined;
     if (!sectionData) continue;
 
-    // Try table_data (multi-row) or treat the section itself as a single row
-    const rows =
-      (sectionData.table_data as Row[] | undefined) ??
-      (Array.isArray(sectionData) ? sectionData : [sectionData]);
+    const transform = SECTION_ROW_TRANSFORMS[sectionName];
+    const rows = sectionRows(sectionData).map((r) =>
+      transform ? transform(r) : r,
+    );
 
     try {
-      await loadGenericSnapshot(tmk, tableName, rows, scrapedAt, observedYear);
+      await loadGenericSnapshot(
+        tmk,
+        tableName,
+        rows,
+        scrapedAt,
+        observedYear,
+        sectionName,
+      );
     } catch {
       // Skip sections that fail to load generically — not all sections map cleanly
     }

@@ -15,6 +15,9 @@ type StatusRow = {
 
 // ─── Repair phase ──────────────────────────────────────────────────────
 
+/** Mirrors CLAIM_TIMEOUT_MINUTES in scrape-runner.ts (worker-only module). */
+const CLAIM_TIMEOUT_MINUTES = 5;
+
 /**
  * Fix inconsistent scrape_status records before parsing:
  *
@@ -26,15 +29,23 @@ type StatusRow = {
  *    re-enter the pipeline.
  */
 async function repairStatusRecords(): Promise<void> {
-  // 1. Orphaned pending scrapes → failed
+  // 1. Orphaned pending scrapes → failed.
+  //
+  //    Only rows untouched for longer than the runner's claim timeout: a row
+  //    claimed seconds ago is 'pending' because a scraper is working on it
+  //    right now, and stealing it mid-batch would have two machines fetching
+  //    the same TMK and the result recorded as a failure either way.
   const [orphaned] = await rawQuery<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM scrape_status WHERE scrape_status = 'pending'`,
+    `SELECT COUNT(*) AS cnt FROM scrape_status
+     WHERE scrape_status = 'pending'
+       AND updated_at < NOW() - INTERVAL ${CLAIM_TIMEOUT_MINUTES} MINUTE`,
   );
   if (Number(orphaned?.cnt ?? 0) > 0) {
     await rawQuery(
       `UPDATE scrape_status
        SET scrape_status = 'failed', error = 'orphaned pending record'
-       WHERE scrape_status = 'pending'`,
+       WHERE scrape_status = 'pending'
+         AND updated_at < NOW() - INTERVAL ${CLAIM_TIMEOUT_MINUTES} MINUTE`,
     );
     log.info(
       { count: Number(orphaned.cnt) },

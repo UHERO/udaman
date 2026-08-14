@@ -38,6 +38,8 @@ export type ScraperState =
   | "blocked-window"
   /** Can't write to the NAS — the runner has given up and exited. */
   | "storage-error"
+  /** Browser won't launch (bad install / version mismatch) — runner exited. */
+  | "browser-error"
   | "idle";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;

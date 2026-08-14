@@ -226,7 +226,7 @@ CREATE TABLE residential_improvements (
     -- Island-specific fields
     occupancy VARCHAR(50) COMMENT 'Honolulu only',
     framing VARCHAR(100) COMMENT 'Honolulu/Hawaii: "Framing", Maui: "Construction Type"',
-    percent_complete VARCHAR(10) COMMENT 'Maui/Kauai - format: "100%"',
+    percent_complete TINYINT UNSIGNED COMMENT 'Whole percent, 0-100 (scraped as "100%")',
     heating_cooling VARCHAR(100) COMMENT 'Maui only',
     exterior_wall VARCHAR(100) COMMENT 'Maui/Hawaii',
     roof_material VARCHAR(100) COMMENT 'Maui/Hawaii',
@@ -260,7 +260,7 @@ CREATE TABLE residential_additions (
     first TEXT,
     second TEXT,
     third TEXT,
-    area VARCHAR(20),
+    area INT UNSIGNED COMMENT 'Square feet',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed)
@@ -287,7 +287,7 @@ CREATE TABLE commercial_improvements (
     -- County-specific fields (nullable)
     building_square_footage VARCHAR(20) COMMENT 'Maui/Kauai',
     building_type VARCHAR(100) COMMENT 'Maui/Kauai',
-    percent_complete VARCHAR(10) COMMENT 'Kauai',
+    percent_complete TINYINT UNSIGNED COMMENT 'Kauai. Whole percent, 0-100',
     structure VARCHAR(100) COMMENT 'Kauai',
     value BIGINT UNSIGNED COMMENT 'Maui - assessed value in whole dollars',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
@@ -309,7 +309,7 @@ CREATE TABLE commercial_improvement_details (
     section VARCHAR(50),
     floor VARCHAR(50),
     `usage` VARCHAR(100),
-    area VARCHAR(20),
+    area INT UNSIGNED COMMENT 'Square feet',
     perimeter VARCHAR(20),
     exterior_wall VARCHAR(100),
     wall_height VARCHAR(20),
@@ -338,14 +338,18 @@ CREATE TABLE yard_improvements (
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
+    building_number VARCHAR(20) COMMENT 'Maui only',
     description VARCHAR(255),
-    quantity VARCHAR(20),
+    dimensions VARCHAR(30) COMMENT 'Maui, from the "Dimensions/Units" cell, e.g. "0x0"',
+    quantity VARCHAR(20) COMMENT 'Maui: the "/ N" part of Dimensions/Units',
     year_built SMALLINT UNSIGNED,
-    area VARCHAR(20),
+    area INT UNSIGNED COMMENT 'Square feet, EXCEPT on description = "GROSS BUILDING VALUE" rows, where qPublic puts a dollar amount in this column. Exclude those rows when analysing area. Oahu scrapes it with thousands separators; parsed on the way in',
+    percent_complete TINYINT UNSIGNED COMMENT 'Maui only. Whole percent, 0-100',
+    value BIGINT UNSIGNED COMMENT 'Assessed value. Oahu/Hawaii head this column "Gross Building Value", Maui "Value" - one column, see FIELD_ALIASES',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Other building and yard improvements (pools, etc.)';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Other building and yard improvements. Maui files the same structures under "Accessory Information" - both land here. WARNING: qPublic emits a summary row with description = "GROSS BUILDING VALUE" whose area column holds a DOLLAR amount, not square feet (values up to ~11M observed). Filter it out of any area analysis.';
 
 -- ============================================================================
 -- PERMITS
@@ -409,7 +413,12 @@ CREATE TABLE current_tax_bills (
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed),
-    INDEX idx_tax_period (tax_period)
+    INDEX idx_tax_period (tax_period),
+    -- One bill per period per parcel. Note MySQL allows repeated NULLs in a
+    -- UNIQUE key, so this does NOT catch qPublic's blank-period rollup row —
+    -- realTaxBillRows() filtering that out on the way in is the real defence,
+    -- and this key is what makes the load an upsert rather than an append.
+    UNIQUE KEY unique_tax_bill (tmk, tax_period)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Current tax bill information';
 
 -- ============================================================================
@@ -553,7 +562,7 @@ CREATE TABLE accessory_structures (
     building_number VARCHAR(10),
     description VARCHAR(255),
     dimensions_units VARCHAR(50),
-    percent_complete VARCHAR(10),
+    percent_complete TINYINT UNSIGNED COMMENT 'Whole percent, 0-100',
     value BIGINT UNSIGNED COMMENT 'Structure value in whole dollars',
     year_built SMALLINT UNSIGNED,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
@@ -572,7 +581,9 @@ CREATE TABLE dedications (
     number_of_dedications VARCHAR(100) COMMENT 'e.g., "RESIDENTIAL USE(1)" or "AG DEDI - 10 YEARS(2) · AG DEDI - 5 YEARS(1)"',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
-    INDEX idx_tax_year (tax_year)
+    INDEX idx_tax_year (tax_year),
+    -- One dedication row per parcel per tax year.
+    UNIQUE KEY unique_dedication (tmk, tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Dedications (Oahu only)';
 
 -- ============================================================================

@@ -25,6 +25,12 @@ import {
   getAssessmentPropertyClass,
   int,
   parseDateValue,
+  COLUMN_VALUE_PARSERS,
+  parsePercent,
+  realTaxBillRows,
+  resolveColumnName,
+  SECTION_ROW_TRANSFORMS,
+  sectionRows,
   sqlDate,
   str,
   unitParcelToTmk,
@@ -279,10 +285,14 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
     "tmk",
     "scraped_at",
     "last_year_observed",
+    "building_number",
     "description",
+    "dimensions",
     "quantity",
     "year_built",
     "area",
+    "percent_complete",
+    "value",
   ],
   residential_additions: [
     "tmk",
@@ -536,7 +546,7 @@ function extractResidentialImprovements(items: ExtractItem[]): SqlValue[][] {
         int(b.half_bath),
         str(b.occupancy),
         str(b.framing),
-        str(b.percent_complete),
+        parsePercent(b.percent_complete),
         str(b.heating_cooling),
         str(b.exterior_wall),
         str(b.roof_material),
@@ -606,7 +616,8 @@ function extractCurrentTaxBills(items: ExtractItem[]): SqlValue[][] {
   for (const { tmk, data, scrapedAt, observedYear } of items) {
     const taxBillInfo = data.current_tax_bill_information as Row | undefined;
     if (!taxBillInfo) continue;
-    const bills = (taxBillInfo.table_data ?? []) as Row[];
+    // Same rollup filter the row-by-row loader applies — see realTaxBillRows.
+    const bills = realTaxBillRows((taxBillInfo.table_data ?? []) as Row[]);
     const scrapedAtStr = sqlDate(scrapedAt);
     for (const b of bills) {
       rows.push([
@@ -665,7 +676,7 @@ function extractCommercialImprovements(items: ExtractItem[]): {
         str(b.gross_building_description),
         str(b.building_type),
         str(b.building_square_footage),
-        str(b.percent_complete),
+        parsePercent(b.percent_complete),
         int(b.value),
       ]);
 
@@ -679,7 +690,7 @@ function extractCommercialImprovements(items: ExtractItem[]): {
           str(d.section),
           str(d.floor),
           str(d.usage),
-          str(d.area),
+          int(d.area),
           str(d.perimeter),
           str(d.exterior_wall),
           str(d.wall_height),
@@ -851,9 +862,11 @@ function extractGenericSection(
     const sectionData = data[sectionName] as Row | undefined;
     if (!sectionData) continue;
 
-    const rows =
-      (sectionData.table_data as Row[] | undefined) ??
-      (Array.isArray(sectionData) ? sectionData : [sectionData]);
+    // Same row lookup and rewrites as the row-by-row loader.
+    const transform = SECTION_ROW_TRANSFORMS[sectionName];
+    const rows = sectionRows(sectionData).map((r) =>
+      transform ? transform(r) : r,
+    );
 
     for (const row of rows) {
       const matched: Record<string, SqlValue> = { tmk };
@@ -865,14 +878,23 @@ function extractGenericSection(
           .toLowerCase()
           .replace(/[^\w\s]/g, "")
           .replace(/\s+/g, "_");
+        // Same prefix handling as the row-by-row loader — see resolveColumnName.
+        const column = resolveColumnName(snakeKey, columnSet, [
+          sectionName,
+          tableName,
+        ]);
         if (
-          columnSet.has(snakeKey) &&
-          snakeKey !== "tmk" &&
-          snakeKey !== "scraped_at" &&
-          snakeKey !== "last_year_observed"
+          column &&
+          column !== "tmk" &&
+          column !== "scraped_at" &&
+          column !== "last_year_observed"
         ) {
-          matched[snakeKey] =
-            value === null || value === undefined ? null : String(value);
+          const parse = COLUMN_VALUE_PARSERS[column];
+          matched[column] = parse
+            ? parse(value)
+            : value === null || value === undefined
+              ? null
+              : String(value);
         }
       }
 

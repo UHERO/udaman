@@ -1,4 +1,8 @@
-import { getPage, releasePage } from "@/core/crawlers/qpub/browser";
+import {
+  BrowserUnavailableError,
+  getPage,
+  releasePage,
+} from "@/core/crawlers/qpub/browser";
 import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
@@ -14,6 +18,8 @@ export type ScrapeResult = {
   page?: Page; // set when captcha/blocked — caller owns this page
   /** The HTML couldn't be written to disk — the runner should stop. */
   storageFailure?: boolean;
+  /** The browser wouldn't start — the runner should stop. */
+  browserUnavailable?: boolean;
   /**
    * The fetch succeeded but qPublic has no parcel at this TMK. Reported as a
    * success — it was a good request, and it resets the captcha streak — with
@@ -28,7 +34,21 @@ export async function processScrape(
 ): Promise<ScrapeResult> {
   const { tmk, url } = data;
 
-  const page = await getPage();
+  // Outside the try below on purpose — there is no page to release if this
+  // fails. Reported as a result rather than thrown so the runner can stop:
+  // letting it propagate left the claimed row stuck at 'pending' with nothing
+  // written, and the loop span straight on to claim three more.
+  let page: Page;
+  try {
+    page = await getPage();
+  } catch (e) {
+    if (e instanceof BrowserUnavailableError) {
+      log(`${tmk}: ${e.message}`);
+      return { status: "error", error: e.message, browserUnavailable: true };
+    }
+    throw e;
+  }
+
   let handedOff = false;
   try {
     const result = await scrapeTmk(page, tmk, url);

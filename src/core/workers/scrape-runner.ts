@@ -17,13 +17,14 @@ import { rawQuery } from "@/lib/mysql/hhdb";
 import { processScrape, type ScrapeResult } from "./processors/qpub-scrape";
 import {
   flushHeartbeat,
+  type ScraperState,
   recordCaptcha,
   recordScraped,
   setScraperState,
   startHeartbeat,
   stopHeartbeat,
 } from "./scraper-heartbeat";
-import { WORKER_NAME, workerBindings } from "./worker-identity";
+import { tagWithWorker, WORKER_NAME, workerBindings } from "./worker-identity";
 
 const log = createLogger("scrape-runner", workerBindings());
 
@@ -34,6 +35,8 @@ const MAX_RETRIES = 10;
 const SCRAPE_CUTOFF_HOUR = 22; // 10pm — stop scraping for the day
 const WEEKLY_SLEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const RETRY_SLEEP_MS = 30_000;
+/** Floor delay after a batch that scraped nothing, so the loop can't spin. */
+const EMPTY_BATCH_SLEEP_MS = 30_000;
 const CAPTCHA_DELAY_MS = 5 * 60_000;
 
 // Captchas cluster: once one appears the next requests usually get them too,
@@ -112,6 +115,37 @@ async function claimItems(): Promise<ClaimedItem[]> {
   );
 
   return rows;
+}
+
+/**
+ * Hand back claims that produced no result.
+ *
+ * claimItems() marks a row 'pending' up front, and only a completed
+ * processScrape moves it off that state. Anything still 'pending' after the
+ * batch settled was abandoned — the browser wouldn't start, or the page came
+ * back a captcha (whose branch bumps retry_count but never clears 'pending').
+ * Left alone those rows are stranded forever: 'pending' is excluded from
+ * claiming, so nothing ever picks them up again.
+ *
+ * Any existing error is preserved — a captcha's message is more useful than
+ * this one.
+ */
+async function releaseUnfinishedClaims(tmks: string[]): Promise<number> {
+  if (tmks.length === 0) return 0;
+
+  const placeholders = tmks.map(() => "?").join(",");
+  const result = (await rawQuery(
+    `UPDATE scrape_status
+     SET scrape_status = 'failed', error = COALESCE(error, ?)
+     WHERE tmk IN (${placeholders}) AND scrape_status = 'pending'`,
+    [tagWithWorker("claim abandoned without a result"), ...tmks],
+  )) as unknown as { affectedRows?: number };
+
+  const released = result?.affectedRows ?? 0;
+  if (released > 0) {
+    log.warn({ released }, "Released claims that finished without a result");
+  }
+  return released;
 }
 
 // ─── Time helpers ──────────────────────────────────────────────────────
@@ -269,13 +303,17 @@ async function countStale(): Promise<number> {
  * sees the failure, and leaves the heartbeat row in place — deleting it would
  * erase the only record of which machine stopped and why.
  */
-async function halt(reason: string, detail: string): Promise<never> {
+async function halt(
+  reason: string,
+  detail: string,
+  state: ScraperState = "storage-error",
+): Promise<never> {
   fatalError = reason;
   running = false;
   shuttingDown = true;
 
   log.error({ worker: WORKER_NAME, reason }, "Fatal error — stopping runner");
-  setScraperState("storage-error", detail);
+  setScraperState(state, detail);
   await flushHeartbeat();
 
   await closeBrowser();
@@ -404,6 +442,25 @@ async function run() {
     await disposeCaptchaPages(results);
     tallyCaptchas(results);
 
+    // Before anything else: nothing claimed may stay 'pending' past its batch.
+    await releaseUnfinishedClaims(claimed.map((c) => c.tmk));
+
+    // A browser that won't start is a machine problem, not a parcel problem.
+    // Every TMK after it would fail identically, and the loop has no delay of
+    // its own — this is what let a version-mismatched install spin through
+    // thousands of claims in minutes.
+    const browserDead = results.find(
+      (r) => r.status === "fulfilled" && r.value?.browserUnavailable,
+    );
+    if (browserDead?.status === "fulfilled") {
+      await halt(
+        browserDead.value?.error ?? "Browser unavailable",
+        "browser will not start — check the Playwright install",
+        "browser-error",
+      );
+      return;
+    }
+
     // 9. A save that failed means this machine can't keep what it scrapes —
     //    the rows are already marked failed, so stop before claiming more.
     const storageFailure = results.find(
@@ -420,6 +477,21 @@ async function run() {
     // 10. Escalate to a long backoff once captchas stack up; otherwise fall
     //    back to the short pause when this batch saw any captcha/block.
     if (await captchaBackoffIfNeeded()) continue;
+
+    // Belt and braces: any batch that yields nothing waits before claiming
+    // again. The specific spin above is handled by halt(), but the loop should
+    // never be able to hammer the claim query at full speed regardless of why
+    // a batch came back empty.
+    const anySuccess = results.some(
+      (r) => r.status === "fulfilled" && r.value?.status === "success",
+    );
+    if (!anySuccess) {
+      log.warn(
+        { batchSize: claimed.length },
+        "Batch produced no successful scrapes — pausing before the next claim",
+      );
+      await sleep(EMPTY_BATCH_SLEEP_MS);
+    }
 
     const wasBlocked = results.some(
       (r) =>

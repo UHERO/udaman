@@ -421,6 +421,18 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
         const kvData = extractTwoColumnTable(table);
         Object.assign(sectionData, kvData);
       } else if (isMultiRowTable(table)) {
+        // A section's sub-table is named from the table's HTML id, not from
+        // the section it sits in. That is deliberate for sales: some counties
+        // head the same table "Conveyance Information", and loadSales() reads
+        // `.sales` off either section because both ids contain "Sales".
+        //
+        // It also means the name can collide. qPublic renders Maui's Accessory
+        // Information with a control called grdSales, so those rows arrive
+        // under `sales` rather than `table_data` despite having nothing to do
+        // with sales. Measured across 301 pages, "Sales" is the only branch
+        // that collides ("AllOwners" and "Valuation" never appeared outside
+        // their own sections), and consumers should reach for rows via
+        // sectionRows() rather than assuming `table_data`.
         const tableId = table.id || "table";
         let tableName = "data";
 

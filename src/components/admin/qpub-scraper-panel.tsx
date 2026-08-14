@@ -163,6 +163,8 @@ const STATE_STYLES: Record<string, string> = {
   "captcha-pause": "bg-orange-100 text-orange-800",
   // The runner has exited: it couldn't write scraped HTML to the NAS.
   "storage-error": "bg-red-200 font-semibold text-red-900",
+  // The runner has exited: the browser wouldn't launch.
+  "browser-error": "bg-red-200 font-semibold text-red-900",
   sleeping: "bg-blue-100 text-blue-800",
   "blocked-window": "bg-blue-100 text-blue-800",
   idle: "bg-gray-100 text-gray-800",
@@ -184,6 +186,7 @@ function ScraperInstances({
   // A halted runner stops heartbeating, so it goes inactive within a couple of
   // minutes — search all instances, not just the active ones.
   const storageStuck = instances.filter((i) => i.state === "storage-error");
+  const browserStuck = instances.filter((i) => i.state === "browser-error");
 
   return (
     <Section
@@ -218,6 +221,18 @@ function ScraperInstances({
         </>
       }
     >
+      {browserStuck.length > 0 && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+          {browserStuck.map((i) => i.workerName).join(", ")} stopped — the
+          browser would not launch. Re-run{" "}
+          <code className="rounded bg-red-100 px-1 py-0.5 text-xs">
+            bunx playwright install
+          </code>{" "}
+          on{" "}
+          {browserStuck.length === 1 ? "that machine" : "those machines"} and
+          restart the scraper.
+        </div>
+      )}
       {storageStuck.length > 0 && (
         <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
           {storageStuck.map((i) => i.workerName).join(", ")} stopped — could not
@@ -279,7 +294,11 @@ function ScraperInstances({
                   >
                     {/* A storage error is why the worker stopped; showing it
                         as "stale" would hide the one thing worth reading. */}
-                    {i.active || i.state === "storage-error" ? i.state : "stale"}
+                    {i.active ||
+                    i.state === "storage-error" ||
+                    i.state === "browser-error"
+                      ? i.state
+                      : "stale"}
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground max-w-60 truncate text-xs">
