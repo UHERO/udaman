@@ -3,7 +3,7 @@ export interface HhdbYardImprovementAttrs {
   tmk?: string | null;
   scraped_at?: Date | string | null;
   description?: string | null;
-  quantity?: string | null;
+  quantity?: number | null;
   year_built?: number | null;
   area?: string | null;
 }
@@ -13,7 +13,7 @@ export class HhdbYardImprovement {
   tmk: string | null;
   scrapedAt: Date | null;
   description: string | null;
-  quantity: string | null;
+  quantity: number | null;
   yearBuilt: number | null;
   area: string | null;
 
@@ -22,7 +22,7 @@ export class HhdbYardImprovement {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.description = attrs.description ?? null;
-    this.quantity = attrs.quantity ?? null;
+    this.quantity = attrs.quantity != null ? Number(attrs.quantity) : null;
     this.yearBuilt = attrs.year_built != null ? Number(attrs.year_built) : null;
     this.area = attrs.area ?? null;
   }
@@ -52,7 +52,7 @@ export function hhdbYardImprovementRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     description: attrs.description ?? null,
-    quantity: attrs.quantity ?? null,
+    quantity: attrs.quantity != null ? Number(attrs.quantity) : null,
     yearBuilt: attrs.year_built != null ? Number(attrs.year_built) : null,
     area: attrs.area ?? null,
   };

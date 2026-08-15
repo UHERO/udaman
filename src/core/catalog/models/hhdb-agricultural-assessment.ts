@@ -2,8 +2,8 @@ export interface HhdbAgriculturalAssessmentAttrs {
   id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
-  acres?: string | null;
-  acres_in_production?: string | null;
+  acres?: number | null;
+  acres_in_production?: number | null;
   agricultural_type?: string | null;
   agricultural_value?: number | null;
   assessed_value?: number | null;
@@ -15,8 +15,8 @@ export class HhdbAgriculturalAssessment {
   id: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
-  acres: string | null;
-  acresInProduction: string | null;
+  acres: number | null;
+  acresInProduction: number | null;
   agriculturalType: string | null;
   agriculturalValue: number | null;
   assessedValue: number | null;
@@ -27,8 +27,11 @@ export class HhdbAgriculturalAssessment {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
-    this.acres = attrs.acres ?? null;
-    this.acresInProduction = attrs.acres_in_production ?? null;
+    this.acres = attrs.acres != null ? Number(attrs.acres) : null;
+    this.acresInProduction =
+      attrs.acres_in_production != null
+        ? Number(attrs.acres_in_production)
+        : null;
     this.agriculturalType = attrs.agricultural_type ?? null;
     this.agriculturalValue =
       attrs.agricultural_value != null
@@ -69,8 +72,11 @@ export function hhdbAgriculturalAssessmentRowToJSON(
     scrapedAt: attrs.scraped_at
       ? new Date(attrs.scraped_at).toISOString()
       : null,
-    acres: attrs.acres ?? null,
-    acresInProduction: attrs.acres_in_production ?? null,
+    acres: attrs.acres != null ? Number(attrs.acres) : null,
+    acresInProduction:
+      attrs.acres_in_production != null
+        ? Number(attrs.acres_in_production)
+        : null,
     agriculturalType: attrs.agricultural_type ?? null,
     agriculturalValue:
       attrs.agricultural_value != null

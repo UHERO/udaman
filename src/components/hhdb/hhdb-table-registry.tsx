@@ -3,7 +3,6 @@
 import type { HhdbListParams } from "@catalog/types/hhdb";
 
 import {
-  getHhdbAccessoryStructures,
   getHhdbAgriculturalAssessments,
   getHhdbAppeals,
   getHhdbAssessments,
@@ -27,7 +26,6 @@ import {
   getHhdbSales,
   getHhdbYardImprovements,
 } from "@/actions/hhdb";
-import { AccessoryStructuresTable } from "@/components/hhdb/tables/accessory-structures-table";
 import { AgriculturalAssessmentsTable } from "@/components/hhdb/tables/agricultural-assessments-table";
 import { AppealsTable } from "@/components/hhdb/tables/appeals-table";
 import { AssessmentsTable } from "@/components/hhdb/tables/assessments-table";
@@ -149,10 +147,6 @@ const REGISTRY: Record<string, TableEntry> = {
   "ag-assessments": {
     action: getHhdbAgriculturalAssessments,
     render: (p) => <AgriculturalAssessmentsTable {...p} />,
-  },
-  "accessory-structures": {
-    action: getHhdbAccessoryStructures,
-    render: (p) => <AccessoryStructuresTable {...p} />,
   },
   "commercial-details": {
     action: getHhdbCommercialDetails,

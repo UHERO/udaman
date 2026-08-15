@@ -18,7 +18,6 @@ import {
   Command,
   CreditCard,
   DollarSign,
-  Fence,
   FileText,
   FunctionSquare,
   GalleryVerticalEnd,
@@ -199,11 +198,6 @@ const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
     title: "Agg. Assessments",
     url: "/hhdb/tables/ag-assessments",
     icon: Wheat,
-  },
-  {
-    title: "Accessories",
-    url: "/hhdb/tables/accessory-structures",
-    icon: Fence,
   },
   {
     title: "Commercial Details",

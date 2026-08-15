@@ -53,7 +53,6 @@ const ALL_DATA_TABLES: string[] = [
   "yard_improvements",
   "residential_additions",
   "agricultural_assessments",
-  "accessory_structures",
   "appeals",
   "dedications",
 ];

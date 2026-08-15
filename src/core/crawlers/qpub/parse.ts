@@ -11,7 +11,7 @@ import type { HTMLElement } from "node-html-parser";
 
 import { getIslandCode } from "./config";
 import { normalizeProperty } from "./normalize-property";
-import { SECTION_PARSERS } from "./parse-sections";
+import { SECTION_KEY_ALIASES, SECTION_PARSERS } from "./parse-sections";
 import {
   cleanText,
   hasNoParcelRecord,
@@ -39,6 +39,10 @@ function detectPageStatus(html: string, root: HTMLElement): string {
     return "captcha";
   }
 
+  if (htmlLower.includes("<title>you are not authorized")) {
+    return "unauthorized";
+  }
+
   if (!root.querySelector("body") || html.length < 5000) {
     return "failed";
   }
@@ -52,20 +56,31 @@ function detectPageStatus(html: string, root: HTMLElement): string {
     return "condo_project";
   }
 
-  const strongTags = root.querySelectorAll("strong");
-  const hasParcelNumber = Array.from(strongTags).some(
-    (tag) => tag.textContent && tag.textContent.includes("Parcel Number"),
-  );
-
-  if (hasParcelNumber) {
-    // A page for a TMK the county has no record of still renders the report
-    // shell, title and the words "Parcel Number", so it reaches this point
-    // looking like a success. Extracting it would write an empty properties
-    // row over a real one.
-    return hasNoParcelRecord(html) ? "no_record" : "success";
+  // A page for a TMK the county has no record of still renders the report
+  // shell and title, so nothing cheaper than the footer notice separates it.
+  // Checked ahead of the Parcel Number row because the phantom page's Parcel
+  // Information module comes back empty — no row, no label — which would
+  // otherwise land it in "unknown" and hide it among genuine parse failures.
+  if (hasNoParcelRecord(html)) {
+    return "no_record";
   }
 
-  return "unknown";
+  // qPublic answers a TMK it can't resolve at all with the search page rather
+  // than a report. Distinct from no_record: there is no parcel shell at all.
+  if (html.includes("No results match your search criteria")) {
+    return "no_results";
+  }
+
+  // Whitespace-collapsed: qPublic serves this label as "Parcel  Number" (two
+  // spaces) on a minority of Oahu pages. Matching the raw text dropped 2,318
+  // otherwise-complete profiles in the 2026-1 rebuild.
+  const hasParcelNumber = root
+    .querySelectorAll("strong")
+    .some((tag) =>
+      (tag.textContent ?? "").replace(/\s+/g, " ").includes("Parcel Number"),
+    );
+
+  return hasParcelNumber ? "success" : "unknown";
 }
 
 /**
@@ -391,8 +406,11 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
   const islandCode = getIslandCode(tmk);
 
   sections.forEach((section) => {
-    const sectionTitle = getSectionTitle(section);
-    if (!sectionTitle) return;
+    const rawTitle = getSectionTitle(section);
+    if (!rawTitle) return;
+    // Remap county-specific titles (e.g. Kauai's "Historical Payment
+    // Information") to the canonical section key consumers read.
+    const sectionTitle = SECTION_KEY_ALIASES[rawTitle] ?? rawTitle;
 
     const sectionData: Record<string, unknown> = {};
 

@@ -16,7 +16,7 @@ export interface HhdbPropertyAttrs {
   reentry_zone?: string | null;
   zone_color?: string | null;
   non_taxable_status?: string | null;
-  living_units?: string | null;
+  living_units?: number | null;
   zip?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -44,7 +44,7 @@ export class HhdbProperty {
   reentryZone: string | null;
   zoneColor: string | null;
   nonTaxableStatus: string | null;
-  livingUnits: string | null;
+  livingUnits: number | null;
   zip: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -73,7 +73,8 @@ export class HhdbProperty {
     this.reentryZone = attrs.reentry_zone ?? null;
     this.zoneColor = attrs.zone_color ?? null;
     this.nonTaxableStatus = attrs.non_taxable_status ?? null;
-    this.livingUnits = attrs.living_units ?? null;
+    this.livingUnits =
+      attrs.living_units != null ? Number(attrs.living_units) : null;
     this.zip = attrs.zip ?? null;
     this.latitude = attrs.latitude != null ? Number(attrs.latitude) : null;
     this.longitude = attrs.longitude != null ? Number(attrs.longitude) : null;
@@ -139,7 +140,8 @@ export function hhdbPropertyRowToJSON(
     reentryZone: attrs.reentry_zone ?? null,
     zoneColor: attrs.zone_color ?? null,
     nonTaxableStatus: attrs.non_taxable_status ?? null,
-    livingUnits: attrs.living_units ?? null,
+    livingUnits:
+      attrs.living_units != null ? Number(attrs.living_units) : null,
     zip: attrs.zip ?? null,
     latitude: attrs.latitude != null ? Number(attrs.latitude) : null,
     longitude: attrs.longitude != null ? Number(attrs.longitude) : null,

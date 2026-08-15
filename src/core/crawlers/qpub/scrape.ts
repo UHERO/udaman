@@ -212,11 +212,18 @@ export type SavedFileVerdict =
   | "valid"
   /** Fetched fine, but the county has no parcel at this TMK. */
   | "no-record"
+  /** Fetched fine; qPublic couldn't resolve the TMK to a parcel at all. */
+  | "no-results"
   | "cloudflare-challenge"
   | "cloudflare-block"
   | "captcha"
+  /** qPublic's own refusal page — not Cloudflare, and it carries no profile. */
+  | "unauthorized"
   | "shell"
   | "unknown";
+
+/** Marker qPublic prints in place of a report when a TMK resolves to nothing. */
+const NO_RESULTS_MARKER = "No results match your search criteria";
 
 /** Bytes of the file the verdict can be reached from. */
 export const CLASSIFY_HEAD_BYTES = 32 * 1024;
@@ -261,10 +268,22 @@ export function classifySavedHtml(
 
   const titleMatch = head.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const title = titleMatch?.[1]?.trim() ?? "";
+
+  if (title.startsWith("You are not authorized")) {
+    return "unauthorized";
+  }
+
   if (title.includes("qPublic") && title.includes("Report:")) {
     // A phantom parcel gets this far — same title, same shell. Only the
     // footer notice separates it, which is why the tail is read at all.
     return tail && hasNoParcelRecord(tail) ? "no-record" : "valid";
+  }
+
+  // Same shell, but the title loses its ": <parcel>" suffix and the report
+  // body is replaced by the search page's notice. The marker sits ~13 KB from
+  // EOF on these — inside the tail, well past the head.
+  if (title.includes("qPublic") && tail?.includes(NO_RESULTS_MARKER)) {
+    return "no-results";
   }
 
   if (

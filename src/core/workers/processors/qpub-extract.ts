@@ -191,7 +191,6 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
     "perimeter",
     "exterior_wall",
     "wall_height",
-    "occupancy",
   ],
   sales: [
     "tmk",
@@ -318,17 +317,6 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
     "description",
     "use_description",
   ],
-  accessory_structures: [
-    "tmk",
-    "scraped_at",
-    "last_year_observed",
-    "building_number",
-    "description",
-    "dimensions_units",
-    "percent_complete",
-    "value",
-    "year_built",
-  ],
   appeals: [
     "tmk",
     "scraped_at",
@@ -394,7 +382,7 @@ function extractProperties(items: ExtractItem[]): SqlValue[][] {
       str(parcel.reentry_zone),
       str(parcel.zone_color),
       str(parcel.non_taxable_status),
-      str(parcel.living_units),
+      int(parcel.living_units),
       str(mapSection?.map_url),
       str(sketchSection?.sketch_url),
     ]);
@@ -437,7 +425,7 @@ function extractParcels(items: ExtractItem[]): SqlValue[][] {
       str(parcel.reentry_zone),
       str(parcel.zone_color),
       str(parcel.non_taxable_status),
-      str(parcel.living_units),
+      int(parcel.living_units),
     ]);
   }
   return rows;
@@ -514,8 +502,8 @@ function extractLandClassifications(items: ExtractItem[]): SqlValue[][] {
         scrapedAtStr,
         observedYear,
         str(c.land_classification),
-        str(c.square_footage),
-        str(c.acreage),
+        int(c.square_footage),
+        dec(c.acreage),
         str(c.agricultural_use_indicator),
       ]);
     }
@@ -537,7 +525,7 @@ function extractResidentialImprovements(items: ExtractItem[]): SqlValue[][] {
         tmk,
         scrapedAtStr,
         observedYear,
-        str(b.building_number),
+        int(b.building_number),
         str(b.year_built),
         str(b.eff_year_built),
         int(b.living_area),
@@ -553,11 +541,11 @@ function extractResidentialImprovements(items: ExtractItem[]): SqlValue[][] {
         str(b.fireplace),
         str(b.grade),
         str(b.building_value),
-        str(b.total_room_count),
+        int(b.total_room_count),
         str(b.condo_style ?? b.condo_type),
         str(b.condo_view),
-        str(b.floor_level ?? b.condo_floor_number),
-        str(b.parking_spaces),
+        int(b.floor_level ?? b.condo_floor_number),
+        dec(b.parking_spaces),
       ]);
     }
   }
@@ -665,17 +653,17 @@ function extractCommercialImprovements(items: ExtractItem[]): {
         scrapedAtStr,
         observedYear,
         str(b.building_number),
-        str(b.building_card),
+        int(b.building_card),
         int(b.year_built),
         int(b.effective_year_built),
         str(b.improvement_name),
         str(b.property_class),
         str(b.structure_type),
-        str(b.units),
-        str(b.identical_units),
+        int(b.units),
+        int(b.identical_units),
         str(b.gross_building_description),
         str(b.building_type),
-        str(b.building_square_footage),
+        int(b.building_square_footage),
         parsePercent(b.percent_complete),
         int(b.value),
       ]);
@@ -686,15 +674,14 @@ function extractCommercialImprovements(items: ExtractItem[]): {
           tmk,
           scrapedAtStr,
           observedYear,
-          str(d.card),
+          int(d.card),
           str(d.section),
           str(d.floor),
           str(d.usage),
           int(d.area),
-          str(d.perimeter),
+          int(d.perimeter),
           str(d.exterior_wall),
-          str(d.wall_height),
-          str(d.occupancy),
+          int(d.wall_height),
         ]);
       }
     }
@@ -775,7 +762,7 @@ function extractHistoricalTax(items: ExtractItem[]): {
           summaryId,
           tmk,
           scrapedAtStr,
-          str(p.payment_sequence),
+          int(p.payment_sequence),
           parseDateValue(str(p.effective_date)),
           dec(p.tax),
           dec(p.penalty),
@@ -833,6 +820,9 @@ function extractCondominium(items: ExtractItem[]): {
       const unitParcel = str(unit.parcel_number);
       if (!unitParcel) continue;
       const unitTmk = unitParcelToTmk(tmk, unitParcel);
+      // No TMK, no row: a roster line we can't read an identifier from is
+      // dropped rather than filed under a guessed one.
+      if (!unitTmk) continue;
       stubProperties.push([unitTmk, islandCode]);
       units.push([unitTmk, tmk, str(unit.unit_number), str(unit.owner_name)]);
     }
@@ -1011,7 +1001,6 @@ export function initStagingDir(stagingDir: string): void {
     "yard_improvements",
     "residential_additions",
     "agricultural_assessments",
-    "accessory_structures",
     "appeals",
     "dedications",
   ];

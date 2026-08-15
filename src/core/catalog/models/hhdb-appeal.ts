@@ -8,7 +8,8 @@ export interface HhdbAppealAttrs {
   date_settled?: Date | string | null;
   final_value?: number | null;
   tax_payer_opinion_of_value?: number | null;
-  tax_payer_opinion_of_property_class?: string | null;
+  /** Maui numeric class code 0-12 (see data dictionary for the mapping) */
+  tax_payer_opinion_of_property_class?: number | null;
   tax_payer_opinion_of_exemptions?: number | null;
 }
 
@@ -22,7 +23,7 @@ export class HhdbAppeal {
   dateSettled: Date | null;
   finalValue: number | null;
   taxPayerOpinionOfValue: number | null;
-  taxPayerOpinionOfPropertyClass: string | null;
+  taxPayerOpinionOfPropertyClass: number | null;
   taxPayerOpinionOfExemptions: number | null;
 
   constructor(attrs: HhdbAppealAttrs) {
@@ -41,7 +42,9 @@ export class HhdbAppeal {
         ? Number(attrs.tax_payer_opinion_of_value)
         : null;
     this.taxPayerOpinionOfPropertyClass =
-      attrs.tax_payer_opinion_of_property_class ?? null;
+      attrs.tax_payer_opinion_of_property_class != null
+        ? Number(attrs.tax_payer_opinion_of_property_class)
+        : null;
     this.taxPayerOpinionOfExemptions =
       attrs.tax_payer_opinion_of_exemptions != null
         ? Number(attrs.tax_payer_opinion_of_exemptions)
@@ -86,7 +89,9 @@ export function hhdbAppealRowToJSON(attrs: HhdbAppealAttrs): HhdbAppealJSON {
         ? Number(attrs.tax_payer_opinion_of_value)
         : null,
     taxPayerOpinionOfPropertyClass:
-      attrs.tax_payer_opinion_of_property_class ?? null,
+      attrs.tax_payer_opinion_of_property_class != null
+        ? Number(attrs.tax_payer_opinion_of_property_class)
+        : null,
     taxPayerOpinionOfExemptions:
       attrs.tax_payer_opinion_of_exemptions != null
         ? Number(attrs.tax_payer_opinion_of_exemptions)

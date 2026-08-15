@@ -23,6 +23,7 @@ import {
   getFileMtime,
   getJsonPath,
   listHtmlFiles,
+  QPUB_CONFIG,
   tmkFromFilePath,
 } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
@@ -83,26 +84,56 @@ function localAuthArgs(): string[] {
 
 // ─── File Collection ────────────────────────────────────────────────
 
+/**
+ * One HTML file per TMK, newest period first.
+ *
+ * listHtmlFiles yields periods newest-first, so the first path seen for a TMK
+ * is the freshest one and later periods must not overwrite it. This used to be
+ * an unconditional set(), which — because readdir returned ['2026-1','2025-2']
+ * — rebuilt 585,638 of 590,129 properties from the *previous* period's HTML
+ * with nothing in the logs to say so.
+ */
 function collectFiles(period?: string, island?: string): Map<string, string> {
   const fileMap = new Map<string, string>();
   for (const filePath of listHtmlFiles(period, island)) {
     const tmk = tmkFromFilePath(filePath);
-    fileMap.set(tmk, filePath);
+    if (!fileMap.has(tmk)) fileMap.set(tmk, filePath);
   }
   return fileMap;
 }
 
+/** How many of the chosen files came from each period — logged, never silent. */
+function countByPeriod(fileMap: Map<string, string>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  const htmlRoot = `/${QPUB_CONFIG.HTML_DIR}/`;
+  for (const filePath of fileMap.values()) {
+    const after = filePath.split(htmlRoot)[1] ?? "";
+    const p = after.split("/")[0] || "unknown";
+    counts[p] = (counts[p] ?? 0) + 1;
+  }
+  return counts;
+}
+
 // ─── Parse Helpers ──────────────────────────────────────────────────
 
-function parseAndWriteJson(
-  tmk: string,
-  filePath: string,
-): ParsedProperty | null {
+/**
+ * Why a TMK produced no data, or the data itself.
+ *
+ * The rejected status is carried rather than collapsed to null: it is the only
+ * thing that separates a phantom parcel from a blocked page from a parser bug,
+ * and folding all three into one "non-success" bucket is what made the 2026-1
+ * run's 10,246 errors unreadable without re-parsing every file by hand.
+ */
+type ParseOutcome =
+  | { ok: true; parsed: ParsedProperty }
+  | { ok: false; status: string };
+
+function parseAndWriteJson(tmk: string, filePath: string): ParseOutcome {
   const html = readFileSync(filePath, "utf-8");
   const parsed = parsePropertyHTML(html, tmk);
 
   if (parsed.status !== "success" && parsed.status !== "condo_project") {
-    return null;
+    return { ok: false, status: parsed.status };
   }
 
   const jsonDir = getJsonPath(tmk);
@@ -111,17 +142,17 @@ function parseAndWriteJson(
   }
   writeFileSync(
     path.join(jsonDir, `${tmk}.json`),
-    JSON.stringify(parsed, null, 2),
+    JSON.stringify({ ...parsed, source_html: filePath }, null, 2),
   );
 
-  return parsed;
+  return { ok: true, parsed };
 }
 
 function parseOrReadCached(
   tmk: string,
   htmlPath: string,
   forceParse: boolean,
-): ParsedProperty | null {
+): ParseOutcome {
   if (!forceParse) {
     const jsonDir = getJsonPath(tmk);
     const jsonFile = path.join(jsonDir, `${tmk}.json`);
@@ -135,8 +166,16 @@ function parseOrReadCached(
           const data = JSON.parse(
             readFileSync(jsonFile, "utf-8"),
           ) as ParsedProperty;
-          if (data.status === "success" || data.status === "condo_project") {
-            return data;
+          // A JSON newer than the HTML is not on its own proof the two match:
+          // the 2026-1 run wrote 2025-2 parses into the 2026-1 JSON tree, so
+          // every one of those files looks fresh against the HTML it is not
+          // derived from. Cache hits require the recorded source to be the
+          // file we were about to parse; pre-stamp JSON always re-parses.
+          const sameSource = data.source_html === htmlPath;
+          const usable =
+            data.status === "success" || data.status === "condo_project";
+          if (sameSource && usable) {
+            return { ok: true, parsed: data };
           }
         }
       } catch {
@@ -200,15 +239,15 @@ function parseBatchToItems(
   for (const tmk of tmks) {
     const filePath = fileMap.get(tmk)!;
     try {
-      const parsed = parseOrReadCached(tmk, filePath, forceParse);
-      if (!parsed) {
-        parseErrors.push({ tmk, error: "Parse returned non-success status" });
+      const outcome = parseOrReadCached(tmk, filePath, forceParse);
+      if (!outcome.ok) {
+        parseErrors.push({ tmk, error: `Parse status: ${outcome.status}` });
         continue;
       }
 
       const scrapedAt = getFileMtime(filePath);
-      const observedYear = getMaxTaxYear(parsed);
-      items.push({ tmk, data: parsed, scrapedAt, observedYear });
+      const observedYear = getMaxTaxYear(outcome.parsed);
+      items.push({ tmk, data: outcome.parsed, scrapedAt, observedYear });
     } catch (e) {
       parseErrors.push({ tmk, error: errorMessage(e) });
     }
@@ -238,6 +277,18 @@ export async function runParseAndExtract(
     log.info("Parse+Extract: no files found");
     return "Parse+Extract: no files found";
   }
+
+  // Which period each TMK's chosen file came from. Stated up front because a
+  // rebuild silently sourced from a stale period is indistinguishable, in
+  // every other line of output, from a correct one.
+  const byPeriod = countByPeriod(fileMap);
+  log.info(
+    { tmks: total, byPeriod },
+    `Source files: ${total.toLocaleString()} TMKs — ${Object.entries(byPeriod)
+      .sort((a, b) => b[1] - a[1])
+      .map(([p, n]) => `${p}: ${n.toLocaleString()}`)
+      .join(", ")}`,
+  );
 
   const startMs = Date.now();
   const allErrors: Array<{ tmk: string; error: string }> = [];

@@ -11,7 +11,6 @@ import {
   Coins,
   CreditCard,
   DollarSign,
-  Fence,
   FileText,
   Gavel,
   Hammer,
@@ -65,7 +64,6 @@ const TABS = [
   { label: "Tax Payments", icon: CreditCard, segment: "tax-payments" },
   { label: "Tax Credits", icon: Coins, segment: "tax-credits" },
   { label: "Agg. Assessments", icon: Wheat, segment: "ag-assessments" },
-  { label: "Accessories", icon: Fence, segment: "accessory-structures" },
   {
     label: "Commercial Details",
     icon: Warehouse,

@@ -160,7 +160,10 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "sketch_url",
       label: "Sketch URL",
-      description: "Link to the assessor's building sketch or floor plan.",
+      description:
+        "Link to the assessor's building sketch. Deliberately not captured: the source renders sketches (all islands) but only as expiring Azure SAS URLs that go dead within days of the scrape, so this stays NULL. If ever captured, store all sketch URLs joined in this one column.",
+      disabled: true,
+      disabledReason: "Not parsed — source URLs expire shortly after scrape.",
     },
     {
       key: "zip",
@@ -411,6 +414,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Building #",
       description: "Identifies which building on the parcel (1, 2, etc.).",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "year_built",
@@ -514,6 +518,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Total Room Count",
       description: "Total number of rooms in the dwelling.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "condo_style",
@@ -534,12 +539,15 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Floor Level",
       description: "Floor level of the unit within a multi-story building.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "parking_spaces",
       label: "Parking Spaces",
-      description: "Number of assigned parking spaces.",
+      description:
+        "Number of assigned parking spaces. Fractional values occur (e.g. 1.75).",
       summary: ALL_VIEWS,
+      format: "number",
     },
   ],
 
@@ -562,6 +570,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Building Card",
       description: "Card number for assessor records.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "year_built",
@@ -607,6 +616,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Identical Units",
       description: "Number of identical units used for mass appraisal.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "gross_building_description",
@@ -970,6 +980,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Living Units",
       description: "Number of residential living units.",
       summary: ALL_VIEWS,
+      format: "number",
     },
   ],
 
@@ -1067,6 +1078,9 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Taxpayer Opinion Class",
       description: "Property class the taxpayer believes is correct.",
       summary: ALL_VIEWS,
+      format: "number",
+      source_notes:
+        "Maui only. Numeric class code, stored verbatim: 0=Time Share, 1=Non-Owner-Occupied, 2=Apartment, 3=Commercial, 4=Industrial, 5=Agricultural, 7=Hotel/Resort, 9=Owner-Occupied, 10=Commercialized Residential, 11=TVR-STRH, 12=Long-Term Rental (6 and 8 unobserved). Mapping derived empirically by correlating appeals against same-year assessed property_class; the taxpayer's opinion class can legitimately differ from the assessed class.",
     },
     {
       key: "tax_payer_opinion_of_exemptions",
@@ -1119,14 +1133,16 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Square Footage",
       description: "Area of this classification segment in square feet.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
+      source_notes:
+        "Scraped with thousands separators (e.g. \"5,000\"); commas stripped at load. Max observed 221,912,866.",
     },
     {
       key: "acreage",
       label: "Acreage",
       description: "Area of this classification segment in acres.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
     },
     {
       key: "agricultural_use_indicator",
@@ -1398,6 +1414,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Payment Sequence",
       description: "Identifier for the payment sequence or batch.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "effective_date",
@@ -1495,14 +1512,14 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Acres",
       description: "Total acreage under agricultural assessment.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
     },
     {
       key: "acres_in_production",
       label: "Acres in Production",
       description: "Acres actively in agricultural production.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
     },
     {
       key: "agricultural_value",
@@ -1533,6 +1550,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Card",
       description: "Assessor card number for this section.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "section",
@@ -1564,7 +1582,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Perimeter",
       description: "Perimeter measurement of this section.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
     },
     {
       key: "exterior_wall",
@@ -1577,13 +1595,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Wall Height",
       description: "Wall height measurement.",
       summary: ALL_VIEWS,
-      format: "text",
-    },
-    {
-      key: "occupancy",
-      label: "Occupancy",
-      description: "Occupancy type classification.",
-      summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "construction",
@@ -1649,12 +1661,14 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Card",
       description: "Assessor card number.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "line",
       label: "Line",
       description: "Line item number on the assessor card.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "lower",
@@ -1689,58 +1703,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     },
   ],
 
-  // ── Accessory Structures ────────────────────────────────────────────────
-  accessory_structures: [
-    {
-      key: "tmk",
-      label: "TMK",
-      description: "Tax Map Key",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "building_number",
-      label: "Building #",
-      description:
-        "Building number this accessory structure is associated with.",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "description",
-      label: "Description",
-      description:
-        "Description of the accessory structure (e.g. garage, carport, pool).",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "dimensions_units",
-      label: "Dimensions/Units",
-      description: "Size dimensions or unit count of the structure.",
-      summary: ALL_VIEWS,
-      format: "text",
-    },
-    {
-      key: "percent_complete",
-      label: "% Complete",
-      description: "Percentage of construction completed.",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "value",
-      label: "Value",
-      description: "Assessed value of the accessory structure.",
-      summary: ALL_VIEWS,
-      format: "dollar",
-    },
-    {
-      key: "year_built",
-      label: "Year Built",
-      description: "Year the structure was built.",
-      summary: ALL_VIEWS,
-      format: "year",
-    },
-  ],
-
   // ── Yard Improvements ───────────────────────────────────────────────────
+  // Also holds accessory structures. Maui files the same class of structures
+  // (sheds, garages, carports, pools) under an "Accessory Information"
+  // heading; those rows land here rather than in a separate table. The former
+  // accessory_structures table never matched a section and was dropped
+  // (2026-08-14 migration).
   yard_improvements: [
     {
       key: "tmk",
@@ -1752,14 +1720,16 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "description",
       label: "Description",
       description:
-        "Description of the yard improvement (e.g. fence, retaining wall, landscaping).",
+        "Description of the yard improvement or accessory structure (e.g. fence, retaining wall, shed, garage, carport, pool). Maui's \"Accessory Information\" structures are included here.",
       summary: ALL_VIEWS,
     },
     {
       key: "quantity",
       label: "Quantity",
-      description: "Quantity or count of the improvement.",
+      description:
+        "Quantity or count of the improvement. Mostly whole numbers; fractional values occur (e.g. 400.5).",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "year_built",

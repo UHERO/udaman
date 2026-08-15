@@ -222,7 +222,6 @@ const LOAD_ORDER: string[] = [
   "yard_improvements",
   "residential_additions",
   "agricultural_assessments",
-  "accessory_structures",
   "appeals",
   "dedications",
 ];

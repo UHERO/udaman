@@ -257,7 +257,7 @@ async function markNeedsScrape(
  * no_results flag, not a falsified timestamp, is what keeps these out of the
  * queues.
  */
-async function markNoRecord(tmks: string[]): Promise<number> {
+async function markNoRecord(tmks: string[], reason: string): Promise<number> {
   let affected = 0;
 
   for (const batch of chunk(tmks, UPDATE_CHUNK_SIZE)) {
@@ -267,7 +267,7 @@ async function markNoRecord(tmks: string[]): Promise<number> {
        SET scrape_status='success', retry_count=0,
            no_results=1, no_results_at=NOW(), error=?
        WHERE tmk IN (${placeholders})`,
-      ["repair: no qPublic record for this TMK", ...batch],
+      [`repair: ${reason}`, ...batch],
     )) as unknown as { affectedRows?: number };
     affected += result?.affectedRows ?? 0;
   }
@@ -372,10 +372,17 @@ export async function runRepair(opts: RepairOptions = {}): Promise<string> {
 
   const valid = known.filter((c) => c.verdict === "valid");
   // A phantom parcel is a real answer, not junk: its file stays on disk and
-  // its row is retired instead of being sent back round the queue.
+  // its row is retired instead of being sent back round the queue. Same for a
+  // TMK qPublic resolves to nothing at all — re-scraping either is work that
+  // can only ever return the same page.
   const noRecord = known.filter((c) => c.verdict === "no-record");
+  const noResults = known.filter((c) => c.verdict === "no-results");
+  const retire = [...noRecord, ...noResults];
   const bad = known.filter(
-    (c) => c.verdict !== "valid" && c.verdict !== "no-record",
+    (c) =>
+      c.verdict !== "valid" &&
+      c.verdict !== "no-record" &&
+      c.verdict !== "no-results",
   );
 
   // Rows the table claims but this period has no file for.
@@ -394,6 +401,7 @@ ${Object.entries(verdicts)
 
 Valid, in table      ${valid.length.toLocaleString()}   → scraped_at set from file mtime
 No qPublic record    ${noRecord.length.toLocaleString()}   → retired from the queue, file kept
+No search results    ${noResults.length.toLocaleString()}   → retired from the queue, file kept
 Bad, in table        ${bad.length.toLocaleString()}   → back to needing a scrape${keepBadFiles ? "" : ", file deleted"}
 Files w/o a row      ${orphans.length.toLocaleString()}   → reported only (TMK not in properties)
 Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "back to needing a scrape" : "reported only (pass --reset-missing to clear)"}
@@ -421,7 +429,7 @@ Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "
 
   if (!execute) {
     const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
-    const summary = `Repair (dry run): ${valid.length} valid, ${noRecord.length} no-record, ${bad.length} bad, ${orphans.length} orphan files, ${missing.length} rows without a file (${elapsed}s). Re-run with --execute to apply.`;
+    const summary = `Repair (dry run): ${valid.length} valid, ${noRecord.length} no-record, ${noResults.length} no-results, ${bad.length} bad, ${orphans.length} orphan files, ${missing.length} rows without a file (${elapsed}s). Re-run with --execute to apply.`;
     console.log(`\n${summary}\n`);
     log.info(summary);
     return summary;
@@ -431,7 +439,7 @@ Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "
   //    Phantom parcels are included: the page really was fetched on that date,
   //    and it's the no_results flag rather than staleness that retires them.
   const byDay = new Map<string, string[]>();
-  for (const c of [...valid, ...noRecord]) {
+  for (const c of [...valid, ...retire]) {
     const day = toHstSql(c.mtime).slice(0, 10);
     const list = byDay.get(day);
     if (list) list.push(c.tmk);
@@ -447,13 +455,25 @@ Rows w/o a file      ${missing.length.toLocaleString()}   → ${resetMissing ? "
     `Marked ${scrapedUpdated.toLocaleString()} rows scraped from file mtimes`,
   );
 
-  // 5b. Phantom parcels — flagged, file left alone.
+  // 5b. Phantom parcels and unresolvable TMKs — flagged, files left alone.
+  //     Separate statements so the stored error says which answer we got.
   let retired = 0;
   if (noRecord.length > 0) {
-    retired = await markNoRecord(noRecord.map((c) => c.tmk));
+    retired += await markNoRecord(
+      noRecord.map((c) => c.tmk),
+      "no qPublic record for this TMK",
+    );
+  }
+  if (noResults.length > 0) {
+    retired += await markNoRecord(
+      noResults.map((c) => c.tmk),
+      "qPublic returns no search results for this TMK",
+    );
+  }
+  if (retired > 0) {
     log.info(
-      { rows: retired },
-      `Retired ${retired.toLocaleString()} TMKs with no qPublic record`,
+      { rows: retired, noRecord: noRecord.length, noResults: noResults.length },
+      `Retired ${retired.toLocaleString()} TMKs qPublic has no parcel for`,
     );
   }
 

@@ -3,7 +3,14 @@ import path from "path";
 
 import { describe, expect, it } from "bun:test";
 
+import { parse } from "node-html-parser";
+
 import { parsePropertyHTML } from "./parse";
+import {
+  parseFloorDetailTable,
+  parseParcelInformation,
+} from "./parse-sections";
+import { isTaxPaymentField } from "./parse-utils";
 
 const FIXTURES = path.join(__dirname, "__fixtures__");
 
@@ -671,6 +678,28 @@ describe("historical_tax_information", () => {
       expect(totals).toBeDefined();
       expect(totals.total_tax).toBeDefined();
     });
+
+    // The on-page column header is "Payments/Credits" — the slash must
+    // become an underscore separator, matching the downstream DB columns
+    // historical_tax_details.payments_credits and
+    // historical_tax_summary.tax_details_total_payments_credits.
+    it("uses payments_credits key on tax detail rows", () => {
+      const details = summaries[0].tax_details as R[];
+      expect(details.length).toBe(4);
+      for (const row of details) {
+        expect(row).toHaveProperty("payments_credits");
+        expect(row).not.toHaveProperty("paymentscredits");
+      }
+      const payment = details.find((d) => d.description === "Payment") as R;
+      expect(payment.payments_credits).toBeCloseTo(-531.3, 2);
+    });
+
+    it("uses total_payments_credits key in hoisted totals", () => {
+      const totals = summaries[0].tax_details_totals as R;
+      expect(totals).toHaveProperty("total_payments_credits");
+      expect(totals).not.toHaveProperty("total_paymentscredits");
+      expect(totals.total_payments_credits).toBeCloseTo(-1062.6, 2);
+    });
   });
 
   describe("Oahu residential", () => {
@@ -701,6 +730,51 @@ describe("historical_tax_information", () => {
 
     it("extracts Maui condo tax history", () => {
       expect(summaries.length).toBe(10);
+    });
+  });
+
+  // Kauai titles this section "Historical Payment Information"; the alias
+  // must route it to the dedicated parser AND store it under the canonical
+  // historical_tax_information key that extract/load read.
+  describe("Kauai (Historical Payment Information title)", () => {
+    const taxInfo = kauaiRes.historical_tax_information as R;
+
+    it("lands under historical_tax_information, not the raw title", () => {
+      expect(taxInfo).toBeDefined();
+      expect(kauaiRes.historical_payment_information).toBeUndefined();
+    });
+
+    it("extracts tax summary rows", () => {
+      const summaries = taxInfo.tax_summary as R[];
+      expect(summaries.length).toBe(25);
+      expect(summaries[0].year).toBe("2025");
+      expect(summaries[0].tax).toBeCloseTo(3087.62, 2);
+    });
+
+    it("extracts nested tax details with payments_credits", () => {
+      const summaries = taxInfo.tax_summary as R[];
+      const details = summaries[0].tax_details as R[];
+      expect(details.length).toBe(6);
+      for (const row of details) {
+        expect(row).toHaveProperty("payments_credits");
+      }
+      const payment = details.find((d) => d.description === "Payment") as R;
+      expect(payment.payments_credits).toBeCloseTo(-1483.81, 2);
+    });
+
+    it("hoists tax_details_totals with total_payments_credits", () => {
+      const summaries = taxInfo.tax_summary as R[];
+      const totals = summaries[0].tax_details_totals as R;
+      expect(totals).toBeDefined();
+      expect(totals.total_tax).toBeCloseTo(3087.62, 2);
+      expect(totals.total_payments_credits).toBeCloseTo(-1543.81, 2);
+    });
+
+    it("extracts nested tax payments", () => {
+      const summaries = taxInfo.tax_summary as R[];
+      const payments = summaries[0].tax_payments as R[];
+      expect(payments.length).toBe(1);
+      expect(payments[0].effective_date).toBe("08/12/2025");
     });
   });
 });
@@ -901,5 +975,96 @@ describe("cross-island section coverage", () => {
     for (const r of all) {
       expect(r.sales_information).toBeDefined();
     }
+  });
+});
+
+// ─── Floor detail usage/occupancy mapping ───────────────────────────
+
+describe("parseFloorDetailTable usage/occupancy", () => {
+  it("keeps usage when a blank Occupancy column follows it (Kauai)", () => {
+    const html = `<table><thead><tr>
+      <th>Card</th><th>Section</th><th>Floor</th><th>Area</th><th>Perimeter</th><th>Usage</th><th>Occupancy</th>
+    </tr></thead><tbody><tr>
+      <td>1</td><td>1</td><td>01</td><td>5,000</td><td>300</td><td>WAREHOUSE</td><td>&nbsp;</td>
+    </tr></tbody></table>`;
+    const table = parse(html).querySelector("table")!;
+    const details = parseFloorDetailTable(table);
+    expect(details.length).toBe(1);
+    expect(details[0].usage).toBe("WAREHOUSE");
+    expect(details[0].occupancy).toBeNull();
+  });
+
+  it("still maps Occupancy to usage when there is no Usage column (Maui/Big Island)", () => {
+    const html = `<table><thead><tr>
+      <th>Section</th><th>Floor</th><th>Area</th><th>Occupancy</th>
+    </tr></thead><tbody><tr>
+      <td>1</td><td>01</td><td>15500</td><td>Hotel, Full Service</td>
+    </tr></tbody></table>`;
+    const table = parse(html).querySelector("table")!;
+    const details = parseFloorDetailTable(table);
+    expect(details[0].usage).toBe("Hotel, Full Service");
+    expect(details[0]).not.toHaveProperty("occupancy");
+  });
+});
+
+// ─── isTaxPaymentField exclusions ───────────────────────────────────
+
+describe("isTaxPaymentField", () => {
+  it("excludes non-dollar fields that contain tax/other substrings", () => {
+    expect(isTaxPaymentField("non_taxable_status")).toBe(false);
+    expect(isTaxPaymentField("address_other")).toBe(false);
+  });
+
+  it("still matches genuine dollar fields", () => {
+    expect(isTaxPaymentField("tax")).toBe(true);
+    expect(isTaxPaymentField("payments_credits")).toBe(true);
+    expect(isTaxPaymentField("total_payments_credits")).toBe(true);
+    expect(isTaxPaymentField("amount_due")).toBe(true);
+  });
+});
+
+// ─── Location address splitting (address_other) ─────────────────────
+
+function parcelSectionWith(addressCellHtml: string) {
+  const html = `<section>
+    <table class="tabular-data-two-column">
+      <tr><th>Location Address</th><td>${addressCellHtml}</td></tr>
+    </table>
+  </section>`;
+  return parse(html).querySelector("section")!;
+}
+
+describe("parseParcelInformation location address", () => {
+  it("captures Kauai alternate addresses into address_other", () => {
+    const section = parcelSectionWith(
+      "<span>4421 IMILOA RD <br> 4421 IMILOA RD <br> 4422 IMILOA RD <br> KEKAHA HI 96752</span>",
+    );
+    const parcel = parseParcelInformation(section, "4");
+    expect(parcel.location_address).toBe("4421 IMILOA RD KEKAHA HI 96752");
+    expect(parcel.address_other).toBe("4421 IMILOA RD; 4422 IMILOA RD");
+  });
+
+  it("leaves two-line street + city cells unchanged (Maui-style)", () => {
+    const section = parcelSectionWith(
+      "<span>233   HOLUA DR   <br> KAHULUI HI  96732 </span>",
+    );
+    const parcel = parseParcelInformation(section, "2");
+    expect(parcel.location_address).toBe("233 HOLUA DR KAHULUI HI 96732");
+    expect(parcel.address_other).toBeNull();
+  });
+
+  it("leaves single-line cells unchanged (Oahu-style)", () => {
+    const section = parcelSectionWith("<span>1730 MAOI PL</span>");
+    const parcel = parseParcelInformation(section, "1");
+    expect(parcel.location_address).toBe("1730 MAOI PL");
+    expect(parcel.address_other).toBeNull();
+  });
+
+  it("keeps fixture location_address values unchanged", () => {
+    const kauaiParcel = kauaiRes.parcel_information as R;
+    expect(kauaiParcel.location_address).toBe(
+      "2285 A HULEMALU RD LIHUE HI 96766",
+    );
+    expect(kauaiParcel.address_other).toBeNull();
   });
 });

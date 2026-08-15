@@ -3,7 +3,8 @@ export interface HhdbImprovementAttrs {
   id?: number;
   tmk?: string | null;
   scraped_at?: Date | string | null;
-  building_number?: string | null;
+  /** number for residential rows (SMALLINT), string for commercial (VARCHAR) */
+  building_number?: number | string | null;
   year_built?: number | null;
   // Residential fields
   eff_year_built?: number | null;
@@ -20,21 +21,21 @@ export interface HhdbImprovementAttrs {
   fireplace?: string | null;
   grade?: string | null;
   building_value?: number | null;
-  total_room_count?: string | null;
+  total_room_count?: number | null;
   condo_style?: string | null;
   condo_view?: string | null;
-  floor_level?: string | null;
-  parking_spaces?: string | null;
+  floor_level?: number | null;
+  parking_spaces?: number | null;
   // Commercial fields
-  building_card?: string | null;
+  building_card?: number | null;
   effective_year_built?: number | null;
   improvement_name?: string | null;
   property_class?: string | null;
   structure_type?: string | null;
-  units?: string | null;
-  identical_units?: string | null;
+  units?: number | null;
+  identical_units?: number | null;
   gross_building_description?: string | null;
-  building_square_footage?: string | null;
+  building_square_footage?: number | null;
   building_type?: string | null;
   structure?: string | null;
   value?: number | null;
@@ -43,7 +44,8 @@ export interface HhdbImprovementAttrs {
 export class HhdbImprovement {
   id: number;
   tmk: string | null;
-  buildingNumber: string | null;
+  /** number for residential rows (SMALLINT), string for commercial (VARCHAR) */
+  buildingNumber: number | string | null;
   yearBuilt: number | null;
   // Residential
   effYearBuilt: number | null;
@@ -60,21 +62,21 @@ export class HhdbImprovement {
   fireplace: string | null;
   grade: string | null;
   buildingValue: number | null;
-  totalRoomCount: string | null;
+  totalRoomCount: number | null;
   condoStyle: string | null;
   condoView: string | null;
-  floorLevel: string | null;
-  parkingSpaces: string | null;
+  floorLevel: number | null;
+  parkingSpaces: number | null;
   // Commercial
-  buildingCard: string | null;
+  buildingCard: number | null;
   effectiveYearBuilt: number | null;
   improvementName: string | null;
   propertyClass: string | null;
   structureType: string | null;
-  units: string | null;
-  identicalUnits: string | null;
+  units: number | null;
+  identicalUnits: number | null;
   grossBuildingDescription: string | null;
-  buildingSquareFootage: string | null;
+  buildingSquareFootage: number | null;
   buildingType: string | null;
   percentCompleteComm: string | null;
   structure: string | null;
@@ -102,13 +104,17 @@ export class HhdbImprovement {
     this.grade = attrs.grade ?? null;
     this.buildingValue =
       attrs.building_value != null ? Number(attrs.building_value) : null;
-    this.totalRoomCount = attrs.total_room_count ?? null;
+    this.totalRoomCount =
+      attrs.total_room_count != null ? Number(attrs.total_room_count) : null;
     this.condoStyle = attrs.condo_style ?? null;
     this.condoView = attrs.condo_view ?? null;
-    this.floorLevel = attrs.floor_level ?? null;
-    this.parkingSpaces = attrs.parking_spaces ?? null;
+    this.floorLevel =
+      attrs.floor_level != null ? Number(attrs.floor_level) : null;
+    this.parkingSpaces =
+      attrs.parking_spaces != null ? Number(attrs.parking_spaces) : null;
     // Commercial
-    this.buildingCard = attrs.building_card ?? null;
+    this.buildingCard =
+      attrs.building_card != null ? Number(attrs.building_card) : null;
     this.effectiveYearBuilt =
       attrs.effective_year_built != null
         ? Number(attrs.effective_year_built)
@@ -116,10 +122,14 @@ export class HhdbImprovement {
     this.improvementName = attrs.improvement_name ?? null;
     this.propertyClass = attrs.property_class ?? null;
     this.structureType = attrs.structure_type ?? null;
-    this.units = attrs.units ?? null;
-    this.identicalUnits = attrs.identical_units ?? null;
+    this.units = attrs.units != null ? Number(attrs.units) : null;
+    this.identicalUnits =
+      attrs.identical_units != null ? Number(attrs.identical_units) : null;
     this.grossBuildingDescription = attrs.gross_building_description ?? null;
-    this.buildingSquareFootage = attrs.building_square_footage ?? null;
+    this.buildingSquareFootage =
+      attrs.building_square_footage != null
+        ? Number(attrs.building_square_footage)
+        : null;
     this.buildingType = attrs.building_type ?? null;
     this.percentCompleteComm = attrs.percent_complete ?? null;
     this.structure = attrs.structure ?? null;
@@ -194,12 +204,15 @@ export function hhdbImprovementRowToJSON(
     grade: attrs.grade ?? null,
     buildingValue:
       attrs.building_value != null ? Number(attrs.building_value) : null,
-    totalRoomCount: attrs.total_room_count ?? null,
+    totalRoomCount:
+      attrs.total_room_count != null ? Number(attrs.total_room_count) : null,
     condoStyle: attrs.condo_style ?? null,
     condoView: attrs.condo_view ?? null,
-    floorLevel: attrs.floor_level ?? null,
-    parkingSpaces: attrs.parking_spaces ?? null,
-    buildingCard: attrs.building_card ?? null,
+    floorLevel: attrs.floor_level != null ? Number(attrs.floor_level) : null,
+    parkingSpaces:
+      attrs.parking_spaces != null ? Number(attrs.parking_spaces) : null,
+    buildingCard:
+      attrs.building_card != null ? Number(attrs.building_card) : null,
     effectiveYearBuilt:
       attrs.effective_year_built != null
         ? Number(attrs.effective_year_built)
@@ -207,10 +220,14 @@ export function hhdbImprovementRowToJSON(
     improvementName: attrs.improvement_name ?? null,
     propertyClass: attrs.property_class ?? null,
     structureType: attrs.structure_type ?? null,
-    units: attrs.units ?? null,
-    identicalUnits: attrs.identical_units ?? null,
+    units: attrs.units != null ? Number(attrs.units) : null,
+    identicalUnits:
+      attrs.identical_units != null ? Number(attrs.identical_units) : null,
     grossBuildingDescription: attrs.gross_building_description ?? null,
-    buildingSquareFootage: attrs.building_square_footage ?? null,
+    buildingSquareFootage:
+      attrs.building_square_footage != null
+        ? Number(attrs.building_square_footage)
+        : null,
     buildingType: attrs.building_type ?? null,
     percentCompleteComm: attrs.percent_complete ?? null,
     structure: attrs.structure ?? null,

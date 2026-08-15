@@ -10,7 +10,13 @@
       "Bash(bunx eslint *)",
       "Bash(npx prettier *)",
       "Bash(npx tsc *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -o \"Tax Period</th>.\\\\{0,400\\\\}\" 2-4-2-004-028-0000.html)",
+      "Bash(grep -o \"Tax Period</th>.\\\\{0,400\\\\}\" maui-residential.html)",
+      "Bash(bun -e ' *)",
+      "Bash(python3 *)",
+      "Bash(awk -F'-' 'NF!=6' html_tmks.txt)"
     ]
   }
 }

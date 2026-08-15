@@ -14,6 +14,7 @@ import type { Logger } from "@/core/observability/logger";
 import { insertAndGetId, rawQuery } from "@/lib/mysql/hhdb";
 
 import {
+  COLUMN_VALUE_PARSERS,
   dec,
   errorMessage,
   GENERIC_SECTION_MAP,
@@ -179,7 +180,7 @@ function extractProperties(items: BatchItem[]): SqlValue[][] {
       str(parcel.reentry_zone),
       str(parcel.zone_color),
       str(parcel.non_taxable_status),
-      str(parcel.living_units),
+      int(parcel.living_units),
       str(mapSection?.map_url),
       str(sketchSection?.sketch_url),
     ]);
@@ -224,7 +225,7 @@ function extractParcels(items: BatchItem[]): SqlValue[][] {
       str(parcel.reentry_zone),
       str(parcel.zone_color),
       str(parcel.non_taxable_status),
-      str(parcel.living_units),
+      int(parcel.living_units),
     ]);
   }
 
@@ -314,8 +315,8 @@ function extractLandClassifications(items: BatchItem[]): SqlValue[][] {
         scrapedAtStr,
         observedYear,
         str(c.land_classification),
-        str(c.square_footage),
-        str(c.acreage),
+        int(c.square_footage),
+        dec(c.acreage),
         str(c.agricultural_use_indicator),
       ]);
     }
@@ -341,7 +342,7 @@ function extractResidentialImprovements(items: BatchItem[]): SqlValue[][] {
         tmk,
         scrapedAtStr,
         observedYear,
-        str(b.building_number),
+        int(b.building_number),
         str(b.year_built),
         str(b.eff_year_built),
         int(b.living_area),
@@ -357,11 +358,11 @@ function extractResidentialImprovements(items: BatchItem[]): SqlValue[][] {
         str(b.fireplace),
         str(b.grade),
         str(b.building_value),
-        str(b.total_room_count),
+        int(b.total_room_count),
         str(b.condo_style ?? b.condo_type),
         str(b.condo_view),
-        str(b.floor_level ?? b.condo_floor_number),
-        str(b.parking_spaces),
+        int(b.floor_level ?? b.condo_floor_number),
+        dec(b.parking_spaces),
       ]);
     }
   }
@@ -548,7 +549,7 @@ function extractHistoricalTax(items: BatchItem[]): HistoricalTaxExtracted {
           row: [
             tmk,
             scrapedAtStr,
-            str(p.payment_sequence),
+            int(p.payment_sequence),
             parseDateValue(str(p.effective_date)),
             dec(p.tax),
             dec(p.penalty),
@@ -606,15 +607,14 @@ function extractCommercialImprovements(
           tmk,
           scrapedAtStr,
           observedYear,
-          str(d.card),
+          int(d.card),
           str(d.section),
           str(d.floor),
           str(d.usage),
-          str(d.area),
-          str(d.perimeter),
+          int(d.area),
+          int(d.perimeter),
           str(d.exterior_wall),
-          str(d.wall_height),
-          str(d.occupancy),
+          int(d.wall_height),
         ]);
       }
 
@@ -625,17 +625,17 @@ function extractCommercialImprovements(
           scrapedAtStr,
           observedYear,
           str(b.building_number),
-          str(b.building_card),
+          int(b.building_card),
           int(b.year_built),
           int(b.effective_year_built),
           str(b.improvement_name),
           str(b.property_class),
           str(b.structure_type),
-          str(b.units),
-          str(b.identical_units),
+          int(b.units),
+          int(b.identical_units),
           str(b.gross_building_description),
           str(b.building_type),
-          str(b.building_square_footage),
+          int(b.building_square_footage),
           str(b.percent_complete),
           int(b.value),
         ],
@@ -692,6 +692,9 @@ function extractCondominium(items: BatchItem[]): CondoExtracted {
       if (!unitParcel) continue;
 
       const unitTmk = unitParcelToTmk(tmk, unitParcel);
+      // No TMK, no row: a roster line we can't read an identifier from is
+      // dropped rather than filed under a guessed one.
+      if (!unitTmk) continue;
       const unitNumber = str(unit.unit_number);
       const ownerName = str(unit.owner_name);
 
@@ -771,8 +774,14 @@ async function extractGenericSection(
           snakeKey !== "scraped_at" &&
           snakeKey !== "last_year_observed"
         ) {
-          matched[snakeKey] =
-            value === null || value === undefined ? null : String(value);
+          // Numeric columns arrive as formatted text ("5,000", "1.75") —
+          // coerce with the same parsers the row-by-row loader uses.
+          const parse = COLUMN_VALUE_PARSERS[snakeKey];
+          matched[snakeKey] = parse
+            ? parse(value)
+            : value === null || value === undefined
+              ? null
+              : String(value);
         }
       }
 
@@ -1073,7 +1082,6 @@ async function loadCommercialImprovementsBatch(
     "perimeter",
     "exterior_wall",
     "wall_height",
-    "occupancy",
   ];
 
   // Since we need parent IDs, insert parents individually and collect detail rows
@@ -1115,7 +1123,6 @@ async function loadCommercialImprovementsBatch(
       "perimeter",
       "exterior_wall",
       "wall_height",
-      "occupancy",
     ];
 
     // Build INSERT manually to handle the backtick on `usage`

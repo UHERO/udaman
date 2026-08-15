@@ -16,7 +16,6 @@ const SORTABLE = [
   "floor",
   "usage",
   "construction",
-  "occupancy",
   "exterior_wall",
   "condo_style",
   "condo_type",

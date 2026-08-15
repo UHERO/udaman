@@ -121,12 +121,25 @@ export async function enqueueTmks(
   return { properties, queued };
 }
 
+/** Everything but the CPR suffix — what a unit shares with its master. */
+function tmkBase(tmk: string): string {
+  return tmk.split("-").slice(0, -1).join("-");
+}
+
 /**
  * Unit TMKs listed on a condo master profile.
  *
- * The master page carries the roster; each unit shares the master's TMK with
- * its own CPR suffix. Returns [] for anything that isn't a master, and for
- * Maui — whose masters don't publish a roster at all.
+ * Ordinarily every roster row shares the master's base and differs only in the
+ * CPR suffix (68 of 68 masters sampled across the 2026-1 corpus, and the
+ * 211-row Ala Wai Plaza fixture). A few dropped masters are the exception:
+ * 1-7-4-013-083, 1-8-4-021-006 and 1-9-1-013-197 — all three retired, their
+ * owner field reading "DROPPED"/"TRANSFERRED" — publish a byte-identical
+ * 177-row roster of parcels belonging to neither them nor each other. Those
+ * rows are reported rather than dropped: they name real-looking TMKs we track
+ * nowhere, and deciding what they are is not this function's call.
+ *
+ * Returns [] for anything that isn't a master, and for Maui — whose masters
+ * don't publish a roster at all.
  */
 export function condoUnitTmksFromHtml(
   html: string,
@@ -138,14 +151,29 @@ export function condoUnitTmksFromHtml(
   if (parsed.status !== "condo_project") return [];
 
   const tmks: string[] = [];
+  let offBase = 0;
+  let unreadable = 0;
   for (const unit of condoUnitRows(parsed)) {
     const unitParcel = unit.parcel_number;
     if (typeof unitParcel !== "string" || !unitParcel.trim()) continue;
 
     const unitTmk = unitParcelToTmk(parentTmk, unitParcel.trim());
+    if (!unitTmk) {
+      unreadable++;
+      continue;
+    }
     // A roster row echoing the master itself would otherwise queue a scrape
     // of the page we just read.
-    if (unitTmk !== parentTmk) tmks.push(unitTmk);
+    if (unitTmk === parentTmk) continue;
+    if (tmkBase(unitTmk) !== tmkBase(parentTmk)) offBase++;
+    tmks.push(unitTmk);
+  }
+
+  if (offBase > 0 || unreadable > 0) {
+    log.warn(
+      { parentTmk, offBase, unreadable, listed: tmks.length },
+      `Condo roster on ${parentTmk}: ${offBase} of ${tmks.length} units sit under a different base parcel, ${unreadable} rows unreadable`,
+    );
   }
 
   return tmks;

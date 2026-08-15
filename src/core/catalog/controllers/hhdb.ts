@@ -1,6 +1,5 @@
 import { createLogger } from "@/core/observability/logger";
 
-import HhdbAccessoryStructureCollection from "../collections/hhdb-accessory-structure-collection";
 import HhdbAgriculturalAssessmentCollection from "../collections/hhdb-agricultural-assessment-collection";
 import HhdbAppealCollection from "../collections/hhdb-appeal-collection";
 import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
@@ -186,13 +185,6 @@ export async function getResidentialAdditions(params: HhdbListParams) {
   return result;
 }
 
-export async function getAccessoryStructures(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb accessory structures");
-  const result = await HhdbAccessoryStructureCollection.list(params);
-  log.info({ total: result.total }, "hhdb accessory structures fetched");
-  return result;
-}
-
 export async function getYardImprovements(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb yard improvements");
   const result = await HhdbYardImprovementCollection.list(params);
@@ -342,13 +334,6 @@ export async function getResidentialAdditionsJSON(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb residential additions");
   const result = await HhdbResidentialAdditionCollection.listJSON(params);
   log.info({ total: result.total }, "hhdb residential additions fetched");
-  return result;
-}
-
-export async function getAccessoryStructuresJSON(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb accessory structures");
-  const result = await HhdbAccessoryStructureCollection.listJSON(params);
-  log.info({ total: result.total }, "hhdb accessory structures fetched");
   return result;
 }
 

@@ -241,7 +241,16 @@ export function isAssessedValueField(fieldName: string): boolean {
 export function isTaxPaymentField(fieldName: string): boolean {
   const lowerFieldName = fieldName.toLowerCase();
 
-  const exclusions = ["tax_period", "tax_class", "tax_year"];
+  // non_taxable: Kauai's non_taxable_status is prose, not a dollar amount —
+  // matching "tax" would send it through parseDollarValue and null it.
+  // address_other: an address string; matching "other" would null it.
+  const exclusions = [
+    "tax_period",
+    "tax_class",
+    "tax_year",
+    "non_taxable",
+    "address_other",
+  ];
   if (exclusions.some((excl) => lowerFieldName.includes(excl))) {
     return false;
   }

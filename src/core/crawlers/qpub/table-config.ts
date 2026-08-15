@@ -72,10 +72,6 @@ export const TABLE_CONFIGS: Record<string, TableConfig> = {
     category: "snapshot",
     naturalKey: ["tmk", "agricultural_type"],
   },
-  accessory_structures: {
-    category: "snapshot",
-    naturalKey: ["tmk", "building_number", "description"],
-  },
   appeals: {
     category: "snapshot",
     naturalKey: ["tmk", "year", "appeal_type_value"],

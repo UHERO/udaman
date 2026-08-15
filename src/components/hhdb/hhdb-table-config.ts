@@ -118,11 +118,6 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     fieldsTable: "agricultural_assessments",
     defaultSort: "tmk",
   },
-  "accessory-structures": {
-    title: "Accessory Structures",
-    fieldsTable: "accessory_structures",
-    defaultSort: "tmk",
-  },
   "commercial-details": {
     title: "Commercial Improvement Details",
     fieldsTable: "commercial_improvement_details",

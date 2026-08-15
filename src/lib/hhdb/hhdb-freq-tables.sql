@@ -1242,14 +1242,6 @@ BEGIN
   SELECT '0', 'wall_height', COALESCE(CAST(wall_height AS CHAR), '[NULL]'), COUNT(*)
   FROM commercial_improvement_details GROUP BY wall_height;
 
-  -- occupancy
-  INSERT INTO freq_commercial_improvement_details (county_code, column_name, column_value, frequency)
-  SELECT LEFT(tmk, 1), 'occupancy', COALESCE(CAST(occupancy AS CHAR), '[NULL]'), COUNT(*)
-  FROM commercial_improvement_details GROUP BY LEFT(tmk, 1), occupancy;
-  INSERT INTO freq_commercial_improvement_details (county_code, column_name, column_value, frequency)
-  SELECT '0', 'occupancy', COALESCE(CAST(occupancy AS CHAR), '[NULL]'), COUNT(*)
-  FROM commercial_improvement_details GROUP BY occupancy;
-
   -- construction
   INSERT INTO freq_commercial_improvement_details (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'construction', COALESCE(CAST(construction AS CHAR), '[NULL]'), COUNT(*)

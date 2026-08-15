@@ -117,10 +117,6 @@ export const DELTA_STRATEGY: Record<string, DeltaStrategy> = {
   },
   residential_additions: { kind: "scd", identity: ["card", "line"] },
   agricultural_assessments: { kind: "scd", identity: [] },
-  accessory_structures: {
-    kind: "scd",
-    identity: ["building_number", "description"],
-  },
 };
 
 /**
@@ -148,7 +144,6 @@ export const DELTA_ORDER: string[] = [
   "yard_improvements",
   "residential_additions",
   "agricultural_assessments",
-  "accessory_structures",
   "appeals",
   "dedications",
 ];

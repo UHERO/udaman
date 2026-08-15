@@ -1,7 +1,6 @@
 "use server";
 
 import {
-  getAccessoryStructuresJSON as getAccessoryStructuresCtrl,
   getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
   getAppealsJSON as getAppealsCtrl,
   getAssessmentsJSON as getAssessmentsCtrl,
@@ -215,11 +214,6 @@ export async function getHhdbCommercialDetails(params: HhdbListParams) {
 export async function getHhdbResidentialAdditions(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
   return getResidentialAdditionsCtrl(params);
-}
-
-export async function getHhdbAccessoryStructures(params: HhdbListParams) {
-  await requirePermission("hhdb", "read");
-  return getAccessoryStructuresCtrl(params);
 }
 
 export async function getHhdbYardImprovements(params: HhdbListParams) {

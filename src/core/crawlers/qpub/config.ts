@@ -70,6 +70,50 @@ export function tmkToParcelNumber(tmk: string): string {
   return parts.slice(1).join("");
 }
 
+/**
+ * Widths of the fixed head of a parcel number: zone, section, plat, parcel.
+ * Whatever follows is the CPR suffix.
+ */
+const PARCEL_HEAD_WIDTHS = [1, 1, 3, 3] as const;
+const PARCEL_HEAD_LENGTH = 8;
+
+/** CPR suffix lengths qPublic actually serves: 4 normally, 5 for "0000A". */
+const CPR_LENGTHS = [4, 5];
+
+/**
+ * Convert a qPub parcel number (ZSPPPPPPCCCC) back to an internal TMK.
+ *
+ * The strict inverse of tmkToParcelNumber, and the only sanctioned way to turn
+ * a parcel number into a TMK: the island code is supplied because it is the
+ * one thing the parcel number does not carry, and nothing else is invented.
+ * Returns null for anything that isn't a parcel number — a caller that cannot
+ * read an identifier must skip the row and say so, never guess the rest of it
+ * from a CPR suffix or a neighbouring TMK.
+ *
+ * The CPR runs to the end of the string rather than being pinned at four
+ * characters: State of Hawaii and Hawaiian Home Lands parcels appear on condo
+ * rosters as 13-character numbers ending "0000A", and taking a fixed four
+ * would silently truncate one to "000A" — a different, and non-existent,
+ * parcel.
+ */
+export function tmkFromParcelNumber(
+  parcelNumber: string,
+  islandCode: string,
+): string | null {
+  const parcel = parcelNumber.trim();
+  if (!/^[0-9A-Za-z]+$/.test(parcel)) return null;
+  if (!CPR_LENGTHS.includes(parcel.length - PARCEL_HEAD_LENGTH)) return null;
+
+  const segments: string[] = [islandCode];
+  let at = 0;
+  for (const width of PARCEL_HEAD_WIDTHS) {
+    segments.push(parcel.slice(at, at + width));
+    at += width;
+  }
+  segments.push(parcel.slice(PARCEL_HEAD_LENGTH));
+  return segments.join("-");
+}
+
 const BASE_URLS: Record<IslandCode, (parcel: string) => string> = {
   "1": (parcel) =>
     `https://qpublic.schneidercorp.com/Application.aspx?AppID=1045&LayerID=23342&PageTypeID=4&PageID=9746&KeyValue=${parcel}`,
@@ -265,15 +309,18 @@ export function latestPeriod(): string | null {
 /**
  * Lazily enumerate HTML files from the NAS directory structure.
  * Yields absolute paths: {NAS}/qpub/html/{period}/{island}/{zone}/{section}/{tmk}.html
+ *
+ * With no `period`, periods come out newest-first (via listPeriods) rather than
+ * in readdir order. Callers that fold the stream into a per-TMK map depend on
+ * that: readdir happened to return ['2026-1','2025-2'], so a last-write-wins
+ * map silently preferred the older file for every TMK present in both.
  */
 export function* listHtmlFiles(
   period?: string,
   island?: string,
 ): Generator<string> {
   const baseDir = path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.HTML_DIR);
-  const periods = period
-    ? [period]
-    : safeDirList(baseDir).filter((d) => /^\d{4}-[12]$/.test(d));
+  const periods = period ? [period] : listPeriods();
 
   for (const p of periods) {
     const periodDir = path.join(baseDir, p);

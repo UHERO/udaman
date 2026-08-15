@@ -36,8 +36,6 @@ DROP TABLE IF EXISTS assessments;
 
 DROP TABLE IF EXISTS agricultural_assessments;
 
-DROP TABLE IF EXISTS accessory_structures;
-
 DROP TABLE IF EXISTS appeals;
 
 DROP TABLE IF EXISTS dedications;
@@ -73,8 +71,8 @@ CREATE TABLE properties (
     damage VARCHAR(50) COMMENT 'Damage status (Maui)',
     reentry_zone VARCHAR(50) COMMENT 'Reentry zone (Maui)',
     zone_color VARCHAR(50) COMMENT 'Zone color classification (Maui)',
-    non_taxable_status VARCHAR(50) COMMENT 'Non-taxable status (Big Island)',
-    living_units VARCHAR(20) COMMENT 'Number of living units (Big Island)',
+    non_taxable_status VARCHAR(255) COMMENT 'Non-taxable status prose (Kauai only), e.g. "Government owned parcel. ..."',
+    living_units SMALLINT UNSIGNED COMMENT 'Number of living units (Big Island). Max observed 268',
     -- Map and Sketch
     map_url TEXT,
     sketch_url TEXT,
@@ -141,8 +139,8 @@ CREATE TABLE parcels (
     damage VARCHAR(50),
     reentry_zone VARCHAR(50),
     zone_color VARCHAR(50),
-    non_taxable_status VARCHAR(50),
-    living_units VARCHAR(20),
+    non_taxable_status VARCHAR(255),
+    living_units SMALLINT UNSIGNED COMMENT 'Number of living units (Big Island). Max observed 268',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
@@ -198,8 +196,8 @@ CREATE TABLE land_classifications (
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
     land_classification VARCHAR(100),
-    square_footage VARCHAR(20),
-    acreage VARCHAR(20),
+    square_footage BIGINT UNSIGNED COMMENT 'Square feet. Max observed 221,912,866; scraped with thousands separators ("5,000") - commas stripped at load',
+    acreage DECIMAL(12, 4) COMMENT 'Acres, 4 decimal precision. Max observed 5,094.4184',
     agricultural_use_indicator VARCHAR(10),
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
@@ -216,7 +214,7 @@ CREATE TABLE residential_improvements (
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
     -- Fields present on all or most islands
-    building_number VARCHAR(10),
+    building_number SMALLINT UNSIGNED,
     year_built SMALLINT UNSIGNED,
     eff_year_built SMALLINT UNSIGNED COMMENT 'Effective year built',
     living_area INT UNSIGNED COMMENT 'Square footage - all islands (Honolulu/Maui/Kauai: "Living Area", Hawaii: "Square Feet")',
@@ -233,12 +231,12 @@ CREATE TABLE residential_improvements (
     fireplace VARCHAR(50) COMMENT 'Maui/Hawaii',
     grade VARCHAR(50) COMMENT 'Maui/Hawaii',
     building_value BIGINT UNSIGNED COMMENT 'Maui only - format: "$50,600"',
-    total_room_count VARCHAR(10) COMMENT 'Hawaii only',
+    total_room_count TINYINT UNSIGNED COMMENT 'Hawaii only. Max observed 18',
     -- Condo-specific fields (nullable - only for condo units)
     condo_style VARCHAR(50),
     condo_view VARCHAR(50),
-    floor_level VARCHAR(20),
-    parking_spaces VARCHAR(10),
+    floor_level SMALLINT UNSIGNED,
+    parking_spaces DECIMAL(5, 2) COMMENT 'Scraped as "001" or fractional "1.75"',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed),
@@ -254,8 +252,8 @@ CREATE TABLE residential_additions (
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
-    card VARCHAR(10),
-    line VARCHAR(10),
+    card SMALLINT UNSIGNED COMMENT 'Max observed 7,361',
+    line TINYINT UNSIGNED COMMENT 'Max observed 26',
     lower TEXT,
     first TEXT,
     second TEXT,
@@ -275,17 +273,17 @@ CREATE TABLE commercial_improvements (
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
     building_number VARCHAR(10),
-    building_card VARCHAR(10),
+    building_card SMALLINT UNSIGNED COMMENT 'Max observed 7,035',
     year_built SMALLINT UNSIGNED,
     effective_year_built SMALLINT UNSIGNED,
     improvement_name VARCHAR(255),
     property_class TEXT,
     structure_type VARCHAR(100),
-    units VARCHAR(20),
-    identical_units VARCHAR(20),
+    units SMALLINT UNSIGNED COMMENT 'Max observed 4,444',
+    identical_units TINYINT UNSIGNED COMMENT 'Max observed 14',
     gross_building_description TEXT,
     -- County-specific fields (nullable)
-    building_square_footage VARCHAR(20) COMMENT 'Maui/Kauai',
+    building_square_footage INT UNSIGNED COMMENT 'Maui/Kauai. Max observed 268,707; scraped with thousands separators - commas stripped at load',
     building_type VARCHAR(100) COMMENT 'Maui/Kauai',
     percent_complete TINYINT UNSIGNED COMMENT 'Kauai. Whole percent, 0-100',
     structure VARCHAR(100) COMMENT 'Kauai',
@@ -305,16 +303,18 @@ CREATE TABLE commercial_improvement_details (
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
-    card VARCHAR(10),
+    card SMALLINT UNSIGNED,
     section VARCHAR(50),
     floor VARCHAR(50),
     `usage` VARCHAR(100),
     area INT UNSIGNED COMMENT 'Square feet',
-    perimeter VARCHAR(20),
+    perimeter SMALLINT UNSIGNED COMMENT 'Max observed 5,636',
     exterior_wall VARCHAR(100),
-    wall_height VARCHAR(20),
+    wall_height TINYINT UNSIGNED COMMENT 'Max observed 87',
     -- County-specific fields
-    occupancy VARCHAR(50),
+    -- (occupancy was dropped 2026-08-14: Kauai renders an Occupancy column but
+    -- never fills it, and Maui/Hawaii's "Occupancy" header is their label for
+    -- the usage column — no county ever supplies a distinct value.)
     construction VARCHAR(100),
     condo_style VARCHAR(50),
     condo_type VARCHAR(50),
@@ -338,10 +338,10 @@ CREATE TABLE yard_improvements (
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
-    building_number VARCHAR(20) COMMENT 'Maui only',
+    building_number SMALLINT UNSIGNED COMMENT 'Maui only',
     description VARCHAR(255),
     dimensions VARCHAR(30) COMMENT 'Maui, from the "Dimensions/Units" cell, e.g. "0x0"',
-    quantity VARCHAR(20) COMMENT 'Maui: the "/ N" part of Dimensions/Units',
+    quantity DECIMAL(7, 2) COMMENT 'Maui: the "/ N" part of Dimensions/Units. Mostly whole numbers; fractional observed (400.5)',
     year_built SMALLINT UNSIGNED,
     area INT UNSIGNED COMMENT 'Square feet, EXCEPT on description = "GROSS BUILDING VALUE" rows, where qPublic puts a dollar amount in this column. Exclude those rows when analysing area. Oahu scrapes it with thousands separators; parsed on the way in',
     percent_complete TINYINT UNSIGNED COMMENT 'Maui only. Whole percent, 0-100',
@@ -479,7 +479,7 @@ CREATE TABLE historical_tax_payments (
     historical_tax_summary_id BIGINT UNSIGNED NOT NULL,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME,
-    payment_sequence VARCHAR(50),
+    payment_sequence INT UNSIGNED COMMENT 'Max observed 14,210,072',
     effective_date DATE,
     tax DECIMAL(12, 2),
     penalty DECIMAL(12, 2),
@@ -522,7 +522,7 @@ CREATE TABLE appeals (
     date_settled DATE,
     final_value BIGINT UNSIGNED COMMENT 'Final assessed value in whole dollars',
     tax_payer_opinion_of_value BIGINT UNSIGNED COMMENT 'Taxpayer opinion value in whole dollars',
-    tax_payer_opinion_of_property_class TEXT,
+    tax_payer_opinion_of_property_class TINYINT UNSIGNED COMMENT 'Maui only, numeric class code 0-12: 0=Time Share, 1=Non-Owner-Occupied, 2=Apartment, 3=Commercial, 4=Industrial, 5=Agricultural, 7=Hotel/Resort, 9=Owner-Occupied, 10=Commercialized Residential, 11=TVR-STRH, 12=Long-Term Rental (6, 8 unobserved)',
     tax_payer_opinion_of_exemptions BIGINT UNSIGNED COMMENT 'Taxpayer exemption amount in whole dollars',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
@@ -539,8 +539,8 @@ CREATE TABLE agricultural_assessments (
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
     -- County-specific fields (all nullable)
-    acres VARCHAR(20) COMMENT 'Maui',
-    acres_in_production VARCHAR(20) COMMENT 'Oahu/Big Island',
+    acres DECIMAL(12, 4) COMMENT 'Maui. Max observed 6,348.623',
+    acres_in_production DECIMAL(12, 4) COMMENT 'Oahu/Big Island. Max observed 45,161',
     agricultural_type VARCHAR(100) COMMENT 'Oahu',
     agricultural_value BIGINT UNSIGNED COMMENT 'Oahu/Big Island - value in whole dollars',
     assessed_value BIGINT UNSIGNED COMMENT 'Maui - value in whole dollars',
@@ -550,25 +550,6 @@ CREATE TABLE agricultural_assessments (
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Agricultural assessment details (sparse - not all counties)';
-
--- ============================================================================
--- ACCESSORY STRUCTURES
--- ============================================================================
-CREATE TABLE accessory_structures (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    tmk VARCHAR(30) NOT NULL,
-    scraped_at DATETIME NOT NULL,
-    last_year_observed SMALLINT UNSIGNED,
-    building_number VARCHAR(10),
-    description VARCHAR(255),
-    dimensions_units VARCHAR(50),
-    percent_complete TINYINT UNSIGNED COMMENT 'Whole percent, 0-100',
-    value BIGINT UNSIGNED COMMENT 'Structure value in whole dollars',
-    year_built SMALLINT UNSIGNED,
-    FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
-    INDEX idx_tmk (tmk),
-    INDEX idx_last_year_observed (last_year_observed)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Accessory structures (Maui only)';
 
 -- ============================================================================
 -- DEDICATIONS

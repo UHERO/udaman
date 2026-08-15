@@ -133,6 +133,7 @@ export function parseOwnerInformation(
 type ParcelInfo = {
   parcel_number: string | null;
   location_address: string | null;
+  address_other: string | null;
   project_name: string | null;
   legal_information: string | null;
   property_class: string | null;
@@ -156,6 +157,7 @@ export function parseParcelInformation(
   const result: ParcelInfo = {
     parcel_number: null,
     location_address: null,
+    address_other: null,
     project_name: null,
     legal_information: null,
     property_class: null,
@@ -194,7 +196,26 @@ export function parseParcelInformation(
       if (key.includes("parcel number")) {
         result.parcel_number = value;
       } else if (key.includes("location address")) {
-        result.location_address = value;
+        // Kauai stacks alternate addresses in this cell with <br>: first
+        // line is the primary street address, last line is city/state/zip,
+        // middle lines (if any) are alternate street addresses. Split on
+        // <br> so alternates land in address_other instead of being
+        // flattened into one run-on location_address. Single-line (Oahu/
+        // Big Island) and two-line (Maui, street + city) cells produce the
+        // same location_address as the old textContent flattening.
+        const lines = td.innerHTML
+          .split(/<br\s*\/?>/i)
+          .map((part) =>
+            cleanText(part.replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&")),
+          )
+          .filter((line) => line.length > 0);
+        if (lines.length <= 1) {
+          result.location_address = lines[0] ?? value;
+        } else {
+          result.location_address = `${lines[0]} ${lines[lines.length - 1]}`;
+          result.address_other =
+            lines.length > 2 ? lines.slice(1, -1).join("; ") : null;
+        }
       } else if (key.includes("project name")) {
         result.project_name = value;
       } else if (key.includes("legal information")) {
@@ -600,8 +621,10 @@ function extractTaxNestedTable(table: HTMLElement): {
       if (headers[index]) {
         const value = cleanText(cell.textContent);
         const fieldName = headers[index]
-          .replace(/[^\w\s]/g, "")
-          .replace(/\s+/g, "_");
+          .replace(/[^\w\s]/g, " ")
+          .replace(/\s+/g, "_")
+          .replace(/_+/g, "_")
+          .replace(/^_|_$/g, "");
         rowData[fieldName] = value || null;
       }
     });
@@ -1099,7 +1122,7 @@ function extractCommercialBuildingFields(
   }
 }
 
-function parseFloorDetailTable(
+export function parseFloorDetailTable(
   table: HTMLElement,
 ): Record<string, string | null>[] {
   const details: Record<string, string | null>[] = [];
@@ -1112,13 +1135,21 @@ function parseFloorDetailTable(
     cleanText(th.textContent).toLowerCase(),
   );
 
+  // Maui/Big Island title the usage column "Occupancy", so it maps to
+  // "usage". Kauai has BOTH columns — Usage holds the real values and
+  // Occupancy is blank — so mapping both to "usage" lets the blank
+  // Occupancy cell clobber the real value. Only fold "occupancy" into
+  // "usage" when no separate "usage" header exists.
+  const hasUsageHeader = headers.some((h) => h === "usage");
+
   const columnMap = headers.map((header) => {
     if (header === "card") return "card";
     if (header === "section") return "section";
     if (header.includes("floor")) return "floor";
     if (header === "area") return "area";
     if (header === "perimeter") return "perimeter";
-    if (header === "usage" || header === "occupancy") return "usage";
+    if (header === "usage") return "usage";
+    if (header === "occupancy") return hasUsageHeader ? "occupancy" : "usage";
     if (header.includes("wall height")) return "wall_height";
     if (header.includes("exterior wall")) return "exterior_wall";
     if (header === "rank") return "rank";
@@ -1184,6 +1215,20 @@ export type SectionParser = (
   section: HTMLElement,
   islandCode: string,
 ) => Record<string, unknown>;
+
+/**
+ * County-specific section titles remapped to a canonical section key before
+ * parser dispatch and result storage. Unlike the parser-only aliases below
+ * (e.g. conveyance_information, where consumers read a subkey off either
+ * section name), these sections' consumers read the section key itself —
+ * qpub-extract/load/batch-load all read `historical_tax_information` — so the
+ * output must land under the canonical key, not the raw title.
+ */
+export const SECTION_KEY_ALIASES: Record<string, string> = {
+  // Kauai titles its historical tax section "Historical Payment Information";
+  // the table shape is identical to the other counties'.
+  historical_payment_information: "historical_tax_information",
+};
 
 export const SECTION_PARSERS: Record<string, SectionParser> = {
   parcel_information: parseParcelInformation,
