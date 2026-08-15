@@ -889,6 +889,23 @@ describe("accessory_information", () => {
   });
 });
 
+// ─── Home Exemption Information (Maui) ──────────────────────────────
+
+describe("home_exemption_information", () => {
+  it("extracts Maui homestead claims as packed 'CLAIMANT NAME YYYY' rows", () => {
+    const section = mauiRes.home_exemption_information as R;
+    expect(section).toBeDefined();
+    const rows = section.table_data as R[];
+    expect(rows.length).toBe(4);
+    // Two co-owners, each with a claim per year — years run ahead of the
+    // assessment year.
+    expect(rows[0].homestead_information).toBe("SHISHIDO,KAHAI K 2025");
+    expect(rows[1].homestead_information).toBe("SHISHIDO,KAHAI K 2026");
+    expect(rows[2].homestead_information).toBe("SHISHIDO,WENDY M I T 2025");
+    expect(rows[3].homestead_information).toBe("SHISHIDO,WENDY M I T 2026");
+  });
+});
+
 // ─── Map / Sketch ───────────────────────────────────────────────────
 
 describe("map section", () => {

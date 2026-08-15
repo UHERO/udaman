@@ -202,10 +202,12 @@ function matchNaturalSql(meta: TableMeta, match: string[]): string[] {
 /**
  * Change detection, set-based.
  *
- * Mirrors upsertSnapshot() exactly: compare against the LATEST version per
- * (tmk + identity) only. Comparing against any historical version would let a
- * value that was superseded years ago silently re-match, extending a dead row
- * instead of recording that the value came back.
+ * Mirrors batchUpsertSnapshot() in qpub-load.ts: compare against the LATEST
+ * version per (tmk + identity) only. Comparing against any historical version
+ * would let a value that was superseded years ago silently re-match, extending
+ * a dead row instead of recording that the value came back. (Unlike the row
+ * path this is not occurrence-aware — see the scd note in
+ * qpub-delta-strategy.ts.)
  */
 function scdSql(meta: TableMeta, identity: string[]): string[] {
   const stg = stagingTable(meta.table);

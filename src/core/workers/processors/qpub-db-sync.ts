@@ -55,6 +55,7 @@ const ALL_DATA_TABLES: string[] = [
   "agricultural_assessments",
   "appeals",
   "dedications",
+  "home_exemptions",
 ];
 
 // ─── Table groups for single-table sync ──────────────────────────

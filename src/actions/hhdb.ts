@@ -16,6 +16,7 @@ import {
   getHistoricalTaxDetailsJSON as getHistoricalTaxDetailsCtrl,
   getHistoricalTaxPaymentsJSON as getHistoricalTaxPaymentsCtrl,
   getHistoricalTaxSummaryJSON as getHistoricalTaxSummaryCtrl,
+  getHomeExemptionsJSON as getHomeExemptionsCtrl,
   getImprovementsJSON as getImprovementsCtrl,
   getLandClassificationsJSON as getLandClassificationsCtrl,
   getMedianAssessedByClass as getMedianAssessedCtrl,
@@ -169,6 +170,11 @@ export async function getHhdbAppeals(params: HhdbListParams) {
 export async function getHhdbDedications(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
   return getDedicationsCtrl(params);
+}
+
+export async function getHhdbHomeExemptions(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getHomeExemptionsCtrl(params);
 }
 
 export async function getHhdbLandClassifications(params: HhdbListParams) {

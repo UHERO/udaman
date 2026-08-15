@@ -40,6 +40,8 @@ DROP TABLE IF EXISTS appeals;
 
 DROP TABLE IF EXISTS dedications;
 
+DROP TABLE IF EXISTS home_exemptions;
+
 DROP TABLE IF EXISTS condominium_units;
 
 DROP TABLE IF EXISTS condominium_projects;
@@ -566,6 +568,24 @@ CREATE TABLE dedications (
     -- One dedication row per parcel per tax year.
     UNIQUE KEY unique_dedication (tmk, tax_year)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Dedications (Oahu only)';
+
+-- ============================================================================
+-- HOME EXEMPTIONS
+-- ============================================================================
+CREATE TABLE home_exemptions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME,
+    claimant_name VARCHAR(255) COMMENT 'Homestead exemption claimant as printed, e.g. "SODEN,TAMMY"',
+    tax_year SMALLINT UNSIGNED COMMENT 'Tax year of the claim. Claim years run one year AHEAD of assessment years (2026 claims appear in the 2026-1 scrape)',
+    FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
+    INDEX idx_tmk (tmk),
+    INDEX idx_tax_year (tax_year),
+    INDEX idx_claimant_name (claimant_name),
+    -- One row per claimant per parcel per tax year. Multiple claimants on one
+    -- (tmk, tax_year) are co-owners each filing a claim.
+    UNIQUE KEY unique_home_exemption (tmk, tax_year, claimant_name)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Homestead (owner-occupant) exemption claims (Maui only). Source rows are packed "CLAIMANT NAME YYYY" strings from the qPublic "Home Exemption Information" section.';
 
 -- ============================================================================
 -- CONDOMINIUM PROJECTS & UNITS

@@ -224,6 +224,7 @@ const LOAD_ORDER: string[] = [
   "agricultural_assessments",
   "appeals",
   "dedications",
+  "home_exemptions",
 ];
 
 // ─── ON DUPLICATE KEY UPDATE clauses ────────────────────────────────
@@ -272,6 +273,9 @@ const ON_DUPLICATE: Record<string, string> = {
     "project_name=VALUES(project_name), unit_count=VALUES(unit_count)",
   condominium_units:
     "unit_number=VALUES(unit_number), owner_name=VALUES(owner_name)",
+  // UNIQUE(tmk, tax_year, claimant_name) — a re-staged claim only refreshes
+  // when it was last seen.
+  home_exemptions: "scraped_at=VALUES(scraped_at)",
 };
 
 // ─── Main Load Function ─────────────────────────────────────────────

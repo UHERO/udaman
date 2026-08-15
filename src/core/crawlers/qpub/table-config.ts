@@ -42,11 +42,15 @@ export const TABLE_CONFIGS: Record<string, TableConfig> = {
   },
   owners: {
     category: "snapshot",
-    naturalKey: ["tmk", "owner_name", "sequence_order"],
+    // Address is identity, not data: qPublic renders one estate several times
+    // with different representative addresses and each is its own row.
+    naturalKey: ["tmk", "owner_name", "owner_type", "owner_address"],
   },
   land_classifications: {
     category: "snapshot",
-    naturalKey: ["tmk", "land_classification"],
+    // Size is identity: several rows of one classification per parcel,
+    // differing only in sqft/acreage.
+    naturalKey: ["tmk", "land_classification", "square_footage", "acreage"],
   },
   residential_improvements: {
     category: "snapshot",
@@ -74,11 +78,20 @@ export const TABLE_CONFIGS: Record<string, TableConfig> = {
   },
   appeals: {
     category: "snapshot",
+    // The row loader (GENERIC_MATCH_UPDATE in qpub-load.ts) matches this key
+    // NULL-safe and updates the current row in place — one row per appeal, no
+    // history; in-page duplicates on the key stay distinct by occurrence.
     naturalKey: ["tmk", "year", "appeal_type_value"],
   },
   dedications: {
     category: "snapshot",
     naturalKey: ["tmk", "tax_year"],
+  },
+  home_exemptions: {
+    category: "snapshot",
+    // Mirrors UNIQUE unique_home_exemption — co-owners each file a claim, so
+    // claimant_name is part of the identity.
+    naturalKey: ["tmk", "tax_year", "claimant_name"],
   },
 
   // ─── year-partitioned (delete by covered years → insert) ────
@@ -94,7 +107,17 @@ export const TABLE_CONFIGS: Record<string, TableConfig> = {
   // ─── accumulative (check natural key, skip if exists) ───────
   sales: {
     category: "accumulative",
-    naturalKey: ["tmk", "sale_date", "instrument"],
+    // Carries the document identifiers: distinct documents record on the same
+    // date with consecutive doc numbers, so (tmk, sale_date, instrument)
+    // alone would drop the second one.
+    naturalKey: [
+      "tmk",
+      "sale_date",
+      "instrument",
+      "land_court_document_number",
+      "book_page",
+      "sale_amount",
+    ],
   },
   permits: {
     category: "accumulative",

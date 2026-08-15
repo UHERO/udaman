@@ -77,6 +77,11 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     fieldsTable: "dedications",
     defaultSort: "tmk",
   },
+  "home-exemptions": {
+    title: "Home Exemptions",
+    fieldsTable: "home_exemptions",
+    defaultSort: "tmk",
+  },
   "land-classifications": {
     title: "Land Classifications",
     fieldsTable: "land_classifications",

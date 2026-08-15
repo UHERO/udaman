@@ -36,6 +36,13 @@ export type DeltaStrategy =
    * if every data column is unchanged, extend it by bumping last_year_observed
    * and scraped_at; if anything differs, insert a new version and leave the old
    * row in place as history.
+   *
+   * NOTE: the row path (batchUpsertSnapshot in qpub-load.ts) is additionally
+   * occurrence-aware — k identical rows in one page pair against the k most
+   * recent stored rows. This set-based form still compares 1-vs-latest, so a
+   * within-parcel identity duplicate in staging collapses onto one stored row
+   * here. Known limitation; the affected tables' identities were widened so
+   * true duplicates are rare residuals.
    */
   | { kind: "scd"; identity: string[] };
 
@@ -69,11 +76,20 @@ export const DELTA_STRATEGY: Record<string, DeltaStrategy> = {
   // the filter — all of it interest/penalty accrual restating the same bill,
   // which is an update to current state rather than history worth keeping.
   current_tax_bills: { kind: "upsert-key", key: ["tmk", "tax_period"] },
-  // One dedication row per parcel per tax year. No last_year_observed column,
-  // so this never reached upsertSnapshot — it took loadGenericSnapshot's plain
-  // INSERT fallback, which would have duplicated on every load. The table is
-  // empty (see the section-key bug), so the UNIQUE key costs nothing to add.
+  // One dedication row per parcel per tax year, backed by
+  // UNIQUE(tmk, tax_year). The row path matches on tax_year via
+  // GENERIC_MATCH_UPDATE in qpub-load.ts and updates the row in place —
+  // equivalent semantics to this upsert-key, and it no longer trips the
+  // unique key on a re-load the way the old plain-INSERT fallback did.
   dedications: { kind: "upsert-key", key: ["tmk", "tax_year"] },
+  // One homestead claim per claimant per parcel per tax year (Maui only;
+  // co-owners each file their own claim), backed by
+  // UNIQUE unique_home_exemption (tmk, tax_year, claimant_name). The row path
+  // matches the same key via GENERIC_MATCH_UPDATE in qpub-load.ts.
+  home_exemptions: {
+    kind: "upsert-key",
+    key: ["tmk", "tax_year", "claimant_name"],
+  },
 
   // ── Replace per parcel ───────────────────────────────────────────────
   // loadHistoricalTax:817-825 deletes these by historical_tax_summary_id
@@ -88,29 +104,60 @@ export const DELTA_STRATEGY: Record<string, DeltaStrategy> = {
   commercial_improvement_details: { kind: "replace-by-tmk" },
 
   // ── Natural-key matches (no supporting index) ────────────────────────
-  // loadOwners:383
-  owners: { kind: "match-natural", match: ["owner_name", "owner_type"] },
-  // loadSales:707
-  sales: { kind: "match-natural", match: ["sale_date", "instrument"] },
-  // loadPermits:908
+  // loadOwners — the within-parcel identity is (name, type, address): qPublic
+  // renders one estate several times with different representative C-O/ATTN
+  // addresses and each is its own row, so a changed address is a new row,
+  // never an update.
+  owners: {
+    kind: "match-natural",
+    match: ["owner_name", "owner_type", "owner_address"],
+  },
+  // loadSales — the match carries the document identifiers, not just
+  // (sale_date, instrument): distinct documents record on the same date with
+  // consecutive doc numbers, and the narrower key silently dropped the second.
+  sales: {
+    kind: "match-natural",
+    match: [
+      "sale_date",
+      "instrument",
+      "land_court_document_number",
+      "book_page",
+      "sale_amount",
+    ],
+  },
+  // loadPermits
   permits: { kind: "match-natural", match: ["permit_number"] },
-  // loadCommercialImprovements:594
+  // loadCommercialImprovements
   commercial_improvements: {
     kind: "match-natural",
     match: ["building_number", "building_card"],
   },
-  // Also lacks last_year_observed, so it is not a snapshot table either. It
-  // does carry duplicates on (tmk, year, appeal_type_value) — 1.38 per key —
-  // so it gets matched rather than keyed.
+  // Also lacks last_year_observed, so it is not a snapshot table either. The
+  // row path (GENERIC_MATCH_UPDATE in qpub-load.ts) matches on this key and
+  // updates the current row IN PLACE — status, hearing date, date_settled and
+  // the taxpayer-opinion fields legitimately change across scrapes, and we
+  // keep one current row per appeal, not history. Legitimate in-page
+  // duplicates on the key (two same-year appeals with different hearing
+  // dates, mostly Oahu) are kept distinct there by occurrence index; this
+  // set-based match is not occurrence-aware, so a duplicated key in one batch
+  // collapses onto the same stored row — acceptable for the delta path, which
+  // stages at most one page version per parcel.
   appeals: { kind: "match-natural", match: ["year", "appeal_type_value"] },
 
   // ── Change-detection (upsertSnapshot) ────────────────────────────────
   // An empty identity means one current version per parcel — every data column
   // participates in the comparison.
-  parcels: { kind: "scd", identity: [] }, // loadParcels:334
-  land_classifications: { kind: "scd", identity: ["land_classification"] }, // :500
-  residential_improvements: { kind: "scd", identity: ["building_number"] }, // :535
-  // GENERIC_IDENTITY_FIELDS, qpub-load.ts:1063
+  parcels: { kind: "scd", identity: [] }, // loadParcels
+  // loadLandClassifications — size is identity, not data: a parcel routinely
+  // carries several rows of one classification differing only in
+  // sqft/acreage, and on classification alone they version against each
+  // other. Only agricultural_use_indicator remains as compared data.
+  land_classifications: {
+    kind: "scd",
+    identity: ["land_classification", "square_footage", "acreage"],
+  },
+  residential_improvements: { kind: "scd", identity: ["building_number"] },
+  // GENERIC_IDENTITY_FIELDS, qpub-load.ts
   yard_improvements: {
     kind: "scd",
     identity: ["building_number", "description", "year_built", "area"],
@@ -146,4 +193,5 @@ export const DELTA_ORDER: string[] = [
   "agricultural_assessments",
   "appeals",
   "dedications",
+  "home_exemptions",
 ];

@@ -16,6 +16,7 @@ import {
   getHhdbHistoricalTaxDetails,
   getHhdbHistoricalTaxPayments,
   getHhdbHistoricalTaxSummary,
+  getHhdbHomeExemptions,
   getHhdbLandClassifications,
   getHhdbOwners,
   getHhdbParcels,
@@ -40,6 +41,7 @@ import { HistoricalTaxCreditsTable } from "@/components/hhdb/tables/historical-t
 import { HistoricalTaxDetailsTable } from "@/components/hhdb/tables/historical-tax-details-table";
 import { HistoricalTaxPaymentsTable } from "@/components/hhdb/tables/historical-tax-payments-table";
 import { HistoricalTaxSummaryTable } from "@/components/hhdb/tables/historical-tax-summary-table";
+import { HomeExemptionsTable } from "@/components/hhdb/tables/home-exemptions-table";
 import { ImprovementsTable } from "@/components/hhdb/tables/improvements-table";
 import { LandClassificationsTable } from "@/components/hhdb/tables/land-classifications-table";
 import { OwnersTable } from "@/components/hhdb/tables/owners-table";
@@ -119,6 +121,10 @@ const REGISTRY: Record<string, TableEntry> = {
   dedications: {
     action: getHhdbDedications,
     render: (p) => <DedicationsTable {...p} />,
+  },
+  "home-exemptions": {
+    action: getHhdbHomeExemptions,
+    render: (p) => <HomeExemptionsTable {...p} />,
   },
   "land-classifications": {
     action: getHhdbLandClassifications,

@@ -185,6 +185,11 @@ const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
   { title: "Appeals", url: "/hhdb/tables/appeals", icon: Gavel },
   { title: "Dedications", url: "/hhdb/tables/dedications", icon: BookOpen },
   {
+    title: "Home Exemptions",
+    url: "/hhdb/tables/home-exemptions",
+    icon: House,
+  },
+  {
     title: "Land Class",
     url: "/hhdb/tables/land-classifications",
     icon: Layers,

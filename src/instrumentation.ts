@@ -10,7 +10,7 @@ export const onRequestError: Instrumentation.onRequestError = async (
   request,
   context,
 ) => {
-  // Dynamic imports avoid pulling pino/auth into the edge runtime at build time.
+  // Dynamic imports keep the logger and auth out of the edge runtime at build time.
   const [{ logger }, { getSession }] = await Promise.all([
     import("@/core/observability/logger"),
     import("@/lib/auth/dal"),

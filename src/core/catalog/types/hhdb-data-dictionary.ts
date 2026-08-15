@@ -1114,6 +1114,33 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     },
   ],
 
+  // ── Home Exemptions ─────────────────────────────────────────────────────
+  home_exemptions: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key of the parcel the exemption claim is filed on.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "claimant_name",
+      label: "Claimant",
+      description:
+        "Homestead (owner-occupant) exemption claimant, as printed by the county. Multiple claimants on one parcel and year are co-owners each filing a claim.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui only. Scraped from the qPublic \"Home Exemption Information\" section, where each row is a packed \"CLAIMANT NAME YYYY\" string split at load.",
+    },
+    {
+      key: "tax_year",
+      label: "Tax Year",
+      description:
+        "Tax year the exemption claim applies to. Claim years run one year ahead of assessment years (2026 claims appear in the 2026-1 scrape).",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+  ],
+
   // ── Land Classifications ────────────────────────────────────────────────
   land_classifications: [
     {

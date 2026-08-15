@@ -269,17 +269,22 @@ async function run() {
   process.exit(0);
 }
 
-process.on("uncaughtException", (err) => {
-  log.error({ error: errorMessage(err) }, "Uncaught exception");
+/**
+ * Report a fatal error on stderr *before* anything else touches it.
+ *
+ * The logger is the thing most likely to be broken when a process is dying, and
+ * routing a crash through it is how `parcel-list --execute` came to report
+ * "sonic boom is not ready yet" while the real exception vanished. console.error
+ * writes the stack synchronously and depends on nothing.
+ */
+function reportFatal(label: string, err: unknown): never {
+  console.error(`\n${label}: ${errorMessage(err)}`);
+  if (err instanceof Error && err.stack) console.error(err.stack);
+  log.error({ error: errorMessage(err) }, label);
   process.exit(1);
-});
+}
 
-process.on("unhandledRejection", (err) => {
-  log.error({ error: errorMessage(err) }, "Unhandled rejection");
-  process.exit(1);
-});
+process.on("uncaughtException", (err) => reportFatal("Uncaught exception", err));
+process.on("unhandledRejection", (err) => reportFatal("Unhandled rejection", err));
 
-run().catch((err) => {
-  log.error({ error: errorMessage(err) }, "qpub-cli crashed");
-  process.exit(1);
-});
+run().catch((err) => reportFatal("qpub-cli crashed", err));

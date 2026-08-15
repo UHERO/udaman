@@ -62,7 +62,7 @@ function formatTimestamp(iso: string): string {
   return formatHst(iso, "MMM d, HH:mm:ss");
 }
 
-/** For true epoch-ms instants (e.g. pino log `time` fields). */
+/** For true epoch-ms instants (e.g. the `time` field on server log lines). */
 function formatEpochTimestamp(ms: number): string {
   return new Date(ms).toLocaleString("en-US", {
     timeZone: "Pacific/Honolulu",

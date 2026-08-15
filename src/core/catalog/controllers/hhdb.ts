@@ -9,6 +9,7 @@ import HhdbCurrentTaxBillCollection from "../collections/hhdb-current-tax-bill-c
 import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
 import HhdbDedicationCollection from "../collections/hhdb-dedication-collection";
 import HhdbHistoricalTaxCreditCollection from "../collections/hhdb-historical-tax-credit-collection";
+import HhdbHomeExemptionCollection from "../collections/hhdb-home-exemption-collection";
 import HhdbHistoricalTaxDetailCollection from "../collections/hhdb-historical-tax-detail-collection";
 import HhdbHistoricalTaxPaymentCollection from "../collections/hhdb-historical-tax-payment-collection";
 import HhdbHistoricalTaxSummaryCollection from "../collections/hhdb-historical-tax-summary-collection";
@@ -119,6 +120,13 @@ export async function getDedications(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb dedications");
   const result = await HhdbDedicationCollection.list(params);
   log.info({ total: result.total }, "hhdb dedications fetched");
+  return result;
+}
+
+export async function getHomeExemptions(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb home exemptions");
+  const result = await HhdbHomeExemptionCollection.list(params);
+  log.info({ total: result.total }, "hhdb home exemptions fetched");
   return result;
 }
 
@@ -271,6 +279,13 @@ export async function getDedicationsJSON(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb dedications");
   const result = await HhdbDedicationCollection.listJSON(params);
   log.info({ total: result.total }, "hhdb dedications fetched");
+  return result;
+}
+
+export async function getHomeExemptionsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb home exemptions");
+  const result = await HhdbHomeExemptionCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb home exemptions fetched");
   return result;
 }
 

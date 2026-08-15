@@ -331,6 +331,7 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
     "tax_payer_opinion_of_exemptions",
   ],
   dedications: ["tmk", "scraped_at", "tax_year", "number_of_dedications"],
+  home_exemptions: ["tmk", "scraped_at", "claimant_name", "tax_year"],
 };
 
 // ─── Counters for auto-increment IDs ───────────────────────────────
@@ -1003,6 +1004,7 @@ export function initStagingDir(stagingDir: string): void {
     "agricultural_assessments",
     "appeals",
     "dedications",
+    "home_exemptions",
   ];
 
   for (const table of allTables) {
