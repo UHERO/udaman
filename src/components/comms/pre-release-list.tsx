@@ -4,10 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ApprovalJSON } from "@catalog/models/approval";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { deleteApproval } from "@/actions/approvals";
+import {
+  deleteApproval,
+  resendApprovalNotification,
+} from "@/actions/approvals";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
 function formatDate(value: string | null): string {
@@ -54,6 +58,8 @@ export function PreReleaseList({
   const base = "/comms/pub-form";
   const [pendingDelete, setPendingDelete] = useState<ApprovalJSON | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingResend, setPendingResend] = useState<ApprovalJSON | null>(null);
+  const [resending, setResending] = useState(false);
 
   const canModify = (a: ApprovalJSON) =>
     isAdmin || a.authorUserId === currentUserId;
@@ -72,6 +78,24 @@ export function PreReleaseList({
       );
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function confirmResend() {
+    if (!pendingResend) return;
+    setResending(true);
+    try {
+      const result = await resendApprovalNotification(pendingResend.id);
+      toast.success(result.message);
+      setPendingResend(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to send the notification",
+      );
+    } finally {
+      setResending(false);
     }
   }
 
@@ -123,6 +147,15 @@ export function PreReleaseList({
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-7 w-7 cursor-pointer"
+                      title="Resend notification"
+                      onClick={() => setPendingResend(a)}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="text-destructive h-7 w-7 cursor-pointer"
                       title="Delete"
                       onClick={() => setPendingDelete(a)}
@@ -163,6 +196,39 @@ export function PreReleaseList({
               }}
             >
               {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingResend}
+        onOpenChange={(open) => !open && setPendingResend(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resend the notification email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The submission notification for &ldquo;{pendingResend?.name}
+              &rdquo; will be emailed to:{" "}
+              {pendingResend
+                ? resolvePreReleaseRecipients(pendingResend.formData).join(", ")
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer"
+              disabled={resending}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmResend();
+              }}
+            >
+              {resending ? "Sending…" : "Send"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

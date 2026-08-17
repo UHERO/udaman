@@ -7,6 +7,7 @@ import {
   deleteApproval as deleteApprovalCtrl,
   getApproval as fetchApproval,
   getApprovals as fetchApprovals,
+  resendApprovalNotification as resendApprovalNotificationCtrl,
   updateApproval as updateApprovalCtrl,
 } from "@catalog/controllers/approvals";
 import type { PreReleaseFormData } from "@catalog/models/approval";
@@ -109,6 +110,24 @@ export async function updateApproval(
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "updateApproval failed");
     AppLogCollection.logError(err, { userId, name: "approval.update" });
+    throw err;
+  }
+}
+
+export async function resendApprovalNotification(id: number) {
+  const { userId, role } = await requirePermission("approval", "update");
+  log.info({ id }, "resendApprovalNotification action called");
+  try {
+    const result = await resendApprovalNotificationCtrl({
+      id,
+      actor: { userId, role },
+    });
+    log.info({ id }, "resendApprovalNotification action completed");
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "resendApprovalNotification failed");
+    AppLogCollection.logError(err, { userId, name: "approval.resend" });
     throw err;
   }
 }

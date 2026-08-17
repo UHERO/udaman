@@ -95,6 +95,52 @@ export async function createApproval({
   return { message: "Pre-release form submitted", data };
 }
 
+/**
+ * Re-send the submission notification for an existing form.
+ *
+ * Unlike the submit-time send, this is awaited so a transport failure reaches
+ * the user who clicked resend. Recipients are re-resolved from the current
+ * form data, and the audit trail is updated to reflect who was actually mailed.
+ */
+export async function resendApprovalNotification({
+  id,
+  actor,
+}: {
+  id: number;
+  actor: Actor;
+}) {
+  log.info({ id }, "resending approval notification");
+  const existing = await ApprovalCollection.getById(id);
+  assertCanModify(existing, actor);
+
+  const recipients = resolvePreReleaseRecipients(existing.formData);
+  if (!recipients.length) {
+    throw new Error(
+      "This form has no recipients — edit it and add at least one address",
+    );
+  }
+
+  await sendPreReleaseSubmitted({
+    approvalId: existing.id,
+    universe: existing.universe,
+    name: existing.name,
+    author: existing.author,
+    targetReleaseDate: existing.toJSON().targetReleaseDate,
+    submittedAt: existing.createdAt ?? new Date(),
+    formData: existing.formData,
+    recipients,
+  });
+
+  await ApprovalCollection.update(id, {
+    formData: { ...existing.formData, notifiedRecipients: recipients },
+  });
+
+  log.info({ id, recipientCount: recipients.length }, "notification resent");
+  return {
+    message: `Notification sent to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`,
+  };
+}
+
 export async function updateApproval({
   id,
   payload,
