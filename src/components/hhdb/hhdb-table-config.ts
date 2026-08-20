@@ -133,9 +133,9 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     fieldsTable: "residential_additions",
     defaultSort: "tmk",
   },
-  "yard-improvements": {
-    title: "Yard Improvements",
-    fieldsTable: "yard_improvements",
+  "accessory-improvements": {
+    title: "Accessory Improvements",
+    fieldsTable: "accessory_improvements",
     defaultSort: "tmk",
   },
   transactions: {

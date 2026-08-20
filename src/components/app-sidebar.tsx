@@ -10,47 +10,30 @@ import {
   AudioWaveform,
   BarChart3,
   BookOpen,
-  Building,
   Building2,
   Calendar,
   ChartNoAxesCombined,
-  Coins,
   Command,
-  CreditCard,
-  DollarSign,
-  FileText,
   FunctionSquare,
   GalleryVerticalEnd,
-  Gavel,
   Globe,
-  Hammer,
-  History,
-  Home,
   House,
   Info,
   KeyRound,
-  Landmark,
-  Layers,
-  ListOrdered,
   LogOut,
   Mail,
-  MapPin,
   Megaphone,
-  PlusSquare,
-  Receipt,
   ScrollText,
   Server,
   Shield,
   ToggleRight,
-  TreePine,
   Users,
-  Warehouse,
-  Wheat,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { NavHhdb } from "@/components/nav-hhdb";
 import { NavMain } from "@/components/nav-main";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -158,70 +141,6 @@ const ADMIN_ICONS: Record<string, LucideIcon> = {
   "/admin/messages": Mail,
 };
 
-const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
-  { title: "About", url: "/hhdb", icon: Info },
-  { title: "Properties", url: "/hhdb/tables/properties", icon: Home },
-  { title: "Parcels", url: "/hhdb/tables/parcels", icon: MapPin },
-  { title: "Owners", url: "/hhdb/tables/owners", icon: Users },
-  { title: "Assessments", url: "/hhdb/tables/assessments", icon: DollarSign },
-  { title: "Sales", url: "/hhdb/tables/sales", icon: Landmark },
-  {
-    title: "Residential Impr.",
-    url: "/hhdb/tables/residential-improvements",
-    icon: Hammer,
-  },
-  {
-    title: "Commercial Impr.",
-    url: "/hhdb/tables/commercial-improvements",
-    icon: Hammer,
-  },
-  {
-    title: "Condo Projects",
-    url: "/hhdb/tables/condo-projects",
-    icon: Building,
-  },
-  { title: "Condo Units", url: "/hhdb/tables/condo-units", icon: Building },
-  { title: "Permits", url: "/hhdb/tables/permits", icon: FileText },
-  { title: "Appeals", url: "/hhdb/tables/appeals", icon: Gavel },
-  { title: "Dedications", url: "/hhdb/tables/dedications", icon: BookOpen },
-  {
-    title: "Home Exemptions",
-    url: "/hhdb/tables/home-exemptions",
-    icon: House,
-  },
-  {
-    title: "Land Class",
-    url: "/hhdb/tables/land-classifications",
-    icon: Layers,
-  },
-  { title: "Tax Bills", url: "/hhdb/tables/tax-bills", icon: Receipt },
-  { title: "Tax History", url: "/hhdb/tables/tax-summary", icon: History },
-  { title: "Tax Details", url: "/hhdb/tables/tax-details", icon: ListOrdered },
-  { title: "Tax Payments", url: "/hhdb/tables/tax-payments", icon: CreditCard },
-  { title: "Tax Credits", url: "/hhdb/tables/tax-credits", icon: Coins },
-  {
-    title: "Agg. Assessments",
-    url: "/hhdb/tables/ag-assessments",
-    icon: Wheat,
-  },
-  {
-    title: "Commercial Details",
-    url: "/hhdb/tables/commercial-details",
-    icon: Warehouse,
-  },
-  {
-    title: "Residential Add.",
-    url: "/hhdb/tables/residential-additions",
-    icon: PlusSquare,
-  },
-  {
-    title: "Yard Impr.",
-    url: "/hhdb/tables/yard-improvements",
-    icon: TreePine,
-  },
-  { title: "Transactions", url: "/hhdb/tables/transactions", icon: ScrollText },
-];
-
 const COMMS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
   { title: "Overview", url: "/comms", icon: Info },
   { title: "Pre-Release Form", url: "/comms/pub-form", icon: Megaphone },
@@ -281,7 +200,7 @@ export function AppSidebar({
         icon: ADMIN_ICONS[child.path],
       }));
     }
-    if (mode === "hhdb") return HHDB_NAV_ITEMS;
+    if (mode === "hhdb") return []; // hhdb renders its own grouped nav (NavHhdb)
     if (mode === "docs") return DOCS_NAV_ITEMS;
     if (mode === "comms") return COMMS_NAV_ITEMS;
     return sidebarRoutes.map((entry) => ({
@@ -432,7 +351,11 @@ export function AppSidebar({
           ) : null}
         </SidebarHeader>
         <SidebarContent>
-          <NavMain items={navMain} label={branding?.title ?? "UDAMAN"} />
+          {mode === "hhdb" ? (
+            <NavHhdb />
+          ) : (
+            <NavMain items={navMain} label={branding?.title ?? "UDAMAN"} />
+          )}
         </SidebarContent>
       </Sidebar>
 

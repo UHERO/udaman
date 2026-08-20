@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  getAccessoryImprovementsJSON as getAccessoryImprovementsCtrl,
   getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
   getAppealsJSON as getAppealsCtrl,
   getAssessmentsJSON as getAssessmentsCtrl,
@@ -42,7 +43,6 @@ import {
   getTableCount as getTableCountCtrl,
   getTopOwners as getTopOwnersCtrl,
   getTotalAssessedByIsland as getTotalAssessedCtrl,
-  getYardImprovementsJSON as getYardImprovementsCtrl,
 } from "@catalog/controllers/hhdb";
 import type {
   CategoricalDrilldown,
@@ -222,9 +222,9 @@ export async function getHhdbResidentialAdditions(params: HhdbListParams) {
   return getResidentialAdditionsCtrl(params);
 }
 
-export async function getHhdbYardImprovements(params: HhdbListParams) {
+export async function getHhdbAccessoryImprovements(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  return getYardImprovementsCtrl(params);
+  return getAccessoryImprovementsCtrl(params);
 }
 
 export async function getHhdbFreqSummary(

@@ -76,7 +76,11 @@ const TABS = [
     icon: PlusSquare,
     segment: "residential-additions",
   },
-  { label: "Yard Impr", icon: TreePine, segment: "yard-improvements" },
+  {
+    label: "Accessory Impr",
+    icon: TreePine,
+    segment: "accessory-improvements",
+  },
 ] as const;
 
 const SCROLL_AMOUNT = 200;

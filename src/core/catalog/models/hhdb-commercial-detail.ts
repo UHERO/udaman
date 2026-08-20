@@ -12,6 +12,7 @@ export interface HhdbCommercialDetailAttrs {
   exterior_wall?: string | null;
   wall_height?: number | null;
   construction?: string | null;
+  rank?: number | null;
   condo_style?: string | null;
   condo_type?: string | null;
   condo_unit?: string | null;
@@ -35,6 +36,7 @@ export class HhdbCommercialDetail {
   exteriorWall: string | null;
   wallHeight: number | null;
   construction: string | null;
+  rank: number | null;
   condoStyle: string | null;
   condoType: string | null;
   condoUnit: string | null;
@@ -61,6 +63,7 @@ export class HhdbCommercialDetail {
     this.wallHeight =
       attrs.wall_height != null ? Number(attrs.wall_height) : null;
     this.construction = attrs.construction ?? null;
+    this.rank = attrs.rank != null ? Number(attrs.rank) : null;
     this.condoStyle = attrs.condo_style ?? null;
     this.condoType = attrs.condo_type ?? null;
     this.condoUnit = attrs.condo_unit ?? null;
@@ -85,6 +88,7 @@ export class HhdbCommercialDetail {
       exteriorWall: this.exteriorWall,
       wallHeight: this.wallHeight,
       construction: this.construction,
+      rank: this.rank,
       condoStyle: this.condoStyle,
       condoType: this.condoType,
       condoUnit: this.condoUnit,
@@ -122,6 +126,7 @@ export function hhdbCommercialDetailRowToJSON(
     exteriorWall: attrs.exterior_wall ?? null,
     wallHeight: attrs.wall_height != null ? Number(attrs.wall_height) : null,
     construction: attrs.construction ?? null,
+    rank: attrs.rank != null ? Number(attrs.rank) : null,
     condoStyle: attrs.condo_style ?? null,
     condoType: attrs.condo_type ?? null,
     condoUnit: attrs.condo_unit ?? null,

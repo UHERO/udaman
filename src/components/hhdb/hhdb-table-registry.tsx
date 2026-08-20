@@ -25,7 +25,7 @@ import {
   getHhdbResidentialAdditions,
   getHhdbResidentialImprovements,
   getHhdbSales,
-  getHhdbYardImprovements,
+  getHhdbAccessoryImprovements,
 } from "@/actions/hhdb";
 import { AgriculturalAssessmentsTable } from "@/components/hhdb/tables/agricultural-assessments-table";
 import { AppealsTable } from "@/components/hhdb/tables/appeals-table";
@@ -50,7 +50,7 @@ import { PermitsTable } from "@/components/hhdb/tables/permits-table";
 import { PropertiesTable } from "@/components/hhdb/tables/properties-table";
 import { ResidentialAdditionsTable } from "@/components/hhdb/tables/residential-additions-table";
 import { SalesTable } from "@/components/hhdb/tables/sales-table";
-import { YardImprovementsTable } from "@/components/hhdb/tables/yard-improvements-table";
+import { AccessoryImprovementsTable } from "@/components/hhdb/tables/accessory-improvements-table";
 
  
 type ActionFn = (
@@ -162,9 +162,9 @@ const REGISTRY: Record<string, TableEntry> = {
     action: getHhdbResidentialAdditions,
     render: (p) => <ResidentialAdditionsTable {...p} />,
   },
-  "yard-improvements": {
-    action: getHhdbYardImprovements,
-    render: (p) => <YardImprovementsTable {...p} />,
+  "accessory-improvements": {
+    action: getHhdbAccessoryImprovements,
+    render: (p) => <AccessoryImprovementsTable {...p} />,
   },
 };
 

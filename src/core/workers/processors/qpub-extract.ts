@@ -154,6 +154,7 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
     "building_value",
     "total_room_count",
     "condo_style",
+    "condo_type",
     "condo_view",
     "floor_level",
     "parking_spaces",
@@ -191,6 +192,16 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
     "perimeter",
     "exterior_wall",
     "wall_height",
+    "construction",
+    "rank",
+    // Commercial "Condominium Information" (dgCondo) columns — filled only on
+    // condo-info rows, null on floor-detail rows (and vice versa).
+    "condo_style",
+    "condo_type",
+    "condo_unit",
+    "floor_level",
+    "view",
+    "project",
   ],
   sales: [
     "tmk",
@@ -280,7 +291,7 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
   condo_stub_properties: ["tmk", "island_code"],
   condominium_units: ["tmk", "parent_tmk", "unit_number", "owner_name"],
   // Generic section tables (fixed column definitions)
-  yard_improvements: [
+  accessory_improvements: [
     "tmk",
     "scraped_at",
     "last_year_observed",
@@ -309,12 +320,9 @@ export const TABLE_COLUMNS: Record<string, string[]> = {
     "tmk",
     "scraped_at",
     "last_year_observed",
-    "acres",
     "acres_in_production",
     "agricultural_type",
     "agricultural_value",
-    "assessed_value",
-    "description",
     "use_description",
   ],
   appeals: [
@@ -543,7 +551,10 @@ function extractResidentialImprovements(items: ExtractItem[]): SqlValue[][] {
         str(b.grade),
         str(b.building_value),
         int(b.total_room_count),
-        str(b.condo_style ?? b.condo_type),
+        // condo_style (Oahu building form) and condo_type (Maui unit
+        // position, "Corner") are distinct variables — never cross-assign.
+        str(b.condo_style),
+        str(b.condo_type),
         str(b.condo_view),
         int(b.floor_level ?? b.condo_floor_number),
         dec(b.parking_spaces),
@@ -631,14 +642,20 @@ function extractCurrentTaxBills(items: ExtractItem[]): SqlValue[][] {
 
 /**
  * Extract commercial improvements with sequential parent IDs.
- * Returns rows for both commercial_improvements and commercial_improvement_details.
+ * Returns rows for commercial_improvements and commercial_improvement_details,
+ * plus Maui's "Other Features" accessory rows (dgOtherFeatures), which are
+ * routed to the accessory_improvements table alongside the generic-section
+ * rows — same mechanism as condo stubs feeding another table's output.
  */
-function extractCommercialImprovements(items: ExtractItem[]): {
+export function extractCommercialImprovements(items: ExtractItem[]): {
   parents: SqlValue[][];
   details: SqlValue[][];
+  otherFeatures: SqlValue[][];
 } {
   const parents: SqlValue[][] = [];
   const details: SqlValue[][] = [];
+  const otherFeatures: SqlValue[][] = [];
+  const accessoryColumns = TABLE_COLUMNS.accessory_improvements;
 
   for (const { tmk, data, scrapedAt, observedYear } of items) {
     const ciInfo = data.commercial_improvement_information as Row | undefined;
@@ -646,8 +663,29 @@ function extractCommercialImprovements(items: ExtractItem[]): {
     const buildings = (ciInfo.buildings as Row[] | undefined) ?? [];
     const scrapedAtStr = sqlDate(scrapedAt);
 
+    // Maui commercial "Other Features" rows — parsed at the section level.
+    // Mapped to the fixed accessory_improvements column order with the same
+    // per-column parsers the generic path applies (int on building_number and
+    // area, dec on quantity); the columns these rows never carry
+    // (dimensions, year_built, percent_complete, value) stay null.
+    for (const f of (ciInfo.other_features as Row[] | undefined) ?? []) {
+      const matched: Record<string, SqlValue> = {
+        tmk,
+        scraped_at: scrapedAtStr,
+        last_year_observed: observedYear,
+        building_number: int(f.building_number),
+        description: str(f.description),
+        area: int(f.area),
+        quantity: dec(f.quantity),
+      };
+      otherFeatures.push(accessoryColumns.map((col) => matched[col] ?? null));
+    }
+
+    let firstParentId: number | null = null;
+
     for (const b of buildings) {
       const parentId = nextCommercialId++;
+      if (firstParentId === null) firstParentId = parentId;
       parents.push([
         parentId,
         tmk,
@@ -657,7 +695,10 @@ function extractCommercialImprovements(items: ExtractItem[]): {
         int(b.building_card),
         int(b.year_built),
         int(b.effective_year_built),
-        str(b.improvement_name),
+        // Maui/Kauai's "Building Type" holds the building's proper name
+        // ("GRAND WAILEA") — the concept Oahu labels "Improvement Name".
+        // building_type stays populated as scraped.
+        str(b.improvement_name ?? b.building_type),
         str(b.property_class),
         str(b.structure_type),
         int(b.units),
@@ -683,12 +724,57 @@ function extractCommercialImprovements(items: ExtractItem[]): {
           int(d.perimeter),
           str(d.exterior_wall),
           int(d.wall_height),
+          str(d.construction),
+          dec(d.rank),
+          // Condo columns — never carried by floor-detail rows.
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ]);
+      }
+    }
+
+    // Commercial "Condominium Information" rows (dgCondo) — each becomes its
+    // own details row with only the six condo columns filled. The section
+    // parser attaches them at the section level; the FK is NOT NULL, so they
+    // ride under the first building's id (pages carrying the table always
+    // carry at least one building — the table renders inside a building's
+    // lstBuildings item).
+    const condoInfo = (ciInfo.condo_info as Row[] | undefined) ?? [];
+    if (firstParentId !== null) {
+      for (const c of condoInfo) {
+        details.push([
+          firstParentId,
+          tmk,
+          scrapedAtStr,
+          observedYear,
+          // Floor-detail columns — never carried by condo-info rows.
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          str(c.condo_style),
+          str(c.condo_type),
+          str(c.condo_unit),
+          // floor_level is VARCHAR in the schema ("06") — never int-coerce.
+          str(c.floor_level),
+          str(c.view),
+          str(c.project),
         ]);
       }
     }
   }
 
-  return { parents, details };
+  return { parents, details, otherFeatures };
 }
 
 /**
@@ -946,6 +1032,13 @@ export function extractBatch(items: ExtractItem[], stagingDir: string): void {
     tablePath(stagingDir, "commercial_improvement_details"),
     ci.details,
   );
+  // Maui commercial "Other Features" accessory rows share the
+  // accessory_improvements file with the generic-section rows below —
+  // appendRows appends, so both sources coexist.
+  appendRows(
+    tablePath(stagingDir, "accessory_improvements"),
+    ci.otherFeatures,
+  );
 
   // Historical tax (parent-child with sequential IDs)
   const ht = extractHistoricalTax(items);
@@ -999,7 +1092,7 @@ export function initStagingDir(stagingDir: string): void {
     "condominium_projects",
     "condo_stub_properties",
     "condominium_units",
-    "yard_improvements",
+    "accessory_improvements",
     "residential_additions",
     "agricultural_assessments",
     "appeals",

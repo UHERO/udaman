@@ -16,6 +16,7 @@ const SORTABLE = [
   "floor",
   "usage",
   "construction",
+  "rank",
   "exterior_wall",
   "condo_style",
   "condo_type",
@@ -59,7 +60,7 @@ export default class HhdbCommercialDetailCollection {
         qp,
       ),
       rawQuery<HhdbCommercialDetailAttrs>(
-        `SELECT * FROM commercial_improvement_details ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        `SELECT * FROM commercial_improvement_details ${where} ORDER BY \`${sortCol}\` ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
       ),
     ]);
@@ -82,7 +83,7 @@ export default class HhdbCommercialDetailCollection {
         qp,
       ),
       rawQuery<HhdbCommercialDetailAttrs>(
-        `SELECT * FROM commercial_improvement_details ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        `SELECT * FROM commercial_improvement_details ${where} ORDER BY \`${sortCol}\` ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
       ),
     ]);

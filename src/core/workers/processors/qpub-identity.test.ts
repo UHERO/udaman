@@ -161,8 +161,8 @@ describe("identity configuration", () => {
     expect(GENERIC_IDENTITY_FIELDS.home_exemptions).toBeUndefined();
   });
 
-  it("keeps yard_improvements' identity unchanged — occurrence handling covers identical structures", () => {
-    expect(GENERIC_IDENTITY_FIELDS.yard_improvements).toEqual([
+  it("keeps accessory_improvements' identity unchanged — occurrence handling covers identical structures", () => {
+    expect(GENERIC_IDENTITY_FIELDS.accessory_improvements).toEqual([
       "building_number",
       "description",
       "year_built",

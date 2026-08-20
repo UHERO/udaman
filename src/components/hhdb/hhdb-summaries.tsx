@@ -8,11 +8,13 @@ import {
 } from "@catalog/types/hhdb";
 import {
   getFieldsForViewType,
+  getTableDocs,
   HHDB_DATA_DICTIONARY,
 } from "@catalog/types/hhdb-data-dictionary";
 import {
   ArrowDown,
   ArrowUp,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Info,
@@ -197,272 +199,295 @@ export function HhdbSummaries({
   }
 
   const totalPages = freqResult ? Math.ceil(freqResult.total / PAGE_SIZE) : 0;
+  const tableDocs = getTableDocs(tableName);
 
   return (
-    <div className="flex gap-6">
-      {/* Left panel: field list */}
-      <div className="w-52 shrink-0">
-        <h3 className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
-          Fields
-        </h3>
-        <div className="max-h-[600px] space-y-0.5 overflow-y-auto">
-          {viewFields.map((f) => {
-            if (f.disabled) {
+    <div>
+      {/* Docs: table-level documentation, above the frequency table */}
+      {tableDocs && (
+        <div className="mb-6 rounded-md border p-4">
+          <h3 className="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-xs font-medium tracking-wide uppercase">
+            <BookOpen className="h-3.5 w-3.5" />
+            Docs
+          </h3>
+          <p className="text-sm leading-relaxed">{tableDocs}</p>
+        </div>
+      )}
+
+      <div className="flex gap-6">
+        {/* Left panel: field list */}
+        <div className="w-52 shrink-0">
+          <h3 className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
+            Fields
+          </h3>
+          <div className="max-h-[600px] space-y-0.5 overflow-y-auto">
+            {viewFields.map((f) => {
+              if (f.disabled) {
+                return (
+                  <span
+                    key={f.key}
+                    title={f.disabledReason}
+                    className="text-muted-foreground block w-full cursor-not-allowed rounded px-3 py-1.5 text-left text-sm opacity-50"
+                  >
+                    {f.label}
+                  </span>
+                );
+              }
+              const isSelected = selectedField === f.key;
               return (
-                <span
+                <Link
                   key={f.key}
-                  title={f.disabledReason}
-                  className="text-muted-foreground block w-full cursor-not-allowed rounded px-3 py-1.5 text-left text-sm opacity-50"
+                  href={`${basePath}/${f.key}`}
+                  className={cn(
+                    "block w-full rounded px-3 py-1.5 text-left text-sm transition-colors",
+                    isSelected
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted",
+                  )}
                 >
                   {f.label}
-                </span>
+                </Link>
               );
-            }
-            const isSelected = selectedField === f.key;
-            return (
-              <Link
-                key={f.key}
-                href={`${basePath}/${f.key}`}
-                className={cn(
-                  "block w-full rounded px-3 py-1.5 text-left text-sm transition-colors",
-                  isSelected
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted",
-                )}
-              >
-                {f.label}
-              </Link>
-            );
-          })}
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Right panel: results */}
-      <div className="min-w-0 flex-1">
-        {!selectedField && (
-          <p className="text-muted-foreground pt-8 text-center text-sm">
-            Select a field to view its description and summary statistics.
-          </p>
-        )}
-
-        {selectedField && selectedDef && (
-          <div>
-            <div className="flex items-baseline gap-2">
-              <h3 className="mb-1 text-lg font-semibold">
-                {selectedDef.label}
-              </h3>
-              {viewType === "summary" &&
-                freqResult?.generatedAt &&
-                !isPending && (
-                  <span className="text-muted-foreground text-xs">
-                    ·{" "}
-                    {new Date(freqResult.generatedAt).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      },
-                    )}
-                  </span>
-                )}
-            </div>
-            <p className="text-muted-foreground mb-4 text-sm">
-              {selectedDef.description}
+        {/* Right panel: results */}
+        <div className="min-w-0 flex-1">
+          {!selectedField && (
+            <p className="text-muted-foreground pt-8 text-center text-sm">
+              Select a field to view its description and summary statistics.
             </p>
+          )}
 
-            {/* Info-only fields (no summary for this view) */}
-            {!hasSummary && (
-              <div className="flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  {selectedDef.disabled
-                    ? selectedDef.disabledReason
-                    : "This field contains unique or unstructured values that cannot be summarized. Use the Data tab to browse individual records, or query the database directly for analysis."}
+          {selectedField && selectedDef && (
+            <div>
+              <div className="flex items-baseline gap-2">
+                <h3 className="mb-1 text-lg font-semibold">
+                  {selectedDef.label}
+                </h3>
+                {viewType === "summary" &&
+                  freqResult?.generatedAt &&
+                  !isPending && (
+                    <span className="text-muted-foreground text-xs">
+                      ·{" "}
+                      {new Date(freqResult.generatedAt).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        },
+                      )}
+                    </span>
+                  )}
+              </div>
+              <p className="text-muted-foreground mb-1 text-sm">
+                {selectedDef.description}
+              </p>
+              {selectedDef.source_notes && (
+                <p className="text-muted-foreground mb-4 text-xs italic">
+                  Source notes: {selectedDef.source_notes}
                 </p>
-              </div>
-            )}
+              )}
+              {!selectedDef.source_notes && <div className="mb-4" />}
 
-            {/* Loading state for summary fields */}
-            {hasSummary && isPending && (
-              <div className="flex items-center justify-center pt-8">
-                <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
-              </div>
-            )}
+              {/* Info-only fields (no summary for this view) */}
+              {!hasSummary && (
+                <div className="flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    {selectedDef.disabled
+                      ? selectedDef.disabledReason
+                      : "This field contains unique or unstructured values that cannot be summarized. Use the Data tab to browse individual records, or query the database directly for analysis."}
+                  </p>
+                </div>
+              )}
 
-            {/* Freq-based summary results */}
-            {hasSummary &&
-              !isPending &&
-              freqResult &&
-              (() => {
-                if (
-                  freqResult.rows.length === 0 &&
-                  !freqResult.nullRow &&
-                  !debouncedSearch
-                ) {
-                  return (
-                    <p className="text-muted-foreground text-sm">
-                      No frequency data available for this field.
-                    </p>
-                  );
-                }
+              {/* Loading state for summary fields */}
+              {hasSummary && isPending && (
+                <div className="flex items-center justify-center pt-8">
+                  <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+                </div>
+              )}
 
-                // Compute null percentages using the null row's own statewide total
-                const nullTotals: Record<string, number> = {};
-                if (freqResult.nullRow) {
-                  // The statewide total for this county is the sum of all values
-                  // We only have the null row counts; the overall total per county
-                  // can be derived from null + non-null. We'll just use the null
-                  // count as-is with the statewide count from county_code=0
-                  // For proper percentage we need total records per county.
-                  // Since we paginate, we can't sum the page — use null as absolute.
-                  for (const [code, freq] of Object.entries(
-                    freqResult.nullRow.counts,
-                  )) {
-                    nullTotals[code] = freq;
+              {/* Freq-based summary results */}
+              {hasSummary &&
+                !isPending &&
+                freqResult &&
+                (() => {
+                  if (
+                    freqResult.rows.length === 0 &&
+                    !freqResult.nullRow &&
+                    !debouncedSearch
+                  ) {
+                    return (
+                      <p className="text-muted-foreground text-sm">
+                        No frequency data available for this field.
+                      </p>
+                    );
                   }
-                }
 
-                return (
-                  <div>
-                    {/* Search + count bar */}
-                    <div className="mb-3 flex items-center gap-3">
-                      <div className="relative max-w-64 flex-1">
-                        <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          placeholder="Search values..."
-                          value={freqSearch}
-                          onChange={(e) => setFreqSearch(e.target.value)}
-                          className="border-input bg-background placeholder:text-muted-foreground focus:ring-ring h-8 w-full rounded-md border py-1 pr-3 pl-8 text-sm outline-none focus:ring-1"
-                        />
+                  // Compute null percentages using the null row's own statewide total
+                  const nullTotals: Record<string, number> = {};
+                  if (freqResult.nullRow) {
+                    // The statewide total for this county is the sum of all values
+                    // We only have the null row counts; the overall total per county
+                    // can be derived from null + non-null. We'll just use the null
+                    // count as-is with the statewide count from county_code=0
+                    // For proper percentage we need total records per county.
+                    // Since we paginate, we can't sum the page — use null as absolute.
+                    for (const [code, freq] of Object.entries(
+                      freqResult.nullRow.counts,
+                    )) {
+                      nullTotals[code] = freq;
+                    }
+                  }
+
+                  return (
+                    <div>
+                      {/* Search + count bar */}
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="relative max-w-64 flex-1">
+                          <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Search values..."
+                            value={freqSearch}
+                            onChange={(e) => setFreqSearch(e.target.value)}
+                            className="border-input bg-background placeholder:text-muted-foreground focus:ring-ring h-8 w-full rounded-md border py-1 pr-3 pl-8 text-sm outline-none focus:ring-1"
+                          />
+                        </div>
+                        <span className="text-muted-foreground text-xs tabular-nums">
+                          {freqResult.total.toLocaleString()} unique value
+                          {freqResult.total !== 1 ? "s" : ""}
+                        </span>
                       </div>
-                      <span className="text-muted-foreground text-xs tabular-nums">
-                        {freqResult.total.toLocaleString()} unique value
-                        {freqResult.total !== 1 ? "s" : ""}
-                      </span>
-                    </div>
 
-                    <div className="max-h-[480px] overflow-y-auto">
-                      <table className="w-full table-fixed text-sm">
-                        <thead>
-                          <tr className="border-b text-left">
-                            <th className="w-1/3 pb-2 font-medium">Value</th>
-                            {ISLANDS.map((i) => (
+                      <div className="max-h-[480px] overflow-y-auto">
+                        <table className="w-full table-fixed text-sm">
+                          <thead>
+                            <tr className="border-b text-left">
+                              <th className="w-1/3 pb-2 font-medium">Value</th>
+                              {ISLANDS.map((i) => (
+                                <FreqSortHeader
+                                  key={i.code}
+                                  label={i.label}
+                                  colKey={i.code}
+                                  sortCol={freqSortCol}
+                                  sortDir={freqSortDir}
+                                  onSort={handleFreqSort}
+                                />
+                              ))}
                               <FreqSortHeader
-                                key={i.code}
-                                label={i.label}
-                                colKey={i.code}
+                                label="State"
+                                colKey="0"
                                 sortCol={freqSortCol}
                                 sortDir={freqSortDir}
                                 onSort={handleFreqSort}
                               />
-                            ))}
-                            <FreqSortHeader
-                              label="State"
-                              colKey="0"
-                              sortCol={freqSortCol}
-                              sortDir={freqSortDir}
-                              onSort={handleFreqSort}
-                            />
-                          </tr>
-                          {freqResult.nullRow && (
-                            <tr className="border-b text-xs">
-                              <td className="text-muted-foreground py-1.5 italic">
-                                NULL
-                              </td>
-                              {ISLANDS.map((i) => (
-                                <td
-                                  key={i.code}
-                                  className="text-muted-foreground py-1.5 text-right italic tabular-nums"
-                                >
+                            </tr>
+                            {freqResult.nullRow && (
+                              <tr className="border-b text-xs">
+                                <td className="text-muted-foreground py-1.5 italic">
+                                  NULL
+                                </td>
+                                {ISLANDS.map((i) => (
+                                  <td
+                                    key={i.code}
+                                    className="text-muted-foreground py-1.5 text-right italic tabular-nums"
+                                  >
+                                    {formatNullCell(
+                                      freqResult.nullRow!.counts[i.code] ?? 0,
+                                      freqResult.totalCounts[i.code] ?? 0,
+                                    )}
+                                  </td>
+                                ))}
+                                <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
                                   {formatNullCell(
-                                    freqResult.nullRow!.counts[i.code] ?? 0,
-                                    freqResult.totalCounts[i.code] ?? 0,
+                                    freqResult.nullRow!.counts["0"] ?? 0,
+                                    freqResult.totalCounts["0"] ?? 0,
                                   )}
                                 </td>
-                              ))}
-                              <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
-                                {formatNullCell(
-                                  freqResult.nullRow!.counts["0"] ?? 0,
-                                  freqResult.totalCounts["0"] ?? 0,
-                                )}
-                              </td>
-                            </tr>
-                          )}
-                        </thead>
-                        <tbody>
-                          {freqResult.rows.map((row) => (
-                            <tr
-                              key={row.value}
-                              className="border-b last:border-0"
-                            >
-                              <td className="py-1.5 break-words">
-                                {displayValue(row.value)}
-                              </td>
-                              {ISLANDS.map((i) => (
-                                <td
-                                  key={i.code}
-                                  className="py-1.5 text-right tabular-nums"
-                                >
-                                  {(row.counts[i.code] ?? 0) > 0
-                                    ? (row.counts[i.code] ?? 0).toLocaleString()
+                              </tr>
+                            )}
+                          </thead>
+                          <tbody>
+                            {freqResult.rows.map((row) => (
+                              <tr
+                                key={row.value}
+                                className="border-b last:border-0"
+                              >
+                                <td className="py-1.5 break-words">
+                                  {displayValue(row.value)}
+                                </td>
+                                {ISLANDS.map((i) => (
+                                  <td
+                                    key={i.code}
+                                    className="py-1.5 text-right tabular-nums"
+                                  >
+                                    {(row.counts[i.code] ?? 0) > 0
+                                      ? (
+                                          row.counts[i.code] ?? 0
+                                        ).toLocaleString()
+                                      : ""}
+                                  </td>
+                                ))}
+                                <td className="py-1.5 text-right font-medium tabular-nums">
+                                  {(row.counts["0"] ?? 0) > 0
+                                    ? (row.counts["0"] ?? 0).toLocaleString()
                                     : ""}
                                 </td>
-                              ))}
-                              <td className="py-1.5 text-right font-medium tabular-nums">
-                                {(row.counts["0"] ?? 0) > 0
-                                  ? (row.counts["0"] ?? 0).toLocaleString()
-                                  : ""}
-                              </td>
-                            </tr>
-                          ))}
-                          {freqResult.rows.length === 0 && debouncedSearch && (
-                            <tr>
-                              <td
-                                colSpan={6}
-                                className="text-muted-foreground py-6 text-center"
-                              >
-                                No values matching &ldquo;{debouncedSearch}
-                                &rdquo;
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                          Page {freqPage} of {totalPages.toLocaleString()}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            disabled={freqPage <= 1}
-                            onClick={() => setFreqPage((p) => p - 1)}
-                            className="hover:bg-muted inline-flex h-7 w-7 items-center justify-center rounded disabled:pointer-events-none disabled:opacity-50"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-                          <button
-                            disabled={freqPage >= totalPages}
-                            onClick={() => setFreqPage((p) => p + 1)}
-                            className="hover:bg-muted inline-flex h-7 w-7 items-center justify-center rounded disabled:pointer-events-none disabled:opacity-50"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                        </div>
+                              </tr>
+                            ))}
+                            {freqResult.rows.length === 0 &&
+                              debouncedSearch && (
+                                <tr>
+                                  <td
+                                    colSpan={6}
+                                    className="text-muted-foreground py-6 text-center"
+                                  >
+                                    No values matching &ldquo;{debouncedSearch}
+                                    &rdquo;
+                                  </td>
+                                </tr>
+                              )}
+                          </tbody>
+                        </table>
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
-          </div>
-        )}
+
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-muted-foreground text-xs tabular-nums">
+                            Page {freqPage} of {totalPages.toLocaleString()}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              disabled={freqPage <= 1}
+                              onClick={() => setFreqPage((p) => p - 1)}
+                              className="hover:bg-muted inline-flex h-7 w-7 items-center justify-center rounded disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                              disabled={freqPage >= totalPages}
+                              onClick={() => setFreqPage((p) => p + 1)}
+                              className="hover:bg-muted inline-flex h-7 w-7 items-center justify-center rounded disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

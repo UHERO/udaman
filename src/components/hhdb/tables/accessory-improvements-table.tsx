@@ -1,12 +1,12 @@
 "use client";
 
-import type { HhdbYardImprovementJSON } from "@catalog/models/hhdb-yard-improvement";
+import type { HhdbAccessoryImprovementJSON } from "@catalog/models/hhdb-accessory-improvement";
 import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
 
-const columns: ColumnDef<HhdbYardImprovementJSON, unknown>[] = [
+const columns: ColumnDef<HhdbAccessoryImprovementJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
   { accessorKey: "description", header: "Description", enableSorting: true },
@@ -26,8 +26,8 @@ const columns: ColumnDef<HhdbYardImprovementJSON, unknown>[] = [
 
 const DEFAULT_HIDDEN = ["scrapedAt"];
 
-interface YardImprovementsTableProps {
-  data: HhdbYardImprovementJSON[];
+interface AccessoryImprovementsTableProps {
+  data: HhdbAccessoryImprovementJSON[];
   total: number;
   page: number;
   limit: number;
@@ -36,7 +36,7 @@ interface YardImprovementsTableProps {
   order: "asc" | "desc";
 }
 
-export function YardImprovementsTable(props: YardImprovementsTableProps) {
+export function AccessoryImprovementsTable(props: AccessoryImprovementsTableProps) {
   return (
     <HhdbDataTable
       columns={columns}

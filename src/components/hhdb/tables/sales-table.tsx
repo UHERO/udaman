@@ -44,7 +44,6 @@ const columns: ColumnDef<HhdbSaleJSON, unknown>[] = [
       return v ? isoDate(v) : "";
     },
   },
-  { accessorKey: "documentType", header: "Doc Type", enableSorting: true },
   {
     accessorKey: "landCourtDocumentNumber",
     header: "Land Court Doc #",
@@ -66,7 +65,6 @@ const columns: ColumnDef<HhdbSaleJSON, unknown>[] = [
 const DEFAULT_HIDDEN = [
   "instrumentDescription",
   "dateOfRecording",
-  "documentType",
   "landCourtDocumentNumber",
   "cert",
   "bookPage",

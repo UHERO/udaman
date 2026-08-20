@@ -180,10 +180,27 @@ export function parseParcelInformation(
 
   rows.forEach((row) => {
     const th = row.querySelector("th");
-    const td = row.querySelector("td");
+    const tds = row.querySelectorAll("td");
 
-    if (th && td) {
-      let key = cleanText(th.textContent).toLowerCase();
+    // Two HTML patterns across counties/server versions (same split as
+    // extractBuildingFields below):
+    //   current:            <th>Label</th><td>Value</td>
+    //   older-but-live:     <td><strong>Label</strong></td><td>Value</td>
+    // The older variant still serves real pages (committed fixtures
+    // 3-8-1-007-017-0000 and 2-4-2-004-028-0000); reading only <th> rows
+    // left every parcel field NULL on them.
+    let labelCell: HTMLElement | null = null;
+    let td: HTMLElement | null = null;
+    if (th && tds.length >= 1) {
+      labelCell = th;
+      td = tds[0];
+    } else if (tds.length >= 2) {
+      labelCell = tds[0];
+      td = tds[1];
+    }
+
+    if (labelCell && td) {
+      let key = cleanText(labelCell.textContent).toLowerCase();
       key = key.replace(/:$/, "");
 
       // Strip Kauai's "(Note: ...)" spans before extracting value
@@ -224,7 +241,17 @@ export function parseParcelInformation(
         key.includes("property class") ||
         key.includes("tax classification")
       ) {
-        result.property_class = value;
+        // Big Island appends a bold advisory inside the value cell
+        // ("Property Class refers to Tax Classification ONLY. For Zoning
+        // information, please go to …") — keep only the class itself.
+        result.property_class = value
+          ? cleanText(
+              value.replace(
+                /Property Class refers to Tax Classification[\s\S]*$/i,
+                "",
+              ),
+            ) || null
+          : value;
       } else if (key.includes("land area") && key.includes("sq ft")) {
         const parsed = parseLandArea(value);
         result.land_area_approximate_sq_ft = parsed.value;
@@ -535,7 +562,12 @@ function parseSalesTable(
       if (fieldName) {
         let value: string | null = cleanText(cell.textContent);
         if (!value) value = null;
-        (sale as unknown as Record<string, string | null>)[fieldName] = value;
+        const rec = sale as unknown as Record<string, string | null>;
+        // First non-empty cell wins. Big Island maps both "Instrument
+        // Description" (col 4) and "Document Type" (col 10) onto
+        // instrument_description — the values agree when both are filled,
+        // and a blank later column must not clobber a filled earlier one.
+        if (rec[fieldName] == null) rec[fieldName] = value;
       }
     });
 
@@ -924,7 +956,8 @@ function extractBuildingFields(
               building.half_bath = parts[2] || null;
             }
           }
-        } else if (key === "percent complete") {
+        } else if (key === "percent complete" || key === "% complete") {
+          // Same two spellings the commercial parser accepts.
           building.percent_complete = value;
         } else if (key === "heating/cooling" || key.includes("heating")) {
           building.heating_cooling = value;
@@ -1093,7 +1126,10 @@ function extractCommercialBuildingFields(
           building.property_class = value;
         } else if (key === "improvement name") {
           building.improvement_name = value;
-        } else if (key === "structure type") {
+        } else if (key === "structure type" || key === "structure") {
+          // Kauai heads its structure-class column bare "Structure"; the
+          // values ("344-WHSE MM AV", "232-COMM C-2") are the same class-code
+          // vocabulary Oahu labels "Structure Type".
           building.structure_type = value;
         } else if (key === "units") {
           building.units = value;
@@ -1152,8 +1188,14 @@ export function parseFloorDetailTable(
     if (header === "occupancy") return hasUsageHeader ? "occupancy" : "usage";
     if (header.includes("wall height")) return "wall_height";
     if (header.includes("exterior wall")) return "exterior_wall";
+    // Maui only — numeric quality/depreciation rank factor (0.7, 1.2, 4.5 …).
     if (header === "rank") return "rank";
-    if (header.includes("building class")) return "building_class";
+    // Big Island/Kauai head a "Construction" column (WOOD FRAME, STEEL,
+    // MASONRY, NONE, STEEL/MASONRY). Maui's "Building Class" is the same
+    // concept with a richer vocabulary ("Wood/Steel Framing s1 p8",
+    // "Masonry Bearing Walls s1 p7") — both land in construction.
+    if (header === "construction") return "construction";
+    if (header.includes("building class")) return "construction";
     return null;
   });
 
@@ -1176,6 +1218,115 @@ export function parseFloorDetailTable(
   });
 
   return details;
+}
+
+/**
+ * Maui's commercial "Other Features" grids (table id *dgOtherFeatures*),
+ * headed Section | Structure | Measure 1 | Measure 2 | Stops. The rows are
+ * accessory structures (Canopy, Loading Dock, sprinklers …): Structure is the
+ * description, Measure 1 the square footage, Measure 2 a quantity, and
+ * Section the building number. Stops is dropped at parse time by decision —
+ * it never carried a useful value.
+ */
+export function parseOtherFeaturesTable(
+  table: HTMLElement,
+): Record<string, string | null>[] {
+  const features: Record<string, string | null>[] = [];
+  const thead = table.querySelector("thead");
+  const tbody = table.querySelector("tbody");
+  if (!thead || !tbody) return features;
+
+  const headerCells = thead.querySelectorAll("th");
+  const headers = Array.from(headerCells).map((th) =>
+    cleanText(th.textContent).toLowerCase(),
+  );
+
+  const columnMap = headers.map((header) => {
+    if (header === "section") return "building_number";
+    if (header === "structure") return "description";
+    if (header === "measure 1") return "area";
+    if (header === "measure 2") return "quantity";
+    // "stops" intentionally unmapped — dropped.
+    return null;
+  });
+
+  const dataRows = tbody.querySelectorAll("tr");
+  dataRows.forEach((row) => {
+    const cells = row.querySelectorAll("th, td");
+    const feature: Record<string, string | null> = {};
+
+    cells.forEach((cell, index) => {
+      const fieldName = columnMap[index];
+      if (fieldName) {
+        const val = cleanText(cell.textContent);
+        feature[fieldName] = val || null;
+      }
+    });
+
+    if (Object.values(feature).some((v) => v !== null)) {
+      features.push(feature);
+    }
+  });
+
+  return features;
+}
+
+/**
+ * Commercial "Condominium Information" sub-tables (table id *dgCondo*,
+ * preceded by a *lblCondo* span, rendered after a building's floor-detail
+ * table inside Commercial Improvement Information; observed on Oahu and Big
+ * Island). Headers exactly:
+ *   Project | Condo Unit | Floor Level | Condo Type | View | Condo Style
+ * e.g. CENTURY SQUARE | 602 | 06 | INSIDE | NONE | OFFICE. Each row becomes
+ * its own commercial_improvement_details row with only these six columns
+ * filled. Note the residential parser also reads dgCondo ids, but each
+ * section element is dispatched to exactly one parser, so scoping the
+ * selector to this section cannot pick up residential tables.
+ */
+export function parseCondoInfoTable(
+  table: HTMLElement,
+): Record<string, string | null>[] {
+  const rows: Record<string, string | null>[] = [];
+  const thead = table.querySelector("thead");
+  const tbody = table.querySelector("tbody");
+  if (!thead || !tbody) return rows;
+
+  const headerCells = thead.querySelectorAll("th");
+  const headers = Array.from(headerCells).map((th) =>
+    cleanText(th.textContent).toLowerCase(),
+  );
+
+  const columnMap = headers.map((header) => {
+    if (header.includes("project")) return "project";
+    if (header.includes("unit")) return "condo_unit";
+    // floor_level is VARCHAR in commercial_improvement_details ("06") —
+    // consumers must never int-coerce it.
+    if (header.includes("floor")) return "floor_level";
+    if (header.includes("style")) return "condo_style";
+    if (header.includes("type")) return "condo_type";
+    if (header.includes("view")) return "view";
+    return null;
+  });
+
+  const dataRows = tbody.querySelectorAll("tr");
+  dataRows.forEach((row) => {
+    const cells = row.querySelectorAll("th, td");
+    const record: Record<string, string | null> = {};
+
+    cells.forEach((cell, index) => {
+      const fieldName = columnMap[index];
+      if (fieldName) {
+        const val = cleanText(cell.textContent);
+        record[fieldName] = val || null;
+      }
+    });
+
+    if (Object.values(record).some((v) => v !== null)) {
+      rows.push(record);
+    }
+  });
+
+  return rows;
 }
 
 export function parseCommercialImprovementInformation(
@@ -1206,7 +1357,33 @@ export function parseCommercialImprovementInformation(
     }
   }
 
-  return { buildings };
+  // Maui commercial pages also carry "Other Features" grids. The table-per-
+  // building pairing is not reliable (not every building renders one), so all
+  // rows are attached at the section level — each row names its building via
+  // the Section cell (building_number) anyway. They are loaded into
+  // accessory_improvements, not commercial_improvement_details.
+  const otherFeatureTables = section.querySelectorAll(
+    'table[id*="dgOtherFeatures"]',
+  );
+  const otherFeatures: Record<string, string | null>[] = [];
+  for (const table of otherFeatureTables) {
+    otherFeatures.push(...parseOtherFeaturesTable(table));
+  }
+
+  // Commercial "Condominium Information" grids (dgCondo). qPublic renders one
+  // per building, but like other_features they are attached at the section
+  // level — the load path emits each row as its own
+  // commercial_improvement_details row with the six condo columns filled.
+  const condoTables = section.querySelectorAll('table[id*="dgCondo"]');
+  const condoInfo: Record<string, string | null>[] = [];
+  for (const table of condoTables) {
+    condoInfo.push(...parseCondoInfoTable(table));
+  }
+
+  const result: Record<string, unknown> = { buildings };
+  if (otherFeatures.length > 0) result.other_features = otherFeatures;
+  if (condoInfo.length > 0) result.condo_info = condoInfo;
+  return result;
 }
 
 // ─── Section Parser Map ────────────────────────────────────────────

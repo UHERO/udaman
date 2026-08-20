@@ -68,7 +68,7 @@ export const TABLE_CONFIGS: Record<string, TableConfig> = {
     category: "snapshot",
     naturalKey: ["tmk", "tax_period", "description"],
   },
-  yard_improvements: {
+  accessory_improvements: {
     category: "snapshot",
     naturalKey: ["tmk", "description", "year_built"],
   },

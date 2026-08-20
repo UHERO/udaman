@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS sales;
 
 DROP TABLE IF EXISTS permits;
 
-DROP TABLE IF EXISTS yard_improvements;
+DROP TABLE IF EXISTS accessory_improvements;
 
 DROP TABLE IF EXISTS commercial_improvement_details;
 
@@ -74,7 +74,7 @@ CREATE TABLE properties (
     reentry_zone VARCHAR(50) COMMENT 'Reentry zone (Maui)',
     zone_color VARCHAR(50) COMMENT 'Zone color classification (Maui)',
     non_taxable_status VARCHAR(255) COMMENT 'Non-taxable status prose (Kauai only), e.g. "Government owned parcel. ..."',
-    living_units SMALLINT UNSIGNED COMMENT 'Number of living units (Big Island). Max observed 268',
+    living_units SMALLINT UNSIGNED COMMENT 'Number of living units (Kauai only). Max observed 268',
     -- Map and Sketch
     map_url TEXT,
     sketch_url TEXT,
@@ -142,7 +142,7 @@ CREATE TABLE parcels (
     reentry_zone VARCHAR(50),
     zone_color VARCHAR(50),
     non_taxable_status VARCHAR(255),
-    living_units SMALLINT UNSIGNED COMMENT 'Number of living units (Big Island). Max observed 268',
+    living_units SMALLINT UNSIGNED COMMENT 'Number of living units (Kauai only). Max observed 268',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
@@ -235,7 +235,8 @@ CREATE TABLE residential_improvements (
     building_value BIGINT UNSIGNED COMMENT 'Maui only - format: "$50,600"',
     total_room_count TINYINT UNSIGNED COMMENT 'Hawaii only. Max observed 18',
     -- Condo-specific fields (nullable - only for condo units)
-    condo_style VARCHAR(50),
+    condo_style VARCHAR(50) COMMENT 'Oahu - building form, e.g. "Highrise", "Walk-Up"',
+    condo_type VARCHAR(50) COMMENT 'Maui - unit position within the floor, e.g. "Corner". Distinct variable from condo_style',
     condo_view VARCHAR(50),
     floor_level SMALLINT UNSIGNED,
     parking_spaces DECIMAL(5, 2) COMMENT 'Scraped as "001" or fractional "1.75"',
@@ -288,7 +289,7 @@ CREATE TABLE commercial_improvements (
     building_square_footage INT UNSIGNED COMMENT 'Maui/Kauai. Max observed 268,707; scraped with thousands separators - commas stripped at load',
     building_type VARCHAR(100) COMMENT 'Maui/Kauai',
     percent_complete TINYINT UNSIGNED COMMENT 'Kauai. Whole percent, 0-100',
-    structure VARCHAR(100) COMMENT 'Kauai',
+    structure VARCHAR(100) COMMENT 'Unused - written by nothing: Kauai''s bare "Structure" header maps to structure_type (same class-code vocabulary as Oahu''s "Structure Type"). Retained pending confirmation nothing external reads it',
     value BIGINT UNSIGNED COMMENT 'Maui - assessed value in whole dollars',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
@@ -317,7 +318,8 @@ CREATE TABLE commercial_improvement_details (
     -- (occupancy was dropped 2026-08-14: Kauai renders an Occupancy column but
     -- never fills it, and Maui/Hawaii's "Occupancy" header is their label for
     -- the usage column — no county ever supplies a distinct value.)
-    construction VARCHAR(100),
+    construction VARCHAR(100) COMMENT 'Big Island/Kauai: Construction header (STEEL, WOOD FRAME, MASONRY); Maui: Building Class header (e.g. Wood/Steel Framing s1 p8); Oahu publishes none',
+    `rank` DECIMAL(4,2) COMMENT 'Maui only - quality/depreciation rank factor, e.g. 0.7, 1.2, 4.5',
     condo_style VARCHAR(50),
     condo_type VARCHAR(50),
     condo_unit VARCHAR(20),
@@ -333,25 +335,25 @@ CREATE TABLE commercial_improvement_details (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Detailed commercial improvement data (floors, sections, etc.)';
 
 -- ============================================================================
--- YARD IMPROVEMENTS
+-- ACCESSORY IMPROVEMENTS
 -- ============================================================================
-CREATE TABLE yard_improvements (
+CREATE TABLE accessory_improvements (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tmk VARCHAR(30) NOT NULL,
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
-    building_number SMALLINT UNSIGNED COMMENT 'Maui only',
+    building_number SMALLINT UNSIGNED COMMENT 'Maui only - residential Accessory Information building number; commercial Other Features "Section" cell',
     description VARCHAR(255),
     dimensions VARCHAR(30) COMMENT 'Maui, from the "Dimensions/Units" cell, e.g. "0x0"',
     quantity DECIMAL(7, 2) COMMENT 'Maui: the "/ N" part of Dimensions/Units. Mostly whole numbers; fractional observed (400.5)',
     year_built SMALLINT UNSIGNED,
-    area INT UNSIGNED COMMENT 'Square feet, EXCEPT on description = "GROSS BUILDING VALUE" rows, where qPublic puts a dollar amount in this column. Exclude those rows when analysing area. Oahu scrapes it with thousands separators; parsed on the way in',
-    percent_complete TINYINT UNSIGNED COMMENT 'Maui only. Whole percent, 0-100',
-    value BIGINT UNSIGNED COMMENT 'Assessed value. Oahu/Hawaii head this column "Gross Building Value", Maui "Value" - one column, see FIELD_ALIASES',
+    area INT UNSIGNED COMMENT 'Square feet. qPublic emits summary rows (description = "GROSS BUILDING VALUE") with a dollar amount in this cell; the loader repositions those into value (repositionGrossBuildingValue), so area holds only real square footage',
+    percent_complete TINYINT UNSIGNED COMMENT 'Maui/Kauai. Whole percent, 0-100',
+    value BIGINT UNSIGNED COMMENT 'Assessed value. Hawaii County heads this column "Gross Building Value" (see FIELD_ALIASES), Maui "Value"; Oahu/Kauai publish no per-row value column - their GROSS BUILDING VALUE summary rows land here via the loader transform',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Other building and yard improvements. Maui files the same structures under "Accessory Information" - both land here. WARNING: qPublic emits a summary row with description = "GROSS BUILDING VALUE" whose area column holds a DOLLAR amount, not square feet (values up to ~11M observed). Filter it out of any area analysis.';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Accessory/yard structures from three page sections: Oahu/Big Island/Kauai "Other Building and Yard Improvements", Maui residential "Accessory Information", and Maui commercial "Commercial Improvement Information > Other Features" (dgOtherFeatures; its Stops column is dropped). qPublic emits summary rows (description = "GROSS BUILDING VALUE") whose Area cell is a dollar amount; the loader repositions those into value on the way in, so area holds only square footage.';
 
 -- ============================================================================
 -- PERMITS
@@ -379,15 +381,14 @@ CREATE TABLE sales (
     sale_amount BIGINT UNSIGNED COMMENT 'Sale price in whole dollars',
     instrument VARCHAR(50),
     instrument_type VARCHAR(100),
-    instrument_description VARCHAR(255),
-    valid_sale VARCHAR(50),
+    instrument_description VARCHAR(255) COMMENT 'Honolulu/Big Island head it "Instrument Description", Maui/Kauai "Document Type" - one column; on Big Island (both headers) the first non-empty cell wins',
+    valid_sale VARCHAR(50) COMMENT 'Honolulu: bare flag. Maui: "Valid Sale or Other Reason" - conflates flag and rejection reason. Not published by Big Island/Kauai',
     date_of_recording DATE,
     land_court_document_number VARCHAR(50),
     cert VARCHAR(50),
     book_page VARCHAR(50),
     -- County-specific fields (nullable)
-    conveyance_tax DECIMAL(12, 2) COMMENT 'Kauai - tax amount with cents',
-    document_type VARCHAR(100) COMMENT 'Kauai',
+    conveyance_tax DECIMAL(12, 2) COMMENT 'Big Island/Kauai - tax amount with cents',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
     INDEX idx_sale_date (sale_date),
@@ -541,13 +542,10 @@ CREATE TABLE agricultural_assessments (
     scraped_at DATETIME NOT NULL,
     last_year_observed SMALLINT UNSIGNED,
     -- County-specific fields (all nullable)
-    acres DECIMAL(12, 4) COMMENT 'Maui. Max observed 6,348.623',
-    acres_in_production DECIMAL(12, 4) COMMENT 'Oahu/Big Island. Max observed 45,161',
-    agricultural_type VARCHAR(100) COMMENT 'Oahu',
-    agricultural_value BIGINT UNSIGNED COMMENT 'Oahu/Big Island - value in whole dollars',
-    assessed_value BIGINT UNSIGNED COMMENT 'Maui - value in whole dollars',
-    description TEXT COMMENT 'Maui',
-    use_description VARCHAR(255) COMMENT 'Big Island',
+    acres_in_production DECIMAL(12, 4) COMMENT 'Acreage in the use class. Oahu/Big Island head it "Acres in Production", Maui bare "Acres" (aliased in). Max observed 45,161',
+    agricultural_type VARCHAR(100) COMMENT 'Oahu only - dedication/ratio code, e.g. "Z56-1%", "10Y-1%"',
+    agricultural_value BIGINT UNSIGNED COMMENT 'Discounted ag-use value in whole dollars. Oahu/Big Island head it "Agricultural Value", Maui "Assessed Value" (aliased in)',
+    use_description VARCHAR(255) COMMENT 'Use-class taxonomy. Big Island heads it "Use Description", Maui "Description" (aliased in); Oahu publishes no equivalent',
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed)

@@ -11,8 +11,6 @@ const columns: ColumnDef<HhdbAgriculturalAssessmentJSON, unknown>[] = [
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
   { accessorKey: "agriculturalType", header: "Type", enableSorting: true },
   { accessorKey: "useDescription", header: "Use", enableSorting: true },
-  { accessorKey: "description", header: "Description", enableSorting: true },
-  { accessorKey: "acres", header: "Acres", enableSorting: true },
   {
     accessorKey: "acresInProduction",
     header: "In Production",
@@ -21,15 +19,6 @@ const columns: ColumnDef<HhdbAgriculturalAssessmentJSON, unknown>[] = [
   {
     accessorKey: "agriculturalValue",
     header: "Ag Value",
-    enableSorting: true,
-    cell: ({ getValue }) => {
-      const v = getValue() as number | null;
-      return v != null ? `$${v.toLocaleString()}` : "";
-    },
-  },
-  {
-    accessorKey: "assessedValue",
-    header: "Assessed Value",
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as number | null;

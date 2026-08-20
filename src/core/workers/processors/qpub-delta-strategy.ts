@@ -158,7 +158,7 @@ export const DELTA_STRATEGY: Record<string, DeltaStrategy> = {
   },
   residential_improvements: { kind: "scd", identity: ["building_number"] },
   // GENERIC_IDENTITY_FIELDS, qpub-load.ts
-  yard_improvements: {
+  accessory_improvements: {
     kind: "scd",
     identity: ["building_number", "description", "year_built", "area"],
   },
@@ -188,7 +188,7 @@ export const DELTA_ORDER: string[] = [
   "historical_tax_details",
   "historical_tax_payments",
   "historical_tax_credits",
-  "yard_improvements",
+  "accessory_improvements",
   "residential_additions",
   "agricultural_assessments",
   "appeals",

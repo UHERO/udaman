@@ -5,6 +5,7 @@ import {
   GENERIC_SECTION_MAP,
   parsePercent,
   parseDimensionsUnits,
+  repositionGrossBuildingValue,
   resolveColumnName,
   SECTION_ROW_TRANSFORMS,
   sectionRows,
@@ -103,11 +104,13 @@ describe("sectionRows", () => {
 });
 
 describe("section mapping", () => {
-  it("routes both counties' headings to yard_improvements", () => {
+  it("routes both counties' headings to accessory_improvements", () => {
     expect(GENERIC_SECTION_MAP.other_building_and_yard_improvements).toBe(
-      "yard_improvements",
+      "accessory_improvements",
     );
-    expect(GENERIC_SECTION_MAP.accessory_information).toBe("yard_improvements");
+    expect(GENERIC_SECTION_MAP.accessory_information).toBe(
+      "accessory_improvements",
+    );
   });
 
   it("no longer routes anything to accessory_structures", () => {
@@ -126,6 +129,82 @@ describe("gross_building_value alias", () => {
 
   it("leaves Maui's own spelling alone", () => {
     expect(resolveColumnName("value", columns, [])).toBe("value");
+  });
+});
+
+describe("agricultural_assessments aliases", () => {
+  const columns = new Set([
+    "acres_in_production",
+    "agricultural_value",
+    "use_description",
+  ]);
+
+  it("maps Maui's bare Acres onto acres_in_production", () => {
+    expect(resolveColumnName("acres", columns, [])).toBe("acres_in_production");
+  });
+
+  it("maps Maui's Assessed Value onto agricultural_value", () => {
+    expect(resolveColumnName("assessed_value", columns, [])).toBe(
+      "agricultural_value",
+    );
+  });
+
+  it("maps Maui's Description onto use_description", () => {
+    expect(resolveColumnName("description", columns, [])).toBe(
+      "use_description",
+    );
+  });
+
+  it("leaves Oahu/Big Island's own spellings alone", () => {
+    expect(resolveColumnName("acres_in_production", columns, [])).toBe(
+      "acres_in_production",
+    );
+    expect(resolveColumnName("use_description", columns, [])).toBe(
+      "use_description",
+    );
+  });
+
+  it("does NOT redirect description in tables that have their own", () => {
+    // accessory_improvements (and the tax tables) carry a real description
+    // column; the direct match must win over the ag alias.
+    const accessory = new Set(["description", "area", "quantity", "value"]);
+    expect(resolveColumnName("description", accessory, [])).toBe("description");
+  });
+});
+
+describe("repositionGrossBuildingValue", () => {
+  it("moves the dollar amount from area to value on summary rows", () => {
+    const row = repositionGrossBuildingValue({
+      description: "GROSS BUILDING VALUE",
+      quantity: "1",
+      year_built: "2001",
+      area: "218,200",
+    });
+    expect(row.value).toBe("218,200");
+    expect(row.area).toBeNull();
+  });
+
+  it("leaves real structure rows untouched", () => {
+    const row = { description: "REINFORCED CONCRETE POOL", area: "512" };
+    expect(repositionGrossBuildingValue(row)).toBe(row);
+  });
+
+  it("leaves Big Island rows that already carry their own value", () => {
+    const row = {
+      description: "GROSS BUILDING VALUE",
+      area: "480",
+      gross_building_value: "$33,100",
+    };
+    expect(repositionGrossBuildingValue(row)).toBe(row);
+  });
+
+  it("is wired to both yard section keys", () => {
+    expect(SECTION_ROW_TRANSFORMS.other_building_and_yard_improvements).toBe(
+      repositionGrossBuildingValue,
+    );
+    expect(SECTION_ROW_TRANSFORMS.yard_improvement_information).toBe(
+      repositionGrossBuildingValue,
+    );
   });
 });
 

@@ -1,4 +1,4 @@
-export interface HhdbYardImprovementAttrs {
+export interface HhdbAccessoryImprovementAttrs {
   id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
@@ -8,7 +8,7 @@ export interface HhdbYardImprovementAttrs {
   area?: string | null;
 }
 
-export class HhdbYardImprovement {
+export class HhdbAccessoryImprovement {
   id: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
@@ -17,7 +17,7 @@ export class HhdbYardImprovement {
   yearBuilt: number | null;
   area: string | null;
 
-  constructor(attrs: HhdbYardImprovementAttrs) {
+  constructor(attrs: HhdbAccessoryImprovementAttrs) {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
@@ -40,11 +40,11 @@ export class HhdbYardImprovement {
   }
 }
 
-export type HhdbYardImprovementJSON = ReturnType<HhdbYardImprovement["toJSON"]>;
+export type HhdbAccessoryImprovementJSON = ReturnType<HhdbAccessoryImprovement["toJSON"]>;
 
-export function hhdbYardImprovementRowToJSON(
-  attrs: HhdbYardImprovementAttrs,
-): HhdbYardImprovementJSON {
+export function hhdbAccessoryImprovementRowToJSON(
+  attrs: HhdbAccessoryImprovementAttrs,
+): HhdbAccessoryImprovementJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,

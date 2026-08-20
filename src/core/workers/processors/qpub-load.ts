@@ -652,7 +652,10 @@ export async function loadResidentialImprovements(
         grade: str(b.grade),
         building_value: str(b.building_value),
         total_room_count: int(b.total_room_count),
-        condo_style: str(b.condo_style ?? b.condo_type),
+        // condo_style (Oahu building form) and condo_type (Maui unit
+        // position, "Corner") are distinct variables — never cross-assign.
+        condo_style: str(b.condo_style),
+        condo_type: str(b.condo_type),
         condo_view: str(b.condo_view),
         floor_level: int(b.floor_level ?? b.condo_floor_number),
         parking_spaces: dec(b.parking_spaces),
@@ -671,12 +674,26 @@ export async function loadCommercialImprovements(
   if (!ciInfo) return;
 
   const buildings = (ciInfo.buildings as Row[] | undefined) ?? [];
-  if (buildings.length === 0) return;
+  const sectionOtherFeatures =
+    (ciInfo.other_features as Row[] | undefined) ?? [];
+  if (buildings.length === 0 && sectionOtherFeatures.length === 0) return;
 
   const year = observedYear ?? getMaxTaxYear(data);
   const scrapedAtStr = sqlDate(scrapedAt);
 
-  for (const b of buildings) {
+  // Commercial "Condominium Information" rows (dgCondo) — parsed at the
+  // section level; each becomes its own details row with only the six condo
+  // columns filled (floor-detail columns null, and vice versa). Both row
+  // kinds write through this one statement.
+  const condoInfo = (ciInfo.condo_info as Row[] | undefined) ?? [];
+  const detailInsertSql = `INSERT INTO commercial_improvement_details
+             (commercial_improvement_id, tmk, scraped_at, last_year_observed,
+              card, section, floor, \`usage\`, area, perimeter,
+              exterior_wall, wall_height, construction, \`rank\`,
+              condo_style, condo_type, condo_unit, floor_level, \`view\`, project)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  for (const [bi, b] of buildings.entries()) {
     const buildingNumber = str(b.building_number);
     const buildingCard = int(b.building_card);
 
@@ -694,7 +711,9 @@ export async function loadCommercialImprovements(
     const incomingData: Record<string, unknown> = {
       year_built: int(b.year_built),
       effective_year_built: int(b.effective_year_built),
-      improvement_name: str(b.improvement_name),
+      // Maui/Kauai's "Building Type" holds the building's proper name — the
+      // concept Oahu labels "Improvement Name". building_type stays as scraped.
+      improvement_name: str(b.improvement_name ?? b.building_type),
       property_class: str(b.property_class),
       structure_type: str(b.structure_type),
       units: int(b.units),
@@ -740,7 +759,7 @@ export async function loadCommercialImprovements(
           buildingCard,
           int(b.year_built),
           int(b.effective_year_built),
-          str(b.improvement_name),
+          str(b.improvement_name ?? b.building_type),
           str(b.property_class),
           str(b.structure_type),
           int(b.units),
@@ -754,29 +773,83 @@ export async function loadCommercialImprovements(
       );
 
       for (const d of floorDetails) {
-        await rawQuery(
-          `INSERT INTO commercial_improvement_details
-             (commercial_improvement_id, tmk, scraped_at, last_year_observed,
-              card, section, floor, \`usage\`, area, perimeter,
-              exterior_wall, wall_height)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
+        await rawQuery(detailInsertSql, [
+          improvementId,
+          tmk,
+          scrapedAtStr,
+          year,
+          int(d.card),
+          str(d.section),
+          str(d.floor),
+          str(d.usage),
+          int(d.area),
+          int(d.perimeter),
+          str(d.exterior_wall),
+          int(d.wall_height),
+          // Big Island/Kauai's Construction header and Maui's Building
+          // Class header both parse to construction; rank is Maui only.
+          str(d.construction),
+          dec(d.rank),
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ]);
+      }
+
+      // Section-level condo-info rows ride with the first building — they
+      // are re-inserted when it versions and bumped alongside its children
+      // otherwise (same lifecycle as floor details).
+      if (bi === 0) {
+        for (const c of condoInfo) {
+          await rawQuery(detailInsertSql, [
             improvementId,
             tmk,
             scrapedAtStr,
             year,
-            int(d.card),
-            str(d.section),
-            str(d.floor),
-            str(d.usage),
-            int(d.area),
-            int(d.perimeter),
-            str(d.exterior_wall),
-            int(d.wall_height),
-          ],
-        );
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            str(c.condo_style),
+            str(c.condo_type),
+            str(c.condo_unit),
+            // floor_level is VARCHAR(20) in the schema ("06") — never
+            // int-coerce.
+            str(c.floor_level),
+            str(c.view),
+            str(c.project),
+          ]);
+        }
       }
     }
+  }
+
+  // Maui commercial "Other Features" rows (dgOtherFeatures) — accessory
+  // structures (canopies, loading docks, sprinklers), parsed at the section
+  // level as {building_number, description, area, quantity}. They belong in
+  // accessory_improvements, and loading them through loadGenericSnapshot gives
+  // them the same change-detection identity as the other counties' rows
+  // ((building_number, description, year_built, area)). year_built is set to
+  // an explicit null so it participates in the identity WHERE and these rows
+  // never cross-match residential accessory rows carrying a real year.
+  if (sectionOtherFeatures.length > 0) {
+    await loadGenericSnapshot(
+      tmk,
+      "accessory_improvements",
+      sectionOtherFeatures.map((f) => ({ year_built: null, ...f })),
+      scrapedAt,
+      year,
+      "commercial_improvement_information",
+    );
   }
 }
 
@@ -1222,7 +1295,12 @@ export const GENERIC_IDENTITY_FIELDS: Record<string, string[]> = {
   // — and the residual fully-identical structures (two "FRAME UTILITY SHED /
   // 1927"s on one Maui parcel are real) are handled by the occurrence-aware
   // pairing in batchUpsertSnapshot, not by widening the identity further.
-  yard_improvements: ["building_number", "description", "year_built", "area"],
+  accessory_improvements: [
+    "building_number",
+    "description",
+    "year_built",
+    "area",
+  ],
   residential_additions: ["card", "line"],
   agricultural_assessments: [], // compare all data fields
 };
@@ -1461,7 +1539,8 @@ async function loadGenericSnapshot(
  * The keys are derived from the section heading on the page, so they have to
  * be the headings qPublic actually renders — and those differ by county
  * ("Residential Additions" on Oahu, "Additions" on Maui). Four of the six
- * entries here never matched anything, which is why yard_improvements,
+ * entries here never matched anything, which is why accessory_improvements
+ * (then named yard_improvements),
  * residential_additions and dedications sat empty from the beginning:
  * loadGenericSections looks up data[sectionName], missed, and moved on
  * without a word. (accessory_structures never matched either and has since
@@ -1471,14 +1550,18 @@ async function loadGenericSnapshot(
  * harmless aliases in case some county does use that wording.
  */
 export const GENERIC_SECTION_MAP: Record<string, string> = {
-  // Verified against parsed pages and fixtures.
-  other_building_and_yard_improvements: "yard_improvements",
+  // Verified against parsed pages and fixtures. (Maui commercial pages feed a
+  // third source into accessory_improvements — the "Other Features" rows
+  // inside Commercial Improvement Information — but those arrive via
+  // loadCommercialImprovements, not this map, because the section has a
+  // dedicated loader.)
+  other_building_and_yard_improvements: "accessory_improvements",
   residential_additions: "residential_additions",
   additions: "residential_additions", // Maui
   // Maui's equivalent of Other Building and Yard Improvements — same
   // structures, different heading and a packed size cell (see
   // SECTION_ROW_TRANSFORMS).
-  accessory_information: "yard_improvements",
+  accessory_information: "accessory_improvements",
   dedications: "dedications",
   // Maui only — packed "CLAIMANT NAME YYYY" rows, unpacked by
   // SECTION_ROW_TRANSFORMS before loading.
@@ -1487,7 +1570,7 @@ export const GENERIC_SECTION_MAP: Record<string, string> = {
   appeal_information: "appeals",
 
   // Unobserved spellings, retained as aliases.
-  yard_improvement_information: "yard_improvements",
+  yard_improvement_information: "accessory_improvements",
   residential_addition_information: "residential_additions",
   dedication_information: "dedications",
 };
@@ -1531,6 +1614,20 @@ export function resolveColumnName(
  */
 const FIELD_ALIASES: Record<string, string> = {
   gross_building_value: "value",
+  // Agricultural assessments: Maui heads its per-use-class acreage column
+  // bare "Acres"; Oahu/Big Island call the same column "Acres in Production"
+  // (both include non-producing classes like WASTE LAND, so the concepts
+  // genuinely coincide).
+  acres: "acres_in_production",
+  // Maui's "Assessed Value" is the same discounted ag-use dollar figure
+  // Oahu/Big Island head "Agricultural Value".
+  assessed_value: "agricultural_value",
+  // Maui's "Description" is the same use-class taxonomy Big Island heads
+  // "Use Description" ("PASTUR B 10YR" ~ "GOOD PASTURE, 10 YR. DED.").
+  // Safe globally: resolveColumnName matches a real `description` column
+  // first, so tables that have one (accessory_improvements, tax tables) never
+  // reach this alias.
+  description: "use_description",
 };
 
 /**
@@ -1612,16 +1709,17 @@ export function splitHomesteadInformation(value: unknown): {
  * which otherwise pass cell text straight through. Oahu writes area with
  * thousands separators ("297,000") while the Maui split already yields a
  * number, so without this one column holds both shapes — and area is part of
- * the yard_improvements identity, where a formatting difference would read as
- * a different structure.
+ * the accessory_improvements identity, where a formatting difference would
+ * read as a different structure.
  *
  * Keyed by bare column name across every generic table, so a name may only
  * appear here if numeric coercion is right everywhere it occurs:
- *   building_number → yard_improvements only (SMALLINT)
+ *   building_number → accessory_improvements only (SMALLINT)
  *   card, line      → residential_additions (card also in
  *                     commercial_improvement_details, which has a dedicated
  *                     loader — but it's numeric there too)
- *   quantity        → yard_improvements (DECIMAL — Maui fractional "400.5")
+ *   quantity        → accessory_improvements (DECIMAL — Maui fractional
+ *                     "400.5")
  *   acres, acres_in_production → agricultural_assessments (DECIMAL)
  *   tax_payer_opinion_of_property_class → appeals (Maui class code 0-12)
  *   tax_year        → dedications (scraped as a "2025"-style string) and
@@ -1633,12 +1731,16 @@ export function splitHomesteadInformation(value: unknown): {
 export const COLUMN_VALUE_PARSERS: Record<string, (v: unknown) => number | null> =
   {
     area: int,
+    // accessory_improvements.value is BIGINT; strings arrive comma-formatted from
+    // the repositioned GROSS BUILDING VALUE rows and dollar-formatted from
+    // Big Island's own column.
+    value: int,
     percent_complete: parsePercent,
     building_number: int,
     card: int,
     line: int,
     quantity: dec,
-    acres: dec,
+    // Maui's bare "Acres" resolves here via FIELD_ALIASES before parsing.
     acres_in_production: dec,
     tax_payer_opinion_of_property_class: int,
     tax_year: int,
@@ -1650,6 +1752,28 @@ export const COLUMN_VALUE_PARSERS: Record<string, (v: unknown) => number | null>
  * The generic loader maps field names onto columns one-for-one, which can't
  * express "one cell becomes three". Anything needing that lands here.
  */
+/**
+ * qPublic's yard-improvement grids (Oahu/Big Island/Kauai) end in a summary
+ * row with description "GROSS BUILDING VALUE" whose Area cell holds a DOLLAR
+ * amount, not square feet. Move it to value so area stays honest — unless the
+ * row already carries its own value (Big Island has a real Gross Building
+ * Value column that can fill on these rows too).
+ */
+export function repositionGrossBuildingValue(row: Row): Row {
+  const desc = String(row.description ?? "")
+    .trim()
+    .toUpperCase();
+  if (desc !== "GROSS BUILDING VALUE") return row;
+
+  const hasValue =
+    (row.value != null && String(row.value).trim() !== "") ||
+    (row.gross_building_value != null &&
+      String(row.gross_building_value).trim() !== "");
+  if (hasValue || row.area == null) return row;
+
+  return { ...row, value: row.area, area: null };
+}
+
 export const SECTION_ROW_TRANSFORMS: Record<string, (row: Row) => Row> = {
   // Maui files its yard improvements under "Accessory Information" with the
   // size packed into a single cell. Unpacked, the row is the same shape the
@@ -1660,6 +1784,8 @@ export const SECTION_ROW_TRANSFORMS: Record<string, (row: Row) => Row> = {
     const { dimensions_units: _dropped, ...rest } = row;
     return { ...rest, ...parts };
   },
+  other_building_and_yard_improvements: repositionGrossBuildingValue,
+  yard_improvement_information: repositionGrossBuildingValue,
   // Maui's Home Exemption Information rows are one packed
   // "CLAIMANT NAME YYYY" cell — unpack it into the two real columns.
   home_exemption_information: (row) => {
@@ -1723,7 +1849,7 @@ async function loadGenericSections(
  * Used by TABLE_LOADERS for individual table reparse.
  *
  * Must mirror loadGenericSections: it previously took a single hardcoded
- * section name, and for yard_improvements, residential_additions and
+ * section name, and for accessory_improvements, residential_additions and
  * dedications that name was one of the unobserved alias spellings — so a
  * single-table rebuild loaded nothing while the full load worked. It also
  * skipped SECTION_ROW_TRANSFORMS and sectionRows, which Maui's
@@ -1781,8 +1907,11 @@ export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
   historical_tax: loadHistoricalTax,
   current_tax_bills: loadCurrentTaxBills,
   condominium: loadCondoProject,
-  yard_improvements: (tmk, data, s, y) =>
-    loadGenericForTable(tmk, data, "yard_improvements", s, y),
+  // NOTE: a single-table reparse through this entry covers only the generic
+  // sections; Maui commercial "Other Features" rows land in
+  // accessory_improvements via the commercial_improvements loader.
+  accessory_improvements: (tmk, data, s, y) =>
+    loadGenericForTable(tmk, data, "accessory_improvements", s, y),
   residential_additions: (tmk, data, s, y) =>
     loadGenericForTable(tmk, data, "residential_additions", s, y),
   agricultural_assessments: (tmk, data, s, y) =>

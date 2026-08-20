@@ -42,7 +42,12 @@ function escapeSqlValue(v: SqlValue): string {
 }
 
 function columnName(col: string): string {
-  if (col === "usage") return "`usage`";
+  // Backtick names MariaDB treats as keywords (usage; rank is a window
+  // function name and reserved in some modes; view is backticked in the
+  // schema, so quote it here too).
+  if (col === "usage" || col === "rank" || col === "view") {
+    return `\`${col}\``;
+  }
   return col;
 }
 
@@ -219,7 +224,7 @@ const LOAD_ORDER: string[] = [
   "historical_tax_details",
   "historical_tax_payments",
   "historical_tax_credits",
-  "yard_improvements",
+  "accessory_improvements",
   "residential_additions",
   "agricultural_assessments",
   "appeals",

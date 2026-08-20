@@ -23,6 +23,7 @@ export interface HhdbImprovementAttrs {
   building_value?: number | null;
   total_room_count?: number | null;
   condo_style?: string | null;
+  condo_type?: string | null;
   condo_view?: string | null;
   floor_level?: number | null;
   parking_spaces?: number | null;
@@ -64,6 +65,7 @@ export class HhdbImprovement {
   buildingValue: number | null;
   totalRoomCount: number | null;
   condoStyle: string | null;
+  condoType: string | null;
   condoView: string | null;
   floorLevel: number | null;
   parkingSpaces: number | null;
@@ -107,6 +109,7 @@ export class HhdbImprovement {
     this.totalRoomCount =
       attrs.total_room_count != null ? Number(attrs.total_room_count) : null;
     this.condoStyle = attrs.condo_style ?? null;
+    this.condoType = attrs.condo_type ?? null;
     this.condoView = attrs.condo_view ?? null;
     this.floorLevel =
       attrs.floor_level != null ? Number(attrs.floor_level) : null;
@@ -158,6 +161,7 @@ export class HhdbImprovement {
       buildingValue: this.buildingValue,
       totalRoomCount: this.totalRoomCount,
       condoStyle: this.condoStyle,
+      condoType: this.condoType,
       condoView: this.condoView,
       floorLevel: this.floorLevel,
       parkingSpaces: this.parkingSpaces,
@@ -207,6 +211,7 @@ export function hhdbImprovementRowToJSON(
     totalRoomCount:
       attrs.total_room_count != null ? Number(attrs.total_room_count) : null,
     condoStyle: attrs.condo_style ?? null,
+    condoType: attrs.condo_type ?? null,
     condoView: attrs.condo_view ?? null,
     floorLevel: attrs.floor_level != null ? Number(attrs.floor_level) : null,
     parkingSpaces:

@@ -78,9 +78,9 @@ export default function Page() {
             <p className="mb-0">
               This interface is a starting point for browsing Hawaii real
               property data. It&apos;s useful for quick lookups and getting
-              familiar with what&apos;s available, but it&apos;s not a
-              substitute for proper analysis. When you&apos;re ready to do real
-              work with the data, connect directly to the database with SQL.
+              familiar with what&apos;s available. Use R, SQL, or an LLM to
+              derive more specific insights, and determine how to clean the data
+              for your needs.
             </p>
           </div>
 
@@ -144,9 +144,12 @@ export default function Page() {
           <h2 className="mt-4 text-lg font-bold">Tips</h2>
           <ul>
             <li>
-              Use the <strong>Factors</strong> tab on any table to quickly see
-              the distribution of categorical fields and min/median/max ranges
-              for numeric fields, broken down by island.
+              Use the <strong>Summary</strong> tab on any table to quickly see
+              the frequency counts for fields, broken down by island.
+            </li>
+            <li>
+              Some tables have a <strong>Exploration</strong> tab containing
+              simple analysis and descriptive charts.
             </li>
             <li>
               The historical tax tables are very large. Filter by{" "}

@@ -2,6 +2,7 @@ import { createLogger } from "@/core/observability/logger";
 
 import HhdbAgriculturalAssessmentCollection from "../collections/hhdb-agricultural-assessment-collection";
 import HhdbAppealCollection from "../collections/hhdb-appeal-collection";
+import HhdbAccessoryImprovementCollection from "../collections/hhdb-accessory-improvement-collection";
 import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
 import HhdbCommercialDetailCollection from "../collections/hhdb-commercial-detail-collection";
 import HhdbCondoCollection from "../collections/hhdb-condo-collection";
@@ -23,7 +24,6 @@ import HhdbPropertyCollection from "../collections/hhdb-property-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
-import HhdbYardImprovementCollection from "../collections/hhdb-yard-improvement-collection";
 import type {
   CategoricalDrilldown,
   FreqSummaryParams,
@@ -193,10 +193,10 @@ export async function getResidentialAdditions(params: HhdbListParams) {
   return result;
 }
 
-export async function getYardImprovements(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb yard improvements");
-  const result = await HhdbYardImprovementCollection.list(params);
-  log.info({ total: result.total }, "hhdb yard improvements fetched");
+export async function getAccessoryImprovements(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb accessory improvements");
+  const result = await HhdbAccessoryImprovementCollection.list(params);
+  log.info({ total: result.total }, "hhdb accessory improvements fetched");
   return result;
 }
 
@@ -352,10 +352,10 @@ export async function getResidentialAdditionsJSON(params: HhdbListParams) {
   return result;
 }
 
-export async function getYardImprovementsJSON(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb yard improvements");
-  const result = await HhdbYardImprovementCollection.listJSON(params);
-  log.info({ total: result.total }, "hhdb yard improvements fetched");
+export async function getAccessoryImprovementsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb accessory improvements");
+  const result = await HhdbAccessoryImprovementCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb accessory improvements fetched");
   return result;
 }
 

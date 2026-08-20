@@ -7,8 +7,12 @@ import { parse } from "node-html-parser";
 
 import { parsePropertyHTML } from "./parse";
 import {
+  parseCommercialImprovementInformation,
+  parseCondoInfoTable,
   parseFloorDetailTable,
+  parseOtherFeaturesTable,
   parseParcelInformation,
+  parseResidentialImprovementInformation,
 } from "./parse-sections";
 import { isTaxPaymentField } from "./parse-utils";
 
@@ -219,6 +223,36 @@ describe("parcel_information", () => {
     // Maui uses untitled_section for damage/reentry zone
     expect(mauiRes.untitled_section).toBeUndefined();
     expect(oahuRes.untitled_section).toBeUndefined();
+  });
+
+  // An older-but-still-live server variant renders parcel rows as
+  // <td><strong>Label</strong></td><td>Value</td> instead of <th>/<td>.
+  // Reading only <th> rows left every parcel field NULL on these fixtures.
+  describe("td/strong label fallback (older server variant)", () => {
+    it("captures Big Island fields from 3-8-1-007-017-0000", () => {
+      const p = hawaiiMulti.parcel_information as R;
+      expect(p.parcel_number).toBe("810070170000");
+      expect(p.neighborhood_code).toBe("8145A-5");
+      expect(p.project_name).toBe("KEOPUKA-MAKAI");
+      expect(p.location_address).toContain("81-6337 HAWAII BELT");
+      expect(p.land_area_acres).toBeCloseTo(3.486, 3);
+      expect(p.land_area_approximate_sq_ft).toBe(151850);
+    });
+
+    it("strips Big Island's appended Property Class advisory", () => {
+      const p = hawaiiMulti.parcel_information as R;
+      expect(p.property_class).toBe("HOMEOWNER");
+    });
+
+    it("captures Maui fields from 2-4-2-004-028-0000", () => {
+      const p = mauiCommercial.parcel_information as R;
+      expect(p.parcel_number).toBe("420040280000");
+      expect(p.zoning).toBe("HM - H-M Hotel");
+      expect(p.parcel_note).toBe("Non taxable");
+      expect(p.neighborhood_code).toBe("OFHOTEL");
+      expect(p.location_address).toContain("1 BAY DR");
+      expect(p.location_address).toContain("LAHAINA");
+    });
   });
 });
 
@@ -558,6 +592,33 @@ describe("commercial_improvement_information", () => {
     });
   });
 
+  describe("Kauai 'Structure' label", () => {
+    // Kauai heads its structure-class column bare "Structure"; the values
+    // ("344-WHSE MM AV") share Oahu's "Structure Type" vocabulary and must
+    // land in structure_type. Snippet mirrors Kauai's td/strong block shape.
+    const html = `<html><body>
+      <section id="ctlBodyPane_ctl09_mSection">
+        <header class="module-header"><span class="title">Commercial Improvement Information</span></header>
+        <div class="block-row">
+          <table class="tabular-data-two-column"><tbody>
+            <tr><td><strong>Building Number</strong></td><td>1</td></tr>
+            <tr><td><strong>Building Type</strong></td><td>KAUAI MARRIOT</td></tr>
+            <tr><td><strong>Structure</strong></td><td>344-WHSE MM AV</td></tr>
+            <tr><td><strong>Year Built</strong></td><td>1990</td></tr>
+          </tbody></table>
+        </div>
+      </section></body></html>`;
+
+    it("maps bare 'Structure' onto structure_type", () => {
+      const section = parse(html).querySelector("section")!;
+      const parsed = parseCommercialImprovementInformation(section, "4");
+      const b = (parsed.buildings as R[])[0];
+      expect(b.structure_type).toBe("344-WHSE MM AV");
+      expect(b.building_type).toBe("KAUAI MARRIOT");
+      expect(b.year_built).toBe("1990");
+    });
+  });
+
   describe("Maui commercial (multiple commercial buildings)", () => {
     const ci = mauiCommercial.commercial_improvement_information as R;
     const buildings = ci.buildings as R[];
@@ -588,6 +649,171 @@ describe("commercial_improvement_information", () => {
       const details = buildings[1].floor_details as R[];
       expect(details.length).toBe(4);
       expect(details[0].usage).toBe("Hotel, Full Service");
+    });
+
+    it("maps Maui's Rank and Building Class floor-detail columns", () => {
+      const details = buildings[0].floor_details as R[];
+      expect(details[0].rank).toBe("4.5");
+      // Maui heads its construction descriptor "Building Class" — it lands in
+      // construction, the same key Big Island/Kauai's "Construction" maps to.
+      expect(details[0].construction).toBe("Reinforced Concrete Frame s1 p6");
+      expect(details[0].building_class).toBeUndefined();
+    });
+
+    it("attaches Other Features rows at the section level with stops dropped", () => {
+      const features = ci.other_features as R[];
+      expect(features).toBeDefined();
+      expect(features.length).toBeGreaterThanOrEqual(1);
+      const parking = features.find(
+        (f) => f.description === "Beneath Building Parking Enclo",
+      )!;
+      expect(parking).toBeDefined();
+      expect(parking.building_number).toBe("1");
+      expect(parking.area).toBe("24837");
+      expect(parking.quantity).toBe("0");
+      expect(parking.stops).toBeUndefined();
+    });
+  });
+
+  describe("floor-detail construction header mapping", () => {
+    // Big Island/Kauai head the column "Construction" (WOOD FRAME, STEEL,
+    // MASONRY, NONE, STEEL/MASONRY); Maui heads the same concept
+    // "Building Class". Both must land in construction.
+    function floorTable(headers: string[], cells: string[]): string {
+      return `<html><body><table id="ctl_dgFloorDetails">
+        <thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
+        <tbody><tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr></tbody>
+      </table></body></html>`;
+    }
+
+    it("maps a bare Construction header onto construction", () => {
+      const table = parse(
+        floorTable(["Floor", "Area", "Construction"], ["01", "1,540", "WOOD FRAME"]),
+      ).querySelector("table")!;
+      const details = parseFloorDetailTable(table);
+      expect(details).toHaveLength(1);
+      expect(details[0].construction).toBe("WOOD FRAME");
+    });
+
+    it("maps a Building Class header onto construction too", () => {
+      const table = parse(
+        floorTable(
+          ["Section", "Floor #", "Area", "Building Class"],
+          ["1", "01", "15500", "Wood/Steel Framing s1 p8"],
+        ),
+      ).querySelector("table")!;
+      const details = parseFloorDetailTable(table);
+      expect(details[0].construction).toBe("Wood/Steel Framing s1 p8");
+      expect(details[0].building_class).toBeUndefined();
+    });
+
+    it("maps Rank onto rank", () => {
+      const table = parse(
+        floorTable(["Floor #", "Area", "Rank"], ["01", "15500", "0.7"]),
+      ).querySelector("table")!;
+      const details = parseFloorDetailTable(table);
+      expect(details[0].rank).toBe("0.7");
+    });
+  });
+
+  describe("parseOtherFeaturesTable (Maui commercial dgOtherFeatures)", () => {
+    // Headers exactly as Maui renders them: Section | Structure | Measure 1 |
+    // Measure 2 | Stops. Structure is the description, Measure 1 the square
+    // footage, Measure 2 a quantity, Section the building number; Stops is
+    // dropped entirely by decision.
+    const html = `<html><body><table id="ctl_lstBuildings_ctl02_dgOtherFeatures">
+      <thead><tr>
+        <th scope="row">Section</th><th scope="col">Structure</th><th scope="col">Measure 1</th><th scope="col">Measure 2</th><th scope="col">Stops</th>
+      </tr></thead>
+      <tbody>
+        <tr><th scope="row">1</th><td>Canopy</td><td>180</td><td>1</td><td>0</td></tr>
+        <tr><th scope="row">1</th><td>Loading Dock, Steel or Concret</td><td>1050</td><td>1</td><td>0</td></tr>
+      </tbody>
+    </table></body></html>`;
+
+    it("parses rows to {building_number, description, area, quantity} and drops stops", () => {
+      const table = parse(html).querySelector("table")!;
+      const features = parseOtherFeaturesTable(table);
+      expect(features).toEqual([
+        {
+          building_number: "1",
+          description: "Canopy",
+          area: "180",
+          quantity: "1",
+        },
+        {
+          building_number: "1",
+          description: "Loading Dock, Steel or Concret",
+          area: "1050",
+          quantity: "1",
+        },
+      ]);
+    });
+  });
+
+  describe("parseCondoInfoTable (commercial Condominium Information)", () => {
+    // Real shape from TMK 1-2-1-010-046-0006 (Oahu; also observed on Big
+    // Island): a dgCondo table preceded by a lblCondo span, rendered after a
+    // building's floor-detail table. Headers exactly:
+    // Project | Condo Unit | Floor Level | Condo Type | View | Condo Style.
+    const condoTableHtml = `
+      <span id="ctlBodyPane_ctl09_ctl01_lstBuildings_ctl00_lblCondo">Condominium Information</span>
+      <table id="ctlBodyPane_ctl09_ctl01_lstBuildings_ctl00_dgCondo">
+        <thead><tr>
+          <th scope="col">Project</th><th scope="col">Condo Unit</th><th scope="col">Floor Level</th><th scope="col">Condo Type</th><th scope="col">View</th><th scope="col">Condo Style</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>CENTURY SQUARE</td><td>602</td><td>06</td><td>INSIDE</td><td>NONE</td><td>OFFICE</td></tr>
+        </tbody>
+      </table>`;
+
+    it("parses rows to the six condo keys with correct values", () => {
+      const table = parse(condoTableHtml).querySelector("table")!;
+      expect(parseCondoInfoTable(table)).toEqual([
+        {
+          project: "CENTURY SQUARE",
+          condo_unit: "602",
+          // floor_level stays a string ("06") — the column is VARCHAR.
+          floor_level: "06",
+          condo_type: "INSIDE",
+          view: "NONE",
+          condo_style: "OFFICE",
+        },
+      ]);
+    });
+
+    it("attaches condo_info rows at the section level alongside buildings", () => {
+      const html = `<html><body><section id="ctlBodyPane_ctl09_mSection">
+        <header class="module-header"><span class="title">Commercial Improvement Information</span></header>
+        <div class="block-row">
+          <table class="tabular-data-two-column"><tbody>
+            <tr><th>Building Number</th><td>0001</td></tr>
+            <tr><th>Structure Type</th><td>OFFICES - M-3</td></tr>
+          </tbody></table>
+        </div>
+        <table id="ctlBodyPane_ctl09_ctl01_lstBuildings_ctl00_dgFloorDetails">
+          <thead><tr><th>Card</th><th>Section</th><th>Floor #</th><th>Area</th></tr></thead>
+          <tbody><tr><td>1</td><td>1</td><td>06</td><td>1,540</td></tr></tbody>
+        </table>
+        ${condoTableHtml}
+      </section></body></html>`;
+      const section = parse(html).querySelector("section")!;
+      const parsed = parseCommercialImprovementInformation(section, "1");
+
+      const buildings = parsed.buildings as R[];
+      expect(buildings).toHaveLength(1);
+      expect((buildings[0].floor_details as R[]).length).toBe(1);
+
+      const condoInfo = parsed.condo_info as R[];
+      expect(condoInfo).toHaveLength(1);
+      expect(condoInfo[0].project).toBe("CENTURY SQUARE");
+      expect(condoInfo[0].condo_unit).toBe("602");
+      expect(condoInfo[0].floor_level).toBe("06");
+    });
+
+    it("omits condo_info when the section has no dgCondo table", () => {
+      const ci = mauiCommercial.commercial_improvement_information as R;
+      expect(ci.condo_info).toBeUndefined();
     });
   });
 });
@@ -920,6 +1146,47 @@ describe("map section", () => {
     const map = oahuCondoProject.map as R;
     expect(map).toBeDefined();
     expect(map.map_url).toBeDefined();
+  });
+
+  it("treats an unsettled ajax-loader map image as absent", () => {
+    // A page saved before the map JS settles carries the spinner placeholder
+    // in src; that must never be captured as a map URL.
+    const html = loadFixture("oahu-residential.html").replace(
+      /src="[^"]*RenderMap[^"]*"/,
+      'src="/images/ajax-loader-small.gif"',
+    );
+    const parsed = parsePropertyHTML(html, "1-3-3-041-087-0000");
+    expect(parsed.status).toBe("success");
+    const map = parsed.map as R | undefined;
+    expect(map?.map_url).toBeUndefined();
+  });
+});
+
+// ─── Residential percent complete spellings ─────────────────────────
+
+describe("residential percent complete spellings", () => {
+  function residentialSection(label: string) {
+    const html = `<section><div class="block-row">
+      <table class="tabular-data-two-column"><tbody>
+        <tr><th>Building Number</th><td>1</td></tr>
+        <tr><th>${label}</th><td>100%</td></tr>
+      </tbody></table>
+    </div></section>`;
+    return parse(html).querySelector("section")!;
+  }
+
+  it("accepts 'Percent Complete'", () => {
+    const ri = residentialSection("Percent Complete");
+    const buildings = parseResidentialImprovementInformation(ri, "2")
+      .buildings as R[];
+    expect(buildings[0].percent_complete).toBe("100%");
+  });
+
+  it("accepts '% Complete' (same spelling the commercial parser takes)", () => {
+    const ri = residentialSection("% Complete");
+    const buildings = parseResidentialImprovementInformation(ri, "2")
+      .buildings as R[];
+    expect(buildings[0].percent_complete).toBe("100%");
   });
 });
 

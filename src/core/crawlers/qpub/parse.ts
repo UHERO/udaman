@@ -478,7 +478,10 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
       const mapImg = section.querySelector('img[id*="Map"]');
       if (mapImg) {
         const src = mapImg.getAttribute("src");
-        if (src) {
+        // A page saved before the map JS settles still carries the spinner
+        // placeholder (src="/images/ajax-loader-small.gif") — that is not a
+        // map URL, so treat it as absent.
+        if (src && !src.includes("ajax-loader")) {
           sectionData.map_url = src.startsWith("http")
             ? src
             : "https://qpublic.schneidercorp.com" + src;

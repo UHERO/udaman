@@ -1,3 +1,15 @@
+-- ============================================================================
+-- SUPERSEDED 2026-08 — DO NOT RUN.
+--
+-- This migration is kept only as a historical record. The current
+-- hhdb-schema.sql declares several of the columns below as numeric types
+-- (building_number SMALLINT, percent_complete TINYINT, total_room_count
+-- TINYINT, floor_level SMALLINT, parking_spaces DECIMAL, ...) that this file
+-- declares
+-- VARCHAR — re-running it would corrupt those types. The full rebuild
+-- recreates residential_improvements from hhdb-schema.sql.
+-- ============================================================================
+
 -- Recreate residential_improvements with numeric types for living_area, bedrooms, full_bath, half_bath.
 -- Old data had comma-formatted strings (e.g. "2,898") incompatible with in-place ALTER.
 -- All existing records have last_year_observed=NULL from the old loader and will be

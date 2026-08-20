@@ -50,7 +50,7 @@ const ALL_DATA_TABLES: string[] = [
   "historical_tax_details",
   "historical_tax_payments",
   "historical_tax_credits",
-  "yard_improvements",
+  "accessory_improvements",
   "residential_additions",
   "agricultural_assessments",
   "appeals",

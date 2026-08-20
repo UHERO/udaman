@@ -18,6 +18,7 @@ const columns: ColumnDef<HhdbCommercialDetailJSON, unknown>[] = [
   { accessorKey: "exteriorWall", header: "Exterior Wall", enableSorting: true },
   { accessorKey: "wallHeight", header: "Wall Height", enableSorting: true },
   { accessorKey: "construction", header: "Construction", enableSorting: true },
+  { accessorKey: "rank", header: "Rank", enableSorting: true },
   { accessorKey: "condoStyle", header: "Condo Style", enableSorting: true },
   { accessorKey: "condoType", header: "Condo Type", enableSorting: true },
   { accessorKey: "condoUnit", header: "Condo Unit", enableSorting: true },

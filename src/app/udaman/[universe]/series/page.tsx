@@ -67,6 +67,14 @@ export default async function Page({
   const count = data.length ?? 0;
   const isSearch = Boolean(q);
 
+  // A search that resolves to exactly one series jumps straight to the
+  // Analyzer with that series loaded.
+  if (isSearch && count === 1 && data[0].name) {
+    redirect(
+      `/udaman/${universe}/analyze?exprs=${encodeURIComponent(`"${data[0].name}".ts`)}`,
+    );
+  }
+
   return (
     <>
       <div>
