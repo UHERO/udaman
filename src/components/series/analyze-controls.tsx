@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronsUpDown,
+  History,
   LineChart,
   Pencil,
   Plus,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { getSeriesVintagePoints } from "@/actions/series-actions";
 import {
   createTimelineEventAction,
   deleteTimelineEventAction,
@@ -73,6 +75,7 @@ import {
   type Overlay,
   type TimelineEventForChart,
   type Transformation,
+  type VintageChartPoint,
 } from "./analyze-chart";
 import { AnalyzeDataTable } from "./analyze-data-table";
 import { AnalyzerSeriesRow } from "./analyzer/analyzer-series-row";
@@ -354,6 +357,7 @@ const MANAGED_PARAMS = [
   "stdDevMultiplier",
   "leftChartType",
   "rightChartType",
+  "vintages",
 ] as const;
 
 const VALID_OVERLAYS = new Set<Overlay>([
@@ -802,7 +806,7 @@ function TimelineControl({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors ${
+            className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors ${
               selectedEventTypes.size > 0
                 ? "border-slate-400 bg-slate-100 text-slate-700"
                 : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
@@ -1827,6 +1831,12 @@ export function AnalyzeControls({
       return v === "column" ? "column" : "line";
     },
   );
+  // Vintage (non-current data point) overlay — always off on load; the
+  // fetch is expensive so it's opt-in per session, not URL-persisted
+  const [showVintages, setShowVintages] = useState(false);
+  const [vintageData, setVintageData] = useState<
+    Record<string, VintageChartPoint[]>
+  >({});
 
   // Selected events filtered from all timeline events by type
   const selectedEvents = useMemo(
@@ -1928,6 +1938,19 @@ export function AnalyzeControls({
     return [...labels].join(", ") || undefined;
   }, [hasRightAxis, compareSeriesData, seriesAxisMap, seriesVisibility]);
 
+  /** Distinct unit labels of visible series, grouped by axis side */
+  const unitsByAxis = useMemo(() => {
+    const left = new Set<string>();
+    const right = new Set<string>();
+    for (let i = 0; i < compareSeriesData.length; i++) {
+      if (seriesVisibility.get(i) === "hidden") continue;
+      const label = compareSeriesData[i].unitShortLabel ?? "—";
+      if ((seriesAxisMap.get(i) ?? "left") === "right") right.add(label);
+      else left.add(label);
+    }
+    return { left: [...left], right: [...right] };
+  }, [compareSeriesData, seriesAxisMap, seriesVisibility]);
+
   /** Map series index → unit short label for tooltip display */
   const seriesUnitLabels = useMemo(() => {
     const map = new Map<number, string>();
@@ -1936,6 +1959,66 @@ export function AnalyzeControls({
     }
     return map;
   }, [compareSeriesData]);
+
+  // ── Vintages: only plain-series entries have vintages (calculated
+  // expressions don't map to stored data points) ─────────────────────
+  const vintageEligible = useMemo(() => {
+    if (!entries) return [];
+    // Entries with data align 1:1 with compareSeriesData indices
+    const loaded = entries.filter((e) => e.data.length > 0);
+    const result: Array<{ index: number; name: string }> = [];
+    for (let i = 0; i < loaded.length; i++) {
+      const m = loaded[i].expression.match(/^"([^"]+)"\.ts$/);
+      if (m) result.push({ index: i, name: m[1] });
+    }
+    return result;
+  }, [entries]);
+
+  useEffect(() => {
+    if (!showVintages) return;
+    const missing = vintageEligible
+      .map((e) => e.name)
+      .filter((n) => !(n in vintageData));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    getSeriesVintagePoints(missing, _universe).then((result) => {
+      if (cancelled) return;
+      setVintageData((prev) => ({ ...prev, ...result }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showVintages, vintageEligible, vintageData, _universe]);
+
+  /** Vintage points keyed by compare-series index, for the chart.
+   *  Skipped for series on an axis with an active transform — raw vintage
+   *  values wouldn't align with the transformed line. */
+  const chartVintagePoints = useMemo(() => {
+    if (!showVintages) return undefined;
+    const map = new Map<number, VintageChartPoint[]>();
+    for (const { index, name } of vintageEligible) {
+      const axis = seriesAxisMap.get(index) ?? "left";
+      const tx = axis === "right" ? rightTransformation : transformation;
+      if (tx) continue;
+      const points = vintageData[name];
+      if (points && points.length > 0) map.set(index, points);
+    }
+    return map.size > 0 ? map : undefined;
+  }, [
+    showVintages,
+    vintageEligible,
+    vintageData,
+    seriesAxisMap,
+    transformation,
+    rightTransformation,
+  ]);
+
+  const vintageCount = useMemo(() => {
+    if (!chartVintagePoints) return 0;
+    let n = 0;
+    for (const points of chartVintagePoints.values()) n += points.length;
+    return n;
+  }, [chartVintagePoints]);
 
   const endIdx = Math.max(0, chartData.length - 1);
   const [rangePreset, setRangePreset] = useState(() => {
@@ -2477,54 +2560,64 @@ export function AnalyzeControls({
             </div>
           )}
         </div>
-        {timelineEvents.length > 0 && (
+        {(timelineEvents.length > 0 || vintageEligible.length > 0) && (
           <>
             <Separator orientation="vertical" className="h-auto self-stretch" />
-            <TimelineControl
-              timelineEvents={timelineEvents}
-              selectedEventTypes={selectedEventTypes}
-              onSelectedEventTypesChange={setSelectedEventTypes}
-            />
+            <div className="flex flex-col items-start gap-1.5">
+              {timelineEvents.length > 0 && (
+                <TimelineControl
+                  timelineEvents={timelineEvents}
+                  selectedEventTypes={selectedEventTypes}
+                  onSelectedEventTypesChange={setSelectedEventTypes}
+                />
+              )}
+              {vintageEligible.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowVintages((v) => !v)}
+                  title="Overlay non-current (vintage) data points"
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors ${
+                    showVintages
+                      ? "border-slate-400 bg-slate-100 text-slate-700"
+                      : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+                  }`}
+                >
+                  <History className="h-4 w-4" />
+                  Vintages
+                  {showVintages && vintageCount > 0 && (
+                    <span className="rounded-full bg-slate-500 px-1.5 text-[10px] leading-4 text-white">
+                      {vintageCount}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
           </>
         )}
         <Separator orientation="vertical" className="h-auto self-stretch" />
-        {/* Units for compared series */}
+        {/* Units per axis for compared series */}
         <div className="flex min-w-32 flex-col gap-1">
           <span className="text-muted-foreground text-xs">Units</span>
-          <div className="flex flex-wrap gap-2">
-            {compareUnits.map(([label, indices]) => {
-              // Determine which axes this unit group spans
-              const axes = new Set(
-                indices.map((i) => seriesAxisMap.get(i) ?? "left"),
-              );
-              const axisTags = hasRightAxis
-                ? [...axes].map((a) => (a === "left" ? "L" : "R")).join(",")
-                : null;
-              return (
-                <span
-                  key={label}
-                  className="flex items-center gap-1 text-sm font-medium"
-                >
-                  {compareUnits.length > 1 &&
-                    indices.map((i) => (
-                      <span
-                        key={i}
-                        className="inline-block h-2.5 w-2.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            SERIES_COLORS[i % SERIES_COLORS.length],
-                        }}
-                      />
-                    ))}
-                  {label}
-                  {axisTags && (
-                    <span className="text-muted-foreground text-[10px] font-normal">
-                      ({axisTags})
-                    </span>
-                  )}
+          <div className="flex flex-col gap-0.5">
+            {(
+              [
+                ["L", unitsByAxis.left],
+                ["R", unitsByAxis.right],
+              ] as const
+            ).map(([tag, units]) => (
+              <span
+                key={tag}
+                className={cn(
+                  "text-sm font-medium",
+                  units.length > 1 && "text-amber-600",
+                )}
+              >
+                <span className="text-muted-foreground mr-1 font-mono text-[10px] font-normal">
+                  {tag}:
                 </span>
-              );
-            })}
+                {units.join(", ") || "—"}
+              </span>
+            ))}
           </div>
         </div>
         {compareUnits.length > 2 && !hasRightAxis && (
@@ -2655,6 +2748,7 @@ export function AnalyzeControls({
           rightAxisLabel={rightAxisLabel}
           seriesUnitLabels={seriesUnitLabels}
           selectedEvents={selectedEvents}
+          vintagePoints={chartVintagePoints}
           overlays={leftVisibleCount === 1 ? overlays : []}
           stats={leftVisibleCount === 1 ? (chartStats ?? undefined) : undefined}
           unitShortLabel={unitShortLabel}

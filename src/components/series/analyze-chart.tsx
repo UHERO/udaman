@@ -91,6 +91,13 @@ export type TimelineEventForChart = {
   endDate?: string | null;
 };
 
+/** A vintage (non-current) data point rendered as a muted scatter dot */
+export type VintageChartPoint = {
+  date: string;
+  value: number;
+  publishedAt: string;
+};
+
 export type Transformation =
   | "zScore"
   | "deviationFromTrend"
@@ -1011,6 +1018,11 @@ interface CompareTooltipProps {
   seriesNames: string[];
   seriesVisibility?: Map<number, "gray" | "hidden">;
   unitLabels?: Map<number, string>;
+  /** Vintage points at each date: date → per-series vintages */
+  vintagesByDate?: Map<
+    string,
+    Array<{ seriesIndex: number; value: number; publishedAt: string }>
+  >;
 }
 
 function CompareTooltip({
@@ -1021,10 +1033,15 @@ function CompareTooltip({
   seriesNames,
   seriesVisibility,
   unitLabels,
+  vintagesByDate,
 }: CompareTooltipProps) {
   if (!active || !payload?.length || !label) return null;
   const row = payload[0]?.payload as ChartRow | undefined;
   if (!row) return null;
+
+  const vintages = vintagesByDate
+    ?.get(label)
+    ?.filter((v) => seriesVisibility?.get(v.seriesIndex) !== "hidden");
 
   return (
     <div className="rounded-md border bg-white px-3 py-2 shadow-md">
@@ -1056,6 +1073,26 @@ function CompareTooltip({
           </p>
         );
       })}
+      {vintages && vintages.length > 0 && (
+        <div className="mt-1 space-y-0.5 border-t pt-1 text-xs">
+          <p className="font-medium text-slate-400">Vintages</p>
+          {vintages.map((v, idx) => (
+            <p
+              key={idx}
+              style={{
+                color: SERIES_COLORS[v.seriesIndex % SERIES_COLORS.length],
+                opacity: 0.7,
+              }}
+            >
+              {seriesNames.length > 1
+                ? `${seriesNames[v.seriesIndex]}: `
+                : ""}
+              {v.value.toFixed(decimals)}
+              <span className="ml-1 text-slate-400">pub. {v.publishedAt}</span>
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1117,6 +1154,8 @@ interface LevelChartProps {
   seriesUnitLabels?: Map<number, string>;
   /** Selected timeline events to render as shaded regions */
   selectedEvents?: TimelineEventForChart[];
+  /** Vintage (non-current) data points per series index, drawn as muted dots */
+  vintagePoints?: Map<number, VintageChartPoint[]>;
   brushStartIndex?: number;
   brushEndIndex?: number;
   onBrushChange?: (range: { startIndex?: number; endIndex?: number }) => void;
@@ -1187,6 +1226,7 @@ export function LevelChart({
   rightAxisLabel,
   seriesUnitLabels,
   selectedEvents = [],
+  vintagePoints,
   brushStartIndex,
   brushEndIndex,
   onBrushChange,
@@ -1253,6 +1293,70 @@ export function LevelChart({
     [onBrushChange, data, chartData],
   );
 
+  // ── Vintages ─────────────────────────────────────────────────────
+  // Merge vintage values into the chart rows as extra columns
+  // (vintage_<seriesIndex>_<k> for the kth vintage at a date) so each dot
+  // plots at exactly the same x category as its current data point. Dates
+  // without a chart row are dropped (shouldn't happen — vintages share
+  // observation dates with the series).
+  const vintagePlot = useMemo(() => {
+    const empty = {
+      rows: chartData,
+      keys: [] as Array<{ key: string; seriesIndex: number }>,
+    };
+    if (!vintagePoints || vintagePoints.size === 0) return empty;
+    const dates = new Set(chartData.map((r) => r.date));
+    const extras = new Map<string, Record<string, number>>();
+    const keys: Array<{ key: string; seriesIndex: number }> = [];
+    const seenKeys = new Set<string>();
+    for (const [seriesIndex, points] of vintagePoints) {
+      const depthByDate = new Map<string, number>();
+      for (const p of points) {
+        if (!dates.has(p.date)) continue;
+        const depth = depthByDate.get(p.date) ?? 0;
+        depthByDate.set(p.date, depth + 1);
+        const key = `vintage_${seriesIndex}_${depth}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          keys.push({ key, seriesIndex });
+        }
+        let cols = extras.get(p.date);
+        if (!cols) {
+          cols = {};
+          extras.set(p.date, cols);
+        }
+        cols[key] = p.value;
+      }
+    }
+    if (keys.length === 0) return empty;
+    const rows = chartData.map((r) =>
+      extras.has(r.date) ? ({ ...r, ...extras.get(r.date) } as ChartRow) : r,
+    );
+    return { rows, keys };
+  }, [vintagePoints, chartData]);
+
+  // date → vintages lookup for the tooltip
+  const vintagesByDate = useMemo(() => {
+    if (!vintagePoints || vintagePoints.size === 0) return undefined;
+    const map = new Map<
+      string,
+      Array<{ seriesIndex: number; value: number; publishedAt: string }>
+    >();
+    for (const [seriesIndex, points] of vintagePoints) {
+      for (const p of points) {
+        const list = map.get(p.date);
+        const entry = {
+          seriesIndex,
+          value: p.value,
+          publishedAt: p.publishedAt,
+        };
+        if (list) list.push(entry);
+        else map.set(p.date, [entry]);
+      }
+    }
+    return map;
+  }, [vintagePoints]);
+
   if (chartData.length === 0) return null;
 
   // Find the date string for the index base reference line
@@ -1281,7 +1385,7 @@ export function LevelChart({
   return (
     <ResponsiveContainer width="100%" height={360}>
       <ComposedChart
-        data={chartData}
+        data={vintagePlot.rows}
         margin={{
           top: indexBaseDate ? 24 : 10,
           right: hasRight ? 10 : 10,
@@ -1340,6 +1444,7 @@ export function LevelChart({
               seriesNames={seriesNames}
               seriesVisibility={seriesVisibility}
               unitLabels={seriesUnitLabels}
+              vintagesByDate={vintagesByDate}
             />
           }
         />
@@ -1395,6 +1500,43 @@ export function LevelChart({
               />
             );
           })}
+        {/* Vintage (non-current) data points as muted dots — stroke-less
+            lines so each dot shares its current point's x category */}
+        {vintagePlot.keys.map(({ key, seriesIndex }) => {
+          const vis = seriesVisibility?.get(seriesIndex);
+          if (vis === "hidden") return null;
+          const axisId = seriesAxisMap?.get(seriesIndex) ?? "left";
+          const color =
+            vis === "gray"
+              ? "#94a3b8"
+              : SERIES_COLORS[seriesIndex % SERIES_COLORS.length];
+          return (
+            <Line
+              key={key}
+              dataKey={key}
+              yAxisId={axisId}
+              stroke="none"
+              legendType="none"
+              activeDot={false}
+              isAnimationActive={false}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              dot={(props: any) =>
+                props.value == null ? (
+                  <g key={`${key}-${props.index}`} />
+                ) : (
+                  <circle
+                    key={`${key}-${props.index}`}
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={3}
+                    fill={color}
+                    fillOpacity={0.4}
+                  />
+                )
+              }
+            />
+          );
+        })}
         {/* Overlay: ±σ filled band */}
         {stats && overlays?.includes("stdDev") && (
           <ReferenceArea

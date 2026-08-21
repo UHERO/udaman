@@ -1,3 +1,7 @@
+Resume this session with:
+claude --resume 87727c40-6990-443a-a266-d5c72290c752
+
+
 ```
 uhero@canoes:~/Developer/udaman$ bun qpub parse-audit
 $ bun run src/core/workers/qpub-cli.ts parse-audit

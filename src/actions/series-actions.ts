@@ -222,6 +222,30 @@ export async function getAllDataPointVintages(xseriesId: number) {
   return vintages;
 }
 
+/** Fetch non-current (vintage) data points for a set of series names,
+ *  for chart overlays. Returns a name→points map. */
+export async function getSeriesVintagePoints(
+  names: string[],
+  universe?: string,
+) {
+  await requirePermission("series", "read");
+  log.info({ names, universe }, "getSeriesVintagePoints action called");
+  const vintages = await DataPointCollection.getVintagesBySeriesNames({
+    names,
+    universe,
+  });
+  log.info(
+    {
+      names,
+      counts: Object.fromEntries(
+        Object.entries(vintages).map(([n, pts]) => [n, pts.length]),
+      ),
+    },
+    "getSeriesVintagePoints action completed",
+  );
+  return vintages;
+}
+
 /** Resolve series names to their IDs. Returns a name→id map.
  *  When `universe` is provided, only matches within that universe are returned. */
 export async function resolveSeriesIds(

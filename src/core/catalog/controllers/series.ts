@@ -385,6 +385,8 @@ export async function transformSeries({
     seriesLastValues,
     resultValue,
     resultDate: resultLastDate ?? null,
+    unitLabel: result.unitLabel ?? null,
+    unitShortLabel: result.unitShortLabel ?? null,
   };
 }
 
