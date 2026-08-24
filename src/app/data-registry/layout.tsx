@@ -1,3 +1,8 @@
+/**
+ * Layout for the /data-registry route — requires auth, builds the sidebar
+ * user profile, and wraps the page content in the app shell.
+ */
+
 import { mysql } from "@database/mysql";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -39,7 +44,7 @@ export default async function DataRegistryLayout({
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar user={user} mode="data-registry" />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">

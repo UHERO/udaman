@@ -1,3 +1,8 @@
+/**
+ * Create/update dialog form for a Data Registry entry, validated with zod
+ * and submitted through the createDataSource/updateDataSource actions.
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -8,8 +13,9 @@ import { FilePlus2, SquarePen } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { createDataSouce, updateDataSouce } from "@/actions/data-registry";
+import { createDataSource, updateDataSource } from "@/actions/data-registry";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -40,17 +46,14 @@ import { cn } from "@/lib/utils";
 import { SecurityInfoLink } from "./dr-table";
 import { formats, securityColors, securityLevels } from "./utils";
 
-// Kept as a named type alias so runToast's signature stays stable if we swap
-// the toast lib again. sonner's imperative `toast()` is variadic — this is a
-// narrower slice matching what runToast uses.
 type ToastFn = (title: string, opts?: { description?: string }) => void;
 
 const formSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters.").max(500),
-  source: z.string().min(5, "Source must be at least 5 characters.").max(255),
-  access: z.string().min(5, "Access must have at least 5 characters").max(255),
-  owner: z.string().min(5, "Owner must be at least 5 characters.").max(255),
-  contact: z.string().min(5, "Contact must be at least 5 characters.").max(255),
+  title: z.string().min(2, "Title must be at least 2 characters.").max(500),
+  source: z.string().min(2, "Source must be at least 2 characters.").max(255),
+  access: z.string().min(2, "Access must have at least 2 characters").max(255),
+  owner: z.string().min(2, "Owner must be at least 2 characters.").max(255),
+  contact: z.string().min(2, "Contact must be at least 2 characters.").max(255),
   format: z.enum([
     "SQL",
     "PDF",
@@ -62,9 +65,11 @@ const formSchema = z.object({
     "OTHER",
   ]),
   security: z.enum(["Public", "Restricted", "Sensitive", "Regulated"]),
+  requiresApproval: z.boolean(),
+  approvalDetails: z.string().max(500).optional(),
   description: z
     .string()
-    .min(50, "Description must be at least 50 characters.")
+    .min(2, "Description must be at least 2 characters.")
     .max(1200),
 });
 
@@ -94,6 +99,8 @@ export function DataRegistryForm({
           access: "",
           owner: "",
           contact: "",
+          requiresApproval: false,
+          approvalDetails: "",
           description: "",
         },
   });
@@ -106,8 +113,8 @@ export function DataRegistryForm({
     try {
       const res =
         isUpdate && initialValues?.id
-          ? await updateDataSouce(data, user, initialValues.id)
-          : await createDataSouce(data, user);
+          ? await updateDataSource(data, user, initialValues.id)
+          : await createDataSource(data, user);
 
       if (res.success) {
         runToast(
@@ -236,7 +243,7 @@ export function DataRegistryForm({
                       aria-invalid={fieldState.invalid}
                       className="cursor-pointer"
                     >
-                      <SelectValue placeholder="CSV" />
+                      <SelectValue placeholder="Select format" />
                     </SelectTrigger>
                     <SelectContent>
                       {formats.map((format, idx) => (
@@ -301,6 +308,34 @@ export function DataRegistryForm({
                 </Field>
               )}
             />
+
+            {form.watch("requiresApproval") && (
+              <Controller
+                name="approvalDetails"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="form-rhf-demo-approval-details">
+                      Approval details
+                    </FieldLabel>
+                    <Input
+                      {...field}
+                      id="form-rhf-demo-approval-details"
+                      aria-invalid={fieldState.invalid}
+                      placeholder="Contact Dr. Jane Doe (PI) for access, or IRB protocol #2024-001"
+                      autoComplete="off"
+                    />
+                    <FieldDescription>
+                      Who to contact, or what process to follow, to obtain
+                      approval for this data set.
+                    </FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            )}
             <Controller
               name="owner"
               control={form.control}
@@ -365,6 +400,39 @@ export function DataRegistryForm({
                   <FieldDescription>
                     Include any background information and details regarding
                     this data source.
+                  </FieldDescription>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+            <Controller
+              name="requiresApproval"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field
+                  data-invalid={fieldState.invalid}
+                  orientation="horizontal"
+                  className="flex-col items-start"
+                >
+                  <div className="flex items-center gap-x-2">
+                    <Checkbox
+                      id="form-rhf-demo-requires-approval"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                    <FieldLabel
+                      htmlFor="form-rhf-demo-requires-approval "
+                      className="font-normal"
+                    >
+                      Requires approval
+                    </FieldLabel>
+                  </div>
+                  <FieldDescription className="text-xs italic">
+                    Check this if the data set cannot be freely used and
+                    requires specific approval from a PI, the IRB, or another
+                    party before use.
                   </FieldDescription>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />

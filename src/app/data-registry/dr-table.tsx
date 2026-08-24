@@ -1,21 +1,34 @@
+/**
+ * Sortable, expandable table of Data Registry entries, with per-row
+ * edit/delete actions gated to admins and the entry's author.
+ */
+
 "use client";
 
-import { useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { type Session } from "next-auth";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Prisma } from "@prisma/client";
-import { ChevronDown, Info, Trash2 } from "lucide-react";
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+  type SortingState,
+} from "@tanstack/react-table";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronDown,
+  Info,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
-import { deleteDataSouce } from "@/actions/data-registry";
+import { deleteDataSource } from "@/actions/data-registry";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogClose,
@@ -28,7 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader } from "@/components/ui/loader";
 import {
-  Table,
+  RawTable,
   TableBody,
   TableCaption,
   TableCell,
@@ -47,11 +60,174 @@ import { cn } from "@/lib/utils";
 import { DataRegistryForm, runToast, type InitialFormValues } from "./dr-form";
 import { securityColors } from "./utils";
 
-export type RegistryListType = Prisma.RegistryPostsGetPayload<{
-  include: {
-    author: true;
+// Mirrors DataRegistryEntry.toJSON() (src/core/catalog/models/data-registry.ts).
+export type RegistryListType = {
+  id: number;
+  title: string;
+  source: string;
+  access: string;
+  owner: string;
+  contact: string;
+  format: string;
+  security: string;
+  requiresApproval: boolean;
+  approvalDetails: string | null;
+  description: string;
+  author_id: number;
+  created_at: Date;
+  updated_at: Date;
+  author: {
+    id: number;
+    universe: string;
+    role: string;
+    email: string;
+    name: string | null;
+    image: string | null;
   };
-}>;
+};
+
+function canEdit(user: Session, item: RegistryListType): boolean {
+  return user?.user.role == "ADMIN" || user?.user.email == item.author.email;
+}
+
+function buildColumns({
+  user,
+  expandedIds,
+}: {
+  user: Session;
+  expandedIds: Set<number>;
+}): ColumnDef<RegistryListType>[] {
+  return [
+    {
+      accessorKey: "title",
+      header: "Title",
+      cell: ({ row }) => (
+        <span className="block max-w-40 truncate font-medium md:max-w-55">
+          {row.original.title}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "source",
+      header: "Source",
+      cell: ({ row }) => (
+        <span className="hidden max-w-37.5 truncate whitespace-nowrap sm:block">
+          {row.original.source}
+        </span>
+      ),
+    },
+    {
+      id: "requiresApproval",
+      accessorFn: (row) => row.requiresApproval,
+      header: "Approval",
+      cell: ({ row }) =>
+        row.original.requiresApproval ? (
+          <span className="rounded-full bg-amber-200 px-2 py-1 text-xs whitespace-nowrap text-zinc-800">
+            Required
+          </span>
+        ) : (
+          <span className="text-muted-foreground text-xs whitespace-nowrap">
+            Not required
+          </span>
+        ),
+    },
+    {
+      accessorKey: "security",
+      header: () => <SecurityInfoLink />,
+      cell: ({ row }) => (
+        <span
+          className={cn(
+            securityColors[row.original.security],
+            "rounded-full px-2 py-1 text-xs whitespace-nowrap text-zinc-800",
+          )}
+        >
+          {row.original.security}
+        </span>
+      ),
+    },
+    {
+      id: "author",
+      accessorFn: (row) => row.author.email,
+      header: "Author",
+      cell: ({ row }) => (
+        <p className="text-primary hidden w-fit max-w-30 truncate rounded-full bg-blue-400/20 px-3 py-1 text-center text-xs lg:block">
+          {row.original.author.email}
+        </p>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+        const allowed = canEdit(user, item);
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <div
+                    className={cn(
+                      allowed
+                        ? "pointer-events-auto opacity-100"
+                        : "pointer-events-none opacity-50",
+                      "flex flex-col items-center gap-2 md:flex-row",
+                    )}
+                  >
+                    <DataRegistryForm
+                      initialValues={{
+                        id: item.id,
+                        title: item.title,
+                        source: item.source,
+                        access: item.access,
+                        owner: item.owner,
+                        contact: item.contact,
+                        format: item.format as InitialFormValues["format"],
+                        security:
+                          item.security as InitialFormValues["security"],
+                        requiresApproval: item.requiresApproval,
+                        approvalDetails: item.approvalDetails ?? "",
+                        description: item.description,
+                      }}
+                      isUpdate={true}
+                      user={user}
+                    />
+                    <ConfirmDialog item={item} user={user} />
+                  </div>
+                </div>
+              </TooltipTrigger>
+              {!allowed && (
+                <TooltipContent className="z-50">
+                  Insufficient permissions: <br /> You must be an admin or
+                  author to edit or delete.
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+    },
+    {
+      id: "expand",
+      header: "",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const isOpen = expandedIds.has(row.original.id);
+        return (
+          <div aria-hidden="true" className="flex w-full justify-end">
+            <ChevronDown
+              className={cn(
+                "size-5 text-gray-400 transition-transform",
+                isOpen && "rotate-180",
+              )}
+            />
+          </div>
+        );
+      },
+    },
+  ];
+}
 
 const DataRegistryTable = ({
   registryList,
@@ -60,192 +236,177 @@ const DataRegistryTable = ({
   registryList: RegistryListType[];
   user: Session;
 }) => {
-  const theme = useTheme();
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  function toggleExpanded(id: number) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  const columns = buildColumns({ user, expandedIds });
+
+  const table = useReactTable({
+    data: registryList,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
   return (
-    <Table className="m-5">
+    <RawTable className="w-full rounded-lg">
       <TableCaption>A list of all UHERO source data sets.</TableCaption>
-
       <TableHeader>
-        <TableRow>
-          <TableHead className="w-[150px] md:w-[300px]">Title</TableHead>
-          <TableHead>Source</TableHead>
-          <TableHead>Access</TableHead>
-          <TableHead>Format</TableHead>
-          <TableHead>Owner</TableHead>
-          <TableHead>Contact</TableHead>
-          <TableHead>Author</TableHead>
-          <TableHead>
-            <SecurityInfoLink />
-          </TableHead>
-          <TableHead>Edit</TableHead>
-          <TableHead></TableHead>
-        </TableRow>
-      </TableHeader>
-      {registryList.map((item, id) => {
-        return (
-          <Collapsible key={id} asChild className="group/collapsible">
-            <TableBody className="border border-x-0">
-              <CollapsibleTrigger asChild>
-                <TableRow
-                  suppressHydrationWarning={true}
-                  className={cn(
-                    theme.theme === "dark"
-                      ? "group-data-[state=open]/collapsible:bg-accent"
-                      : "group-data-[state=open]/collapsible:bg-cyan-600/10",
-                    "cursor-pointer",
-                  )}
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow className="cursor-pointer" key={headerGroup.id}>
+            {headerGroup.headers.map((header) => {
+              const canSort = header.column.getCanSort();
+              const sorted = header.column.getIsSorted();
+              return (
+                <TableHead
+                  key={header.id}
+                  className={canSort ? "cursor-pointer select-none" : ""}
+                  onClick={
+                    canSort
+                      ? header.column.getToggleSortingHandler()
+                      : undefined
+                  }
                 >
-                  <TableCell className="max-w-[200px] truncate font-medium md:w-[300px]">
-                    {item.title}
+                  <div className="flex items-center gap-1">
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
+                    {canSort &&
+                      (sorted === "asc" ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : sorted === "desc" ? (
+                        <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="text-muted-foreground h-3 w-3" />
+                      ))}
+                  </div>
+                </TableHead>
+              );
+            })}
+          </TableRow>
+        ))}
+      </TableHeader>
+      <TableBody>
+        {table.getRowModel().rows.map((row) => {
+          const isOpen = expandedIds.has(row.original.id);
+          return (
+            <Fragment key={row.id}>
+              <TableRow
+                onClick={() => toggleExpanded(row.original.id)}
+                className={cn(
+                  "cursor-pointer",
+                  isOpen && "dark:bg-accent bg-cyan-600/10",
+                )}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    onClick={
+                      cell.column.id === "actions"
+                        ? (e) => e.stopPropagation()
+                        : undefined
+                    }
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate whitespace-nowrap">
-                    {item.source}
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate whitespace-nowrap">
-                    {item.access}
-                  </TableCell>
-                  <TableCell>{item.format}</TableCell>
-                  <TableCell className="max-w-[100px] truncate whitespace-nowrap">
-                    {item.owner}
-                  </TableCell>
-                  <TableCell>{item.contact}</TableCell>
-                  <TableCell className="">
-                    <p className="text-primary w-fit rounded-full bg-blue-400/20 px-4 py-1 text-center text-xs">
-                      {item.author?.email}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={cn(
-                        securityColors[item.security],
-                        "rounded-full px-4 py-1 text-xs text-zinc-800",
+                ))}
+              </TableRow>
+              {isOpen && (
+                <TableRow key={`${row.id}-detail`}>
+                  <TableCell colSpan={columns.length} className="bg-slate-50">
+                    <div className="mt-3 ml-5">
+                      {(
+                        [
+                          ["Source", row.original.source],
+                          ["Owner", row.original.owner],
+                          ["Access", row.original.access],
+                          ["Format", row.original.format],
+                          ["Contact", row.original.contact],
+                        ] as const
+                      ).map(([label, value]) => (
+                        <p key={label}>
+                          <strong>{label}</strong> {value}
+                        </p>
+                      ))}
+                      {row.original.requiresApproval && (
+                        <p>
+                          <strong>Approval details</strong>{" "}
+                          {row.original.approvalDetails || "—"}
+                        </p>
                       )}
-                    >
-                      {item.security}
-                    </span>
-                  </TableCell>
-                  <TableCell className="">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <div
-                              className={cn(
-                                user?.user.role == "ADMIN" ||
-                                  user?.user.email == item.author.email
-                                  ? "pointer-events-auto opacity-100"
-                                  : "pointer-events-none opacity-50",
-                                "flex flex-col items-center gap-2 md:flex-row",
-                              )}
-                            >
-                              <DataRegistryForm
-                                initialValues={{
-                                  id: item.id,
-                                  title: item.title,
-                                  source: item.source,
-                                  access: item.access,
-                                  owner: item.owner,
-                                  contact: item.contact,
-                                  format:
-                                    item.format as InitialFormValues["format"],
-                                  security:
-                                    item.security as InitialFormValues["security"],
-                                  description: item.description,
-                                }}
-                                isUpdate={true}
-                                user={user}
-                              />
-                              <ConfirmDialog item={item} />
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        {user?.user.role != "ADMIN" &&
-                          user?.user.email != item.author.email && (
-                            <TooltipContent className="z-50">
-                              Insufficient permissions: <br /> You must be an
-                              admin or author to edit or delete.
-                            </TooltipContent>
-                          )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                  <TableCell>
-                    <ChevronDown className="ml-auto size-5 text-gray-400 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                  </TableCell>
-                </TableRow>
-              </CollapsibleTrigger>
-
-              <CollapsibleContent asChild>
-                <TableRow className="">
-                  <TableCell colSpan={10}>
-                    <div className="">
-                      {[
-                        "Title",
-                        "Source",
-                        "Access",
-                        "Format",
-                        "Owner",
-                        "Contact",
-                      ].map((headerTxt) => {
-                        const key = headerTxt.toLowerCase();
-                        const value = item[key as keyof typeof item];
-
-                        return (
-                          <p key={headerTxt + "description"}>
-                            <strong>{headerTxt}</strong>{" "}
-                            {typeof value === "object" && value !== null
-                              ? JSON.stringify(value)
-                              : String(value ?? "—")}
-                          </p>
-                        );
-                      })}
-
                       <p className="mt-2 flex items-center gap-x-2">
                         <strong>Author </strong>
                         <span className="rounded-full bg-blue-400/20 px-3 py-0.5">
-                          {item.author.email}
+                          {row.original.author.email}
                         </span>
                       </p>
                       <p className="mt-2 flex items-center gap-x-2 py-0.5">
                         <strong>Security Level </strong>
                         <span
                           className={cn(
-                            securityColors[item.security],
+                            securityColors[row.original.security],
                             "rounded-full px-3 text-zinc-800",
                           )}
                         >
-                          {item.security}
+                          {row.original.security}
                         </span>
                       </p>
                       <p className="mt-5 whitespace-pre-line">
-                        {item.description}
+                        {row.original.description}
+                      </p>
+                      <p className="text-muted-foreground my-3 text-sm italic">
+                        <span>Created at</span>{" "}
+                        {new Date(row.original.created_at).toLocaleDateString(
+                          "en-US",
+                          { year: "numeric", month: "short", day: "numeric" },
+                        )}
                       </p>
                     </div>
                   </TableCell>
                 </TableRow>
-              </CollapsibleContent>
-            </TableBody>
-          </Collapsible>
-        );
-      })}
-    </Table>
+              )}
+            </Fragment>
+          );
+        })}
+      </TableBody>
+    </RawTable>
   );
 };
 
 export default DataRegistryTable;
 
-function ConfirmDialog({ item }: { item: RegistryListType }) {
-  // `toast` imported at top from sonner — no hook needed.
+function ConfirmDialog({
+  item,
+  user,
+}: {
+  item: RegistryListType;
+  user: Session;
+}) {
   const router = useRouter();
-
   const [isPending, startTransition] = useTransition();
 
   async function handleDelete(): Promise<void> {
     try {
-      const res = await deleteDataSouce(item.id);
+      const res = await deleteDataSource(item.id, user);
       if (res.success) {
         runToast(toast, "Success", "Removed entry from database.");
+      } else {
+        runToast(toast, "Error", res.error ?? "Failed to delete entry.");
       }
       startTransition(() => {
         router.refresh();
