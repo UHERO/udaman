@@ -14,10 +14,16 @@ import { cn } from "@/lib/utils";
 import { H1, Lead } from "./typography";
 
 export function LoginForm({
+  callbackUrl,
   className,
   ...props
-}: React.ComponentProps<"form">) {
+}: React.ComponentProps<"form"> & {
+  /** Where to send the user after sign-in; defaults to their landing page. */
+  callbackUrl?: string;
+}) {
   const router = useRouter();
+  // /udaman redirects a signed-in user to their role/universe landing page.
+  const destination = callbackUrl ?? "/udaman";
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -36,7 +42,7 @@ export function LoginForm({
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push("/udaman");
+        router.push(destination);
         router.refresh();
       }
     });
@@ -101,7 +107,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           disabled={isPending}
-          onClick={() => signIn("google", { callbackUrl: "/udaman" })}
+          onClick={() => signIn("google", { callbackUrl: destination })}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path

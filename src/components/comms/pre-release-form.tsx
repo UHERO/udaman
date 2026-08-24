@@ -16,6 +16,8 @@ import {
   PUBLICATION_TYPE_LABELS,
   PUBLICATION_TYPES,
   publicationTypeLabel,
+  UH_AI_GUIDANCE_LABEL,
+  UH_AI_GUIDANCE_URL,
 } from "@catalog/models/approval";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUpDown, Plus, RotateCcw, X } from "lucide-react";
@@ -823,8 +825,15 @@ export function PreReleaseForm({
               <Field orientation="horizontal">
                 <RadioGroupItem value="followed_guidance" id="ai-guidance" />
                 <FieldLabel htmlFor="ai-guidance" className="font-normal">
-                  AI was used, and its use followed applicable University of
-                  Hawaiʻi guidance
+                  AI was used, and its use followed applicable{" "}
+                  <a
+                    href={UH_AI_GUIDANCE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    {UH_AI_GUIDANCE_LABEL}
+                  </a>
                 </FieldLabel>
               </Field>
             </RadioGroup>

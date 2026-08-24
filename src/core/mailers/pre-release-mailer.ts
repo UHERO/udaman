@@ -1,6 +1,6 @@
 import type { PreReleaseFormData } from "@catalog/models/approval";
 import {
-  formatAiUsage,
+  formatAiUsageParts,
   formatPublicationType,
   formatSecondaryTypes,
 } from "@catalog/models/approval";
@@ -69,6 +69,19 @@ function row(label: string, value: string | null | undefined): string {
   </tr>`;
 }
 
+/** Like row(), but with the UH guidance label hyperlinked. */
+function aiUsageRow(d: Parameters<typeof formatAiUsageParts>[0]): string {
+  const { prefix, link, suffix } = formatAiUsageParts(d);
+  const shown =
+    esc(prefix) +
+    (link ? `<a href="${esc(link.href)}">${esc(link.label)}</a>` : "") +
+    esc(suffix);
+  return `<tr>
+    <td style="padding: 4px 12px 4px 0; color: #666; vertical-align: top; width: 220px;">${esc("AI use")}</td>
+    <td style="padding: 4px 0; white-space: pre-wrap;">${shown}</td>
+  </tr>`;
+}
+
 function checkRow(label: string, checked: boolean): string {
   return `<tr>
     <td style="padding: 4px 12px 4px 0; vertical-align: top; width: 220px;">${checked ? "&#10003;" : "&#9744;"}</td>
@@ -125,7 +138,7 @@ export async function sendPreReleaseSubmitted(
       row("Conflicts of interest", d.conflictsOfInterest) +
         row("Funding sources", d.fundingSources) +
         row("Data restrictions", d.dataRestrictions) +
-        row("AI use", formatAiUsage(d)),
+        aiUsageRow(d),
     )}
 
     ${section(

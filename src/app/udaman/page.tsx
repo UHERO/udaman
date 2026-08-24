@@ -8,13 +8,28 @@ import { SurfWidget } from "@/components/surf-widget";
 import { getLandingPath } from "@/lib/auth/authorization";
 import { getSession } from "@/lib/auth/dal";
 
-export default async function LoginPage() {
+/**
+ * Only follow same-site relative paths. Anything else (absolute URLs,
+ * protocol-relative `//evil.com`) is dropped so login can't be used as an
+ * open redirect.
+ */
+function safeCallbackUrl(raw: string | undefined): string | undefined {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return undefined;
+  return raw;
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
   const session = await getSession();
+  const callbackUrl = safeCallbackUrl((await searchParams).callbackUrl);
 
   if (session?.user) {
     const universe = session.user.universe ?? "UHERO";
     const role = session.user.role ?? "external";
-    redirect(getLandingPath(role, universe));
+    redirect(callbackUrl ?? getLandingPath(role, universe));
   }
 
   return (
@@ -30,7 +45,7 @@ export default async function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            <LoginForm />
+            <LoginForm callbackUrl={callbackUrl} />
           </div>
         </div>
       </div>

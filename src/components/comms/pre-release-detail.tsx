@@ -1,6 +1,6 @@
 import type { ApprovalJSON } from "@catalog/models/approval";
 import {
-  formatAiUsage,
+  formatAiUsageParts,
   formatPublicationType,
   formatSecondaryTypes,
 } from "@catalog/models/approval";
@@ -35,6 +35,26 @@ function formatTimestamp(value: string | null): string | null {
  * reviewer reading the page and a reviewer reading the email see the same
  * document. Disclosure text keeps its line breaks.
  */
+function AiUsage({ d }: { d: Parameters<typeof formatAiUsageParts>[0] }) {
+  const { prefix, link, suffix } = formatAiUsageParts(d);
+  return (
+    <>
+      {prefix}
+      {link && (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          {link.label}
+        </a>
+      )}
+      {suffix}
+    </>
+  );
+}
+
 function Row({
   label,
   children,
@@ -125,7 +145,9 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
           <Row label="Conflicts of interest">{d.conflictsOfInterest}</Row>
           <Row label="Funding source(s)">{d.fundingSources}</Row>
           <Row label="Data restrictions">{d.dataRestrictions}</Row>
-          <Row label="Use of AI">{formatAiUsage(d)}</Row>
+          <Row label="Use of AI">
+            <AiUsage d={d} />
+          </Row>
         </dl>
       </Section>
 

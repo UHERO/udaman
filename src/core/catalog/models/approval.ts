@@ -95,21 +95,49 @@ export function isAiUse(value: string): value is AiUse {
   return (AI_USES as readonly string[]).includes(value);
 }
 
-/** One-line summary of the AI disclosure, including which uses were checked. */
-export function formatAiUsage(data: {
+/** UH's guidance on AI use, linked wherever the disclosure is shown. */
+export const UH_AI_GUIDANCE_URL = "http://go.hawaii.edu/btr";
+export const UH_AI_GUIDANCE_LABEL = "University of Hawaiʻi guidance";
+
+type AiUsageData = {
   aiUsage: "none" | "followed_guidance";
   aiUses?: string[] | null;
   aiUsageOther?: string | null;
-}): string {
-  if (data.aiUsage === "none") return "No AI used in preparing the work";
+};
 
-  const base = "AI used; followed applicable University of Hawaiʻi guidance";
+/**
+ * The AI disclosure split so renderers can hyperlink the guidance label.
+ * `link` is null when there's nothing to link (no AI used).
+ */
+export function formatAiUsageParts(data: AiUsageData): {
+  prefix: string;
+  link: { label: string; href: string } | null;
+  suffix: string;
+} {
+  if (data.aiUsage === "none") {
+    return {
+      prefix: "No AI used in preparing the work",
+      link: null,
+      suffix: "",
+    };
+  }
+
   const uses = (data.aiUses ?? []).map((use) =>
     use === "other" && data.aiUsageOther
       ? `Other — ${data.aiUsageOther}`
       : (AI_USE_LABELS[use as AiUse] ?? use),
   );
-  return uses.length ? `${base} (${uses.join(", ")})` : base;
+  return {
+    prefix: "AI used; followed applicable ",
+    link: { label: UH_AI_GUIDANCE_LABEL, href: UH_AI_GUIDANCE_URL },
+    suffix: uses.length ? ` (${uses.join(", ")})` : "",
+  };
+}
+
+/** One-line plain-text summary of the AI disclosure, including which uses were checked. */
+export function formatAiUsage(data: AiUsageData): string {
+  const { prefix, link, suffix } = formatAiUsageParts(data);
+  return `${prefix}${link?.label ?? ""}${suffix}`;
 }
 
 /**
