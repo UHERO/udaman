@@ -1,3 +1,8 @@
+/**
+ * Shared type definitions for the Data Registry feature: the author
+ * account shape and the DataSource entry shape used across the UI.
+ */
+
 export type Account = {
   email: string;
   emailVerified: boolean | null;
@@ -20,6 +25,8 @@ export type DataSource = {
   format: string;
   id: number;
   owner: string;
+  requiresApproval: boolean;
+  approvalDetails: string | null;
   security: string;
   source: string;
   title: string;
