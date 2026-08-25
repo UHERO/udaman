@@ -11,6 +11,7 @@ import {
   deleteApproval,
   resendApprovalNotification,
 } from "@/actions/approvals";
+import { ApprovalStatusBadges } from "@/components/comms/approval-status";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,10 +50,12 @@ export function PreReleaseList({
   approvals,
   currentUserId,
   isAdmin,
+  emptyMessage = "No pre-release forms submitted yet.",
 }: {
   approvals: ApprovalJSON[];
   currentUserId: number;
   isAdmin: boolean;
+  emptyMessage?: string;
 }) {
   const router = useRouter();
   const base = "/comms/pub-form";
@@ -100,11 +103,7 @@ export function PreReleaseList({
   }
 
   if (!approvals.length) {
-    return (
-      <p className="text-muted-foreground py-8 text-sm">
-        No pre-release forms submitted yet.
-      </p>
-    );
+    return <p className="text-muted-foreground py-8 text-sm">{emptyMessage}</p>;
   }
 
   return (
@@ -115,6 +114,7 @@ export function PreReleaseList({
             <TableHead>Title</TableHead>
             <TableHead>Lead author</TableHead>
             <TableHead>Target release</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Submitted</TableHead>
             <TableHead className="w-24" />
           </TableRow>
@@ -129,6 +129,9 @@ export function PreReleaseList({
               </TableCell>
               <TableCell>{a.author}</TableCell>
               <TableCell>{formatDate(a.targetReleaseDate)}</TableCell>
+              <TableCell>
+                <ApprovalStatusBadges approval={a} />
+              </TableCell>
               <TableCell>{formatDate(a.createdAt)}</TableCell>
               <TableCell>
                 {canModify(a) && (

@@ -1,14 +1,20 @@
-import { sendPreReleaseSubmitted } from "@/core/mailers/pre-release-mailer";
+import {
+  sendPreReleaseReviewed,
+  sendPreReleaseSubmitted,
+} from "@/core/mailers/pre-release-mailer";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 import { createLogger } from "@/core/observability/logger";
 import { AuthorizationError } from "@/lib/errors";
+import { mysql } from "@/lib/mysql/db";
 
 import ApprovalCollection from "../collections/approval-collection";
 import type {
   CreateApprovalPayload,
   UpdateApprovalPayload,
 } from "../collections/approval-collection";
+import ApprovalReviewCollection from "../collections/approval-review-collection";
 import type Approval from "../models/approval";
+import { REQUIRED_REVIEWS } from "../models/approval";
 import type { ApprovalType } from "../models/approval";
 import type { Universe } from "../types/shared";
 
@@ -44,20 +50,165 @@ function assertCanModify(approval: Approval, actor: Actor): void {
 export async function getApprovals({
   universe,
   type,
+  viewerUserId,
 }: {
   universe: Universe;
   type?: ApprovalType;
+  viewerUserId?: number;
 }) {
   log.info({ universe, type }, "fetching approvals");
-  const data = await ApprovalCollection.list({ universe, type });
+  const data = await ApprovalCollection.list({ universe, type, viewerUserId });
   log.info({ count: data.length }, "approvals fetched");
   return { data };
 }
 
-export async function getApproval({ id }: { id: number }) {
+export async function getApproval({
+  id,
+  viewerUserId,
+}: {
+  id: number;
+  viewerUserId?: number;
+}) {
   log.info({ id }, "fetching approval");
-  const data = await ApprovalCollection.getById(id);
+  const data = await ApprovalCollection.getById(id, viewerUserId);
   return { data };
+}
+
+/*************************************************************************
+ * Reviews
+ *************************************************************************/
+
+export async function getApprovalReviews({ id }: { id: number }) {
+  const data = await ApprovalReviewCollection.listForApproval(id);
+  return { data };
+}
+
+/**
+ * Submit (or revise) the actor's review of an approval.
+ *
+ * Authors can't review their own form — the whole point of the count is
+ * independent eyes. When this review is the one that crosses
+ * REQUIRED_REVIEWS, the author is emailed once.
+ */
+export async function submitReview({
+  id,
+  actor,
+  reviewerName,
+  attested,
+  notes,
+}: {
+  id: number;
+  actor: Actor;
+  reviewerName: string;
+  attested: boolean;
+  notes: string | null;
+}) {
+  log.info({ id, reviewerUserId: actor.userId }, "submitting review");
+  const approval = await ApprovalCollection.getById(id);
+  if (approval.authorUserId === actor.userId) {
+    throw new AuthorizationError("You can't review your own pre-release form", {
+      approvalId: id,
+      actorUserId: actor.userId,
+    });
+  }
+  if (!attested) {
+    throw new Error("Check the attestation box to submit a review");
+  }
+
+  const before = await ApprovalReviewCollection.countForApproval(id);
+  const review = await ApprovalReviewCollection.upsert({
+    approvalId: id,
+    reviewerUserId: actor.userId,
+    reviewer: reviewerName,
+    attested,
+    notes: notes?.trim() || null,
+  });
+  const after = await ApprovalReviewCollection.countForApproval(id);
+  const isNew = after > before;
+  log.info({ id, reviewId: review.id, count: after, isNew }, "review saved");
+
+  if (isNew && before < REQUIRED_REVIEWS && after >= REQUIRED_REVIEWS) {
+    notifyAuthorReviewed(approval.id, approval.authorUserId).catch((err) => {
+      log.error(
+        { err: err instanceof Error ? err.message : String(err), id },
+        "reviewed notification failed",
+      );
+    });
+  }
+
+  return {
+    message: isNew ? "Review submitted" : "Review updated",
+    data: review,
+  };
+}
+
+async function notifyAuthorReviewed(approvalId: number, authorUserId: number) {
+  const [approval, reviews, users] = await Promise.all([
+    ApprovalCollection.getById(approvalId),
+    ApprovalReviewCollection.listForApproval(approvalId),
+    mysql<{
+      email: string;
+    }>`SELECT email FROM users WHERE id = ${authorUserId} LIMIT 1`,
+  ]);
+  const authorEmail = users[0]?.email;
+  if (!authorEmail) {
+    log.warn({ approvalId, authorUserId }, "author has no email; skipping");
+    return;
+  }
+  await sendPreReleaseReviewed({
+    approvalId,
+    name: approval.name,
+    authorEmail,
+    reviewCount: reviews.length,
+    reviews: reviews.map((r) => ({
+      reviewer: r.reviewer,
+      attested: r.attested,
+      notes: r.notes,
+    })),
+  });
+}
+
+/** Remove a review. Reviewers may withdraw their own; admins may remove any. */
+export async function deleteReview({
+  reviewId,
+  actor,
+}: {
+  reviewId: number;
+  actor: Actor;
+}) {
+  const review = await ApprovalReviewCollection.getById(reviewId);
+  if (!isAdmin(actor.role) && review.reviewerUserId !== actor.userId) {
+    throw new AuthorizationError("You can only withdraw your own review", {
+      reviewId,
+      actorUserId: actor.userId,
+    });
+  }
+  await ApprovalReviewCollection.delete(reviewId);
+  log.info({ reviewId, approvalId: review.approvalId }, "review deleted");
+  return { message: "Review withdrawn", approvalId: review.approvalId };
+}
+
+/** Mark a form released (or un-mark it). Author or admin only. */
+export async function setApprovalReleased({
+  id,
+  released,
+  actor,
+}: {
+  id: number;
+  released: boolean;
+  actor: Actor;
+}) {
+  const existing = await ApprovalCollection.getById(id);
+  assertCanModify(existing, actor);
+  const data = await ApprovalCollection.setReleased(
+    id,
+    released ? { byUserId: actor.userId } : null,
+  );
+  log.info({ id, released }, "approval release mark updated");
+  return {
+    message: released ? "Marked as released" : "Release mark removed",
+    data,
+  };
 }
 
 export async function createApproval({

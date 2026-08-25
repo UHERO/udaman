@@ -206,3 +206,46 @@ export async function sendPreReleaseSubmitted(
   );
   await Mailer.email({ to, subject, html });
 }
+
+/**
+ * Tell the lead author their form has collected the required number of
+ * reviews. Sent once, when the count crosses the threshold.
+ */
+export async function sendPreReleaseReviewed(input: {
+  approvalId: number;
+  name: string;
+  authorEmail: string;
+  reviewCount: number;
+  reviews: { reviewer: string; attested: boolean; notes: string | null }[];
+}): Promise<void> {
+  const url = `${BASE_URL}/comms/pub-form/${input.approvalId}`;
+  const subject = `Pre-release form reviewed: ${input.name}`;
+
+  const reviewRows = input.reviews
+    .map(
+      (r) =>
+        `<tr>
+    <td style="padding: 4px 12px 4px 0; vertical-align: top; width: 220px;">${r.attested ? "&#10003;" : "&#9744;"} ${esc(r.reviewer)}</td>
+    <td style="padding: 4px 0; white-space: pre-wrap;">${r.notes?.trim() ? esc(r.notes) : "&mdash;"}</td>
+  </tr>`,
+    )
+    .join("");
+
+  const html = shell(
+    subject,
+    `
+    <p>
+      <strong>${esc(input.name)}</strong> has received ${input.reviewCount}
+      review${input.reviewCount === 1 ? "" : "s"} and is now marked as reviewed.
+      <a href="${esc(url)}">View it in udaman</a>.
+    </p>
+    ${section("Reviews", reviewRows)}
+    `,
+  );
+
+  log.info(
+    { approvalId: input.approvalId, to: input.authorEmail },
+    "Sending pre-release reviewed email",
+  );
+  await Mailer.email({ to: [input.authorEmail], subject, html });
+}

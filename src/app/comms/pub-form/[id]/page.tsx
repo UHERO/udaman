@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 
-import { getApproval } from "@/actions/approvals";
+import { getApproval, getApprovalReviews } from "@/actions/approvals";
+import { ApprovalStatusBadges } from "@/components/comms/approval-status";
 import { PreReleaseDetail } from "@/components/comms/pre-release-detail";
+import { ReviewPanel } from "@/components/comms/review-panel";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 import { NotFoundError } from "@/lib/errors";
 
@@ -27,11 +30,12 @@ export default async function Page({
     throw err;
   }
 
+  const reviews = await getApprovalReviews(numericId);
+  const currentUserId = parseInt(userId) || 0;
+  const isAdmin = role === "admin" || role === "dev";
+
   // Only the author (or an admin) can revise a filed form.
-  const canEdit =
-    role === "admin" ||
-    role === "dev" ||
-    approval.authorUserId === (parseInt(userId) || 0);
+  const canEdit = isAdmin || approval.authorUserId === currentUserId;
 
   return (
     <div className="space-y-4">
@@ -51,6 +55,9 @@ export default async function Page({
           <p className="text-muted-foreground text-sm">
             Pre-release form filed by {approval.author}
           </p>
+          <div className="mt-2">
+            <ApprovalStatusBadges approval={approval} size="md" />
+          </div>
         </div>
         {canEdit && (
           <Button asChild variant="outline" className="cursor-pointer">
@@ -61,6 +68,15 @@ export default async function Page({
           </Button>
         )}
       </div>
+
+      <ReviewPanel
+        approval={approval}
+        reviews={reviews}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+      />
+
+      <Separator />
 
       <PreReleaseDetail approval={approval} />
     </div>

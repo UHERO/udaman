@@ -1831,9 +1831,10 @@ export function AnalyzeControls({
       return v === "column" ? "column" : "line";
     },
   );
-  // Vintage (non-current data point) overlay — always off on load; the
-  // fetch is expensive so it's opt-in per session, not URL-persisted
-  const [showVintages, setShowVintages] = useState(false);
+  // Vintage (non-current data point) overlay — off unless the URL opts in
+  const [showVintages, setShowVintages] = useState(
+    () => searchParams.get("vintages") === "1",
+  );
   const [vintageData, setVintageData] = useState<
     Record<string, VintageChartPoint[]>
   >({});
@@ -2169,6 +2170,7 @@ export function AnalyzeControls({
         stdDevMultiplier !== 1 ? String(stdDevMultiplier) : undefined,
       leftChartType: leftChartType !== "line" ? leftChartType : undefined,
       rightChartType: rightChartType !== "line" ? rightChartType : undefined,
+      vintages: showVintages ? "1" : undefined,
     });
   }, [
     overlays,
@@ -2185,6 +2187,7 @@ export function AnalyzeControls({
     stdDevMultiplier,
     leftChartType,
     rightChartType,
+    showVintages,
   ]);
 
   // ── Available dates from brush-selected range ─────────────────────

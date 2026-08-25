@@ -206,6 +206,55 @@ export type PreReleaseFormData = {
   notifiedRecipients: string[];
 };
 
+/** Reviews an approval needs before it counts as "reviewed". */
+export const REQUIRED_REVIEWS = 3;
+
+/**
+ * Filters the list page offers. Both axes are derived at read time:
+ * reviewed = reviewCount >= REQUIRED_REVIEWS, released = releasedAt set.
+ */
+export const APPROVAL_STATUS_FILTERS = [
+  "all",
+  "unreleased",
+  "released",
+  "not_reviewed",
+  "reviewed",
+] as const;
+export type ApprovalStatusFilter = (typeof APPROVAL_STATUS_FILTERS)[number];
+
+export const APPROVAL_STATUS_LABELS: Record<ApprovalStatusFilter, string> = {
+  all: "All items",
+  unreleased: "Unreleased",
+  released: "Released",
+  not_reviewed: "Not reviewed",
+  reviewed: "Reviewed",
+};
+
+/** Shared by the model and the JSON the list page receives. */
+export function approvalMatchesStatus(
+  a: { isReviewed: boolean; isReleased: boolean },
+  filter: ApprovalStatusFilter,
+): boolean {
+  switch (filter) {
+    case "all":
+      return true;
+    case "released":
+      return a.isReleased;
+    case "unreleased":
+      return !a.isReleased;
+    case "reviewed":
+      return a.isReviewed;
+    case "not_reviewed":
+      return !a.isReviewed;
+  }
+}
+
+export function isApprovalStatusFilter(
+  value: string | undefined,
+): value is ApprovalStatusFilter {
+  return (APPROVAL_STATUS_FILTERS as readonly string[]).includes(value ?? "");
+}
+
 export type ApprovalAttrs = {
   id: number;
   type?: string;
@@ -215,9 +264,14 @@ export type ApprovalAttrs = {
   author_user_id: number;
   target_release_date?: Date | string | null;
   form_data?: unknown;
+  released_at?: Date | string | null;
+  released_by_user_id?: number | null;
   deleted_at?: Date | string | null;
   created_at?: Date | string | null;
   updated_at?: Date | string | null;
+  /** Aggregates joined in by the collection; absent on bare rows. */
+  review_count?: number | string | null;
+  reviewed_by_me?: number | string | null;
 };
 
 /** MySQL DATE/DATETIME columns come back as Date or string depending on driver path. */
@@ -243,9 +297,15 @@ class Approval {
   authorUserId: number;
   targetReleaseDate: Date | null;
   formData: PreReleaseFormData;
+  releasedAt: Date | null;
+  releasedByUserId: number | null;
   deletedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
+  /** Number of reviews on file. 0 when the row was loaded without the join. */
+  reviewCount: number;
+  /** Whether the viewing user has already reviewed this one. */
+  reviewedByMe: boolean;
 
   constructor(attrs: ApprovalAttrs) {
     this.id = attrs.id;
@@ -261,9 +321,26 @@ class Approval {
       typeof attrs.form_data === "string"
         ? (JSON.parse(attrs.form_data) as PreReleaseFormData)
         : ((attrs.form_data ?? {}) as PreReleaseFormData);
+    this.releasedAt = toDate(attrs.released_at);
+    this.releasedByUserId = attrs.released_by_user_id ?? null;
     this.deletedAt = toDate(attrs.deleted_at);
     this.createdAt = toDate(attrs.created_at);
     this.updatedAt = toDate(attrs.updated_at);
+    // COUNT() comes back as a string on some driver paths.
+    this.reviewCount = Number(attrs.review_count ?? 0);
+    this.reviewedByMe = Number(attrs.reviewed_by_me ?? 0) > 0;
+  }
+
+  get isReviewed(): boolean {
+    return this.reviewCount >= REQUIRED_REVIEWS;
+  }
+
+  get isReleased(): boolean {
+    return this.releasedAt !== null;
+  }
+
+  matchesStatus(filter: ApprovalStatusFilter): boolean {
+    return approvalMatchesStatus(this, filter);
   }
 
   toString(): string {
@@ -280,6 +357,13 @@ class Approval {
       authorUserId: this.authorUserId,
       targetReleaseDate: toDateString(this.targetReleaseDate),
       formData: this.formData,
+      releasedAt: this.releasedAt?.toISOString() ?? null,
+      releasedByUserId: this.releasedByUserId,
+      reviewCount: this.reviewCount,
+      requiredReviews: REQUIRED_REVIEWS,
+      isReviewed: this.isReviewed,
+      isReleased: this.isReleased,
+      reviewedByMe: this.reviewedByMe,
       createdAt: this.createdAt?.toISOString() ?? null,
       updatedAt: this.updatedAt?.toISOString() ?? null,
     };
