@@ -1,7 +1,7 @@
 /**
- * NOAA buoy + tide data fetching with singleton cache.
- * Buoy: Station 51211 (Kalaeloa)
- * Tide: Station 1612340 (Honolulu)
+ * NOAA buoy + tide + wind data fetching with singleton cache.
+ * Waves: NDBC buoy 51211 (Pearl Harbor entrance) — wave-only, no anemometer
+ * Tide + wind: CO-OPS station 1612340 (Honolulu Harbor)
  */
 
 export type SurfData = {
@@ -18,7 +18,11 @@ export type SurfData = {
 const BUOY_URL = "https://www.ndbc.noaa.gov/data/realtime2/51211.txt";
 const TIDE_URL =
   "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=latest&station=1612340&product=water_level&datum=STND&time_zone=gmt&units=english&format=json";
+const WIND_URL =
+  "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=latest&station=1612340&product=wind&time_zone=gmt&units=metric&format=json";
 
+// Single caching layer, in-process. The fetches below use `no-store` so
+// Next's data cache doesn't add a second, stale-while-revalidate layer.
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 let cache: { data: SurfData; fetchedAt: number } | null = null;
@@ -44,8 +48,11 @@ function parseBuoyRows(text: string): {
   // 12:PRES 13:ATMP 14:WTMP 15:DEWP 16:VIS 17:PTDY 18:TIDE
   const COL = { WDIR: 5, WSPD: 6, WVHT: 8, DPD: 9, MWD: 11, WTMP: 14 };
 
-  const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+  // Average the most recent ~2h of readings. The window is anchored to the
+  // newest row in the file, NOT wall-clock time: NDBC posts 30–60 min behind
+  // real time and the file can be cached on top of that, so a wall-clock
+  // cutoff would sometimes exclude every row and average nothing (all zeros).
+  let windowStart: Date | null = null;
 
   const sums: Record<string, number> = {};
   const counts: Record<string, number> = {};
@@ -67,7 +74,11 @@ function parseBuoyRows(text: string): {
     const minute = parseInt(cols[4]);
     const rowDate = new Date(Date.UTC(year, month, day, hour, minute));
 
-    if (rowDate < twoHoursAgo) break; // rows are newest-first
+    if (isNaN(rowDate.getTime())) continue;
+    if (!windowStart) {
+      windowStart = new Date(rowDate.getTime() - 2 * 60 * 60 * 1000);
+    }
+    if (rowDate < windowStart) break; // rows are newest-first
 
     for (const [key, idx] of Object.entries(COL)) {
       const val = cols[idx];
@@ -82,6 +93,7 @@ function parseBuoyRows(text: string): {
   }
 
   const avg = (key: string) => (counts[key] > 0 ? sums[key] / counts[key] : 0);
+  if (counts.WVHT === 0) throw new Error("Buoy data: no recent wave readings");
 
   return {
     waveHeight: avg("WVHT"),
@@ -94,18 +106,40 @@ function parseBuoyRows(text: string): {
 }
 
 async function fetchBuoyData() {
-  const res = await fetch(BUOY_URL, { next: { revalidate: 3600 } });
+  const res = await fetch(BUOY_URL, { cache: "no-store" });
   if (!res.ok) throw new Error(`Buoy fetch failed: ${res.status}`);
   const text = await res.text();
   return parseBuoyRows(text);
 }
 
 async function fetchTideData(): Promise<number> {
-  const res = await fetch(TIDE_URL, { next: { revalidate: 3600 } });
+  const res = await fetch(TIDE_URL, { cache: "no-store" });
   if (!res.ok) throw new Error(`Tide fetch failed: ${res.status}`);
   const json = await res.json();
   const v = json?.data?.[0]?.v;
   return v != null ? parseFloat(v) : 0;
+}
+
+/**
+ * Latest Honolulu Harbor wind (m/s, degrees). Returns null when unavailable —
+ * wind is a nice-to-have for the forecast, not a reason to hide it.
+ */
+async function fetchWindData(): Promise<{
+  windSpeed: number;
+  windDirection: number;
+} | null> {
+  try {
+    const res = await fetch(WIND_URL, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const row = json?.data?.[0];
+    const s = parseFloat(row?.s);
+    const d = parseFloat(row?.d);
+    if (isNaN(s) || isNaN(d)) return null;
+    return { windSpeed: s, windDirection: d };
+  } catch {
+    return null;
+  }
 }
 
 export async function getSurfData(): Promise<SurfData> {
@@ -114,10 +148,17 @@ export async function getSurfData(): Promise<SurfData> {
     return cache.data;
   }
 
-  const [buoy, tide] = await Promise.all([fetchBuoyData(), fetchTideData()]);
+  const [buoy, tide, wind] = await Promise.all([
+    fetchBuoyData(),
+    fetchTideData(),
+    fetchWindData(),
+  ]);
 
+  // 51211 has no anemometer, so its wind columns are "MM" (→ 0 here). Prefer
+  // the harbor station; fall back to the buoy only if it ever reports wind.
   const data: SurfData = {
     ...buoy,
+    ...(wind ?? {}),
     tide,
     fetchedAt: new Date(),
   };
