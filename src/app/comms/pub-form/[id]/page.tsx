@@ -41,7 +41,7 @@ export default async function Page({
     <div className="space-y-4">
       <div>
         <Link
-          href="/comms/pub-form"
+          href="/comms"
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -74,6 +74,7 @@ export default async function Page({
         reviews={reviews}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
+        isDev={role === "dev"}
       />
 
       <Separator />

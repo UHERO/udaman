@@ -1,42 +1,103 @@
 import Link from "next/link";
-import { Megaphone } from "lucide-react";
+import type { ApprovalStatusFilter } from "@catalog/models/approval";
+import {
+  APPROVAL_STATUS_FILTERS,
+  APPROVAL_STATUS_LABELS,
+  isApprovalStatusFilter,
+  approvalMatchesStatus as matches,
+  REQUIRED_REVIEWS,
+} from "@catalog/models/approval";
+import { Plus } from "lucide-react";
 
-const sections = [
-  {
-    title: "Pre-Release Form",
-    description:
-      "Sign-off record filed by the lead author before a work product is released.",
-    href: "/comms/pub-form",
-    icon: Megaphone,
-  },
-];
+import { getApprovalsWithReviews } from "@/actions/approvals";
+import { PreReleaseList } from "@/components/comms/pre-release-list";
+import { Button } from "@/components/ui/button";
+import { getCurrentUserContext } from "@/lib/auth/dal";
+import { cn } from "@/lib/utils";
 
-export default function CommsPage() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const [{ approvals, reviews }, { userId, role }, { status }] =
+    await Promise.all([
+      getApprovalsWithReviews(),
+      getCurrentUserContext(),
+      searchParams,
+    ]);
+  const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
+    ? status
+    : "all";
+  const visible = approvals.filter((a) => matches(a, active));
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-stone-800 dark:text-stone-100">
-          Comms
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Communications and pre-release review.
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {sections.map((section) => (
-          <Link
-            key={section.href}
-            href={section.href}
-            className="hover:border-ublue/50 hover:bg-accent/40 rounded-lg border p-4 transition-colors"
-          >
-            <section.icon className="text-ublue mb-2 h-5 w-5" />
-            <div className="font-medium">{section.title}</div>
-            <p className="text-muted-foreground text-sm">
-              {section.description}
-            </p>
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Pre-Release Forms</h1>
+          <p className="text-muted-foreground text-sm">
+            Sign-off record filed by the lead author before a work product is
+            released. A form is reviewed once {REQUIRED_REVIEWS} colleagues have
+            signed off.
+          </p>
+        </div>
+        <Button asChild className="cursor-pointer">
+          <Link href="/comms/pub-form/new">
+            <Plus className="h-4 w-4" />
+            New form
           </Link>
-        ))}
+        </Button>
       </div>
+
+      {/* Filters live in the URL so a view can be bookmarked or shared. */}
+      <nav
+        aria-label="Filter by status"
+        className="flex flex-wrap gap-1 border-b"
+      >
+        {APPROVAL_STATUS_FILTERS.map((f) => {
+          const count = approvals.filter((a) => matches(a, f)).length;
+          const isActive = f === active;
+          return (
+            <Link
+              key={f}
+              href={
+                f === "all" ? "/comms/pub-form" : `/comms/pub-form?status=${f}`
+              }
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors",
+                isActive
+                  ? "border-foreground text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground border-transparent",
+              )}
+            >
+              {APPROVAL_STATUS_LABELS[f]}
+              <span
+                className={cn(
+                  "rounded-full px-1.5 text-xs tabular-nums",
+                  isActive ? "bg-foreground/10" : "bg-muted",
+                )}
+              >
+                {count}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <PreReleaseList
+        approvals={visible}
+        reviews={reviews}
+        currentUserId={parseInt(userId) || 0}
+        isAdmin={role === "admin" || role === "dev"}
+        isDev={role === "dev"}
+        emptyMessage={
+          active === "all"
+            ? "No pre-release forms submitted yet."
+            : `No ${APPROVAL_STATUS_LABELS[active].toLowerCase()} forms.`
+        }
+      />
     </div>
   );
 }

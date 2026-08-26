@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ApprovalJSON } from "@catalog/models/approval";
-import { Pencil, Send, Trash2 } from "lucide-react";
+import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
+import {
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -32,6 +41,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
+import { cn } from "@/lib/utils";
+
+import { ReviewForm } from "./review-form";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
 function formatDate(value: string | null): string {
@@ -48,17 +60,42 @@ function formatDate(value: string | null): string {
 
 export function PreReleaseList({
   approvals,
+  reviews,
   currentUserId,
   isAdmin,
+  isDev,
   emptyMessage = "No pre-release forms submitted yet.",
 }: {
   approvals: ApprovalJSON[];
+  /** Reviews keyed by approval id. */
+  reviews: Record<string, ApprovalReviewJSON[]>;
   currentUserId: number;
   isAdmin: boolean;
+  isDev: boolean;
   emptyMessage?: string;
 }) {
   const router = useRouter();
   const base = "/comms/pub-form";
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  /** Approval ids whose "add review" form is open. */
+  const [adding, setAdding] = useState<Set<number>>(new Set());
+
+  function toggle(set: Set<number>, id: number, force?: boolean): Set<number> {
+    const next = new Set(set);
+    const on = force ?? !next.has(id);
+    if (on) next.add(id);
+    else next.delete(id);
+    return next;
+  }
+  const toggleExpanded = (id: number) => setExpanded((s) => toggle(s, id));
+  function openAddReview(id: number) {
+    setExpanded((s) => toggle(s, id, true));
+    setAdding((s) => toggle(s, id, true));
+  }
+  const closeAddReview = (id: number) => setAdding((s) => toggle(s, id, false));
+
+  const canReview = (a: ApprovalJSON) =>
+    a.authorUserId !== currentUserId && !a.reviewedByMe;
   const [pendingDelete, setPendingDelete] = useState<ApprovalJSON | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [pendingResend, setPendingResend] = useState<ApprovalJSON | null>(null);
@@ -111,6 +148,7 @@ export function PreReleaseList({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-8" />
             <TableHead>Title</TableHead>
             <TableHead>Lead author</TableHead>
             <TableHead>Target release</TableHead>
@@ -120,56 +158,156 @@ export function PreReleaseList({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {approvals.map((a) => (
-            <TableRow key={a.id}>
-              <TableCell className="font-medium">
-                <Link href={`${base}/${a.id}`} className="hover:underline">
-                  {a.name}
-                </Link>
-              </TableCell>
-              <TableCell>{a.author}</TableCell>
-              <TableCell>{formatDate(a.targetReleaseDate)}</TableCell>
-              <TableCell>
-                <ApprovalStatusBadges approval={a} />
-              </TableCell>
-              <TableCell>{formatDate(a.createdAt)}</TableCell>
-              <TableCell>
-                {canModify(a) && (
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      title="Edit"
+          {approvals.map((a) => {
+            const isOpen = expanded.has(a.id);
+            const list = reviews[String(a.id)] ?? [];
+            const isAdding = adding.has(a.id);
+            return (
+              <Fragment key={a.id}>
+                <TableRow
+                  className="cursor-pointer"
+                  data-state={isOpen ? "open" : undefined}
+                  onClick={() => toggleExpanded(a.id)}
+                >
+                  <TableCell className="pr-0">
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-label={isOpen ? "Collapse reviews" : "Show reviews"}
+                      className="text-muted-foreground hover:text-foreground cursor-pointer"
                     >
-                      <Link href={`${base}/${a.id}/edit`}>
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 cursor-pointer"
-                      title="Resend notification"
-                      onClick={() => setPendingResend(a)}
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`${base}/${a.id}`}
+                      className="hover:underline"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive h-7 w-7 cursor-pointer"
-                      title="Delete"
-                      onClick={() => setPendingDelete(a)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      {a.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{a.author}</TableCell>
+                  <TableCell>{formatDate(a.targetReleaseDate)}</TableCell>
+                  <TableCell>
+                    <ApprovalStatusBadges approval={a} />
+                  </TableCell>
+                  <TableCell>{formatDate(a.createdAt)}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-1">
+                      {canReview(a) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 cursor-pointer"
+                          title="Add review"
+                          onClick={() => openAddReview(a.id)}
+                        >
+                          <ClipboardCheck className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canModify(a) && (
+                        <>
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Edit"
+                          >
+                            <Link href={`${base}/${a.id}/edit`}>
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 cursor-pointer"
+                            title="Resend notification"
+                            onClick={() => setPendingResend(a)}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive h-7 w-7 cursor-pointer"
+                            title="Delete"
+                            onClick={() => setPendingDelete(a)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+
+                {isOpen && (
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell colSpan={7} className="p-0">
+                      <div className="space-y-3 px-4 py-3 sm:pl-12">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                            Reviews · {a.reviewCount}/{a.requiredReviews}
+                          </span>
+                          {canReview(a) && !isAdding && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="cursor-pointer"
+                              onClick={() => openAddReview(a.id)}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add review
+                            </Button>
+                          )}
+                        </div>
+
+                        {list.length === 0 && !isAdding ? (
+                          <p className="text-muted-foreground text-sm">
+                            No reviews yet.
+                          </p>
+                        ) : (
+                          <div
+                            className={cn(
+                              "bg-background divide-y rounded-md border",
+                            )}
+                          >
+                            {list.map((r) => (
+                              <ReviewForm
+                                key={r.id}
+                                approvalId={a.id}
+                                review={r}
+                                currentUserId={currentUserId}
+                                isDev={isDev}
+                                className="p-3"
+                              />
+                            ))}
+                            {isAdding && (
+                              <ReviewForm
+                                approvalId={a.id}
+                                currentUserId={currentUserId}
+                                isDev={isDev}
+                                onDone={() => closeAddReview(a.id)}
+                                className="p-3"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </TableCell>
-            </TableRow>
-          ))}
+              </Fragment>
+            );
+          })}
         </TableBody>
       </Table>
 

@@ -463,7 +463,11 @@ export const LoaderSection = ({
         .sort((a, b) => b.priority - a.priority)
         .map((l) =>
           l.disabled ? (
-            <DisabledLoaderItem key={`data-loader-${l.id}`} loader={l} />
+            <DisabledLoaderItem
+              key={`data-loader-${l.id}`}
+              loader={l}
+              universe={universe}
+            />
           ) : (
             <LoaderItem
               key={`data-loader-${l.id}`}
@@ -720,7 +724,13 @@ const LoaderItem = ({
   );
 };
 
-const DisabledLoaderItem = ({ loader }: { loader: SerializedLoader }) => {
+const DisabledLoaderItem = ({
+  loader,
+  universe,
+}: {
+  loader: SerializedLoader;
+  universe: string;
+}) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -743,7 +753,11 @@ const DisabledLoaderItem = ({ loader }: { loader: SerializedLoader }) => {
         <span className="text-muted-foreground text-sm">{loader.id}</span>
         <span className="text-muted-foreground text-xs italic">disabled</span>
         <span className="text-muted-foreground ml-auto text-xs">
-          {loader.description ?? loader.eval}
+          {loader.description ? (
+            <LinkedText text={loader.description} universe={universe} />
+          ) : (
+            loader.eval
+          )}
         </span>
         <Button
           variant="link"

@@ -9,12 +9,14 @@ import {
   getApproval as fetchApproval,
   getApprovalReviews as fetchApprovalReviews,
   getApprovals as fetchApprovals,
+  getReviewsForApprovals as fetchReviewsForApprovals,
   resendApprovalNotification as resendApprovalNotificationCtrl,
   setApprovalReleased as setApprovalReleasedCtrl,
   submitReview as submitReviewCtrl,
   updateApproval as updateApprovalCtrl,
 } from "@catalog/controllers/approvals";
 import type { PreReleaseFormData } from "@catalog/models/approval";
+import type ApprovalReviewModel from "@catalog/models/approval-review";
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
@@ -31,7 +33,7 @@ export type PreReleaseSubmission = {
   formData: PreReleaseFormData;
 };
 
-const REVALIDATE_PATH = "/comms/pub-form";
+const REVALIDATE_PATH = "/comms";
 
 /**
  * Resolve the display name to store as `author`.
@@ -67,6 +69,23 @@ export async function getApproval(id: number) {
   return result.data.toJSON();
 }
 
+/**
+ * Approvals plus every review on them, for the expandable list. Reviews are
+ * keyed by approval id (as strings — Map doesn't survive the RSC boundary).
+ */
+export async function getApprovalsWithReviews() {
+  const approvals = await getApprovals();
+  const result = await fetchReviewsForApprovals({
+    ids: approvals.map((a) => a.id),
+  });
+  const reviews: Record<string, ReturnType<ApprovalReviewModel["toJSON"]>[]> =
+    {};
+  for (const [id, list] of result.data) {
+    reviews[String(id)] = list.map((r) => r.toJSON());
+  }
+  return { approvals, reviews };
+}
+
 export async function getApprovalReviews(id: number) {
   await getApproval(id); // permission + universe scoping
   const result = await fetchApprovalReviews({ id });
@@ -91,7 +110,7 @@ export async function submitReview(
       notes: payload.notes,
     });
     revalidatePath(REVALIDATE_PATH);
-    revalidatePath(`${REVALIDATE_PATH}/${id}`);
+    revalidatePath(`/comms/pub-form/${id}`);
     return { message: result.message, data: result.data.toJSON() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -110,7 +129,7 @@ export async function deleteReview(reviewId: number) {
       actor: { userId, role },
     });
     revalidatePath(REVALIDATE_PATH);
-    revalidatePath(`${REVALIDATE_PATH}/${result.approvalId}`);
+    revalidatePath(`/comms/pub-form/${result.approvalId}`);
     return { message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -131,7 +150,7 @@ export async function setApprovalReleased(id: number, released: boolean) {
       actor: { userId, role },
     });
     revalidatePath(REVALIDATE_PATH);
-    revalidatePath(`${REVALIDATE_PATH}/${id}`);
+    revalidatePath(`/comms/pub-form/${id}`);
     return { message: result.message, data: result.data.toJSON() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

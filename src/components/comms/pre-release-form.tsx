@@ -552,7 +552,7 @@ export function PreReleaseForm({
   standardRecipients: string[];
 }) {
   const router = useRouter();
-  const listHref = "/comms/pub-form";
+  const listHref = "/comms";
   // After saving an edit, land back on the record you were editing rather than
   // the list — you almost always want to confirm what you just changed.
   const returnHref =

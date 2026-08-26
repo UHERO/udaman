@@ -18,11 +18,11 @@ import {
   GalleryVerticalEnd,
   Globe,
   House,
-  Info,
   KeyRound,
   LogOut,
   Mail,
   Megaphone,
+  Plus,
   ScrollText,
   Server,
   Shield,
@@ -142,8 +142,8 @@ const ADMIN_ICONS: Record<string, LucideIcon> = {
 };
 
 const COMMS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
-  { title: "Overview", url: "/comms", icon: Info },
-  { title: "Pre-Release Form", url: "/comms/pub-form", icon: Megaphone },
+  { title: "Pre-Release Forms", url: "/comms", icon: Megaphone },
+  { title: "New form", url: "/comms/pub-form/new", icon: Plus },
 ];
 
 const DOCS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [

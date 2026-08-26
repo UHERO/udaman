@@ -83,6 +83,11 @@ export async function getApprovalReviews({ id }: { id: number }) {
   return { data };
 }
 
+export async function getReviewsForApprovals({ ids }: { ids: number[] }) {
+  const data = await ApprovalReviewCollection.listForApprovals(ids);
+  return { data };
+}
+
 /**
  * Submit (or revise) the actor's review of an approval.
  *
@@ -168,7 +173,15 @@ async function notifyAuthorReviewed(approvalId: number, authorUserId: number) {
   });
 }
 
-/** Remove a review. Reviewers may withdraw their own; admins may remove any. */
+/** Only the reviewer themself, or a dev, may edit or withdraw a review. */
+export function canManageReview(
+  review: { reviewerUserId: number },
+  actor: Actor,
+): boolean {
+  return actor.role === "dev" || review.reviewerUserId === actor.userId;
+}
+
+/** Remove a review. Reviewers may withdraw their own; devs may remove any. */
 export async function deleteReview({
   reviewId,
   actor,
@@ -177,7 +190,7 @@ export async function deleteReview({
   actor: Actor;
 }) {
   const review = await ApprovalReviewCollection.getById(reviewId);
-  if (!isAdmin(actor.role) && review.reviewerUserId !== actor.userId) {
+  if (!canManageReview(review, actor)) {
     throw new AuthorizationError("You can only withdraw your own review", {
       reviewId,
       actorUserId: actor.userId,

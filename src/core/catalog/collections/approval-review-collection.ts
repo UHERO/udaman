@@ -23,6 +23,25 @@ class ApprovalReviewCollection {
     return rows.map((row) => new ApprovalReview(row));
   }
 
+  /** Reviews for many approvals at once, keyed by approval id. */
+  static async listForApprovals(
+    approvalIds: number[],
+  ): Promise<Map<number, ApprovalReview[]>> {
+    const map = new Map<number, ApprovalReview[]>();
+    if (!approvalIds.length) return map;
+    const rows = await mysql<ApprovalReviewAttrs>`
+      SELECT * FROM approval_reviews
+      WHERE approval_id IN (${approvalIds})
+      ORDER BY created_at ASC, id ASC
+    `;
+    for (const row of rows) {
+      const list = map.get(row.approval_id) ?? [];
+      list.push(new ApprovalReview(row));
+      map.set(row.approval_id, list);
+    }
+    return map;
+  }
+
   static async getById(id: number): Promise<ApprovalReview> {
     const rows = await mysql<ApprovalReviewAttrs>`
       SELECT * FROM approval_reviews WHERE id = ${id} LIMIT 1

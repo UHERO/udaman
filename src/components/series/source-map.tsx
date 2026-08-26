@@ -13,6 +13,37 @@ interface SourceMapProps {
   depth?: number;
 }
 
+/**
+ * Loader descriptions written by wrapApiResult (and its Rails predecessor)
+ * embed a literal anchor tag: `loaded data set from <a href="...">API URL</a>
+ * with parameters shown`. Rails rendered these html_safe; React escapes them,
+ * showing the raw tag. Parse the anchors out and render real links instead.
+ */
+const ANCHOR_RE = /<a\s+[^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/g;
+
+function renderWithLinks(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(ANCHOR_RE)) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    parts.push(
+      <a
+        key={m.index}
+        href={m[1]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 underline hover:text-blue-800"
+      >
+        {m[2] || m[1]}
+      </a>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (parts.length === 0) return text;
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
 /** Recursive table for displaying Series heirarchy. Faithful recreation of the previous version.
  * I imagine this could be reimagined a bit more elegantly.
  */
@@ -39,7 +70,9 @@ const SourceMap: React.FC<SourceMapProps> = ({ node, universe, depth = 0 }) => {
       >
         <div className="space-y-1">
           <div className="text-sm font-semibold text-gray-900">
-            {dataSource.description || "No description"}
+            {dataSource.description
+              ? renderWithLinks(dataSource.description)
+              : "No description"}
           </div>
           <div className="space-y-0.5 text-xs text-gray-600">
             <div>Last Run: {dateTimestamp(dataSource.last_run_in_seconds)}</div>

@@ -189,7 +189,7 @@ export const ROUTES: RouteEntry[] = [
     icon: Megaphone,
     roles: ["internal", "admin", "dev"],
     location: "rail",
-    children: [{ label: "Pre-Release Form", path: "/comms/pub-form" }],
+    children: [{ label: "New form", path: "/comms/pub-form/new" }],
   },
   {
     label: "Docs",

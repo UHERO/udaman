@@ -29,6 +29,13 @@
  * default pass (and reload sources) BEFORE --derived. Legitimately huge
  * series (e.g. yen-denominated) reproduce their values and are safe.
  *
+ * Garbage propagates through dependency chains (BEA → sum → real → …),
+ * and evals read their inputs' STORED data, so each cleanup round only
+ * reaches one level deeper. With --execute the pass loops automatically
+ * until a round deletes nothing, handling arbitrarily deep chains in a
+ * single invocation. A dry run shows only the first wave — deeper levels
+ * appear as [still-dirty] until their inputs are actually cleaned.
+ *
  * Both passes then run repairDataPoints per series (a date left with
  * rows but no current point is an invalid state); dates where repair
  * promotes an older vintage back to current are reported for review.
@@ -261,8 +268,15 @@ async function beaPass(): Promise<void> {
 /*  --derived pass: garbage propagated into calculated loaders         */
 /* ────────────────────────────────────────────────────────────────── */
 
-async function derivedPass(): Promise<void> {
+/** One round of the derived pass. Returns rows deleted this round —
+ *  garbage propagates through dependency chains (A → B → C), and a
+ *  loader's eval reads its inputs' STORED data, so a dependent's garbage
+ *  only stops being "reproduced" after its inputs are cleaned. The caller
+ *  loops rounds until convergence instead of relying on processing order
+ *  (series.dependency_depth is unmaintained — 0 for these series). */
+async function derivedPass(): Promise<number> {
   type SuspectRow = DateRow & { value: number; current: number };
+  const deletedBefore = totalDeleted;
 
   const loaders = await mysql<LoaderRow>`
     SELECT ds.id, ds.eval, s.id AS series_id, s.name AS series_name,
@@ -372,12 +386,37 @@ async function derivedPass(): Promise<void> {
       `${totalGarbage} garbage dates found, ${totalStillDirty} still-dirty dates kept, ` +
       `${evalFailures} loaders skipped on eval failure`,
   );
+  return totalDeleted - deletedBefore;
 }
 
 /* ────────────────────────────────────────────────────────────────── */
 
 if (DERIVED) {
-  await derivedPass();
+  if (EXECUTE) {
+    // Garbage propagates through dependency chains; each round cleans one
+    // level. Loop until a round deletes nothing.
+    const MAX_ROUNDS = 10;
+    for (let round = 1; round <= MAX_ROUNDS; round++) {
+      console.log(`═══ Derived pass, round ${round} ═══`);
+      const deleted = await derivedPass();
+      if (deleted === 0) {
+        console.log(`Converged after ${round} round(s) — nothing deleted this round.`);
+        break;
+      }
+      if (round === MAX_ROUNDS) {
+        console.log(
+          `Stopped at round cap (${MAX_ROUNDS}) with deletions still occurring — re-run to continue.`,
+        );
+      }
+    }
+  } else {
+    await derivedPass();
+    console.log(
+      "Note: [still-dirty] rows whose inputs are themselves dirty become deletable once " +
+        "those inputs are cleaned. --execute loops rounds automatically until convergence, " +
+        "so multi-level dependency chains are handled in a single invocation.",
+    );
+  }
 } else {
   await beaPass();
 }
