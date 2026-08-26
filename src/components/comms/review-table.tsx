@@ -195,6 +195,11 @@ function ReviewRow({
   }
 
   const uid = `review-${approvalId}-${review?.id ?? "new"}`;
+  // Editable controls sit on white so they read as inputs; disabled ones
+  // fade into the row.
+  const controlBg = enabled
+    ? "bg-background dark:bg-input/60"
+    : "bg-muted/40 border-transparent";
   const name = review?.reviewer ?? reviewerName ?? "";
 
   return (
@@ -202,15 +207,15 @@ function ReviewRow({
       data-state={editing ? "selected" : undefined}
       className={className}
     >
-      <TableCell className="align-top">
-        <div className="flex items-start gap-2">
+      <TableCell className="align-baseline">
+        <div className="flex items-center gap-2">
           <Checkbox
             id={`${uid}-reviewed`}
             checked={attested}
             disabled={!enabled}
             onCheckedChange={(v) => setAttested(v === true)}
             aria-label="Reviewed"
-            className="mt-0.5"
+            className={cn("translate-y-px", controlBg)}
           />
           <label
             htmlFor={`${uid}-reviewed`}
@@ -219,23 +224,26 @@ function ReviewRow({
             {review?.reviewedAt
               ? formatReviewTimestamp(review.reviewedAt)
               : attested
-                ? "on save"
-                : "not yet"}
+                ? "'Submit' to complete"
+                : "Click to mark reviewed"}
           </label>
         </div>
       </TableCell>
-      <TableCell className="align-top text-sm">
+      <TableCell className="align-baseline text-sm">
         {name}
         {isOwn && <span className="text-muted-foreground text-xs"> (you)</span>}
       </TableCell>
-      <TableCell className="align-top">
+      <TableCell className="align-baseline">
         <Textarea
           value={notes}
           disabled={!enabled}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder={enabled ? "Notes for the author…" : "—"}
+          placeholder={enabled ? "Notes for author or comms team..." : "—"}
           aria-label="Notes"
-          className="field-sizing-content min-h-8 resize-y py-1 text-sm disabled:cursor-default disabled:opacity-80"
+          className={cn(
+            "field-sizing-content min-h-8 resize-y py-1 text-sm disabled:cursor-default disabled:opacity-80",
+            controlBg,
+          )}
         />
         {enabled && (
           <div className="mt-2 flex items-center justify-between gap-2">
@@ -283,14 +291,14 @@ function ReviewRow({
           </div>
         )}
       </TableCell>
-      <TableCell className="text-center align-top">
+      <TableCell className="text-center align-baseline">
         {canEdit && !isNew && (
           <Checkbox
             checked={editing}
             onCheckedChange={(v) => (v === true ? setEditing(true) : cancel())}
             aria-label="Edit review"
             disabled={isPending}
-            className="mt-0.5"
+            className="translate-y-px"
           />
         )}
       </TableCell>

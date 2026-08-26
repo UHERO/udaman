@@ -24,6 +24,7 @@ import { createLogger } from "@/core/observability/logger";
 import { getSession } from "@/lib/auth/dal";
 import { requirePermission } from "@/lib/auth/permissions";
 import { NotFoundError } from "@/lib/errors";
+import { mysql } from "@/lib/mysql/db";
 
 const log = createLogger("action.approvals");
 
@@ -37,13 +38,25 @@ export type PreReleaseSubmission = {
 const REVALIDATE_PATH = "/comms";
 
 /**
- * Resolve the display name to store as `author`.
+ * Resolve the display name to store as `author` / `reviewer`.
+ *
+ * Read from the users table rather than the session: sessions are JWTs, so
+ * a name set after login wouldn't show up until the next sign-in. Falls back
+ * to the email when no name is set.
  *
  * Denormalized on purpose: users get renamed and deactivated, and a signed
  * certification shouldn't silently re-attribute itself when that happens.
  */
-async function currentUserName(): Promise<string> {
+export async function currentUserName(): Promise<string> {
   const session = await getSession();
+  const id = Number(session?.user?.id);
+  if (id) {
+    const rows = await mysql<{ name: string | null; email: string }>`
+      SELECT name, email FROM users WHERE id = ${id} LIMIT 1
+    `;
+    const u = rows[0];
+    if (u) return u.name?.trim() || u.email || "Unknown user";
+  }
   return session?.user?.name || session?.user?.email || "Unknown user";
 }
 

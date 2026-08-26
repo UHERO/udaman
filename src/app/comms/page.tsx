@@ -9,32 +9,29 @@ import {
 } from "@catalog/models/approval";
 import { Plus } from "lucide-react";
 
-import { getApprovalsWithReviews, getCanSelfReview } from "@/actions/approvals";
+import {
+  getApprovalsWithReviews,
+  getCanSelfReview,
+  currentUserName as getCurrentUserName,
+} from "@/actions/approvals";
 import { PreReleaseList } from "@/components/comms/pre-release-list";
+import { PreReleaseStatusTabs } from "@/components/comms/pre-release-status-tabs";
 import { Button } from "@/components/ui/button";
-import { getCurrentUserContext, getSession } from "@/lib/auth/dal";
-import { cn } from "@/lib/utils";
+import { getCurrentUserContext } from "@/lib/auth/dal";
 
 export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const [
-    { approvals, reviews },
-    { userId, role },
-    { status },
-    selfReview,
-    session,
-  ] = await Promise.all([
-    getApprovalsWithReviews(),
-    getCurrentUserContext(),
-    searchParams,
-    getCanSelfReview(),
-    getSession(),
-  ]);
-  const currentUserName =
-    session?.user?.name || session?.user?.email || "Unknown user";
+  const [{ approvals, reviews }, { userId, role }, { status }, selfReview] =
+    await Promise.all([
+      getApprovalsWithReviews(),
+      getCurrentUserContext(),
+      searchParams,
+      getCanSelfReview(),
+    ]);
+  const currentUserName = await getCurrentUserName();
   const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
     ? status
     : "all";
@@ -59,41 +56,17 @@ export default async function Page({
         </Button>
       </div>
 
-      {/* Filters live in the URL so a view can be bookmarked or shared. */}
-      <nav
-        aria-label="Filter by status"
-        className="flex flex-wrap gap-1 border-b"
-      >
-        {APPROVAL_STATUS_FILTERS.map((f) => {
-          const count = approvals.filter((a) => matches(a, f)).length;
-          const isActive = f === active;
-          return (
-            <Link
-              key={f}
-              href={
-                f === "all" ? "/comms/pub-form" : `/comms/pub-form?status=${f}`
-              }
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors",
-                isActive
-                  ? "border-foreground text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground border-transparent",
-              )}
-            >
-              {APPROVAL_STATUS_LABELS[f]}
-              <span
-                className={cn(
-                  "rounded-full px-1.5 text-xs tabular-nums",
-                  isActive ? "bg-foreground/10" : "bg-muted",
-                )}
-              >
-                {count}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+      <PreReleaseStatusTabs
+        active={active}
+        counts={
+          Object.fromEntries(
+            APPROVAL_STATUS_FILTERS.map((f) => [
+              f,
+              approvals.filter((a) => matches(a, f)).length,
+            ]),
+          ) as Record<ApprovalStatusFilter, number>
+        }
+      />
 
       <PreReleaseList
         approvals={visible}

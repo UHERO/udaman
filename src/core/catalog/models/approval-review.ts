@@ -26,6 +26,7 @@ class ApprovalReview {
   readonly id: number;
   readonly approvalId: number;
   readonly reviewerUserId: number;
+  /** Display name, joined live from users (email fallback) by the collection. */
   reviewer: string;
   reviewedAt: Date | null;
   notes: string | null;

@@ -13,12 +13,20 @@ export type UpsertReviewPayload = {
 };
 
 class ApprovalReviewCollection {
-  /** All reviews for one approval, oldest first (reads as a thread). */
+  /**
+   * All reviews for one approval, oldest first (reads as a thread).
+   *
+   * The reviewer's name is joined live from `users` — we care about WHO
+   * reviewed, so a rename follows them. The stored `reviewer` column is only
+   * a fallback for a user row that no longer exists.
+   */
   static async listForApproval(approvalId: number): Promise<ApprovalReview[]> {
     const rows = await mysql<ApprovalReviewAttrs>`
-      SELECT * FROM approval_reviews
-      WHERE approval_id = ${approvalId}
-      ORDER BY created_at ASC, id ASC
+      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer
+      FROM approval_reviews r
+      LEFT JOIN users u ON u.id = r.reviewer_user_id
+      WHERE r.approval_id = ${approvalId}
+      ORDER BY r.created_at ASC, r.id ASC
     `;
     return rows.map((row) => new ApprovalReview(row));
   }
@@ -30,9 +38,11 @@ class ApprovalReviewCollection {
     const map = new Map<number, ApprovalReview[]>();
     if (!approvalIds.length) return map;
     const rows = await mysql<ApprovalReviewAttrs>`
-      SELECT * FROM approval_reviews
-      WHERE approval_id IN ${mysql(approvalIds)}
-      ORDER BY created_at ASC, id ASC
+      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer
+      FROM approval_reviews r
+      LEFT JOIN users u ON u.id = r.reviewer_user_id
+      WHERE r.approval_id IN ${mysql(approvalIds)}
+      ORDER BY r.created_at ASC, r.id ASC
     `;
     for (const row of rows) {
       const list = map.get(row.approval_id) ?? [];

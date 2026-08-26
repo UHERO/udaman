@@ -6,13 +6,14 @@ import {
   getApproval,
   getApprovalReviews,
   getCanSelfReview,
+  currentUserName as getCurrentUserName,
 } from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
 import { PreReleaseDetail } from "@/components/comms/pre-release-detail";
 import { ReviewPanel } from "@/components/comms/review-panel";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { getCurrentUserContext, getSession } from "@/lib/auth/dal";
+import { getCurrentUserContext } from "@/lib/auth/dal";
 import { NotFoundError } from "@/lib/errors";
 
 export default async function Page({
@@ -34,13 +35,11 @@ export default async function Page({
     throw err;
   }
 
-  const [reviews, selfReview, session] = await Promise.all([
+  const [reviews, selfReview] = await Promise.all([
     getApprovalReviews(numericId),
     getCanSelfReview(),
-    getSession(),
   ]);
-  const currentUserName =
-    session?.user?.name || session?.user?.email || "Unknown user";
+  const currentUserName = await getCurrentUserName();
   const currentUserId = parseInt(userId) || 0;
   const isAdmin = role === "admin" || role === "dev";
 

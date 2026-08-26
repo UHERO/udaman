@@ -1,6 +1,7 @@
 import { mysql } from "@database/mysql";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { CommsLayout as CommsMain } from "@/components/comms/comms-layout";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -53,7 +54,7 @@ export default async function CommsLayout({
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <main className="max-w-4xl space-y-6">{children}</main>
+          <CommsMain>{children}</CommsMain>
         </div>
       </SidebarInset>
     </SidebarProvider>

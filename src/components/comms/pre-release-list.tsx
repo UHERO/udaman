@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
+  MoreHorizontal,
   Pencil,
   Send,
   Trash2,
@@ -31,6 +32,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -151,7 +159,7 @@ export function PreReleaseList({
             <TableHead>Target release</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Submitted</TableHead>
-            <TableHead className="w-24" />
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -194,60 +202,72 @@ export function PreReleaseList({
                     <ApprovalStatusBadges approval={a} />
                   </TableCell>
                   <TableCell>{formatDate(a.createdAt)}</TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-1">
-                      {canReview(a) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 cursor-pointer"
-                          title="Add review"
-                          onClick={() => openAddReview(a.id)}
-                        >
-                          <ClipboardCheck className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canModify(a) && (
-                        <>
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Edit"
-                          >
-                            <Link href={`${base}/${a.id}/edit`}>
-                              <Pencil className="h-4 w-4" />
-                            </Link>
-                          </Button>
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {(canReview(a) || canModify(a)) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 cursor-pointer"
-                            title="Resend notification"
-                            onClick={() => setPendingResend(a)}
+                            title="Actions"
                           >
-                            <Send className="h-4 w-4" />
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive h-7 w-7 cursor-pointer"
-                            title="Delete"
-                            onClick={() => setPendingDelete(a)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {canReview(a) && (
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onSelect={() => openAddReview(a.id)}
+                            >
+                              <ClipboardCheck className="h-4 w-4" />
+                              Add review
+                            </DropdownMenuItem>
+                          )}
+                          {canModify(a) && (
+                            <>
+                              <DropdownMenuItem
+                                asChild
+                                className="cursor-pointer"
+                              >
+                                <Link href={`${base}/${a.id}/edit`}>
+                                  <Pencil className="h-4 w-4" />
+                                  Edit
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="cursor-pointer"
+                                onSelect={() => setPendingResend(a)}
+                              >
+                                <Send className="h-4 w-4" />
+                                Resend notification
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                variant="destructive"
+                                className="cursor-pointer"
+                                onSelect={() => setPendingDelete(a)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
 
                 {isOpen && (
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={7} className="p-0">
-                      <div className="space-y-3 px-4 py-3 sm:pl-12">
+                  <TableRow className="bg-muted/60 hover:bg-muted/60">
+                    <TableCell colSpan={7} className="p-2 sm:pl-10">
+                      <div className="border-muted-foreground/40 bg-background/40 space-y-3 rounded-md border border-dashed px-3 py-2">
                         <ReviewTable
                           approvalId={a.id}
                           reviews={list}
