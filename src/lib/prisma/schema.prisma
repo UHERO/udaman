@@ -921,6 +921,7 @@ model approval_reviews {
   reviewer_user_id Int
   reviewer         String    @db.VarChar(255)
   attested         Boolean   @default(true)
+  reviewed_at      DateTime? @db.DateTime(0)
   notes            String?   @db.Text
   created_at       DateTime  @default(now()) @db.Timestamp(0)
   updated_at       DateTime  @default(now()) @db.DateTime(0)

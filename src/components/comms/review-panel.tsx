@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ApprovalJSON } from "@catalog/models/approval";
 import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
-import { Plus, Rocket, Undo2 } from "lucide-react";
+import { Rocket, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { setApprovalReleased } from "@/actions/approvals";
 import { Button } from "@/components/ui/button";
 
-import { formatReviewTimestamp, ReviewForm } from "./review-form";
+import { formatReviewTimestamp, ReviewTable } from "./review-table";
 
 /**
  * The review thread on a form's detail page plus, for eligible viewers, an
@@ -21,22 +21,26 @@ export function ReviewPanel({
   approval,
   reviews,
   currentUserId,
+  currentUserName,
   isAdmin,
   isDev,
+  canSelfReview = false,
 }: {
   approval: ApprovalJSON;
   reviews: ApprovalReviewJSON[];
   currentUserId: number;
+  currentUserName: string;
   isAdmin: boolean;
   isDev: boolean;
+  /** Author may review their own form (developer testing exemption). */
+  canSelfReview?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [adding, setAdding] = useState(false);
   const mine = reviews.some((r) => r.reviewerUserId === currentUserId);
   const isAuthor = approval.authorUserId === currentUserId;
   const canRelease = isAuthor || isAdmin;
-  const canAdd = !isAuthor && !mine;
+  const canAdd = (canSelfReview || !isAuthor) && !mine;
 
   function handleRelease(released: boolean) {
     startTransition(async () => {
@@ -65,17 +69,6 @@ export function ReviewPanel({
           </p>
         </div>
         <div className="flex gap-2">
-          {canAdd && !adding && (
-            <Button
-              type="button"
-              variant="outline"
-              className="cursor-pointer"
-              onClick={() => setAdding(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Add review
-            </Button>
-          )}
           {canRelease && (
             <Button
               type="button"
@@ -100,33 +93,16 @@ export function ReviewPanel({
         </div>
       </div>
 
-      {reviews.length > 0 || adding ? (
-        <div className="divide-y rounded-md border">
-          {reviews.map((r) => (
-            <ReviewForm
-              key={r.id}
-              approvalId={approval.id}
-              review={r}
-              currentUserId={currentUserId}
-              isDev={isDev}
-              className="p-3"
-            />
-          ))}
-          {adding && (
-            <ReviewForm
-              approvalId={approval.id}
-              currentUserId={currentUserId}
-              isDev={isDev}
-              onDone={() => setAdding(false)}
-              className="bg-muted/30 p-3"
-            />
-          )}
-        </div>
-      ) : (
-        <p className="text-muted-foreground text-sm">No reviews yet.</p>
-      )}
+      <ReviewTable
+        approvalId={approval.id}
+        reviews={reviews}
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
+        isDev={isDev}
+        canAdd={canAdd}
+      />
 
-      {isAuthor && (
+      {isAuthor && !canSelfReview && (
         <p className="text-muted-foreground text-sm">
           As the lead author you can&rsquo;t review your own form.
         </p>

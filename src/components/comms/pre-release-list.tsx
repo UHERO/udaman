@@ -10,7 +10,6 @@ import {
   ChevronRight,
   ClipboardCheck,
   Pencil,
-  Plus,
   Send,
   Trash2,
 } from "lucide-react";
@@ -41,9 +40,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
-import { cn } from "@/lib/utils";
 
-import { ReviewForm } from "./review-form";
+import { ReviewTable } from "./review-table";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
 function formatDate(value: string | null): string {
@@ -62,23 +60,26 @@ export function PreReleaseList({
   approvals,
   reviews,
   currentUserId,
+  currentUserName,
   isAdmin,
   isDev,
+  canSelfReview = false,
   emptyMessage = "No pre-release forms submitted yet.",
 }: {
   approvals: ApprovalJSON[];
   /** Reviews keyed by approval id. */
   reviews: Record<string, ApprovalReviewJSON[]>;
   currentUserId: number;
+  currentUserName: string;
   isAdmin: boolean;
   isDev: boolean;
+  /** Author may review their own forms (developer testing exemption). */
+  canSelfReview?: boolean;
   emptyMessage?: string;
 }) {
   const router = useRouter();
   const base = "/comms/pub-form";
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  /** Approval ids whose "add review" form is open. */
-  const [adding, setAdding] = useState<Set<number>>(new Set());
 
   function toggle(set: Set<number>, id: number, force?: boolean): Set<number> {
     const next = new Set(set);
@@ -88,14 +89,10 @@ export function PreReleaseList({
     return next;
   }
   const toggleExpanded = (id: number) => setExpanded((s) => toggle(s, id));
-  function openAddReview(id: number) {
-    setExpanded((s) => toggle(s, id, true));
-    setAdding((s) => toggle(s, id, true));
-  }
-  const closeAddReview = (id: number) => setAdding((s) => toggle(s, id, false));
+  const openAddReview = (id: number) => setExpanded((s) => toggle(s, id, true));
 
   const canReview = (a: ApprovalJSON) =>
-    a.authorUserId !== currentUserId && !a.reviewedByMe;
+    (canSelfReview || a.authorUserId !== currentUserId) && !a.reviewedByMe;
   const [pendingDelete, setPendingDelete] = useState<ApprovalJSON | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [pendingResend, setPendingResend] = useState<ApprovalJSON | null>(null);
@@ -161,7 +158,6 @@ export function PreReleaseList({
           {approvals.map((a) => {
             const isOpen = expanded.has(a.id);
             const list = reviews[String(a.id)] ?? [];
-            const isAdding = adding.has(a.id);
             return (
               <Fragment key={a.id}>
                 <TableRow
@@ -252,55 +248,14 @@ export function PreReleaseList({
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableCell colSpan={7} className="p-0">
                       <div className="space-y-3 px-4 py-3 sm:pl-12">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                            Reviews · {a.reviewCount}/{a.requiredReviews}
-                          </span>
-                          {canReview(a) && !isAdding && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="cursor-pointer"
-                              onClick={() => openAddReview(a.id)}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              Add review
-                            </Button>
-                          )}
-                        </div>
-
-                        {list.length === 0 && !isAdding ? (
-                          <p className="text-muted-foreground text-sm">
-                            No reviews yet.
-                          </p>
-                        ) : (
-                          <div
-                            className={cn(
-                              "bg-background divide-y rounded-md border",
-                            )}
-                          >
-                            {list.map((r) => (
-                              <ReviewForm
-                                key={r.id}
-                                approvalId={a.id}
-                                review={r}
-                                currentUserId={currentUserId}
-                                isDev={isDev}
-                                className="p-3"
-                              />
-                            ))}
-                            {isAdding && (
-                              <ReviewForm
-                                approvalId={a.id}
-                                currentUserId={currentUserId}
-                                isDev={isDev}
-                                onDone={() => closeAddReview(a.id)}
-                                className="p-3"
-                              />
-                            )}
-                          </div>
-                        )}
+                        <ReviewTable
+                          approvalId={a.id}
+                          reviews={list}
+                          currentUserId={currentUserId}
+                          currentUserName={currentUserName}
+                          isDev={isDev}
+                          canAdd={canReview(a)}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>

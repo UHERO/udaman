@@ -16,6 +16,7 @@ import {
   updateApproval as updateApprovalCtrl,
 } from "@catalog/controllers/approvals";
 import type { PreReleaseFormData } from "@catalog/models/approval";
+import { canSelfReview } from "@catalog/models/approval";
 import type ApprovalReviewModel from "@catalog/models/approval-review";
 import type { Universe } from "@catalog/types/shared";
 
@@ -86,6 +87,12 @@ export async function getApprovalsWithReviews() {
   return { approvals, reviews };
 }
 
+/** Whether the signed-in user may review forms they authored. */
+export async function getCanSelfReview(): Promise<boolean> {
+  const session = await getSession();
+  return canSelfReview(session?.user?.email);
+}
+
 export async function getApprovalReviews(id: number) {
   await getApproval(id); // permission + universe scoping
   const result = await fetchApprovalReviews({ id });
@@ -102,12 +109,14 @@ export async function submitReview(
   await getApproval(id); // universe scoping
   log.info({ id }, "submitReview action called");
   try {
+    const session = await getSession();
     const result = await submitReviewCtrl({
       id,
       actor: { userId, role },
       reviewerName: await currentUserName(),
       attested: payload.attested,
       notes: payload.notes,
+      allowSelfReview: canSelfReview(session?.user?.email),
     });
     revalidatePath(REVALIDATE_PATH);
     revalidatePath(`/comms/pub-form/${id}`);

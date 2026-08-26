@@ -31,7 +31,7 @@ class ApprovalReviewCollection {
     if (!approvalIds.length) return map;
     const rows = await mysql<ApprovalReviewAttrs>`
       SELECT * FROM approval_reviews
-      WHERE approval_id IN (${approvalIds})
+      WHERE approval_id IN ${mysql(approvalIds)}
       ORDER BY created_at ASC, id ASC
     `;
     for (const row of rows) {
@@ -65,17 +65,22 @@ class ApprovalReviewCollection {
   /**
    * Create or replace the reviewer's review. One row per (approval, reviewer)
    * is enforced by a unique key, so a second submit is an edit.
+   *
+   * `reviewed_at` is set the first time the box is checked and kept on later
+   * edits; unchecking clears it.
    */
   static async upsert(payload: UpsertReviewPayload): Promise<ApprovalReview> {
+    const attested = payload.attested ? 1 : 0;
     await mysql`
       INSERT INTO approval_reviews
-        (approval_id, reviewer_user_id, reviewer, attested, notes, created_at, updated_at)
+        (approval_id, reviewer_user_id, reviewer, attested, reviewed_at, notes, created_at, updated_at)
       VALUES
         (${payload.approvalId}, ${payload.reviewerUserId}, ${payload.reviewer},
-         ${payload.attested ? 1 : 0}, ${payload.notes}, NOW(), NOW())
+         ${attested}, IF(${attested} = 1, NOW(), NULL), ${payload.notes}, NOW(), NOW())
       ON DUPLICATE KEY UPDATE
         reviewer = VALUES(reviewer),
         attested = VALUES(attested),
+        reviewed_at = IF(VALUES(attested) = 1, COALESCE(reviewed_at, NOW()), NULL),
         notes = VALUES(notes),
         updated_at = NOW()
     `;
@@ -91,9 +96,11 @@ class ApprovalReviewCollection {
     await mysql`DELETE FROM approval_reviews WHERE id = ${id}`;
   }
 
+  /** Signed-off reviews only — notes without the checkbox don't count. */
   static async countForApproval(approvalId: number): Promise<number> {
     const rows = await mysql<{ n: number | string }>`
-      SELECT COUNT(*) AS n FROM approval_reviews WHERE approval_id = ${approvalId}
+      SELECT COUNT(*) AS n FROM approval_reviews
+      WHERE approval_id = ${approvalId} AND reviewed_at IS NOT NULL
     `;
     return Number(rows[0]?.n ?? 0);
   }

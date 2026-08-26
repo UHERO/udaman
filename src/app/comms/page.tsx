@@ -9,10 +9,10 @@ import {
 } from "@catalog/models/approval";
 import { Plus } from "lucide-react";
 
-import { getApprovalsWithReviews } from "@/actions/approvals";
+import { getApprovalsWithReviews, getCanSelfReview } from "@/actions/approvals";
 import { PreReleaseList } from "@/components/comms/pre-release-list";
 import { Button } from "@/components/ui/button";
-import { getCurrentUserContext } from "@/lib/auth/dal";
+import { getCurrentUserContext, getSession } from "@/lib/auth/dal";
 import { cn } from "@/lib/utils";
 
 export default async function Page({
@@ -20,12 +20,21 @@ export default async function Page({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const [{ approvals, reviews }, { userId, role }, { status }] =
-    await Promise.all([
-      getApprovalsWithReviews(),
-      getCurrentUserContext(),
-      searchParams,
-    ]);
+  const [
+    { approvals, reviews },
+    { userId, role },
+    { status },
+    selfReview,
+    session,
+  ] = await Promise.all([
+    getApprovalsWithReviews(),
+    getCurrentUserContext(),
+    searchParams,
+    getCanSelfReview(),
+    getSession(),
+  ]);
+  const currentUserName =
+    session?.user?.name || session?.user?.email || "Unknown user";
   const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
     ? status
     : "all";
@@ -90,8 +99,10 @@ export default async function Page({
         approvals={visible}
         reviews={reviews}
         currentUserId={parseInt(userId) || 0}
+        currentUserName={currentUserName}
         isAdmin={role === "admin" || role === "dev"}
         isDev={role === "dev"}
+        canSelfReview={selfReview}
         emptyMessage={
           active === "all"
             ? "No pre-release forms submitted yet."

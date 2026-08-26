@@ -101,25 +101,24 @@ export async function submitReview({
   reviewerName,
   attested,
   notes,
+  allowSelfReview = false,
 }: {
   id: number;
   actor: Actor;
   reviewerName: string;
   attested: boolean;
   notes: string | null;
+  /** See SELF_REVIEW_EXEMPT_EMAILS — resolved by the caller from the session. */
+  allowSelfReview?: boolean;
 }) {
   log.info({ id, reviewerUserId: actor.userId }, "submitting review");
   const approval = await ApprovalCollection.getById(id);
-  if (approval.authorUserId === actor.userId) {
+  if (approval.authorUserId === actor.userId && !allowSelfReview) {
     throw new AuthorizationError("You can't review your own pre-release form", {
       approvalId: id,
       actorUserId: actor.userId,
     });
   }
-  if (!attested) {
-    throw new Error("Check the attestation box to submit a review");
-  }
-
   const before = await ApprovalReviewCollection.countForApproval(id);
   const review = await ApprovalReviewCollection.upsert({
     approvalId: id,
@@ -142,7 +141,7 @@ export async function submitReview({
   }
 
   return {
-    message: isNew ? "Review submitted" : "Review updated",
+    message: isNew ? "Review saved" : "Review updated",
     data: review,
   };
 }

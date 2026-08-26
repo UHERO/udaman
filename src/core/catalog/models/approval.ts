@@ -210,6 +210,17 @@ export type PreReleaseFormData = {
 export const REQUIRED_REVIEWS = 3;
 
 /**
+ * Accounts allowed to review their own forms. Authors normally can't — the
+ * count is meant to be independent eyes — but a developer needs to exercise
+ * the review flow without a second account.
+ */
+export const SELF_REVIEW_EXEMPT_EMAILS = ["wood2@hawaii.edu"];
+
+export function canSelfReview(email: string | null | undefined): boolean {
+  return !!email && SELF_REVIEW_EXEMPT_EMAILS.includes(email.toLowerCase());
+}
+
+/**
  * Filters the list page offers. Both axes are derived at read time:
  * reviewed = reviewCount >= REQUIRED_REVIEWS, released = releasedAt set.
  */

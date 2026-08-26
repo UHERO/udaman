@@ -2,13 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 
-import { getApproval, getApprovalReviews } from "@/actions/approvals";
+import {
+  getApproval,
+  getApprovalReviews,
+  getCanSelfReview,
+} from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
 import { PreReleaseDetail } from "@/components/comms/pre-release-detail";
 import { ReviewPanel } from "@/components/comms/review-panel";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { getCurrentUserContext } from "@/lib/auth/dal";
+import { getCurrentUserContext, getSession } from "@/lib/auth/dal";
 import { NotFoundError } from "@/lib/errors";
 
 export default async function Page({
@@ -30,7 +34,13 @@ export default async function Page({
     throw err;
   }
 
-  const reviews = await getApprovalReviews(numericId);
+  const [reviews, selfReview, session] = await Promise.all([
+    getApprovalReviews(numericId),
+    getCanSelfReview(),
+    getSession(),
+  ]);
+  const currentUserName =
+    session?.user?.name || session?.user?.email || "Unknown user";
   const currentUserId = parseInt(userId) || 0;
   const isAdmin = role === "admin" || role === "dev";
 
@@ -73,8 +83,10 @@ export default async function Page({
         approval={approval}
         reviews={reviews}
         currentUserId={currentUserId}
+        currentUserName={currentUserName}
         isAdmin={isAdmin}
         isDev={role === "dev"}
+        canSelfReview={selfReview}
       />
 
       <Separator />

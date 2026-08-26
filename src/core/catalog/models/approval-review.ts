@@ -1,8 +1,9 @@
 /**
  * One reviewer's sign-off on an approval (pre-release form).
  *
- * Primarily an attestation checkbox with optional notes. A form counts as
- * reviewed once it has REQUIRED_REVIEWS of these — see models/approval.ts.
+ * The "Reviewed" checkbox is stored as `reviewed_at` — the moment the
+ * reviewer signed off. A row with notes but no timestamp is a comment, not a
+ * sign-off, and doesn't count toward REQUIRED_REVIEWS (models/approval.ts).
  */
 
 export type ApprovalReviewAttrs = {
@@ -11,6 +12,7 @@ export type ApprovalReviewAttrs = {
   reviewer_user_id: number;
   reviewer: string;
   attested: number | boolean;
+  reviewed_at?: Date | string | null;
   notes?: string | null;
   created_at?: Date | string | null;
   updated_at?: Date | string | null;
@@ -25,7 +27,7 @@ class ApprovalReview {
   readonly approvalId: number;
   readonly reviewerUserId: number;
   reviewer: string;
-  attested: boolean;
+  reviewedAt: Date | null;
   notes: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -35,10 +37,15 @@ class ApprovalReview {
     this.approvalId = attrs.approval_id;
     this.reviewerUserId = attrs.reviewer_user_id;
     this.reviewer = attrs.reviewer;
-    this.attested = Boolean(attrs.attested);
+    this.reviewedAt = toDate(attrs.reviewed_at);
     this.notes = attrs.notes ?? null;
     this.createdAt = toDate(attrs.created_at);
     this.updatedAt = toDate(attrs.updated_at);
+  }
+
+  /** Signed off (the checkbox is checked). */
+  get attested(): boolean {
+    return this.reviewedAt !== null;
   }
 
   toJSON() {
@@ -48,6 +55,7 @@ class ApprovalReview {
       reviewerUserId: this.reviewerUserId,
       reviewer: this.reviewer,
       attested: this.attested,
+      reviewedAt: this.reviewedAt?.toISOString() ?? null,
       notes: this.notes,
       createdAt: this.createdAt?.toISOString() ?? null,
       updatedAt: this.updatedAt?.toISOString() ?? null,

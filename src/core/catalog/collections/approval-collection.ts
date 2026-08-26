@@ -30,7 +30,8 @@ class ApprovalCollection {
   /**
    * List approvals for a universe, newest first, with review aggregates.
    *
-   * Every row carries `review_count` and, when `viewerUserId` is given,
+   * Every row carries `review_count` (signed-off reviews only — see
+   * approval_reviews.reviewed_at) and, when `viewerUserId` is given,
    * `reviewed_by_me`, so the list page can derive reviewed/released status
    * and tab counts from one query. Status filtering happens on the model
    * (`matchesStatus`) — the list is small and the tabs need every count.
@@ -47,7 +48,7 @@ class ApprovalCollection {
     const rows = type
       ? await mysql<ApprovalAttrs>`
           SELECT a.*,
-                 COUNT(r.id) AS review_count,
+                 COUNT(r.reviewed_at) AS review_count,
                  SUM(r.reviewer_user_id = ${viewerUserId}) AS reviewed_by_me
           FROM approvals a
           LEFT JOIN approval_reviews r ON r.approval_id = a.id
@@ -57,7 +58,7 @@ class ApprovalCollection {
         `
       : await mysql<ApprovalAttrs>`
           SELECT a.*,
-                 COUNT(r.id) AS review_count,
+                 COUNT(r.reviewed_at) AS review_count,
                  SUM(r.reviewer_user_id = ${viewerUserId}) AS reviewed_by_me
           FROM approvals a
           LEFT JOIN approval_reviews r ON r.approval_id = a.id
@@ -75,7 +76,7 @@ class ApprovalCollection {
   static async getById(id: number, viewerUserId = 0): Promise<Approval> {
     const rows = await mysql<ApprovalAttrs>`
       SELECT a.*,
-             COUNT(r.id) AS review_count,
+             COUNT(r.reviewed_at) AS review_count,
              SUM(r.reviewer_user_id = ${viewerUserId}) AS reviewed_by_me
       FROM approvals a
       LEFT JOIN approval_reviews r ON r.approval_id = a.id
