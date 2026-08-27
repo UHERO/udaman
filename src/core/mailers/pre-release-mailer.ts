@@ -165,6 +165,10 @@ export async function sendPreReleaseSubmitted(
           "The work complies with applicable UH policies, research protocols, disclosure requirements, and professional standards.",
           d.certCompliance,
         ) +
+        checkRow(
+          "The manuscript is the independent work of the authors.",
+          d.certIndependent,
+        ) +
         row(
           "Certified by",
           `${input.author} — ${input.submittedAt.toLocaleString("en-US", {
