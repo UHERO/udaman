@@ -1,7 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
-import DataPointModel from "../models/data-point";
 import type { DataPoint } from "../types/shared";
 
 const log = createLogger("catalog.data-point-collection");
@@ -16,6 +15,16 @@ export type VintageDataPoint = {
   pseudo_history: number | null;
   color: string | null;
 };
+
+/** Lightweight vintage point for chart overlays */
+export type SeriesVintagePoint = {
+  date: string;
+  value: number;
+  publishedAt: string;
+};
+
+/** Max vintage points fetched per observation date for chart overlays */
+const VINTAGE_CHART_LIMIT_PER_DATE = 100;
 
 class DataPointCollection {
   /**
@@ -172,6 +181,80 @@ class DataPointCollection {
     return map;
   }
   /**
+   * Gets non-current (vintage) data points for a set of series names, for
+   * chart overlays. Returns a map of series name to vintage points ordered
+   * by date DESC, created_at DESC. Every requested name gets an entry (empty
+   * array when the series has no vintages). The limit caps how many vintages
+   * are returned per observation date (most recently published first), not
+   * per series.
+   */
+  static async getVintagesBySeriesNames(opts: {
+    names: string[];
+    universe?: string;
+    limitPerDate?: number;
+  }): Promise<Record<string, SeriesVintagePoint[]>> {
+    const {
+      names,
+      universe,
+      limitPerDate = VINTAGE_CHART_LIMIT_PER_DATE,
+    } = opts;
+    const map: Record<string, SeriesVintagePoint[]> = {};
+
+    for (const name of names) {
+      map[name] = [];
+      type Row = { date: Date | string; value: number; created_at: Date };
+      let rows: Row[];
+      if (universe) {
+        rows = await mysql<Row>`
+          SELECT date, value, created_at FROM (
+            SELECT dp.date, dp.value, dp.created_at,
+              ROW_NUMBER() OVER (
+                PARTITION BY dp.date ORDER BY dp.created_at DESC
+              ) AS rn
+            FROM series s
+            JOIN data_points dp ON dp.xseries_id = s.xseries_id
+            WHERE s.name = ${name}
+              AND s.universe = ${universe.toUpperCase()}
+              AND dp.current = 0
+              AND dp.value IS NOT NULL
+          ) ranked
+          WHERE rn <= ${limitPerDate}
+          ORDER BY date DESC, created_at DESC
+        `;
+      } else {
+        rows = await mysql<Row>`
+          SELECT date, value, created_at FROM (
+            SELECT dp.date, dp.value, dp.created_at,
+              ROW_NUMBER() OVER (
+                PARTITION BY dp.date ORDER BY dp.created_at DESC
+              ) AS rn
+            FROM series s
+            JOIN data_points dp ON dp.xseries_id = s.xseries_id
+            WHERE s.name = ${name}
+              AND dp.current = 0
+              AND dp.value IS NOT NULL
+          ) ranked
+          WHERE rn <= ${limitPerDate}
+          ORDER BY date DESC, created_at DESC
+        `;
+      }
+
+      for (const row of rows) {
+        map[name].push({
+          date:
+            row.date instanceof Date
+              ? row.date.toISOString().slice(0, 10)
+              : String(row.date).slice(0, 10),
+          value: Number(row.value),
+          publishedAt: row.created_at.toISOString().slice(0, 10),
+        });
+      }
+    }
+
+    return map;
+  }
+
+  /**
    * Sync the public_data_points table for a given universe.
    * Ported from Rails DataPoint.update_public_data_points.
    *
@@ -255,7 +338,10 @@ class DataPointCollection {
     seriesId: number,
     universe: string,
   ): Promise<void> {
-    log.info({ seriesId, universe }, "updatePublicDataPointsForSeries: starting");
+    log.info(
+      { seriesId, universe },
+      "updatePublicDataPointsForSeries: starting",
+    );
 
     // 1. UPDATE existing public data points
     await rawQuery(

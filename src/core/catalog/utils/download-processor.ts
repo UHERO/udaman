@@ -506,7 +506,7 @@ function processTextFile(
   lines: string[],
   options: DownloadOptions,
 ): Map<string, number> {
-  const data = new Map<string, number>();
+  const _data = new Map<string, number>();
   const remaining = [...lines];
 
   if (options.rows_to_skip != null) {

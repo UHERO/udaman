@@ -252,8 +252,8 @@ export function* streamDataRows(sheet: XLSX.WorkSheet): Generator<DvwDataRow> {
     const row = data[r];
     if (!row) continue; // sparse row
 
-    const module = str(cv(row[moduleIdx]));
-    if (module == null) break; // blank row = end of data
+    const dvwModule = str(cv(row[moduleIdx]));
+    if (dvwModule == null) break; // blank row = end of data
 
     const valueRaw = parseNumeric(cv(row[valueIdx]));
     if (valueRaw == null) continue; // skip rows without value
@@ -261,7 +261,7 @@ export function* streamDataRows(sheet: XLSX.WorkSheet): Generator<DvwDataRow> {
     const yearRaw = parseNumeric(cv(row[yearIdx]));
 
     yield {
-      module,
+      module: dvwModule,
       frequency: str(cv(row[frequencyIdx])) ?? "A",
       year: typeof yearRaw === "number" ? yearRaw : 0,
       qm: str(cv(row[qmIdx])),

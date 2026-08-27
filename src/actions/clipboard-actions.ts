@@ -1,5 +1,6 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import {
   addMultipleToClipboard as addMultipleCtrl,
   addToClipboard as addToClipboardCtrl,
@@ -34,8 +35,15 @@ export async function addSeriesToClipboard(seriesId: number) {
   await requirePermission("clipboard", "update");
   const userId = await getCurrentUserId();
   log.info({ userId, seriesId }, "addSeriesToClipboard action called");
-  const result = await addToClipboardCtrl({ userId, seriesId });
-  return result;
+  try {
+    const result = await addToClipboardCtrl({ userId, seriesId });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "addSeriesToClipboard failed");
+    AppLogCollection.logError(err, { userId, name: "clipboard.add_series" });
+    throw err;
+  }
 }
 
 export async function addMultipleSeriesToClipboard(seriesIds: number[]) {
@@ -45,32 +53,60 @@ export async function addMultipleSeriesToClipboard(seriesIds: number[]) {
     { userId, count: seriesIds.length },
     "addMultipleSeriesToClipboard action called",
   );
-  const result = await addMultipleCtrl({ userId, seriesIds });
-  return result;
+  try {
+    const result = await addMultipleCtrl({ userId, seriesIds });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "addMultipleSeriesToClipboard failed");
+    AppLogCollection.logError(err, { userId, name: "clipboard.add_multiple" });
+    throw err;
+  }
 }
 
 export async function removeSeriesFromClipboard(seriesId: number) {
   await requirePermission("clipboard", "update");
   const userId = await getCurrentUserId();
   log.info({ userId, seriesId }, "removeSeriesFromClipboard action called");
-  const result = await removeFromClipboardCtrl({ userId, seriesId });
-  return result;
+  try {
+    const result = await removeFromClipboardCtrl({ userId, seriesId });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "removeSeriesFromClipboard failed");
+    AppLogCollection.logError(err, { userId, name: "clipboard.remove_series" });
+    throw err;
+  }
 }
 
 export async function clearClipboard() {
   await requirePermission("clipboard", "delete");
   const userId = await getCurrentUserId();
   log.info({ userId }, "clearClipboard action called");
-  const result = await clearClipboardCtrl({ userId });
-  return result;
+  try {
+    const result = await clearClipboardCtrl({ userId });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "clearClipboard failed");
+    AppLogCollection.logError(err, { userId, name: "clipboard.clear" });
+    throw err;
+  }
 }
 
 export async function executeClipboardAction(action: ClipboardAction) {
   await requirePermission("clipboard", "execute");
   const userId = await getCurrentUserId();
   log.info({ userId, action }, "executeClipboardAction called");
-  const result = await doClipboardActionCtrl({ userId, action });
-  return result;
+  try {
+    const result = await doClipboardActionCtrl({ userId, action });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "executeClipboardAction failed");
+    AppLogCollection.logError(err, { userId, name: "clipboard.execute" });
+    throw err;
+  }
 }
 
 export async function bulkUpdateClipboardMetadata(
@@ -82,8 +118,18 @@ export async function bulkUpdateClipboardMetadata(
     { userId, fields: Object.keys(payload) },
     "bulkUpdateClipboardMetadata called",
   );
-  const result = await bulkUpdateMetadataCtrl({ userId, payload });
-  return result;
+  try {
+    const result = await bulkUpdateMetadataCtrl({ userId, payload });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "bulkUpdateClipboardMetadata failed");
+    AppLogCollection.logError(err, {
+      userId,
+      name: "clipboard.bulk_update_metadata",
+    });
+    throw err;
+  }
 }
 
 export async function searchClipboardLoaders(pattern: string) {
@@ -101,6 +147,16 @@ export async function reloadClipboardLoaders(loaderIds: number[]) {
     { userId, loaderCount: loaderIds.length },
     "reloadClipboardLoaders action called",
   );
-  const result = await reloadClipboardLoadersCtrl({ userId, loaderIds });
-  return result;
+  try {
+    const result = await reloadClipboardLoadersCtrl({ userId, loaderIds });
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "reloadClipboardLoaders failed");
+    AppLogCollection.logError(err, {
+      userId,
+      name: "clipboard.reload_loaders",
+    });
+    throw err;
+  }
 }

@@ -77,6 +77,11 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     fieldsTable: "dedications",
     defaultSort: "tmk",
   },
+  "home-exemptions": {
+    title: "Home Exemptions",
+    fieldsTable: "home_exemptions",
+    defaultSort: "tmk",
+  },
   "land-classifications": {
     title: "Land Classifications",
     fieldsTable: "land_classifications",
@@ -118,11 +123,6 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     fieldsTable: "agricultural_assessments",
     defaultSort: "tmk",
   },
-  "accessory-structures": {
-    title: "Accessory Structures",
-    fieldsTable: "accessory_structures",
-    defaultSort: "tmk",
-  },
   "commercial-details": {
     title: "Commercial Improvement Details",
     fieldsTable: "commercial_improvement_details",
@@ -133,9 +133,9 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     fieldsTable: "residential_additions",
     defaultSort: "tmk",
   },
-  "yard-improvements": {
-    title: "Yard Improvements",
-    fieldsTable: "yard_improvements",
+  "accessory-improvements": {
+    title: "Accessory Improvements",
+    fieldsTable: "accessory_improvements",
     defaultSort: "tmk",
   },
   transactions: {

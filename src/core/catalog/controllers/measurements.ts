@@ -1,5 +1,3 @@
-import "server-only";
-
 import { logControllerCall } from "@/core/observability/app-events";
 import { createLogger } from "@/core/observability/logger";
 

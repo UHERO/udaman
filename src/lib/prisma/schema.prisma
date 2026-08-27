@@ -886,3 +886,73 @@ enum app_logs_level {
   warn
   error
 }
+
+model messages {
+  id         Int              @id @default(autoincrement())
+  channel    messages_channel
+  sender     String?          @db.VarChar(100)
+  from_addr  String?          @db.VarChar(255)
+  recipient  String           @db.VarChar(500)
+  subject    String?          @db.VarChar(500)
+  body       String           @db.Text
+  status     messages_status  @default(pending)
+  error      String?          @db.Text
+  user_id    Int?
+  created_at DateTime         @default(now()) @db.Timestamp(0)
+
+  @@index([channel, created_at], map: "idx_messages_channel_created")
+  @@index([user_id, created_at], map: "idx_messages_user_created")
+}
+
+enum messages_channel {
+  email
+  slack
+  sms
+}
+
+enum messages_status {
+  pending
+  sent
+  failed
+}
+
+model approvals {
+  id                  Int            @id @default(autoincrement())
+  type                approvals_type @default(pre_release)
+  universe            String         @default("UHERO") @db.VarChar(10)
+  name                String         @db.VarChar(500)
+  author              String         @db.VarChar(255)
+  author_user_id      Int
+  target_release_date DateTime?      @db.Date
+  form_data           Json
+  released_at         DateTime?      @db.DateTime(0)
+  released_by_user_id Int?
+  deleted_at          DateTime?      @db.DateTime(0)
+  created_at          DateTime       @default(now()) @db.Timestamp(0)
+  updated_at          DateTime       @default(now()) @db.DateTime(0)
+  reviews             approval_reviews[]
+
+  @@index([universe, created_at], map: "idx_approvals_universe_created")
+  @@index([author_user_id], map: "idx_approvals_author_user")
+  @@index([type, target_release_date], map: "idx_approvals_type_release")
+}
+
+model approval_reviews {
+  id               Int       @id @default(autoincrement())
+  approval_id      Int
+  reviewer_user_id Int
+  reviewer         String    @db.VarChar(255)
+  attested         Boolean   @default(true)
+  reviewed_at      DateTime? @db.DateTime(0)
+  notes            String?   @db.Text
+  created_at       DateTime  @default(now()) @db.Timestamp(0)
+  updated_at       DateTime  @default(now()) @db.DateTime(0)
+  approval         approvals @relation(fields: [approval_id], references: [id], onDelete: Cascade, map: "fk_approval_reviews_approval")
+
+  @@unique([approval_id, reviewer_user_id], map: "uq_approval_reviews_approval_reviewer")
+  @@index([reviewer_user_id], map: "idx_approval_reviews_reviewer")
+}
+
+enum approvals_type {
+  pre_release
+}

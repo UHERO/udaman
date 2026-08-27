@@ -12,12 +12,26 @@
  */
 
 import {
-  BEA_SUPPRESSED_VALUE,
   fetchJson,
   grokDate,
   withRateLimitRetry,
   type ApiResult,
 } from "./index";
+
+/**
+ * Matches a leading parenthesized BEA flag code — "(NA)", "(D)", "(NM)", …
+ * possibly followed by note references, e.g. "(NA) 3 *". Any such code in
+ * NoteRef means the DataValue (often a literal "0") is not a real
+ * observation. The same codes can appear in DataValue itself.
+ */
+const BEA_FLAG_CODE = /^\(\w+\)/;
+
+/** True when the data point is invalid/missing and should be dropped. */
+function isMissing(dp: BeaDataPoint): boolean {
+  if (BEA_FLAG_CODE.test(dp.NoteRef?.trim() ?? "")) return true;
+  const rawValue = dp.DataValue?.trim() ?? "";
+  return rawValue === "" || BEA_FLAG_CODE.test(rawValue);
+}
 
 /**
  * Fetch a time series from the BEA API.
@@ -56,26 +70,21 @@ export async function fetchSeries(
   const resultsData = beaapi.Results.Data;
   if (!resultsData) throw new Error("BEA API: results, but no data");
 
-  const data = new Map<string, number>();
-  for (const dp of resultsData) {
-    if (!requestMatch(filters, dp)) continue;
+  // First pass: keep only points that match the request and are not flagged
+  // invalid/missing — dropping them here (rather than storing a sentinel)
+  // keeps NA markers out of transforms and persistence entirely.
+  const validPoints = resultsData.filter(
+    (dp) => requestMatch(filters, dp) && !isMissing(dp),
+  );
 
+  const data = new Map<string, number>();
+  for (const dp of validPoints) {
     const tp = dp.TimePeriod;
     const date = grokDate(tp.slice(0, 4), tp.slice(4));
 
-    const rawValue = dp.DataValue?.trim().replace(/,/g, "") ?? null;
-    let value: number;
-
-    if (
-      rawValue === null ||
-      (dp.NoteRef && /^\(\w+\)/i.test(dp.NoteRef.trim()))
-    ) {
-      value = BEA_SUPPRESSED_VALUE;
-    } else {
-      value = parseFloat(rawValue);
-      if (isNaN(value)) {
-        throw new Error(`BEA API: Problem with value at ${date}`);
-      }
+    const value = parseFloat(dp.DataValue!.trim().replace(/,/g, ""));
+    if (isNaN(value)) {
+      throw new Error(`BEA API: Problem with value at ${date}`);
     }
 
     data.set(date, value);

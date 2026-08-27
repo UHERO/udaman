@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { PageViewLogger } from "@/components/page-view-logger";
 import { Toaster } from "@/components/ui/sonner";
 
 import "@/app/globals.css";
@@ -32,6 +33,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider>{children}</SessionProvider>
+        <PageViewLogger />
         <Toaster />
       </body>
     </html>

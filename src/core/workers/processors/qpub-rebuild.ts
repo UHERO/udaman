@@ -10,30 +10,41 @@
  * rebuild-all / rebuild-table.
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import path from "path";
 
 import {
+  getFileMtime,
   getJsonPath,
   listHtmlFiles,
+  QPUB_CONFIG,
   tmkFromFilePath,
-  getFileMtime,
 } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
-import { getMaxTaxYear, errorMessage, TABLE_LOADERS } from "./qpub-load";
 import {
-  type ExtractItem,
+  prepareLocalDb,
+  syncTableToRemote,
+  syncToRemote,
+} from "./qpub-db-sync";
+import {
+  DEFAULT_STAGING_DIR,
   extractBatch,
   initStagingDir,
   resetIdCounters,
-  DEFAULT_STAGING_DIR,
+  type ExtractItem,
 } from "./qpub-extract";
 import { loadFromFiles, loadTableFromFiles } from "./qpub-file-load";
-import { prepareLocalDb, syncToRemote, syncTableToRemote } from "./qpub-db-sync";
+import { errorMessage, getMaxTaxYear, TABLE_LOADERS } from "./qpub-load";
 
 const log = createLogger("qpub-rebuild");
 
@@ -62,30 +73,67 @@ const LOCAL_DB_PSWD = process.env.HH_LOCAL_DB_PSWD ?? "";
 const LOCAL_DB_NAME = process.env.HH_LOCAL_DB_NAME ?? "hawaii_housing_rebuild";
 
 function localAuthArgs(): string[] {
-  const args = [`--host=${LOCAL_DB_HOST}`, `--port=${LOCAL_DB_PORT}`, `--user=${LOCAL_DB_USER}`];
+  const args = [
+    `--host=${LOCAL_DB_HOST}`,
+    `--port=${LOCAL_DB_PORT}`,
+    `--user=${LOCAL_DB_USER}`,
+  ];
   if (LOCAL_DB_PSWD) args.push(`--password=${LOCAL_DB_PSWD}`);
   return args;
 }
 
 // ─── File Collection ────────────────────────────────────────────────
 
+/**
+ * One HTML file per TMK, newest period first.
+ *
+ * listHtmlFiles yields periods newest-first, so the first path seen for a TMK
+ * is the freshest one and later periods must not overwrite it. This used to be
+ * an unconditional set(), which — because readdir returned ['2026-1','2025-2']
+ * — rebuilt 585,638 of 590,129 properties from the *previous* period's HTML
+ * with nothing in the logs to say so.
+ */
 function collectFiles(period?: string, island?: string): Map<string, string> {
   const fileMap = new Map<string, string>();
   for (const filePath of listHtmlFiles(period, island)) {
     const tmk = tmkFromFilePath(filePath);
-    fileMap.set(tmk, filePath);
+    if (!fileMap.has(tmk)) fileMap.set(tmk, filePath);
   }
   return fileMap;
 }
 
+/** How many of the chosen files came from each period — logged, never silent. */
+function countByPeriod(fileMap: Map<string, string>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  const htmlRoot = `/${QPUB_CONFIG.HTML_DIR}/`;
+  for (const filePath of fileMap.values()) {
+    const after = filePath.split(htmlRoot)[1] ?? "";
+    const p = after.split("/")[0] || "unknown";
+    counts[p] = (counts[p] ?? 0) + 1;
+  }
+  return counts;
+}
+
 // ─── Parse Helpers ──────────────────────────────────────────────────
 
-function parseAndWriteJson(tmk: string, filePath: string): ParsedProperty | null {
+/**
+ * Why a TMK produced no data, or the data itself.
+ *
+ * The rejected status is carried rather than collapsed to null: it is the only
+ * thing that separates a phantom parcel from a blocked page from a parser bug,
+ * and folding all three into one "non-success" bucket is what made the 2026-1
+ * run's 10,246 errors unreadable without re-parsing every file by hand.
+ */
+type ParseOutcome =
+  | { ok: true; parsed: ParsedProperty }
+  | { ok: false; status: string };
+
+function parseAndWriteJson(tmk: string, filePath: string): ParseOutcome {
   const html = readFileSync(filePath, "utf-8");
   const parsed = parsePropertyHTML(html, tmk);
 
   if (parsed.status !== "success" && parsed.status !== "condo_project") {
-    return null;
+    return { ok: false, status: parsed.status };
   }
 
   const jsonDir = getJsonPath(tmk);
@@ -94,13 +142,17 @@ function parseAndWriteJson(tmk: string, filePath: string): ParsedProperty | null
   }
   writeFileSync(
     path.join(jsonDir, `${tmk}.json`),
-    JSON.stringify(parsed, null, 2),
+    JSON.stringify({ ...parsed, source_html: filePath }, null, 2),
   );
 
-  return parsed;
+  return { ok: true, parsed };
 }
 
-function parseOrReadCached(tmk: string, htmlPath: string, forceParse: boolean): ParsedProperty | null {
+function parseOrReadCached(
+  tmk: string,
+  htmlPath: string,
+  forceParse: boolean,
+): ParseOutcome {
   if (!forceParse) {
     const jsonDir = getJsonPath(tmk);
     const jsonFile = path.join(jsonDir, `${tmk}.json`);
@@ -111,9 +163,19 @@ function parseOrReadCached(tmk: string, htmlPath: string, forceParse: boolean): 
         const htmlMtime = statSync(htmlPath).mtimeMs;
 
         if (jsonMtime > htmlMtime) {
-          const data = JSON.parse(readFileSync(jsonFile, "utf-8")) as ParsedProperty;
-          if (data.status === "success" || data.status === "condo_project") {
-            return data;
+          const data = JSON.parse(
+            readFileSync(jsonFile, "utf-8"),
+          ) as ParsedProperty;
+          // A JSON newer than the HTML is not on its own proof the two match:
+          // the 2026-1 run wrote 2025-2 parses into the 2026-1 JSON tree, so
+          // every one of those files looks fresh against the HTML it is not
+          // derived from. Cache hits require the recorded source to be the
+          // file we were about to parse; pre-stamp JSON always re-parses.
+          const sameSource = data.source_html === htmlPath;
+          const usable =
+            data.status === "success" || data.status === "condo_project";
+          if (sameSource && usable) {
+            return { ok: true, parsed: data };
           }
         }
       } catch {
@@ -150,7 +212,9 @@ async function flushSuccess(tmks: string[]): Promise<void> {
   }
 }
 
-async function flushFailed(failures: Array<{ tmk: string; error: string }>): Promise<void> {
+async function flushFailed(
+  failures: Array<{ tmk: string; error: string }>,
+): Promise<void> {
   for (const { tmk, error } of failures) {
     await rawQuery(
       `UPDATE scrape_status SET load_status='failed', error=? WHERE tmk=?`,
@@ -165,22 +229,25 @@ function parseBatchToItems(
   tmks: string[],
   fileMap: Map<string, string>,
   forceParse: boolean,
-): { items: ExtractItem[]; parseErrors: Array<{ tmk: string; error: string }> } {
+): {
+  items: ExtractItem[];
+  parseErrors: Array<{ tmk: string; error: string }>;
+} {
   const items: ExtractItem[] = [];
   const parseErrors: Array<{ tmk: string; error: string }> = [];
 
   for (const tmk of tmks) {
     const filePath = fileMap.get(tmk)!;
     try {
-      const parsed = parseOrReadCached(tmk, filePath, forceParse);
-      if (!parsed) {
-        parseErrors.push({ tmk, error: "Parse returned non-success status" });
+      const outcome = parseOrReadCached(tmk, filePath, forceParse);
+      if (!outcome.ok) {
+        parseErrors.push({ tmk, error: `Parse status: ${outcome.status}` });
         continue;
       }
 
       const scrapedAt = getFileMtime(filePath);
-      const observedYear = getMaxTaxYear(parsed);
-      items.push({ tmk, data: parsed, scrapedAt, observedYear });
+      const observedYear = getMaxTaxYear(outcome.parsed);
+      items.push({ tmk, data: outcome.parsed, scrapedAt, observedYear });
     } catch (e) {
       parseErrors.push({ tmk, error: errorMessage(e) });
     }
@@ -195,7 +262,9 @@ function parseBatchToItems(
  * Phase 1+2: Parse HTML → JSON, then extract JSON → JSONL table files.
  * Returns the list of errors encountered during parsing.
  */
-export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<string> {
+export async function runParseAndExtract(
+  opts: RebuildOptions = {},
+): Promise<string> {
   const { island, period, forceParse = false } = opts;
 
   log.info({ island, period, forceParse }, "Parse+Extract started");
@@ -208,6 +277,18 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
     log.info("Parse+Extract: no files found");
     return "Parse+Extract: no files found";
   }
+
+  // Which period each TMK's chosen file came from. Stated up front because a
+  // rebuild silently sourced from a stale period is indistinguishable, in
+  // every other line of output, from a correct one.
+  const byPeriod = countByPeriod(fileMap);
+  log.info(
+    { tmks: total, byPeriod },
+    `Source files: ${total.toLocaleString()} TMKs — ${Object.entries(byPeriod)
+      .sort((a, b) => b[1] - a[1])
+      .map(([p, n]) => `${p}: ${n.toLocaleString()}`)
+      .join(", ")}`,
+  );
 
   const startMs = Date.now();
   const allErrors: Array<{ tmk: string; error: string }> = [];
@@ -224,7 +305,11 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
     const batchTmks = tmks.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    const { items, parseErrors } = parseBatchToItems(
+      batchTmks,
+      fileMap,
+      forceParse,
+    );
     allErrors.push(...parseErrors);
 
     if (items.length > 0) {
@@ -236,7 +321,13 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
       const pct = ((processed / total) * 100).toFixed(1);
       const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
       log.info(
-        { batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        {
+          batch: `${batchNum}/${totalBatches}`,
+          processed,
+          total,
+          pct: `${pct}%`,
+          elapsed: `${elapsed}s`,
+        },
         `Parse+Extract: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
       );
     }
@@ -252,7 +343,10 @@ export async function runParseAndExtract(opts: RebuildOptions = {}): Promise<str
     for (const { error } of allErrors) {
       counts[error] = (counts[error] ?? 0) + 1;
     }
-    log.info({ errorBreakdown: counts }, `Parse errors: ${allErrors.length} total`);
+    log.info(
+      { errorBreakdown: counts },
+      `Parse errors: ${allErrors.length} total`,
+    );
   }
 
   const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
@@ -270,7 +364,9 @@ export async function runLoad(opts: { table?: string } = {}): Promise<string> {
   const stagingDir = DEFAULT_STAGING_DIR;
 
   if (!existsSync(stagingDir)) {
-    throw new Error(`Staging directory ${stagingDir} does not exist. Run parse+extract first.`);
+    throw new Error(
+      `Staging directory ${stagingDir} does not exist. Run parse+extract first.`,
+    );
   }
 
   // Prepare local DB (clean slate)
@@ -279,8 +375,17 @@ export async function runLoad(opts: { table?: string } = {}): Promise<string> {
   const startMs = Date.now();
 
   if (opts.table) {
-    log.info({ table: opts.table }, "Loading single table from extracted files");
-    await loadTableFromFiles(opts.table, stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+    log.info(
+      { table: opts.table },
+      "Loading single table from extracted files",
+    );
+    await loadTableFromFiles(
+      opts.table,
+      stagingDir,
+      localAuthArgs(),
+      LOCAL_DB_NAME,
+      log,
+    );
   } else {
     log.info("Loading all tables from extracted files");
     await loadFromFiles(stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
@@ -295,7 +400,9 @@ export async function runLoad(opts: { table?: string } = {}): Promise<string> {
 /**
  * Sync: Dump local database to remote, then update scrape_status.
  */
-export async function runSync(opts: { table?: string; island?: string; period?: string } = {}): Promise<string> {
+export async function runSync(
+  opts: { table?: string; island?: string; period?: string } = {},
+): Promise<string> {
   const startMs = Date.now();
 
   if (opts.table) {
@@ -356,13 +463,20 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 
   // Phase 1+2: Parse and Extract
-  log.info({ total, batchSize: BATCH_SIZE, totalBatches }, "Phase 1+2: Parse + Extract");
+  log.info(
+    { total, batchSize: BATCH_SIZE, totalBatches },
+    "Phase 1+2: Parse + Extract",
+  );
 
   for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
     const batchTmks = tmks.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    const { items, parseErrors } = parseBatchToItems(
+      batchTmks,
+      fileMap,
+      forceParse,
+    );
     allErrors.push(...parseErrors);
 
     if (items.length > 0) {
@@ -374,14 +488,23 @@ export async function rebuildAll(opts: RebuildOptions = {}): Promise<string> {
       const pct = ((processed / total) * 100).toFixed(1);
       const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
       log.info(
-        { batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        {
+          batch: `${batchNum}/${totalBatches}`,
+          processed,
+          total,
+          pct: `${pct}%`,
+          elapsed: `${elapsed}s`,
+        },
         `Parse+Extract: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
       );
     }
   }
 
   const parseElapsed = ((Date.now() - startMs) / 1000).toFixed(1);
-  log.info({ elapsed: `${parseElapsed}s`, errors: allErrors.length }, "Phase 1+2 complete");
+  log.info(
+    { elapsed: `${parseElapsed}s`, errors: allErrors.length },
+    "Phase 1+2 complete",
+  );
 
   // Phase 3: Load into local DB via mariadb CLI
   log.info("Phase 3: Loading extracted files into local database");
@@ -425,7 +548,10 @@ export async function rebuildTable(
     throw new Error(`Unknown table "${table}". Valid tables: ${valid}`);
   }
 
-  log.info({ table, island, period, forceParse }, "Rebuild table (pipeline) started");
+  log.info(
+    { table, island, period, forceParse },
+    "Rebuild table (pipeline) started",
+  );
 
   const fileMap = collectFiles(period, island);
   const tmks = Array.from(fileMap.keys());
@@ -451,18 +577,26 @@ export async function rebuildTable(
   const totalBatches = Math.ceil(tmks.length / BATCH_SIZE);
 
   // Phase 1+2: Parse and Extract
-  log.info({ total, table, batchSize: BATCH_SIZE, totalBatches }, "Phase 1+2: Parse + Extract");
+  log.info(
+    { total, table, batchSize: BATCH_SIZE, totalBatches },
+    "Phase 1+2: Parse + Extract",
+  );
 
   for (let i = 0; i < tmks.length; i += BATCH_SIZE) {
     const batchTmks = tmks.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-    const { items, parseErrors } = parseBatchToItems(batchTmks, fileMap, forceParse);
+    const { items, parseErrors } = parseBatchToItems(
+      batchTmks,
+      fileMap,
+      forceParse,
+    );
     allErrors.push(...parseErrors);
 
-    const extractItems = table === "condominium"
-      ? items.filter((item) => item.data.status === "condo_project")
-      : items;
+    const extractItems =
+      table === "condominium"
+        ? items.filter((item) => item.data.status === "condo_project")
+        : items;
 
     if (extractItems.length > 0) {
       extractBatch(extractItems, stagingDir);
@@ -473,20 +607,36 @@ export async function rebuildTable(
       const pct = ((processed / total) * 100).toFixed(1);
       const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
       log.info(
-        { table, batch: `${batchNum}/${totalBatches}`, processed, total, pct: `${pct}%`, elapsed: `${elapsed}s` },
+        {
+          table,
+          batch: `${batchNum}/${totalBatches}`,
+          processed,
+          total,
+          pct: `${pct}%`,
+          elapsed: `${elapsed}s`,
+        },
         `Parse+Extract ${table}: batch ${batchNum}/${totalBatches} — ${processed.toLocaleString()}/${total.toLocaleString()} (${pct}%, ${elapsed}s)`,
       );
     }
   }
 
   const parseElapsed = ((Date.now() - startMs) / 1000).toFixed(1);
-  log.info({ table, elapsed: `${parseElapsed}s`, errors: allErrors.length }, "Phase 1+2 complete");
+  log.info(
+    { table, elapsed: `${parseElapsed}s`, errors: allErrors.length },
+    "Phase 1+2 complete",
+  );
 
   // Phase 3: Load into local DB
   log.info({ table }, "Phase 3: Loading extracted files into local database");
   const loadStartMs = Date.now();
 
-  await loadTableFromFiles(table, stagingDir, localAuthArgs(), LOCAL_DB_NAME, log);
+  await loadTableFromFiles(
+    table,
+    stagingDir,
+    localAuthArgs(),
+    LOCAL_DB_NAME,
+    log,
+  );
 
   const loadElapsed = ((Date.now() - loadStartMs) / 1000).toFixed(1);
   log.info({ table, elapsed: `${loadElapsed}s` }, "Phase 3 complete");

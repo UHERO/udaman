@@ -11,7 +11,9 @@ export default async function AdminPage() {
     notFound();
   }
 
-  const permissions = (await PermissionCollection.list()).map((p) => p.toJSON());
+  const permissions = (await PermissionCollection.list()).map((p) =>
+    p.toJSON(),
+  );
 
   return (
     <div className="space-y-4">

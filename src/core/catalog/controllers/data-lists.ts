@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
 import DataListCollection from "../collections/data-list-collection";
@@ -203,7 +201,7 @@ export async function replaceAllMeasurements({
 
 export async function getDataListSuperTable({
   id,
-  universe,
+  universe: _universe,
   freq = "A",
   geo = "HI",
   sa = "all",

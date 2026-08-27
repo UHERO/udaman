@@ -189,11 +189,20 @@ class MeasurementCollection {
         created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
-        universe, prefix, dataPortalName ?? null, unitId ?? null,
-        sourceId ?? null, sourceDetailId ?? null, decimals,
-        percent ? 1 : 0, real ? 1 : 0, restricted ? 1 : 0,
-        seasonalAdjustment ?? null, frequencyTransform ?? null,
-        sourceLink ?? null, notes ?? null,
+        universe,
+        prefix,
+        dataPortalName ?? null,
+        unitId ?? null,
+        sourceId ?? null,
+        sourceDetailId ?? null,
+        decimals,
+        percent ? 1 : 0,
+        real ? 1 : 0,
+        restricted ? 1 : 0,
+        seasonalAdjustment ?? null,
+        frequencyTransform ?? null,
+        sourceLink ?? null,
+        notes ?? null,
       ],
     );
     return this.getById(insertId);

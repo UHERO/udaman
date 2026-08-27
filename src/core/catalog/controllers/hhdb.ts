@@ -1,10 +1,8 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
-import HhdbAccessoryStructureCollection from "../collections/hhdb-accessory-structure-collection";
 import HhdbAgriculturalAssessmentCollection from "../collections/hhdb-agricultural-assessment-collection";
 import HhdbAppealCollection from "../collections/hhdb-appeal-collection";
+import HhdbAccessoryImprovementCollection from "../collections/hhdb-accessory-improvement-collection";
 import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
 import HhdbCommercialDetailCollection from "../collections/hhdb-commercial-detail-collection";
 import HhdbCondoCollection from "../collections/hhdb-condo-collection";
@@ -12,6 +10,7 @@ import HhdbCurrentTaxBillCollection from "../collections/hhdb-current-tax-bill-c
 import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
 import HhdbDedicationCollection from "../collections/hhdb-dedication-collection";
 import HhdbHistoricalTaxCreditCollection from "../collections/hhdb-historical-tax-credit-collection";
+import HhdbHomeExemptionCollection from "../collections/hhdb-home-exemption-collection";
 import HhdbHistoricalTaxDetailCollection from "../collections/hhdb-historical-tax-detail-collection";
 import HhdbHistoricalTaxPaymentCollection from "../collections/hhdb-historical-tax-payment-collection";
 import HhdbHistoricalTaxSummaryCollection from "../collections/hhdb-historical-tax-summary-collection";
@@ -25,7 +24,6 @@ import HhdbPropertyCollection from "../collections/hhdb-property-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
-import HhdbYardImprovementCollection from "../collections/hhdb-yard-improvement-collection";
 import type {
   CategoricalDrilldown,
   FreqSummaryParams,
@@ -125,6 +123,13 @@ export async function getDedications(params: HhdbListParams) {
   return result;
 }
 
+export async function getHomeExemptions(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb home exemptions");
+  const result = await HhdbHomeExemptionCollection.list(params);
+  log.info({ total: result.total }, "hhdb home exemptions fetched");
+  return result;
+}
+
 export async function getLandClassifications(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb land classifications");
   const result = await HhdbLandClassificationCollection.list(params);
@@ -188,17 +193,10 @@ export async function getResidentialAdditions(params: HhdbListParams) {
   return result;
 }
 
-export async function getAccessoryStructures(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb accessory structures");
-  const result = await HhdbAccessoryStructureCollection.list(params);
-  log.info({ total: result.total }, "hhdb accessory structures fetched");
-  return result;
-}
-
-export async function getYardImprovements(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb yard improvements");
-  const result = await HhdbYardImprovementCollection.list(params);
-  log.info({ total: result.total }, "hhdb yard improvements fetched");
+export async function getAccessoryImprovements(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb accessory improvements");
+  const result = await HhdbAccessoryImprovementCollection.list(params);
+  log.info({ total: result.total }, "hhdb accessory improvements fetched");
   return result;
 }
 
@@ -284,6 +282,13 @@ export async function getDedicationsJSON(params: HhdbListParams) {
   return result;
 }
 
+export async function getHomeExemptionsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb home exemptions");
+  const result = await HhdbHomeExemptionCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb home exemptions fetched");
+  return result;
+}
+
 export async function getLandClassificationsJSON(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb land classifications");
   const result = await HhdbLandClassificationCollection.listJSON(params);
@@ -347,17 +352,10 @@ export async function getResidentialAdditionsJSON(params: HhdbListParams) {
   return result;
 }
 
-export async function getAccessoryStructuresJSON(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb accessory structures");
-  const result = await HhdbAccessoryStructureCollection.listJSON(params);
-  log.info({ total: result.total }, "hhdb accessory structures fetched");
-  return result;
-}
-
-export async function getYardImprovementsJSON(params: HhdbListParams) {
-  log.info({ params }, "fetching hhdb yard improvements");
-  const result = await HhdbYardImprovementCollection.listJSON(params);
-  log.info({ total: result.total }, "hhdb yard improvements fetched");
+export async function getAccessoryImprovementsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb accessory improvements");
+  const result = await HhdbAccessoryImprovementCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb accessory improvements fetched");
   return result;
 }
 
@@ -471,21 +469,36 @@ export async function getProfileTextDrilldown(
 
 export async function getOutOfStateRatioByQuarter(islandCode?: string) {
   log.info({ islandCode }, "fetching out-of-state ratio by quarter");
-  const data = await HhdbDashboardCollection.getOutOfStateRatioByQuarter(islandCode);
+  const data =
+    await HhdbDashboardCollection.getOutOfStateRatioByQuarter(islandCode);
   log.info({ count: data.length }, "out-of-state ratio fetched");
   return data;
 }
 
-export async function getOutOfStateTopStates(startYear?: number, endYear?: number) {
+export async function getOutOfStateTopStates(
+  startYear?: number,
+  endYear?: number,
+) {
   log.info({ startYear, endYear }, "fetching out-of-state top states");
-  const data = await HhdbDashboardCollection.getOutOfStateTopStates(startYear, endYear);
+  const data = await HhdbDashboardCollection.getOutOfStateTopStates(
+    startYear,
+    endYear,
+  );
   log.info({ count: data.length }, "out-of-state top states fetched");
   return data;
 }
 
-export async function getOutOfStateTopZips(state?: string, startYear?: number, endYear?: number) {
+export async function getOutOfStateTopZips(
+  state?: string,
+  startYear?: number,
+  endYear?: number,
+) {
   log.info({ state, startYear, endYear }, "fetching out-of-state top zips");
-  const data = await HhdbDashboardCollection.getOutOfStateTopZips(state, startYear, endYear);
+  const data = await HhdbDashboardCollection.getOutOfStateTopZips(
+    state,
+    startYear,
+    endYear,
+  );
   log.info({ count: data.length }, "out-of-state top zips fetched");
   return data;
 }
@@ -494,15 +507,20 @@ export async function getOutOfStateTopZips(state?: string, startYear?: number, e
 
 export async function getOwnershipDistribution(islandCode?: string) {
   log.info({ islandCode }, "fetching ownership distribution");
-  const data = await HhdbDashboardCollection.getOwnershipDistribution(islandCode);
+  const data =
+    await HhdbDashboardCollection.getOwnershipDistribution(islandCode);
   log.info({ count: data.length }, "ownership distribution fetched");
   return data;
 }
 
 export async function getOwnershipLorenzCurve(islandCode?: string) {
   log.info({ islandCode }, "fetching ownership Lorenz curve");
-  const data = await HhdbDashboardCollection.getOwnershipLorenzCurve(islandCode);
-  log.info({ points: data.points.length, gini: data.gini }, "ownership Lorenz curve fetched");
+  const data =
+    await HhdbDashboardCollection.getOwnershipLorenzCurve(islandCode);
+  log.info(
+    { points: data.points.length, gini: data.gini },
+    "ownership Lorenz curve fetched",
+  );
   return data;
 }
 

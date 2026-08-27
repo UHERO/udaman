@@ -4,8 +4,7 @@ import { FunctionSquare, Server } from "lucide-react";
 const docs = [
   {
     title: "IT Infrastructure",
-    description:
-      "Shared workstations, networking, and hardware documentation.",
+    description: "Shared workstations, networking, and hardware documentation.",
     href: "/docs/it-infrastructure",
     icon: Server,
   },

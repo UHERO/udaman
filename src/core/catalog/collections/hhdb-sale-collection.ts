@@ -20,7 +20,6 @@ const SORTABLE = [
   "valid_sale",
   "date_of_recording",
   "conveyance_tax",
-  "document_type",
 ];
 
 export default class HhdbSaleCollection {

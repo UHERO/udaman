@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import type {
   CreateUniversePayload,
   UpdateUniversePayload,
@@ -13,12 +14,12 @@ import {
   renameUniverse as renameUniverseCtrl,
   updateUniverse as updateUniverseCtrl,
 } from "@catalog/controllers/universe";
+
+import { createLogger } from "@/core/observability/logger";
 import {
   enqueueUniverseArchive,
   enqueueUniversePurge,
 } from "@/core/workers/enqueue";
-
-import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.universes");
@@ -39,53 +40,81 @@ export async function getUniverseStats(name: string) {
 }
 
 export async function createUniverse(payload: CreateUniversePayload) {
-  await requirePermission("universe", "create");
+  const { userId } = await requirePermission("universe", "create");
   log.info({ name: payload.name }, "createUniverse action called");
-  const result = await createUniverseCtrl({ payload });
-  revalidatePath("/catalog");
-  log.info({ name: payload.name }, "createUniverse action completed");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await createUniverseCtrl({ payload });
+    revalidatePath("/catalog");
+    log.info({ name: payload.name }, "createUniverse action completed");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createUniverse failed");
+    AppLogCollection.logError(err, { userId, name: "universe.create" });
+    throw err;
+  }
 }
 
 export async function updateUniverse(
   name: string,
   payload: UpdateUniversePayload,
 ) {
-  await requirePermission("universe", "update");
+  const { userId } = await requirePermission("universe", "update");
   log.info({ name }, "updateUniverse action called");
-  const result = await updateUniverseCtrl({ name, payload });
-  revalidatePath("/catalog");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await updateUniverseCtrl({ name, payload });
+    revalidatePath("/catalog");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateUniverse failed");
+    AppLogCollection.logError(err, { userId, name: "universe.update" });
+    throw err;
+  }
 }
 
 export async function renameUniverse(oldName: string, newName: string) {
-  await requirePermission("universe", "update");
+  const { userId } = await requirePermission("universe", "update");
   log.info({ oldName, newName }, "renameUniverse action called");
-  const result = await renameUniverseCtrl({ oldName, newName });
-  revalidatePath("/catalog");
-  return { message: result.message, data: result.data.toJSON() };
+  try {
+    const result = await renameUniverseCtrl({ oldName, newName });
+    revalidatePath("/catalog");
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "renameUniverse failed");
+    AppLogCollection.logError(err, { userId, name: "universe.rename" });
+    throw err;
+  }
 }
 
 export async function deleteUniverse(name: string) {
-  await requirePermission("universe", "delete");
+  const { userId } = await requirePermission("universe", "delete");
   log.info({ name }, "deleteUniverse action called");
-  const result = await deleteUniverseCtrl({ name });
-  revalidatePath("/catalog");
-  log.info({ name }, "deleteUniverse action completed");
-  return { message: result.message };
+  try {
+    const result = await deleteUniverseCtrl({ name });
+    revalidatePath("/catalog");
+    log.info({ name }, "deleteUniverse action completed");
+    return { message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteUniverse failed");
+    AppLogCollection.logError(err, { userId, name: "universe.delete" });
+    throw err;
+  }
 }
 
 /** Universes that cannot be archived or purged. */
 const PROTECTED_UNIVERSES = new Set(["UHERO"]);
 
-export async function archiveUniverseAction(
-  name: string,
-  scheduledAt: string,
-) {
-  await requirePermission("universe", "delete");
+export async function archiveUniverseAction(name: string, scheduledAt: string) {
+  const { userId } = await requirePermission("universe", "delete");
 
   if (PROTECTED_UNIVERSES.has(name.toUpperCase())) {
-    return { success: false, message: `Universe ${name} is protected and cannot be archived via this action` };
+    return {
+      success: false,
+      message: `Universe ${name} is protected and cannot be archived via this action`,
+    };
   }
 
   const runAt = new Date(scheduledAt);
@@ -101,22 +130,24 @@ export async function archiveUniverseAction(
       message: `Archive for ${name} scheduled at ${runAt.toLocaleString("en-US", { timeZone: "Pacific/Honolulu" })} HST. Job ID: ${job.id}`,
     };
   } catch (error) {
-    log.error({ name, error }, "archiveUniverse enqueue failed");
+    log.error({ name, error, userId }, "archiveUniverse enqueue failed");
+    AppLogCollection.logError(error, { userId, name: "universe.archive" });
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to schedule archive",
+      message:
+        error instanceof Error ? error.message : "Failed to schedule archive",
     };
   }
 }
 
-export async function purgeUniverseAction(
-  name: string,
-  scheduledAt: string,
-) {
-  await requirePermission("universe", "delete");
+export async function purgeUniverseAction(name: string, scheduledAt: string) {
+  const { userId } = await requirePermission("universe", "delete");
 
   if (PROTECTED_UNIVERSES.has(name.toUpperCase())) {
-    return { success: false, message: `Universe ${name} is protected and cannot be deleted` };
+    return {
+      success: false,
+      message: `Universe ${name} is protected and cannot be deleted`,
+    };
   }
 
   const runAt = new Date(scheduledAt);
@@ -134,10 +165,12 @@ export async function purgeUniverseAction(
         `The job will verify a recent archive exists before proceeding.`,
     };
   } catch (error) {
-    log.error({ name, error }, "purgeUniverse enqueue failed");
+    log.error({ name, error, userId }, "purgeUniverse enqueue failed");
+    AppLogCollection.logError(error, { userId, name: "universe.purge" });
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to schedule delete",
+      message:
+        error instanceof Error ? error.message : "Failed to schedule delete",
     };
   }
 }

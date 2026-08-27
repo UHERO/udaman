@@ -2,16 +2,16 @@ import { toSnakeCase } from "@/lib/mysql/helpers";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 import {
-  HhdbYardImprovement,
-  hhdbYardImprovementRowToJSON,
-  type HhdbYardImprovementAttrs,
-} from "../models/hhdb-yard-improvement";
-import type { HhdbYardImprovementJSON } from "../models/hhdb-yard-improvement";
+  HhdbHomeExemption,
+  hhdbHomeExemptionRowToJSON,
+  type HhdbHomeExemptionAttrs,
+} from "../models/hhdb-home-exemption";
+import type { HhdbHomeExemptionJSON } from "../models/hhdb-home-exemption";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
-const SORTABLE = ["tmk", "description", "quantity", "year_built", "area"];
+const SORTABLE = ["tmk", "claimant_name", "tax_year"];
 
-export default class HhdbYardImprovementCollection {
+export default class HhdbHomeExemptionCollection {
   private static _buildQuery(params: HhdbListParams) {
     const {
       page,
@@ -28,7 +28,7 @@ export default class HhdbYardImprovementCollection {
     let where = "";
     const qp: (string | number)[] = [];
     if (search) {
-      where = "WHERE (tmk LIKE ? OR description LIKE ?)";
+      where = "WHERE (tmk LIKE ? OR claimant_name LIKE ?)";
       const term = `%${search}%`;
       qp.push(term, term);
     }
@@ -38,46 +38,46 @@ export default class HhdbYardImprovementCollection {
 
   static async list(
     params: HhdbListParams,
-  ): Promise<HhdbListResult<HhdbYardImprovement>> {
+  ): Promise<HhdbListResult<HhdbHomeExemption>> {
     const { where, qp, sortCol, sortDir, limit, offset } =
       this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
-        `SELECT COUNT(*) as cnt FROM yard_improvements ${where}`,
+        `SELECT COUNT(*) as cnt FROM home_exemptions ${where}`,
         qp,
       ),
-      rawQuery<HhdbYardImprovementAttrs>(
-        `SELECT * FROM yard_improvements ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+      rawQuery<HhdbHomeExemptionAttrs>(
+        `SELECT * FROM home_exemptions ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
       ),
     ]);
 
     return {
-      rows: rows.map((r) => new HhdbYardImprovement(r)),
+      rows: rows.map((r) => new HhdbHomeExemption(r)),
       total: Number(countResult[0].cnt),
     };
   }
 
   static async listJSON(
     params: HhdbListParams,
-  ): Promise<HhdbListResult<HhdbYardImprovementJSON>> {
+  ): Promise<HhdbListResult<HhdbHomeExemptionJSON>> {
     const { where, qp, sortCol, sortDir, limit, offset } =
       this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
-        `SELECT COUNT(*) as cnt FROM yard_improvements ${where}`,
+        `SELECT COUNT(*) as cnt FROM home_exemptions ${where}`,
         qp,
       ),
-      rawQuery<HhdbYardImprovementAttrs>(
-        `SELECT * FROM yard_improvements ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+      rawQuery<HhdbHomeExemptionAttrs>(
+        `SELECT * FROM home_exemptions ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
       ),
     ]);
 
     return {
-      rows: rows.map(hhdbYardImprovementRowToJSON),
+      rows: rows.map(hhdbHomeExemptionRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Universe } from "@catalog/types/shared";
 import { internalDecimals } from "@catalog/utils/format";
-import { format } from "date-fns";
+import { formatHst } from "@catalog/utils/time";
 import { ArrowLeft } from "lucide-react";
 
 import { getDataPointVintages, getSeriesById } from "@/actions/series-actions";
@@ -67,16 +67,16 @@ export default async function DataPointVintagesPage({
               <TableRow key={`vintage-${i}`} className={getColor(v.color)}>
                 <TableCell className="text-end font-semibold">
                   {v.value != null
-                    ? Number(v.value).toFixed(internalDecimals(metadata.s_decimals ?? 1))
+                    ? Number(v.value).toFixed(
+                        internalDecimals(metadata.s_decimals ?? 1),
+                      )
                     : "-"}
                 </TableCell>
                 <TableCell>
-                  {format(new Date(v.created_at), "MMM d, yyyy HH:mm")}
+                  {formatHst(v.created_at, "MMM d, yyyy HH:mm")}
                 </TableCell>
                 <TableCell>
-                  {v.updated_at
-                    ? format(new Date(v.updated_at), "MMM d, yyyy HH:mm")
-                    : "-"}
+                  {formatHst(v.updated_at, "MMM d, yyyy HH:mm")}
                 </TableCell>
                 <TableCell>{v.data_source_id}</TableCell>
                 <TableCell>{v.current ? "Yes" : "No"}</TableCell>

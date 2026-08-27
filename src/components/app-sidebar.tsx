@@ -10,47 +10,31 @@ import {
   AudioWaveform,
   BarChart3,
   BookOpen,
-  Building,
   Building2,
   Calendar,
   ChartNoAxesCombined,
-  Coins,
   Command,
-  CreditCard,
-  DollarSign,
-  Fence,
-  FileText,
   FunctionSquare,
   GalleryVerticalEnd,
-  Gavel,
   Globe,
-  Hammer,
-  History,
-  Home,
   House,
-  Info,
   KeyRound,
-  Landmark,
-  Layers,
   Library,
-  ListOrdered,
   LogOut,
-  MapPin,
-  PlusSquare,
-  Receipt,
+  Mail,
+  Megaphone,
+  Plus,
   ScrollText,
   Server,
   Shield,
   ToggleRight,
-  TreePine,
   Users,
-  Warehouse,
-  Wheat,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { NavHhdb } from "@/components/nav-hhdb";
 import { NavMain } from "@/components/nav-main";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -91,6 +75,11 @@ const MODE_BRANDING: Record<
     subtitle: "Housing Database",
   },
   docs: { icon: BookOpen, title: "Docs", subtitle: "Documentation" },
+  comms: {
+    icon: Megaphone,
+    title: "Comms",
+    subtitle: "Communications",
+  },
   uhu: { icon: Wrench, title: "UHU", subtitle: "UHERO Utilities" },
   "data-registry": {
     icon: Library,
@@ -121,6 +110,13 @@ const RAIL_ITEMS = [
     href: "/admin",
     match: "/admin",
     roles: ["admin", "dev"],
+  },
+  {
+    label: "Comms",
+    icon: Megaphone,
+    href: "/comms",
+    match: "/comms",
+    roles: ["internal", "admin", "dev"],
   },
   {
     label: "Docs",
@@ -155,70 +151,12 @@ const ADMIN_ICONS: Record<string, LucideIcon> = {
   "/admin/crawlers": Globe,
   "/admin/stats": BarChart3,
   "/admin/api-keys": KeyRound,
+  "/admin/messages": Mail,
 };
 
-const HHDB_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
-  { title: "About", url: "/hhdb", icon: Info },
-  { title: "Properties", url: "/hhdb/tables/properties", icon: Home },
-  { title: "Parcels", url: "/hhdb/tables/parcels", icon: MapPin },
-  { title: "Owners", url: "/hhdb/tables/owners", icon: Users },
-  { title: "Assessments", url: "/hhdb/tables/assessments", icon: DollarSign },
-  { title: "Sales", url: "/hhdb/tables/sales", icon: Landmark },
-  {
-    title: "Residential Impr.",
-    url: "/hhdb/tables/residential-improvements",
-    icon: Hammer,
-  },
-  {
-    title: "Commercial Impr.",
-    url: "/hhdb/tables/commercial-improvements",
-    icon: Hammer,
-  },
-  {
-    title: "Condo Projects",
-    url: "/hhdb/tables/condo-projects",
-    icon: Building,
-  },
-  { title: "Condo Units", url: "/hhdb/tables/condo-units", icon: Building },
-  { title: "Permits", url: "/hhdb/tables/permits", icon: FileText },
-  { title: "Appeals", url: "/hhdb/tables/appeals", icon: Gavel },
-  { title: "Dedications", url: "/hhdb/tables/dedications", icon: BookOpen },
-  {
-    title: "Land Class",
-    url: "/hhdb/tables/land-classifications",
-    icon: Layers,
-  },
-  { title: "Tax Bills", url: "/hhdb/tables/tax-bills", icon: Receipt },
-  { title: "Tax History", url: "/hhdb/tables/tax-summary", icon: History },
-  { title: "Tax Details", url: "/hhdb/tables/tax-details", icon: ListOrdered },
-  { title: "Tax Payments", url: "/hhdb/tables/tax-payments", icon: CreditCard },
-  { title: "Tax Credits", url: "/hhdb/tables/tax-credits", icon: Coins },
-  {
-    title: "Agg. Assessments",
-    url: "/hhdb/tables/ag-assessments",
-    icon: Wheat,
-  },
-  {
-    title: "Accessories",
-    url: "/hhdb/tables/accessory-structures",
-    icon: Fence,
-  },
-  {
-    title: "Commercial Details",
-    url: "/hhdb/tables/commercial-details",
-    icon: Warehouse,
-  },
-  {
-    title: "Residential Add.",
-    url: "/hhdb/tables/residential-additions",
-    icon: PlusSquare,
-  },
-  {
-    title: "Yard Impr.",
-    url: "/hhdb/tables/yard-improvements",
-    icon: TreePine,
-  },
-  { title: "Transactions", url: "/hhdb/tables/transactions", icon: ScrollText },
+const COMMS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
+  { title: "Pre-Release Forms", url: "/comms", icon: Megaphone },
+  { title: "New form", url: "/comms/pub-form/new", icon: Plus },
 ];
 
 const DOCS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
@@ -246,7 +184,7 @@ export function AppSidebar({
     universe: string;
   };
   universes?: { name: string; description: string | null }[];
-  mode?: "udaman" | "admin" | "hhdb" | "docs" | "data-registry";
+  mode?: "udaman" | "admin" | "hhdb" | "docs" | "comms" | "data-registry";
 }) {
   const params = useParams();
   const pathname = usePathname();
@@ -275,8 +213,9 @@ export function AppSidebar({
         icon: ADMIN_ICONS[child.path],
       }));
     }
-    if (mode === "hhdb") return HHDB_NAV_ITEMS;
+    if (mode === "hhdb") return []; // hhdb renders its own grouped nav (NavHhdb)
     if (mode === "docs") return DOCS_NAV_ITEMS;
+    if (mode === "comms") return COMMS_NAV_ITEMS;
     // Data Registry has no nav items — the page renders a description instead.
     if (mode === "data-registry") return [];
     return sidebarRoutes.map((entry) => ({
@@ -427,7 +366,9 @@ export function AppSidebar({
           ) : null}
         </SidebarHeader>
         <SidebarContent>
-          {mode === "data-registry" ? (
+          {mode === "hhdb" ? (
+            <NavHhdb />
+          ) : mode === "data-registry" ? (
             <div className="text-muted-foreground px-4 py-3 text-xs leading-relaxed">
               A catalog of upstream UHERO data sources
             </div>

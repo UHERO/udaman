@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { getDataDir } from "@/lib/data-dir";
 
 import SeriesCollection from "../collections/series-collection";
-import Series from "../models/series";
+import Series, { doArithmetic } from "../models/series";
 import DataFileReader from "./data-file-reader";
 import EvalParser, { EvalParseError } from "./eval-parser";
 import type { EvalArg, EvalNode } from "./eval-parser";
@@ -211,6 +211,28 @@ function loadTsdSeries(
   return { data, frequency: TSD_FREQ_MAP[match.frequency] ?? "month" };
 }
 
+/**
+ * Invoke an arithmetic method (`add`, `divide`, …) on a Series. Returns the
+ * resulting Series, or null if the method handed back something else.
+ */
+async function callArithmetic(
+  target: Series,
+  methodName: string,
+  operand: Series | number,
+): Promise<Series | null> {
+  const fn = (target as unknown as Record<string, unknown>)[methodName];
+  if (typeof fn !== "function") {
+    throw new EvalExecuteError(
+      `Series does not implement arithmetic method: ${methodName}`,
+    );
+  }
+  const result = await (fn as (o: Series | number) => unknown).call(
+    target,
+    operand,
+  );
+  return result instanceof Series ? result : null;
+}
+
 // ─── Executor ───────────────────────────────────────────────────────
 
 class EvalExecutor {
@@ -245,9 +267,7 @@ class EvalExecutor {
         // Wrap a scalar value in a Series shell — typically used as
         // the right-hand side of arithmetic and resolved by the
         // instance method itself.
-        const s = new Series({ name: `__scalar_${node.value}` });
-        s.data = new Map([["scalar", node.value]]);
-        return s;
+        return Series.scalar(node.value);
       }
 
       case "instance_method": {
@@ -319,8 +339,7 @@ class EvalExecutor {
           }
 
           // Optional 2nd arg: sheet spec for spreadsheet files
-          const sheet =
-            args[1] != null ? String(args[1]) : undefined;
+          const sheet = args[1] != null ? String(args[1]) : undefined;
           const reader = DataFileReader.fromFile(path, sheet);
 
           const dataMap = reader.series(target.name);
@@ -343,9 +362,7 @@ class EvalExecutor {
               : undefined;
           const reader = DataFileReader.fromFile(path, sheetArg ?? "sadata");
 
-          const lookupName = target.isNS
-            ? target.name
-            : target.nsSeriesName;
+          const lookupName = target.isNS ? target.name : target.nsSeriesName;
 
           const dataMap = reader.series(lookupName);
           const result = new Series({
@@ -656,7 +673,11 @@ class EvalExecutor {
           // If no explicit series given, build name from target's geo
           if (!popSeries) {
             const parsed = target.parseName();
-            const popName = Series.buildName(popPrefix, parsed.geo, parsed.freq);
+            const popName = Series.buildName(
+              popPrefix,
+              parsed.geo,
+              parsed.freq,
+            );
             try {
               popSeries = await SeriesCollection.getByName(popName);
             } catch {
@@ -1061,22 +1082,45 @@ class EvalExecutor {
           throw new EvalExecuteError(`Unknown arithmetic operator: ${node.op}`);
         }
 
-        const fn = (left as unknown as Record<string, unknown>)[methodName];
-        if (typeof fn !== "function") {
-          throw new EvalExecuteError(
-            `Series does not implement arithmetic method: ${methodName}`,
+        const leftScalar = left.scalarValue;
+        const rightScalar = right.scalarValue;
+
+        // Both sides are bare numbers (`(1 + 2)`) — fold and stay a scalar so
+        // an enclosing operation still sees a number rather than a series
+        // whose only "date" is the string "scalar".
+        if (leftScalar !== null && rightScalar !== null) {
+          const folded = doArithmetic(leftScalar, node.op, rightScalar);
+          if (folded === null) {
+            throw new EvalExecuteError(
+              `Arithmetic produced a non-finite value: ${leftScalar} ${node.op} ${rightScalar}`,
+            );
+          }
+          return Series.scalar(folded);
+        }
+
+        // Scalar on the right — pass the number straight to the method.
+        if (rightScalar !== null) {
+          const result = await callArithmetic(left, methodName, rightScalar);
+          return result ?? left;
+        }
+
+        // Scalar on the LEFT (`1000 / "X@HI.M".ts`). The wrapper's only key is
+        // "scalar", so calling the op on it directly would align against no
+        // dates and yield an empty series. Spread the constant across the right
+        // side's dates first, then apply the op normally — this keeps
+        // non-commutative operators (`-`, `/`, `**`) in the right order.
+        if (leftScalar !== null) {
+          const constSeries = new Series({ name: String(leftScalar) });
+          constSeries.data = new Map(
+            [...right.data.keys()].map((date) => [date, leftScalar]),
           );
+          constSeries.frequency = right.frequency;
+          const result = await callArithmetic(constSeries, methodName, right);
+          return result ?? constSeries;
         }
 
-        // If the right side is a scalar wrapper, pass the number directly
-        if (right.name.startsWith("__scalar_")) {
-          const scalarVal = right.data.get("scalar");
-          const result = await fn.call(left, scalarVal);
-          return result instanceof Series ? result : left;
-        }
-
-        const result = await fn.call(left, right);
-        return result instanceof Series ? result : left;
+        const result = await callArithmetic(left, methodName, right);
+        return result ?? left;
       }
     }
   }

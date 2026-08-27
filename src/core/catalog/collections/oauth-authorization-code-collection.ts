@@ -6,7 +6,7 @@
  * call won the race, `false` otherwise (prevents code replay).
  */
 
-import "server-only";
+import { toHstSql } from "@catalog/utils/time";
 
 import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { randomBase64Url, sha256Hex } from "@/lib/oauth/pkce";
@@ -47,7 +47,7 @@ class OAuthAuthorizationCodeCollection {
         payload.scope ?? "mcp",
         payload.codeChallenge,
         payload.codeChallengeMethod,
-        expiresAt,
+        toHstSql(expiresAt),
       ],
     );
 
@@ -59,7 +59,9 @@ class OAuthAuthorizationCodeCollection {
     return { code, record: new OAuthAuthorizationCode(row) };
   }
 
-  static async findByCode(code: string): Promise<OAuthAuthorizationCode | null> {
+  static async findByCode(
+    code: string,
+  ): Promise<OAuthAuthorizationCode | null> {
     const codeHash = sha256Hex(code);
     const rows = await mysql<OAuthAuthorizationCodeAttrs>`
       SELECT * FROM oauth_authorization_codes WHERE code_hash = ${codeHash} LIMIT 1

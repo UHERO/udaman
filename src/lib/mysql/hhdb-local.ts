@@ -42,10 +42,12 @@ async function localRawQuery<T = Record<string, unknown>>(
   params: (string | number | Date | null)[] = [],
 ): Promise<T[]> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return await (getConnection() as any).unsafe(sql, params);
   } catch (err) {
     if (isConnectionError(err)) {
       resetConnection();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return await (getConnection() as any).unsafe(sql, params);
     }
     throw err;
@@ -61,16 +63,22 @@ async function localInsertAndGetId(
   params: unknown[] = [],
 ): Promise<number> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const conn = getConnection() as any;
     await conn.unsafe(sql, params);
-    const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
+    const rows: { insertId: number }[] = await conn.unsafe(
+      "SELECT LAST_INSERT_ID() as insertId",
+    );
     return Number(rows[0].insertId);
   } catch (err) {
     if (isConnectionError(err)) {
       resetConnection();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const conn = getConnection() as any;
       await conn.unsafe(sql, params);
-      const rows = await conn.unsafe("SELECT LAST_INSERT_ID() as insertId");
+      const rows: { insertId: number }[] = await conn.unsafe(
+        "SELECT LAST_INSERT_ID() as insertId",
+      );
       return Number(rows[0].insertId);
     }
     throw err;

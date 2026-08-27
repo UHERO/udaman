@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbCurrentTaxBillJSON } from "@catalog/models/hhdb-current-tax-bill";
+import { formatHst, isoDate } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -19,7 +20,7 @@ const columns: ColumnDef<HhdbCurrentTaxBillJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? isoDate(v) : "";
     },
   },
   {
@@ -70,7 +71,7 @@ const columns: ColumnDef<HhdbCurrentTaxBillJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
 ];

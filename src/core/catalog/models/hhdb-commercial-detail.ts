@@ -3,16 +3,16 @@ export interface HhdbCommercialDetailAttrs {
   commercial_improvement_id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
-  card?: string | null;
+  card?: number | null;
   section?: string | null;
   floor?: string | null;
   usage?: string | null;
   area?: string | null;
-  perimeter?: string | null;
+  perimeter?: number | null;
   exterior_wall?: string | null;
-  wall_height?: string | null;
-  occupancy?: string | null;
+  wall_height?: number | null;
   construction?: string | null;
+  rank?: number | null;
   condo_style?: string | null;
   condo_type?: string | null;
   condo_unit?: string | null;
@@ -27,16 +27,16 @@ export class HhdbCommercialDetail {
   commercialImprovementId: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
-  card: string | null;
+  card: number | null;
   section: string | null;
   floor: string | null;
   usage: string | null;
   area: string | null;
-  perimeter: string | null;
+  perimeter: number | null;
   exteriorWall: string | null;
-  wallHeight: string | null;
-  occupancy: string | null;
+  wallHeight: number | null;
   construction: string | null;
+  rank: number | null;
   condoStyle: string | null;
   condoType: string | null;
   condoUnit: string | null;
@@ -53,16 +53,17 @@ export class HhdbCommercialDetail {
         : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
-    this.card = attrs.card ?? null;
+    this.card = attrs.card != null ? Number(attrs.card) : null;
     this.section = attrs.section ?? null;
     this.floor = attrs.floor ?? null;
     this.usage = attrs.usage ?? null;
     this.area = attrs.area ?? null;
-    this.perimeter = attrs.perimeter ?? null;
+    this.perimeter = attrs.perimeter != null ? Number(attrs.perimeter) : null;
     this.exteriorWall = attrs.exterior_wall ?? null;
-    this.wallHeight = attrs.wall_height ?? null;
-    this.occupancy = attrs.occupancy ?? null;
+    this.wallHeight =
+      attrs.wall_height != null ? Number(attrs.wall_height) : null;
     this.construction = attrs.construction ?? null;
+    this.rank = attrs.rank != null ? Number(attrs.rank) : null;
     this.condoStyle = attrs.condo_style ?? null;
     this.condoType = attrs.condo_type ?? null;
     this.condoUnit = attrs.condo_unit ?? null;
@@ -86,8 +87,8 @@ export class HhdbCommercialDetail {
       perimeter: this.perimeter,
       exteriorWall: this.exteriorWall,
       wallHeight: this.wallHeight,
-      occupancy: this.occupancy,
       construction: this.construction,
+      rank: this.rank,
       condoStyle: this.condoStyle,
       condoType: this.condoType,
       condoUnit: this.condoUnit,
@@ -116,16 +117,16 @@ export function hhdbCommercialDetailRowToJSON(
     scrapedAt: attrs.scraped_at
       ? new Date(attrs.scraped_at).toISOString()
       : null,
-    card: attrs.card ?? null,
+    card: attrs.card != null ? Number(attrs.card) : null,
     section: attrs.section ?? null,
     floor: attrs.floor ?? null,
     usage: attrs.usage ?? null,
     area: attrs.area ?? null,
-    perimeter: attrs.perimeter ?? null,
+    perimeter: attrs.perimeter != null ? Number(attrs.perimeter) : null,
     exteriorWall: attrs.exterior_wall ?? null,
-    wallHeight: attrs.wall_height ?? null,
-    occupancy: attrs.occupancy ?? null,
+    wallHeight: attrs.wall_height != null ? Number(attrs.wall_height) : null,
     construction: attrs.construction ?? null,
+    rank: attrs.rank != null ? Number(attrs.rank) : null,
     condoStyle: attrs.condo_style ?? null,
     condoType: attrs.condo_type ?? null,
     condoUnit: attrs.condo_unit ?? null,

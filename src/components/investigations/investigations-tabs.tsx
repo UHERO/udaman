@@ -62,9 +62,7 @@ export function InvestigationsTabs({
     visibleChildren.some(
       (child) =>
         child.path ===
-        (tab.segment
-          ? `/investigations/${tab.segment}`
-          : "/investigations"),
+        (tab.segment ? `/investigations/${tab.segment}` : "/investigations"),
     ),
   );
 

@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 export type SortDirection = "asc" | "desc" | null;
 export type SortType = "string" | "number";
 
-type CustomAccessors<T> = Record<string, (item: T) => any>;
+type CustomAccessors<T> = Record<string, (item: T) => unknown>;
 
 /*
   useSortableTable custom hook sorts each column alphabetically
@@ -37,12 +37,14 @@ export function useSortableTable<T>(
   const sortedResults = useMemo(() => {
     if (!sortColumn || !sortDirection || !sortType) return data;
 
-    const getValue = (item: T): any => {
-      const value = (item as any)?.[sortColumn];
+    const getValue = (item: T): unknown => {
+      const value = (item as Record<string, unknown>)?.[sortColumn];
 
       if (value !== undefined) return value;
 
-      const obsValue = (item as any)?.observations?.[sortColumn];
+      const obsValue = (
+        item as Record<string, Record<string, unknown> | undefined>
+      )?.observations?.[sortColumn];
       if (typeof obsValue === "string") {
         const numeric = parseFloat(obsValue.replace(/,/g, ""));
         if (!isNaN(numeric)) return numeric;

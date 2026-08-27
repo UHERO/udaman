@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { processForecastUpload } from "@catalog/controllers/forecast-upload";
 
 import { createLogger } from "@/core/observability/logger";
@@ -15,7 +16,7 @@ export async function uploadForecast(formData: FormData): Promise<{
   created?: number;
   updated?: number;
 }> {
-  await requirePermission("series", "create");
+  const { userId } = await requirePermission("series", "create");
 
   const file = formData.get("file") as File | null;
   const year = parseInt(formData.get("year") as string, 10);
@@ -71,7 +72,8 @@ export async function uploadForecast(formData: FormData): Promise<{
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "uploadForecast action failed");
+    log.error({ err: message, userId }, "uploadForecast action failed");
+    AppLogCollection.logError(err, { userId, name: "forecast-upload.upload" });
     return { success: false, message: `Upload failed: ${message}` };
   }
 }

@@ -4,19 +4,49 @@ import path from "path";
 
 import type { Page } from "playwright-core";
 
-import {
-  getHtmlPath,
-  QPUB_CONFIG,
-} from "./config";
+import { getHtmlPath, QPUB_CONFIG } from "./config";
+import { hasNoParcelRecord } from "./parse-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
 export type ScrapeResult = {
-  status: "success" | "no_data" | "captcha" | "blocked" | "error";
+  status: "success" | "no_data" | "no_record" | "captcha" | "blocked" | "error";
   tmk: string;
   htmlSaved: boolean;
   error?: string;
+  /**
+   * The scrape itself may have worked, but the HTML couldn't be written to the
+   * NAS. Nothing was kept, so the TMK has to be scraped again — and every
+   * subsequent scrape on this machine will fail the same way until the mount
+   * is fixed. Callers should stop rather than burn through claims.
+   */
+  storageFailure?: boolean;
+  /**
+   * Set only when the page is a condo master, so its unit roster can be
+   * queued. Withheld otherwise: this is a ~200 KB string and the vast
+   * majority of scrapes have nothing to discover from it.
+   */
+  condoMasterHtml?: string;
 };
+
+// ─── Storage failures ─────────────────────────────────────────────────
+
+/**
+ * Thrown when the scraped HTML can't be written to the NAS.
+ *
+ * Distinct from a scrape error so the runner can tell "this parcel failed"
+ * from "this machine can't save anything" — typically an unmounted share, where
+ * mkdir -p walks up to /Volumes and comes back EACCES.
+ */
+export class StorageError extends Error {
+  readonly path: string;
+
+  constructor(message: string, path: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "StorageError";
+    this.path = path;
+  }
+}
 
 // ─── Delay ────────────────────────────────────────────────────────────
 
@@ -105,16 +135,190 @@ export async function checkPageStatus(page: Page): Promise<PageStatus> {
 
 // ─── Save to NAS ──────────────────────────────────────────────────────
 
-/** Save HTML file to the NAS filesystem */
+/**
+ * Save HTML file to the NAS filesystem.
+ *
+ * Any failure here is raised as a StorageError: the page has already been
+ * fetched at this point, so a write that doesn't land means the request was
+ * spent for nothing and the TMK still needs scraping.
+ */
 export async function saveHtml(tmk: string, html: string): Promise<void> {
   const htmlDir = getHtmlPath(tmk);
 
-  if (!existsSync(htmlDir)) {
-    await fs.mkdir(htmlDir, { recursive: true });
+  try {
+    if (!existsSync(htmlDir)) {
+      await fs.mkdir(htmlDir, { recursive: true });
+    }
+
+    const safeName = tmk.replace(/\//g, "-");
+    await fs.writeFile(path.join(htmlDir, `${safeName}.html`), html);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new StorageError(`Cannot save HTML to ${htmlDir}: ${msg}`, htmlDir, {
+      cause: e,
+    });
+  }
+}
+
+/**
+ * Verify the NAS is mounted and writable before the runner starts working.
+ *
+ * Catches the common case — the share isn't mounted, so QPUB_CONFIG.NAS_PATH
+ * points at a directory that doesn't exist and can't be created — before we
+ * spend requests fetching pages we'd have nowhere to put.
+ */
+export async function checkStorageWritable(): Promise<{
+  ok: boolean;
+  path: string;
+  error?: string;
+}> {
+  const dir = path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.HTML_DIR);
+  const probe = path.join(dir, `.write-probe-${process.pid}`);
+
+  try {
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(probe, "");
+    await fs.unlink(probe);
+    return { ok: true, path: dir };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, path: dir, error: msg };
+  }
+}
+
+// ─── Condo master detection ──────────────────────────────────────────
+
+/**
+ * Cheap test for a condo master before paying for a full parse.
+ *
+ * Every county that publishes a unit roster renders it into a table whose id
+ * contains "gvwCondos". Checking the raw string first means only the ~2% of
+ * pages that are masters get parsed. Maui publishes no roster, so its masters
+ * correctly return false.
+ */
+export function looksLikeCondoMaster(html: string): boolean {
+  return html.includes("gvwCondos");
+}
+
+// ─── Saved-file classification ───────────────────────────────────────
+
+/**
+ * What a file sitting on the NAS actually turned out to be.
+ *
+ * "valid" covers both parcel profiles and condo-project pages — the repair
+ * pass only cares whether the scrape produced something worth keeping.
+ */
+export type SavedFileVerdict =
+  | "valid"
+  /** Fetched fine, but the county has no parcel at this TMK. */
+  | "no-record"
+  /** Fetched fine; qPublic couldn't resolve the TMK to a parcel at all. */
+  | "no-results"
+  | "cloudflare-challenge"
+  | "cloudflare-block"
+  | "captcha"
+  /** qPublic's own refusal page — not Cloudflare, and it carries no profile. */
+  | "unauthorized"
+  | "shell"
+  | "unknown";
+
+/** Marker qPublic prints in place of a report when a TMK resolves to nothing. */
+const NO_RESULTS_MARKER = "No results match your search criteria";
+
+/** Bytes of the file the verdict can be reached from. */
+export const CLASSIFY_HEAD_BYTES = 32 * 1024;
+
+/** Below this a page is too small to be a profile — see detectPageStatus. */
+export const MIN_PROFILE_BYTES = 5_000;
+
+/**
+ * Classify a saved HTML file from its two ends — never the ~200 KB between.
+ *
+ * The head settles most of it: a real qPublic profile announces itself in
+ * `<title>qPublic - <County> - Report: <parcel></title>`, within the first
+ * ~6 KB of every known-good file (condo-project pages included). At ~600k
+ * files on a network share, that is the difference between minutes and hours.
+ *
+ * `tail` is optional and decides one thing the head cannot: whether a
+ * profile-looking page is actually a TMK the county has no parcel for. Omit it
+ * and such a page classifies as "valid" — the safe direction, since retiring a
+ * real parcel is the costlier mistake.
+ *
+ * Deliberately stricter than parse.ts's detectPageStatus, which only spots a
+ * captcha via "recaptcha" + "we're sorry" and a shell via a length check — a
+ * Cloudflare "Just a moment..." interstitial is ~32 KB and has neither, so it
+ * reads as "unknown" there and gets silently skipped instead of re-scraped.
+ */
+export function classifySavedHtml(
+  head: string,
+  sizeBytes: number,
+  tail?: string,
+): SavedFileVerdict {
+  if (sizeBytes < MIN_PROFILE_BYTES) return "shell";
+
+  const lower = head.toLowerCase();
+
+  // Checked before the title: a block page has a <title> of its own.
+  if (
+    lower.includes("sorry, you have been blocked") ||
+    lower.includes("cloudflare ray id")
+  ) {
+    return "cloudflare-block";
   }
 
-  const safeName = tmk.replace(/\//g, "-");
-  await fs.writeFile(path.join(htmlDir, `${safeName}.html`), html);
+  const titleMatch = head.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = titleMatch?.[1]?.trim() ?? "";
+
+  if (title.startsWith("You are not authorized")) {
+    return "unauthorized";
+  }
+
+  if (title.includes("qPublic") && title.includes("Report:")) {
+    // A phantom parcel gets this far — same title, same shell. Only the
+    // footer notice separates it, which is why the tail is read at all.
+    return tail && hasNoParcelRecord(tail) ? "no-record" : "valid";
+  }
+
+  // Same shell, but the title loses its ": <parcel>" suffix and the report
+  // body is replaced by the search page's notice. The marker sits ~13 KB from
+  // EOF on these — inside the tail, well past the head.
+  if (title.includes("qPublic") && tail?.includes(NO_RESULTS_MARKER)) {
+    return "no-results";
+  }
+
+  if (
+    title.includes("Just a moment") ||
+    lower.includes("cf_chl") ||
+    lower.includes("challenge-platform")
+  ) {
+    return "cloudflare-challenge";
+  }
+
+  if (
+    lower.includes("g-recaptcha") ||
+    lower.includes('id="btnsubmit"') ||
+    (lower.includes("recaptcha") && lower.includes("we're sorry"))
+  ) {
+    return "captcha";
+  }
+
+  if (!lower.includes("<body")) return "shell";
+
+  return "unknown";
+}
+
+// ─── Captcha resolution check ────────────────────────────────────────
+
+/** Re-check whether a captcha page has been solved (e.g. manually by the user). */
+export async function isCaptchaResolved(page: Page): Promise<boolean> {
+  try {
+    const blocker = await checkForBlockers(page);
+    if (blocker.blocked) return false;
+    const pageResult = await checkPageStatus(page);
+    return pageResult.status === "success";
+  } catch {
+    return false;
+  }
 }
 
 // ─── Main scrape function ─────────────────────────────────────────────
@@ -157,7 +361,22 @@ export async function scrapeTmk(
       // Jitter after successful page load — simulates dwell time
       await randomDelay();
       await saveHtml(tmk, pageResult.html);
-      return { status: "success", tmk, htmlSaved: true };
+
+      // The fetch worked; the county simply has no parcel here. Saved anyway
+      // so the file stands as the record of that answer — deleting it would
+      // leave repair seeing a row with no file and re-queueing the TMK.
+      if (hasNoParcelRecord(pageResult.html)) {
+        return { status: "no_record", tmk, htmlSaved: true };
+      }
+
+      return {
+        status: "success",
+        tmk,
+        htmlSaved: true,
+        condoMasterHtml: looksLikeCondoMaster(pageResult.html)
+          ? pageResult.html
+          : undefined,
+      };
     }
 
     // Unknown / no data — still save what we got for debugging
@@ -167,6 +386,15 @@ export async function scrapeTmk(
     return { status: "no_data", tmk, htmlSaved: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    if (e instanceof StorageError) {
+      return {
+        status: "error",
+        tmk,
+        htmlSaved: false,
+        error: msg,
+        storageFailure: true,
+      };
+    }
     return { status: "error", tmk, htmlSaved: false, error: msg };
   }
 }

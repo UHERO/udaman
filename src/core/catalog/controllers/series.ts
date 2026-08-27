@@ -1,11 +1,12 @@
-import "server-only";
-
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import GeographyCollection from "@catalog/collections/geography-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
-import type { DeleteByMode, SeriesListPreset } from "@catalog/collections/series-collection";
+import type {
+  DeleteByMode,
+  SeriesListPreset,
+} from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 import EvalExecutor from "@catalog/utils/eval-executor";
 
@@ -96,10 +97,7 @@ export async function getSeriesDependents({
   logControllerCall("series", "getSeriesDependents", { name, universe });
   log.info({ name, universe }, "fetching direct dependents for series");
   const data = await SeriesCollection.getDirectDependents(name, universe);
-  log.info(
-    { name, universe, count: data.length },
-    "direct dependents fetched",
-  );
+  log.info({ name, universe, count: data.length }, "direct dependents fetched");
   return { data };
 }
 
@@ -332,7 +330,8 @@ export async function transformSeries({
   const popSeries = result.pop();
 
   // Extract series names from the eval expression (quoted: "NAME".ts / "NAME".tsn)
-  const SERIES_NAME_RE = /["']([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])["']\.tsn?/gi;
+  const SERIES_NAME_RE =
+    /["']([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])["']\.tsn?/gi;
   const seriesNames = [
     ...new Set([...evalStr.matchAll(SERIES_NAME_RE)].map((m) => m[1])),
   ];
@@ -386,6 +385,8 @@ export async function transformSeries({
     seriesLastValues,
     resultValue,
     resultDate: resultLastDate ?? null,
+    unitLabel: result.unitLabel ?? null,
+    unitShortLabel: result.unitShortLabel ?? null,
   };
 }
 
@@ -495,7 +496,10 @@ export async function getCompareSANS({
     return null;
   }
 
-  const existing = await SeriesCollection.getIdsByNames([counterpartName], universe);
+  const existing = await SeriesCollection.getIdsByNames(
+    [counterpartName],
+    universe,
+  );
   if (!(counterpartName in existing)) return null;
 
   return [name, counterpartName];

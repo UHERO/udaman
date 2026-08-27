@@ -12,7 +12,6 @@ export interface HhdbSaleAttrs {
   cert?: string | null;
   book_page?: string | null;
   conveyance_tax?: number | null;
-  document_type?: string | null;
 }
 
 export class HhdbSale {
@@ -29,7 +28,6 @@ export class HhdbSale {
   cert: string | null;
   bookPage: string | null;
   conveyanceTax: number | null;
-  documentType: string | null;
 
   constructor(attrs: HhdbSaleAttrs) {
     this.id = attrs.id ?? 0;
@@ -49,7 +47,6 @@ export class HhdbSale {
     this.bookPage = attrs.book_page ?? null;
     this.conveyanceTax =
       attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null;
-    this.documentType = attrs.document_type ?? null;
   }
 
   toJSON() {
@@ -67,7 +64,6 @@ export class HhdbSale {
       cert: this.cert,
       bookPage: this.bookPage,
       conveyanceTax: this.conveyanceTax,
-      documentType: this.documentType,
     };
   }
 }
@@ -92,6 +88,5 @@ export function hhdbSaleRowToJSON(attrs: HhdbSaleAttrs): HhdbSaleJSON {
     bookPage: attrs.book_page ?? null,
     conveyanceTax:
       attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null,
-    documentType: attrs.document_type ?? null,
   };
 }

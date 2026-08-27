@@ -26,7 +26,7 @@ const APP_DEFAULTS: Record<string, string> = {
 };
 
 /** Top-level routes that live outside /udaman/{universe} */
-const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs"];
+const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs", "/comms"];
 
 /**
  * Extract the app name from the request Host header.
@@ -39,6 +39,23 @@ function getSubdomainApp(host: string): string | null {
   if (!match) return null;
   const sub = match[1];
   return sub in SUBDOMAIN_MAP ? SUBDOMAIN_MAP[sub] : null;
+}
+
+/**
+ * Redirect an unauthenticated request to the login page, remembering where it
+ * was headed so the login form can send the user back there afterwards.
+ * `loginPath` is "/" on the udaman subdomain and "/udaman" for direct access.
+ */
+function redirectToLogin(
+  request: NextRequest,
+  loginPath: string,
+): NextResponse {
+  const { pathname, search } = request.nextUrl;
+  const url = new URL(loginPath, request.url);
+  if (pathname !== "/" && pathname !== loginPath) {
+    url.searchParams.set("callbackUrl", pathname + search);
+  }
+  return NextResponse.redirect(url);
 }
 
 function hasSessionCookie(request: NextRequest): boolean {
@@ -104,7 +121,7 @@ export async function proxy(request: NextRequest) {
     // Let NextAuth & static assets pass through untouched
     if (
       (pathname.startsWith("/api/") && app !== "api") ||
-      pathname.startsWith("/_next") || 
+      pathname.startsWith("/_next") ||
       pathname.startsWith("/.well-known")
     ) {
       return NextResponse.next();
@@ -120,13 +137,13 @@ export async function proxy(request: NextRequest) {
 
     // ── App-specific logic (udaman: auth + universe normalization) ──
     if (app === "udaman") {
-      // Top-level app routes (/admin, /hhdb, /docs) — rewrite directly
+      // Top-level app routes (/admin, /hhdb, /docs, /comms) — rewrite directly
       const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
 
       if (isTopLevel) {
         // Auth check
         if (!hasSessionCookie(request)) {
-          return NextResponse.redirect(new URL("/", request.url));
+          return redirectToLogin(request, "/");
         }
 
         // Route-level access check (pathname is already the internal path)
@@ -158,7 +175,7 @@ export async function proxy(request: NextRequest) {
         // No session — fall through to rewrite (serves login page)
       } else {
         if (!hasSessionCookie(request)) {
-          return NextResponse.redirect(new URL("/", request.url));
+          return redirectToLogin(request, "/");
         }
 
         // Normalize universe to lowercase: /UHERO/... → /uhero/...
@@ -203,7 +220,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // ── Direct access (no subdomain / localhost dev) ──────────────────
-  const protectedPrefixes = ["/udaman", "/admin", "/hhdb", "/docs"];
+  const protectedPrefixes = ["/udaman", "/admin", "/hhdb", "/docs", "/comms"];
   const isProtected = protectedPrefixes.some(
     (p) => pathname.startsWith(p) && pathname !== "/udaman",
   );
@@ -213,10 +230,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!hasSessionCookie(request)) {
-    return NextResponse.redirect(new URL("/udaman", request.url));
+    return redirectToLogin(request, "/udaman");
   }
 
-  // Top-level routes: /admin, /hhdb, /docs
+  // Top-level routes: /admin, /hhdb, /docs, /comms
   const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
   if (isTopLevel) {
     const token = await getToken({
@@ -228,9 +245,7 @@ export async function proxy(request: NextRequest) {
 
     if (!isRouteAllowed(role, userUniverse, pathname)) {
       const universe = userUniverse.toLowerCase();
-      return NextResponse.redirect(
-        new URL(`/udaman/${universe}`, request.url),
-      );
+      return NextResponse.redirect(new URL(`/udaman/${universe}`, request.url));
     }
 
     const response = NextResponse.next();

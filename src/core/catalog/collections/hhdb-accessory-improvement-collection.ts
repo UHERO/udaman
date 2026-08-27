@@ -2,23 +2,16 @@ import { toSnakeCase } from "@/lib/mysql/helpers";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 import {
-  HhdbAccessoryStructure,
-  hhdbAccessoryStructureRowToJSON,
-  type HhdbAccessoryStructureAttrs,
-} from "../models/hhdb-accessory-structure";
-import type { HhdbAccessoryStructureJSON } from "../models/hhdb-accessory-structure";
+  HhdbAccessoryImprovement,
+  hhdbAccessoryImprovementRowToJSON,
+  type HhdbAccessoryImprovementAttrs,
+} from "../models/hhdb-accessory-improvement";
+import type { HhdbAccessoryImprovementJSON } from "../models/hhdb-accessory-improvement";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
-const SORTABLE = [
-  "tmk",
-  "building_number",
-  "description",
-  "percent_complete",
-  "value",
-  "year_built",
-];
+const SORTABLE = ["tmk", "description", "quantity", "year_built", "area"];
 
-export default class HhdbAccessoryStructureCollection {
+export default class HhdbAccessoryImprovementCollection {
   private static _buildQuery(params: HhdbListParams) {
     const {
       page,
@@ -35,10 +28,9 @@ export default class HhdbAccessoryStructureCollection {
     let where = "";
     const qp: (string | number)[] = [];
     if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR building_number LIKE ? OR description LIKE ?)";
+      where = "WHERE (tmk LIKE ? OR description LIKE ?)";
       const term = `%${search}%`;
-      qp.push(term, term, term);
+      qp.push(term, term);
     }
 
     return { where, qp, sortCol, sortDir, limit, offset };
@@ -46,46 +38,46 @@ export default class HhdbAccessoryStructureCollection {
 
   static async list(
     params: HhdbListParams,
-  ): Promise<HhdbListResult<HhdbAccessoryStructure>> {
+  ): Promise<HhdbListResult<HhdbAccessoryImprovement>> {
     const { where, qp, sortCol, sortDir, limit, offset } =
       this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
-        `SELECT COUNT(*) as cnt FROM accessory_structures ${where}`,
+        `SELECT COUNT(*) as cnt FROM accessory_improvements ${where}`,
         qp,
       ),
-      rawQuery<HhdbAccessoryStructureAttrs>(
-        `SELECT * FROM accessory_structures ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+      rawQuery<HhdbAccessoryImprovementAttrs>(
+        `SELECT * FROM accessory_improvements ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
       ),
     ]);
 
     return {
-      rows: rows.map((r) => new HhdbAccessoryStructure(r)),
+      rows: rows.map((r) => new HhdbAccessoryImprovement(r)),
       total: Number(countResult[0].cnt),
     };
   }
 
   static async listJSON(
     params: HhdbListParams,
-  ): Promise<HhdbListResult<HhdbAccessoryStructureJSON>> {
+  ): Promise<HhdbListResult<HhdbAccessoryImprovementJSON>> {
     const { where, qp, sortCol, sortDir, limit, offset } =
       this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
-        `SELECT COUNT(*) as cnt FROM accessory_structures ${where}`,
+        `SELECT COUNT(*) as cnt FROM accessory_improvements ${where}`,
         qp,
       ),
-      rawQuery<HhdbAccessoryStructureAttrs>(
-        `SELECT * FROM accessory_structures ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+      rawQuery<HhdbAccessoryImprovementAttrs>(
+        `SELECT * FROM accessory_improvements ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
       ),
     ]);
 
     return {
-      rows: rows.map(hhdbAccessoryStructureRowToJSON),
+      rows: rows.map(hhdbAccessoryImprovementRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

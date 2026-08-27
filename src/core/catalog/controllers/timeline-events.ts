@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
 import TimelineEventCollection from "../collections/timeline-event-collection";
@@ -7,6 +5,7 @@ import type {
   CreateTimelineEventPayload,
   UpdateTimelineEventPayload,
 } from "../collections/timeline-event-collection";
+
 const log = createLogger("catalog.timeline-events");
 
 export async function getTimelineEvents({

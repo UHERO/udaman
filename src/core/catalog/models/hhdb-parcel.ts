@@ -17,7 +17,7 @@ export interface HhdbParcelAttrs {
   reentry_zone?: string | null;
   zone_color?: string | null;
   non_taxable_status?: string | null;
-  living_units?: string | null;
+  living_units?: number | null;
   created_at?: Date | string | null;
 }
 
@@ -40,7 +40,7 @@ export class HhdbParcel {
   reentryZone: string | null;
   zoneColor: string | null;
   nonTaxableStatus: string | null;
-  livingUnits: string | null;
+  livingUnits: number | null;
   createdAt: Date | null;
 
   constructor(attrs: HhdbParcelAttrs) {
@@ -64,7 +64,8 @@ export class HhdbParcel {
     this.reentryZone = attrs.reentry_zone ?? null;
     this.zoneColor = attrs.zone_color ?? null;
     this.nonTaxableStatus = attrs.non_taxable_status ?? null;
-    this.livingUnits = attrs.living_units ?? null;
+    this.livingUnits =
+      attrs.living_units != null ? Number(attrs.living_units) : null;
     this.createdAt = attrs.created_at ? new Date(attrs.created_at) : null;
   }
 
@@ -120,7 +121,8 @@ export function hhdbParcelRowToJSON(attrs: HhdbParcelAttrs): HhdbParcelJSON {
     reentryZone: attrs.reentry_zone ?? null,
     zoneColor: attrs.zone_color ?? null,
     nonTaxableStatus: attrs.non_taxable_status ?? null,
-    livingUnits: attrs.living_units ?? null,
+    livingUnits:
+      attrs.living_units != null ? Number(attrs.living_units) : null,
     createdAt: attrs.created_at
       ? new Date(attrs.created_at).toISOString()
       : null,

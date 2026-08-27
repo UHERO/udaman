@@ -38,9 +38,9 @@ export function OutOfStateRatioChart() {
 
   useEffect(() => {
     setData(null);
-    getHhdbOutOfStateRatio(
-      islandCode === "all" ? undefined : islandCode,
-    ).then(setData);
+    getHhdbOutOfStateRatio(islandCode === "all" ? undefined : islandCode).then(
+      setData,
+    );
   }, [islandCode]);
 
   return (

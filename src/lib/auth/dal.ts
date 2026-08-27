@@ -67,6 +67,6 @@ export async function getCurrentUserContext(): Promise<{
   return {
     role: session.user.role ?? "external",
     universe: session.user.universe ?? "UHERO",
-    userId: session.user.id ?? "user not found"
+    userId: session.user.id ?? "user not found",
   };
 }

@@ -1,5 +1,3 @@
-import "server-only";
-
 /*************************************************************************
  * INVESTIGATIONS Controller
  * For troubleshooting data issues within the app, often related to

@@ -1,8 +1,12 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { DbedtUploadCollection } from "@catalog/collections/universe-upload-collection";
 
+import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
+
+const log = createLogger("action.dbedt-upload");
 
 export async function getDbedtUploadsAction() {
   await requirePermission("upload", "read");
@@ -21,6 +25,14 @@ export async function getDbedtUploadStatusAction(id: number) {
 }
 
 export async function cancelDbedtUploadAction(id: number) {
-  await requirePermission("upload", "create");
-  await DbedtUploadCollection.updateStatus(id, "fail", "Cancelled by user");
+  const { userId } = await requirePermission("upload", "create");
+  log.info({ id }, "cancelDbedtUploadAction called");
+  try {
+    await DbedtUploadCollection.updateStatus(id, "fail", "Cancelled by user");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "cancelDbedtUploadAction failed");
+    AppLogCollection.logError(err, { userId, name: "dbedt-upload.cancel" });
+    throw err;
+  }
 }

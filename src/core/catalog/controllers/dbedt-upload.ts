@@ -24,7 +24,6 @@ import {
   prepareUpload,
   type UploadConfig,
   type UploadHandlers,
-  type UploadResult,
 } from "./universe-upload";
 
 const log = createLogger("catalog.dbedt-upload");

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { SerializedExport } from "@catalog/models/export";
+import { formatHst } from "@catalog/utils/time";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,10 +70,7 @@ export function ExportListTable({ data }: Props) {
         <p className="text-muted-foreground text-sm">
           {data.length} export{data.length !== 1 && "s"}
         </p>
-        <Button
-          className="cursor-pointer"
-          onClick={() => setCreateOpen(true)}
-        >
+        <Button className="cursor-pointer" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           New Export
         </Button>
@@ -102,7 +100,7 @@ export function ExportListTable({ data }: Props) {
                   <TableCell>{exp.seriesCount}</TableCell>
                   <TableCell>
                     {exp.updatedAt
-                      ? new Date(exp.updatedAt).toLocaleDateString()
+                      ? formatHst(exp.updatedAt, "M/d/yyyy")
                       : "-"}
                   </TableCell>
                   <TableCell>

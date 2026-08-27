@@ -204,10 +204,15 @@ export async function fetchSeries(
   }
 
   if (data.size === 0) {
-    throw new Error(`BLS API: No data returned for ${seriesId} (${start}–${end})`);
+    throw new Error(
+      `BLS API: No data returned for ${seriesId} (${start}–${end})`,
+    );
   }
 
-  log.info({ seriesId, start, end, totalPoints: data.size }, "BLS fetch complete");
+  log.info(
+    { seriesId, start, end, totalPoints: data.size },
+    "BLS fetch complete",
+  );
   return { data, url: lastUrl };
 }
 
@@ -232,7 +237,9 @@ export async function fetchSeriesBatch(
 ): Promise<BlsBatchResult> {
   if (seriesIds.length === 0) return new Map();
   if (seriesIds.length > 50) {
-    throw new Error(`fetchSeriesBatch: max 50 series per request, got ${seriesIds.length}`);
+    throw new Error(
+      `fetchSeriesBatch: max 50 series per request, got ${seriesIds.length}`,
+    );
   }
 
   const result: BlsBatchResult = new Map();

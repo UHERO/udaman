@@ -4,8 +4,8 @@ import { join } from "node:path";
 import UniverseCollection from "@catalog/collections/universe-collection";
 import type { Job } from "bullmq";
 
-import { getDataDir } from "@/lib/data-dir";
 import { createLogger } from "@/core/observability/logger";
+import { getDataDir } from "@/lib/data-dir";
 
 import type { UniversePurgeJobData } from "../queues";
 
@@ -78,7 +78,10 @@ export async function processUniversePurge(
   }
 
   job.log(`Verified recent archive: ${archivePath}`);
-  log.info({ universe, archivePath }, "Recent archive verified, proceeding with purge");
+  log.info(
+    { universe, archivePath },
+    "Recent archive verified, proceeding with purge",
+  );
 
   const { deleted, skipped } = await UniverseCollection.deleteUniverse(
     universe,

@@ -3,7 +3,12 @@ import type {
   SeasonalAdjustment,
   Universe,
 } from "../types/shared";
-import { addDaysStr, addMonthsStr, daysBetweenStr } from "../utils/time";
+import {
+  addDaysStr,
+  addMonthsStr,
+  daysBetweenStr,
+  hstToday,
+} from "../utils/time";
 
 // ─── Name parsing ────────────────────────────────────────────────────
 // Series names follow the pattern: PREFIX@GEO.FREQ
@@ -184,7 +189,7 @@ function applyAggOp(values: number[], op: AggOp): number {
 }
 
 /** Apply a single arithmetic operation. Returns null for NaN/Infinity. */
-function doArithmetic(a: number, op: string, b: number): number | null {
+export function doArithmetic(a: number, op: string, b: number): number | null {
   let result: number;
   switch (op) {
     case "+":
@@ -317,6 +322,15 @@ class Series {
   #data: Map<string, number> | null = null;
   #trimStart: Date | null = null;
   #trimEnd: Date | null = null;
+
+  /**
+   * True when this Series is a stand-in for a bare number in eval arithmetic
+   * (a numeric literal, or the result of `.average`). Its data holds a single
+   * entry under the "scalar" key rather than real dates. Never persisted, and
+   * never inherited by the result of an operation — arithmetic on a wrapper
+   * produces an ordinary dated Series.
+   */
+  isScalarWrapper = false;
 
   constructor(attrs: SeriesAttrs) {
     // series
@@ -1000,9 +1014,20 @@ class Series {
     const values = [...this.data.values()];
     const count = values.length;
     const avg = count > 0 ? values.reduce((s, v) => s + v, 0) / count : 0;
-    const s = new Series({ name: `__scalar_${avg}` });
-    s.data = new Map([["scalar", avg]]);
+    return Series.scalar(avg);
+  }
+
+  /** Wrap a bare number so it can travel through eval arithmetic. */
+  static scalar(value: number): Series {
+    const s = new Series({ name: `__scalar_${value}` });
+    s.data = new Map([["scalar", value]]);
+    s.isScalarWrapper = true;
     return s;
+  }
+
+  /** The wrapped number, or null when this is an ordinary dated Series. */
+  get scalarValue(): number | null {
+    return this.isScalarWrapper ? (this.data.get("scalar") ?? null) : null;
   }
 
   /**
@@ -1272,7 +1297,9 @@ class Series {
     }
     const myLast = this.lastObservation;
     if (!myLast) {
-      throw new Error(`extendLastFwdToMatch: ${this.name} has no data to extend`);
+      throw new Error(
+        `extendLastFwdToMatch: ${this.name} has no data to extend`,
+      );
     }
     const lastVal = this.data.get(myLast);
     if (lastVal == null) {
@@ -1994,8 +2021,27 @@ class Series {
     return s;
   }
 
-  /** Get data for the last incomplete year (current year if not finished). */
-  getLastIncompleteYear(): Series {
+  /**
+   * Get data for the last incomplete year (current year if not finished).
+   *
+   * `startDate` forces an explicit cutoff instead, bypassing both the
+   * last-observation lookup and the December guard — Rails calls this
+   * "special handling for unusual cases where we want to force a specific
+   * cutoff" (tmp/lib/series_data_adjustment.rb:72).
+   *
+   * The case it exists for: this method is normally paired with a loader
+   * that owns the complete years, so it only has to patch the ragged tail.
+   * When that other loader's source goes stale, the guard starts rejecting
+   * years nobody is filling, and for a self-referential eval like
+   * `apply_ns_growth_rate_sa` the resulting gap propagates forward — each
+   * missing period removes the anchor the next one needs. Forcing the
+   * cutoff lets the series heal past the gap.
+   */
+  getLastIncompleteYear(startDate?: string | null): Series {
+    // Explicit cutoff wins outright. End date is left to trim()'s default
+    // (trimPeriodEnd, else today), matching Rails' `trim(start_date, nil)`.
+    if (startDate) return this.trim(startDate);
+
     const lastObs = this.lastObservation;
     if (!lastObs) {
       const s = new Series({ name: `No data because no incomplete year` });
@@ -2066,12 +2112,7 @@ class Series {
             this.trimPeriodEnd.getMonth() + 1,
             this.trimPeriodEnd.getDate(),
           )
-        : null) ??
-      fmtDate(
-        new Date().getFullYear(),
-        new Date().getMonth() + 1,
-        new Date().getDate(),
-      );
+        : null) ?? hstToday();
 
     if (!start) {
       // No start date even after defaults — return data as-is

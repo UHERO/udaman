@@ -352,7 +352,7 @@ async function getNumericDrilldown(
   column: string,
 ): Promise<NumericDrilldown> {
   resolveTable(table);
-  const colInfo = await validateColumn(table, column);
+  const _colInfo = await validateColumn(table, column);
   const overview = await getOverview(table);
   const fieldRow = overview.rows.find((r) => r.columnName === column);
   const fieldCategory = fieldRow?.fieldCategory ?? "count";

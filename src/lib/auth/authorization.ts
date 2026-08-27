@@ -86,6 +86,16 @@ export function enforceAccessPolicy(
     // Otherwise fall through to general check
   }
 
+  // Approvals: any internal+ user files their own sign-off form (e.g. the
+  // pre-release form), so writes here can't require admin+ like the general
+  // rule below does. Per-record ownership — you may only edit or delete an
+  // approval you authored — is enforced in the approvals controller, since
+  // this gate has no access to the record.
+  if (resource === "approval") {
+    if (isInternalUser(role, universe)) return; // allowed
+    // Otherwise fall through to general check
+  }
+
   // Export CSV: fsonly can download CSVs
   if (resource === "export") {
     if (isFsonly(role) && action === "csv-download") return; // allowed

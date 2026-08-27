@@ -42,7 +42,7 @@ function hstLocalToIso(local: string): string {
   return new Date(local + ":00-10:00").toISOString();
 }
 
-export function UniverseActions({ name, universes }: UniverseActionsProps) {
+export function UniverseActions({ name, universes: _universes }: UniverseActionsProps) {
   const router = useRouter();
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveTime, setArchiveTime] = useState(defaultHstDatetime);
@@ -77,10 +77,7 @@ export function UniverseActions({ name, universes }: UniverseActionsProps) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const result = await purgeUniverseAction(
-        name,
-        hstLocalToIso(deleteTime),
-      );
+      const result = await purgeUniverseAction(name, hstLocalToIso(deleteTime));
       if (result.success) {
         toast.success(result.message);
         setDeleteOpen(false);
@@ -151,7 +148,10 @@ export function UniverseActions({ name, universes }: UniverseActionsProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer" disabled={isArchiving}>
+            <AlertDialogCancel
+              className="cursor-pointer"
+              disabled={isArchiving}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

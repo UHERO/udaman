@@ -1,6 +1,7 @@
 "use server";
 
 import { rawQuery } from "@database/mysql";
+
 import { requireAuth } from "@/lib/auth/dal";
 import { AuthorizationError } from "@/lib/errors";
 

@@ -39,7 +39,8 @@ function rawQuery<T = Record<string, unknown>>(
 ): Promise<T[]> {
   assertNotReadOnly(sql);
   const start = performance.now();
-  return (getConnection() as any).unsafe(sql, params).then((result: any[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (getConnection() as any).unsafe(sql, params).then((result: T[]) => {
     const durationMs = +(performance.now() - start).toFixed(2);
     log.debug({ durationMs, rows: result.length }, "dvw query");
     return result;

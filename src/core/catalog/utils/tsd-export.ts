@@ -35,7 +35,7 @@ const execAsync = promisify(exec);
 const DATA_DIR = process.env.DATA_DIR ?? "/mnt/data";
 const NAS_PATH = "udaman@128.171.200.230:/volume1/UHEROroot/work/udamandata";
 
-const FREQ_MAP: Record<string, TsdFrequency> = {
+const _FREQ_MAP: Record<string, TsdFrequency> = {
   A: "year",
   S: "semi",
   Q: "quarter",
@@ -129,7 +129,10 @@ export async function runTsdExport(): Promise<{
     const { stdout } = await execAsync(
       `rsync -rv --del ${NAS_PATH}/BnkLists/ ${inPath}`,
     );
-    log.info({ rsyncOutput: stdout.trim() }, "runTsdExport: synced BnkLists from NAS");
+    log.info(
+      { rsyncOutput: stdout.trim() },
+      "runTsdExport: synced BnkLists from NAS",
+    );
   } catch (e) {
     log.error(
       { error: e instanceof Error ? e.message : String(e) },
@@ -186,7 +189,10 @@ export async function runTsdExport(): Promise<{
       `rsync -rv ${outPath}/ ${NAS_PATH}/udaman_tsd`,
     );
     nasSynced = true;
-    log.info({ rsyncOutput: stdout.trim() }, "runTsdExport: copied output to NAS");
+    log.info(
+      { rsyncOutput: stdout.trim() },
+      "runTsdExport: copied output to NAS",
+    );
   } catch (e) {
     log.error(
       { error: e instanceof Error ? e.message : String(e) },

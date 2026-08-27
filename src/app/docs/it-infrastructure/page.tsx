@@ -105,7 +105,7 @@ export default function ITInfrastructurePage() {
                 { label: "Name", value: "Canoes" },
                 { label: "User", value: "uhero, ruser, uh-id" },
                 { label: "Pswd", value: "slack wood2@hawaii.edu" },
-                { label: "IP", value: "128.171.200.210" },
+                { label: "IP", value: "128.171.199.8" },
                 { label: "OS", value: "Linux - Ubuntu 24" },
                 { label: "Specs", value: "64GB RAM, CPU 16 core, GPU" },
               ]}

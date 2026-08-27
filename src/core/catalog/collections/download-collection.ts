@@ -5,6 +5,7 @@ import { buildUpdateObject, mysql } from "@/lib/mysql/helpers";
 
 import Download from "../models/download";
 import type { DownloadAttrs } from "../models/download";
+import { hstToday, hstToInstant, toHstSql } from "../utils/time";
 
 class DownloadCollection {
   /**
@@ -144,10 +145,10 @@ class DownloadCollection {
       mkdirSync(dirname(savePath), { recursive: true });
       await Bun.write(savePath, body);
 
-      // Update timestamps
-      const updates: Record<string, Date> = { last_download_at: now };
+      // Update timestamps (HST wall-clock, consistent with NOW())
+      const updates: Record<string, string> = { last_download_at: toHstSql(now) };
       if (dataChanged || !dl.lastChangeAt) {
-        updates.last_change_at = now;
+        updates.last_change_at = toHstSql(now);
       }
       await mysql`
         UPDATE downloads
@@ -158,7 +159,7 @@ class DownloadCollection {
     }
 
     // Create log entry (deduplicate: skip if same url+date+status already logged)
-    const today = now.toISOString().slice(0, 10);
+    const today = hstToday();
     const existingLog = await mysql<{ id: number }>`
       SELECT id FROM dsd_log_entries
       WHERE download_id = ${id}
@@ -172,7 +173,7 @@ class DownloadCollection {
       const mimetype = resp.headers.get("content-type");
       await mysql`
         INSERT INTO dsd_log_entries (download_id, time, url, location, status, dl_changed, mimetype, created_at, updated_at)
-        VALUES (${id}, ${now}, ${dl.url}, ${location}, ${status}, ${dataChanged}, ${mimetype}, ${now}, ${now})
+        VALUES (${id}, ${toHstSql(now)}, ${dl.url}, ${location}, ${status}, ${dataChanged}, ${mimetype}, ${toHstSql(now)}, ${toHstSql(now)})
       `;
     }
 
@@ -212,7 +213,8 @@ class DownloadCollection {
       const downloads = await this.findByPattern(handle);
       for (const dl of downloads) {
         if (dl.freezeFile || !dl.url) continue;
-        if (dl.lastDownloadAt && dl.lastDownloadAt > oneHourAgo) continue;
+        if (dl.lastDownloadAt && hstToInstant(dl.lastDownloadAt) > oneHourAgo)
+          continue;
         try {
           const result = await this.downloadToServer(dl.id);
           if (result.status !== 200 && !existsSync(dl.effectivePath())) {
@@ -227,7 +229,8 @@ class DownloadCollection {
     } else {
       const dl = await this.getByHandle(handle);
       if (dl.freezeFile || !dl.url) return;
-      if (dl.lastDownloadAt && dl.lastDownloadAt > oneHourAgo) return;
+      if (dl.lastDownloadAt && hstToInstant(dl.lastDownloadAt) > oneHourAgo)
+        return;
 
       let result: { status: number; changed: boolean };
       try {

@@ -1,50 +1,33 @@
 "use client";
 
-import type { HhdbAccessoryStructureJSON } from "@catalog/models/hhdb-accessory-structure";
+import type { HhdbAccessoryImprovementJSON } from "@catalog/models/hhdb-accessory-improvement";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
 
-const columns: ColumnDef<HhdbAccessoryStructureJSON, unknown>[] = [
+const columns: ColumnDef<HhdbAccessoryImprovementJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
-  { accessorKey: "buildingNumber", header: "Bldg #", enableSorting: true },
   { accessorKey: "description", header: "Description", enableSorting: true },
-  {
-    accessorKey: "dimensionsUnits",
-    header: "Dimensions/Units",
-    enableSorting: true,
-  },
-  {
-    accessorKey: "percentComplete",
-    header: "% Complete",
-    enableSorting: true,
-  },
-  {
-    accessorKey: "value",
-    header: "Value",
-    enableSorting: true,
-    cell: ({ getValue }) => {
-      const v = getValue() as number | null;
-      return v != null ? `$${v.toLocaleString()}` : "";
-    },
-  },
+  { accessorKey: "quantity", header: "Quantity", enableSorting: true },
   { accessorKey: "yearBuilt", header: "Year Built", enableSorting: true },
+  { accessorKey: "area", header: "Area", enableSorting: true },
   {
     accessorKey: "scrapedAt",
     header: "Scraped At",
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
 ];
 
 const DEFAULT_HIDDEN = ["scrapedAt"];
 
-interface AccessoryStructuresTableProps {
-  data: HhdbAccessoryStructureJSON[];
+interface AccessoryImprovementsTableProps {
+  data: HhdbAccessoryImprovementJSON[];
   total: number;
   page: number;
   limit: number;
@@ -53,7 +36,7 @@ interface AccessoryStructuresTableProps {
   order: "asc" | "desc";
 }
 
-export function AccessoryStructuresTable(props: AccessoryStructuresTableProps) {
+export function AccessoryImprovementsTable(props: AccessoryImprovementsTableProps) {
   return (
     <HhdbDataTable
       columns={columns}
@@ -65,7 +48,7 @@ export function AccessoryStructuresTable(props: AccessoryStructuresTableProps) {
       sort={props.sort}
       order={props.order}
       defaultHiddenColumns={DEFAULT_HIDDEN}
-      searchPlaceholder="Search by TMK, building #, description..."
+      searchPlaceholder="Search by TMK, description..."
     />
   );
 }

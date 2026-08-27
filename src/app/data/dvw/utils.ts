@@ -26,7 +26,6 @@ import { addAnnualObs, addQuarterObs } from "../shared/utils";
 import {
   Dimension,
   DvwModuleSeries,
-  DvwSeries,
   Module,
   ModuleDimension,
   SelectedDimension,
@@ -214,6 +213,7 @@ export const formatSeriesData = (
     serie.dimensionArr = dimensionsArr;
     serie.observations = results;
     setSeriesTableOrder(serie);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transformedSerie = { ...serie } as any;
 
     // Capitalize first letter of the current dimension key, original
@@ -468,8 +468,11 @@ function setEndMonthQ(
  ***************************************************************************************/
 
 export function resetAllDimensionStates(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dimensions: Record<string, Record<string, any>>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, Record<string, any>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reset: Record<string, Record<string, any>> = {};
 
   for (const groupKey in dimensions) {
@@ -488,9 +491,11 @@ export function resetAllDimensionStates(
 }
 
 export function flipDimensionState(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dimensions: Record<string, Record<string, any>>,
   groupKey: string,
   itemKey: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, Record<string, any>> {
   return {
     ...dimensions,

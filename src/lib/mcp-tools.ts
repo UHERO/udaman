@@ -86,7 +86,9 @@ const SOURCE = {
     "Data retrieved from the UHERO API. Cite as 'Source: UHERO (uhero.hawaii.edu)' in any chart, summary, or report.",
 } as const;
 
-function jsonResult(payload: Record<string, unknown> | unknown[] | { error: string }) {
+function jsonResult(
+  payload: Record<string, unknown> | unknown[] | { error: string },
+) {
   const withSource =
     Array.isArray(payload) || (payload && typeof payload === "object")
       ? { ...(payload as Record<string, unknown>), source: SOURCE }
@@ -106,9 +108,14 @@ function jsonResult(payload: Record<string, unknown> | unknown[] | { error: stri
  *   "Earnings Per Job (YPJ_R@HI.A, State of Hawaii, year). Source: UHERO (uhero.hawaii.edu)."
  */
 function seriesCitation(s: RawSeries): string {
-  const code = s.geography?.handle && s.frequencyShort
-    ? formatSeriesCode(stripCodeSuffix(s.name), s.geography.handle, s.frequencyShort)
-    : s.name;
+  const code =
+    s.geography?.handle && s.frequencyShort
+      ? formatSeriesCode(
+          stripCodeSuffix(s.name),
+          s.geography.handle,
+          s.frequencyShort,
+        )
+      : s.name;
   const title = s.title || stripCodeSuffix(s.name);
   const geo = s.geography?.name ?? s.geography?.handle ?? "";
   const freq = FREQUENCY_LABELS[s.frequencyShort] ?? s.frequency;
@@ -165,7 +172,7 @@ function logToolCall(ctx: ToolContext, tool: string, input: unknown) {
       userId: ctx.userId,
       userEmail: ctx.userEmail ?? null,
       input,
-    })
+    }),
   );
 }
 
@@ -179,7 +186,9 @@ function logToolCall(ctx: ToolContext, tool: string, input: unknown) {
  *   - 'restricted'  → series exists on /v1.u but not on /v1
  *   - 'not_found'   → series doesn't exist on either side
  */
-async function classifyMissingCode(code: string): Promise<"restricted" | "not_found"> {
+async function classifyMissingCode(
+  code: string,
+): Promise<"restricted" | "not_found"> {
   try {
     const found = await getSeriesByCode(code, { unrestricted: true });
     return found ? "restricted" : "not_found";
@@ -190,7 +199,10 @@ async function classifyMissingCode(code: string): Promise<"restricted" | "not_fo
   }
 }
 
-function missingCodeError(code: string, classification: "restricted" | "not_found"): string {
+function missingCodeError(
+  code: string,
+  classification: "restricted" | "not_found",
+): string {
   if (classification === "restricted") {
     return (
       `Series '${code}' exists in UHERO's restricted dataset but is not in the public API. ` +
@@ -227,7 +239,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .string()
           .min(1)
           .describe(
-            "Free-text query (e.g. 'unemployment rate Honolulu') OR a UHERO code like 'UR@HON.M'."
+            "Free-text query (e.g. 'unemployment rate Honolulu') OR a UHERO code like 'UR@HON.M'.",
           ),
         geo: z
           .string()
@@ -288,7 +300,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       } catch (err) {
         return jsonResult({ error: safeError(err) });
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -307,7 +319,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .string()
           .optional()
           .describe(
-            "Free-text group name like 'employment', 'unemployment', 'income', 'tourism'."
+            "Free-text group name like 'employment', 'unemployment', 'income', 'tourism'.",
           ),
         category_id: z
           .number()
@@ -348,7 +360,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           const needle = group.toLowerCase();
           const exact = categories.find((c) => c.name.toLowerCase() === needle);
           const partial = categories.find((c) =>
-            c.name.toLowerCase().includes(needle)
+            c.name.toLowerCase().includes(needle),
           );
           const match = exact ?? partial;
           if (!match) {
@@ -368,7 +380,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         const series = await getCategorySeries(
           resolvedId!,
           geo,
-          freq as Frequency | undefined
+          freq as Frequency | undefined,
         );
 
         return jsonResult({
@@ -383,7 +395,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       } catch (err) {
         return jsonResult({ error: safeError(err) });
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -409,12 +421,14 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .int()
           .positive()
           .optional()
-          .describe("UHERO series id (preferred when known). Ignored if unrestricted=true."),
+          .describe(
+            "UHERO series id (preferred when known). Ignored if unrestricted=true.",
+          ),
         series_code: z
           .string()
           .optional()
           .describe(
-            "UHERO code like 'UR@HON.M'. Used if series_id is not provided. Required when unrestricted=true."
+            "UHERO code like 'UR@HON.M'. Used if series_id is not provided. Required when unrestricted=true.",
           ),
         start: z
           .string()
@@ -431,7 +445,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .boolean()
           .optional()
           .describe(
-            "Use UHERO's restricted-access API for non-public series. Requires series_code. Default false."
+            "Use UHERO's restricted-access API for non-public series. Requires series_code. Default false.",
           ),
       },
     },
@@ -450,7 +464,8 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         if (unrestricted) {
           if (!series_code) {
             return jsonResult({
-              error: "unrestricted=true requires series_code (the restricted API does not support id lookup).",
+              error:
+                "unrestricted=true requires series_code (the restricted API does not support id lookup).",
             });
           }
           const parsed = parseSeriesCode(series_code);
@@ -462,7 +477,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           const t: Transform = transform ?? "lvl";
           const result = await getSeriesByCodeWithObservations(
             series_code.trim().toUpperCase(),
-            { unrestricted: true }
+            { unrestricted: true },
           );
           if (!result) {
             return jsonResult({
@@ -479,9 +494,10 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
             });
           }
           const all = normalizeObservations(result.observations);
-          const fullStart = result.series.observationStart ?? (all[0]?.date ?? "");
+          const fullStart =
+            result.series.observationStart ?? all[0]?.date ?? "";
           const fullEnd =
-            result.series.observationEnd ?? (all[all.length - 1]?.date ?? "");
+            result.series.observationEnd ?? all[all.length - 1]?.date ?? "";
           const range =
             start || end
               ? { start: start ?? fullStart, end: end ?? fullEnd }
@@ -497,9 +513,10 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
             access_note:
               `This series is from UHERO's restricted dataset and is not in the public API. ` +
               `When showing this data to the user, tell them it came from UHERO's restricted access.`,
-            note: !start && !end
-              ? `No date range provided; returned the series's full published range (${range.start}..${range.end}).`
-              : undefined,
+            note:
+              !start && !end
+                ? `No date range provided; returned the series's full published range (${range.start}..${range.end}).`
+                : undefined,
           });
         }
 
@@ -543,10 +560,9 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         // not specify dates. Fall back to the series metadata's
         // observationStart/observationEnd if present, otherwise the actual
         // span of the returned points.
-        const fullStart =
-          resolved?.observationStart ?? (all[0]?.date ?? "");
+        const fullStart = resolved?.observationStart ?? all[0]?.date ?? "";
         const fullEnd =
-          resolved?.observationEnd ?? (all[all.length - 1]?.date ?? "");
+          resolved?.observationEnd ?? all[all.length - 1]?.date ?? "";
         const range =
           start || end
             ? { start: start ?? fullStart, end: end ?? fullEnd }
@@ -556,12 +572,12 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         const note: string[] = [];
         if (!start && !end) {
           note.push(
-            `No date range provided; returned the series's full published range (${range.start}..${range.end}).`
+            `No date range provided; returned the series's full published range (${range.start}..${range.end}).`,
           );
         }
         if (trimmed.length === 0 && all.length > 0) {
           note.push(
-            "No observations fell within the requested range; consider widening the window."
+            "No observations fell within the requested range; consider widening the window.",
           );
         }
 
@@ -576,7 +592,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       } catch (err) {
         return jsonResult({ error: safeError(err) });
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -602,7 +618,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .min(2)
           .max(8)
           .describe(
-            "Array of 2-8 series codes (e.g. 'UR@HON.M') or ids. Mixing codes and ids is allowed. With unrestricted=true, only codes are allowed."
+            "Array of 2-8 series codes (e.g. 'UR@HON.M') or ids. Mixing codes and ids is allowed. With unrestricted=true, only codes are allowed.",
           ),
         start: z
           .string()
@@ -617,18 +633,25 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .boolean()
           .optional()
           .describe(
-            "Use UHERO's restricted-access API for non-public series. Requires all entries to be codes; only transform='lvl' supported. Default false."
+            "Use UHERO's restricted-access API for non-public series. Requires all entries to be codes; only transform='lvl' supported. Default false.",
           ),
       },
     },
     async ({ series, start, end, transform, unrestricted }) => {
-      logToolCall(ctx, "compare_series", { series, start, end, transform, unrestricted });
+      logToolCall(ctx, "compare_series", {
+        series,
+        start,
+        end,
+        transform,
+        unrestricted,
+      });
       try {
         const t: Transform = transform ?? "lvl";
 
         if (unrestricted && t !== "lvl") {
           return jsonResult({
-            error: "unrestricted=true only supports transform='lvl' (UHERO's restricted API doesn't return transformed observations via expand=true).",
+            error:
+              "unrestricted=true only supports transform='lvl' (UHERO's restricted API doesn't return transformed observations via expand=true).",
           });
         }
 
@@ -642,7 +665,12 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           | {
               input: string | number;
               meta?: undefined;
-              error: "not_found" | "bad_code" | "lookup_failed" | "needs_code_for_unrestricted" | "restricted";
+              error:
+                | "not_found"
+                | "bad_code"
+                | "lookup_failed"
+                | "needs_code_for_unrestricted"
+                | "restricted";
             };
 
         const resolved: Resolved[] = await Promise.all(
@@ -663,13 +691,15 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
               if (unrestricted) {
                 const result = await getSeriesByCodeWithObservations(
                   entry.trim().toUpperCase(),
-                  { unrestricted: true }
+                  { unrestricted: true },
                 );
                 if (!result) return { input: entry, error: "not_found" };
                 return {
                   input: entry,
                   meta: result.series,
-                  inlineObservations: normalizeObservations(result.observations),
+                  inlineObservations: normalizeObservations(
+                    result.observations,
+                  ),
                 };
               }
               const codeUpper = entry.trim().toUpperCase();
@@ -678,19 +708,27 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
                 const classification = await classifyMissingCode(codeUpper);
                 return {
                   input: entry,
-                  error: classification === "restricted" ? "restricted" : "not_found",
+                  error:
+                    classification === "restricted"
+                      ? "restricted"
+                      : "not_found",
                 };
               }
               return { input: entry, meta: found };
-            } catch (e) {
+            } catch {
               return { input: entry, error: "lookup_failed" };
             }
-          })
+          }),
         );
 
         const ok = resolved.filter(
-          (r): r is { input: string | number; meta: RawSeries; inlineObservations?: ObservationPoint[] } =>
-            !!r.meta
+          (
+            r,
+          ): r is {
+            input: string | number;
+            meta: RawSeries;
+            inlineObservations?: ObservationPoint[];
+          } => !!r.meta,
         );
         const failed = resolved.filter((r) => !!r.error);
         const restrictedCodes = failed
@@ -739,7 +777,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
               normalizeObservations(await getSeriesObservations(meta.id, t));
             const trimmed = clampObservations(all, range.start, range.end);
             return { meta, observations: trimmed };
-          })
+          }),
         );
 
         const dateSet = new Set<string>();
@@ -762,17 +800,17 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         const noteParts: string[] = [];
         if (!start && !end) {
           noteParts.push(
-            `No date range provided; used the widest available range across the compared series (${range.start}..${range.end}).`
+            `No date range provided; used the widest available range across the compared series (${range.start}..${range.end}).`,
           );
         }
         if (freqsArr.length > 1) {
           noteParts.push(
-            `Mixed frequencies in the comparison set (${freqsArr.join(", ")}). Aligned on union of available dates; lower-frequency series will have many nulls.`
+            `Mixed frequencies in the comparison set (${freqsArr.join(", ")}). Aligned on union of available dates; lower-frequency series will have many nulls.`,
           );
         }
         if (failed.length > 0) {
           noteParts.push(
-            `${failed.length} input(s) failed to resolve and were excluded.`
+            `${failed.length} input(s) failed to resolve and were excluded.`,
           );
         }
         if (restrictedNote) {
@@ -795,7 +833,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       } catch (err) {
         return jsonResult({ error: safeError(err) });
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -814,7 +852,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .positive()
           .optional()
           .describe(
-            "Optional: a UHERO series id whose available geographies you want listed."
+            "Optional: a UHERO series id whose available geographies you want listed.",
           ),
       },
     },
@@ -841,7 +879,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       } catch (err) {
         return jsonResult({ error: safeError(err) });
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -860,7 +898,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           label: FREQUENCY_LABELS[f],
         })),
       });
-    }
+    },
   );
 
   // Bonus: siblings is cheap and lets compare_series across counties be a single hop.
@@ -887,6 +925,6 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       } catch (err) {
         return jsonResult({ error: safeError(err) });
       }
-    }
+    },
   );
 }

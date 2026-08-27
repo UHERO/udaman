@@ -11,12 +11,12 @@ import {
   Coins,
   CreditCard,
   DollarSign,
-  Fence,
   FileText,
   Gavel,
   Hammer,
   History,
   Home,
+  House,
   Info,
   Landmark,
   Layers,
@@ -58,6 +58,7 @@ const TABS = [
   { label: "Permits", icon: FileText, segment: "permits" },
   { label: "Appeals", icon: Gavel, segment: "appeals" },
   { label: "Dedications", icon: BookOpen, segment: "dedications" },
+  { label: "Home Exemptions", icon: House, segment: "home-exemptions" },
   { label: "Land Class", icon: Layers, segment: "land-classifications" },
   { label: "Tax Bills", icon: Receipt, segment: "tax-bills" },
   { label: "Tax History", icon: History, segment: "tax-summary" },
@@ -65,7 +66,6 @@ const TABS = [
   { label: "Tax Payments", icon: CreditCard, segment: "tax-payments" },
   { label: "Tax Credits", icon: Coins, segment: "tax-credits" },
   { label: "Agg. Assessments", icon: Wheat, segment: "ag-assessments" },
-  { label: "Accessories", icon: Fence, segment: "accessory-structures" },
   {
     label: "Commercial Details",
     icon: Warehouse,
@@ -76,7 +76,11 @@ const TABS = [
     icon: PlusSquare,
     segment: "residential-additions",
   },
-  { label: "Yard Impr", icon: TreePine, segment: "yard-improvements" },
+  {
+    label: "Accessory Impr",
+    icon: TreePine,
+    segment: "accessory-improvements",
+  },
 ] as const;
 
 const SCROLL_AMOUNT = 200;

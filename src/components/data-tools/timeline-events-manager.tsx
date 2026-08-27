@@ -94,8 +94,7 @@ function EventTypeCombobox({
   // If user typed something that doesn't match any existing type, show it as a "create" option
   const normalizedSearch = search.trim().toLowerCase().replace(/\s+/g, "_");
   const showCreateOption =
-    search.trim() &&
-    !existingTypes.some((t) => t === normalizedSearch);
+    search.trim() && !existingTypes.some((t) => t === normalizedSearch);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -110,7 +109,11 @@ function EventTypeCombobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" style={{ zIndex: 60 }}>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+        style={{ zIndex: 60 }}
+      >
         <div className="p-2">
           <Input
             ref={inputRef}
@@ -126,7 +129,7 @@ function EventTypeCombobox({
               key={type}
               type="button"
               className={cn(
-                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent",
+                "hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm",
                 value === type && "bg-accent",
               )}
               onClick={() => {
@@ -150,7 +153,7 @@ function EventTypeCombobox({
           {showCreateOption && (
             <button
               type="button"
-              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              className="hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
               onClick={() => {
                 onChange(normalizedSearch);
                 setSearch("");
@@ -338,9 +341,7 @@ export function TimelineEventsManager({ events }: Props) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingId ? "Edit Event" : "Add Event"}
-            </DialogTitle>
+            <DialogTitle>{editingId ? "Edit Event" : "Add Event"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">

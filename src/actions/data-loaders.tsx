@@ -2,6 +2,7 @@
 
 import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { LoaderActionCollection } from "@catalog/collections/loader-action-collection";
+import type { DeleteByMode } from "@catalog/collections/series-collection";
 import {
   clearLoaderDataPoints as clearLoaderCtrl,
   createDataLoader as createDataLoaderCtrl,
@@ -11,7 +12,6 @@ import {
   getDataLoader as getDataLoaderCtrl,
   updateDataLoader as updateDataLoaderCtrl,
 } from "@catalog/controllers/data-loaders";
-import type { DeleteByMode } from "@catalog/collections/series-collection";
 import type { Universe } from "@catalog/types/shared";
 import type {
   CreateLoaderFormData,
@@ -20,8 +20,8 @@ import type {
 import { Queue } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
-import { enqueueSeriesReload } from "@/core/workers/enqueue";
 import { redisConnection } from "@/core/workers/connection";
+import { enqueueSeriesReload } from "@/core/workers/enqueue";
 import { requireAuth } from "@/lib/auth/dal";
 
 const log = createLogger("action.data-loaders");

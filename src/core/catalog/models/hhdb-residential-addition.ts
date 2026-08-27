@@ -2,8 +2,8 @@ export interface HhdbResidentialAdditionAttrs {
   id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
-  card?: string | null;
-  line?: string | null;
+  card?: number | null;
+  line?: number | null;
   lower?: string | null;
   first?: string | null;
   second?: string | null;
@@ -15,8 +15,8 @@ export class HhdbResidentialAddition {
   id: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
-  card: string | null;
-  line: string | null;
+  card: number | null;
+  line: number | null;
   lower: string | null;
   first: string | null;
   second: string | null;
@@ -27,8 +27,8 @@ export class HhdbResidentialAddition {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
-    this.card = attrs.card ?? null;
-    this.line = attrs.line ?? null;
+    this.card = attrs.card != null ? Number(attrs.card) : null;
+    this.line = attrs.line != null ? Number(attrs.line) : null;
     this.lower = attrs.lower ?? null;
     this.first = attrs.first ?? null;
     this.second = attrs.second ?? null;
@@ -65,8 +65,8 @@ export function hhdbResidentialAdditionRowToJSON(
     scrapedAt: attrs.scraped_at
       ? new Date(attrs.scraped_at).toISOString()
       : null,
-    card: attrs.card ?? null,
-    line: attrs.line ?? null,
+    card: attrs.card != null ? Number(attrs.card) : null,
+    line: attrs.line != null ? Number(attrs.line) : null,
     lower: attrs.lower ?? null,
     first: attrs.first ?? null,
     second: attrs.second ?? null,

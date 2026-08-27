@@ -3,6 +3,7 @@ import {
   getReloadJobs,
 } from "@catalog/controllers/investigations";
 import type { Universe } from "@catalog/types/shared";
+
 import InvestigationsPanel from "@/components/investigations-panel";
 
 export default async function InvestigationsPage({

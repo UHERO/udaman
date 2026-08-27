@@ -90,10 +90,18 @@ class CategoryCollection {
         meta, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
-        dataListId ?? null, defaultGeoId ?? null, categoryUniverse,
-        name ?? "*** NEW UNNAMED CATEGORY ***", description ?? null,
-        ancestry, listOrder, maskedValue ? 1 : 0, hidden ? 1 : 0,
-        header ? 1 : 0, defaultFreq ?? null, meta ?? null,
+        dataListId ?? null,
+        defaultGeoId ?? null,
+        categoryUniverse,
+        name ?? "*** NEW UNNAMED CATEGORY ***",
+        description ?? null,
+        ancestry,
+        listOrder,
+        maskedValue ? 1 : 0,
+        hidden ? 1 : 0,
+        header ? 1 : 0,
+        defaultFreq ?? null,
+        meta ?? null,
       ],
     );
     return this.getById(insertId);

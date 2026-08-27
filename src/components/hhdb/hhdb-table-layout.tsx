@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import type { SummaryViewType } from "@catalog/types/hhdb";
 import { getFieldsForViewType } from "@catalog/types/hhdb-data-dictionary";
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -47,7 +47,10 @@ export function HhdbTableLayout({
   // Extract field from URL: /hhdb/tables/{segment}/{view}/{field}
   const segments = pathname.split("/");
   const fieldIdx = segments.indexOf(segment);
-  const field = fieldIdx >= 0 && segments.length > fieldIdx + 3 ? segments[fieldIdx + 3] : undefined;
+  const field =
+    fieldIdx >= 0 && segments.length > fieldIdx + 3
+      ? segments[fieldIdx + 3]
+      : undefined;
   const currentField = typeof field === "string" ? field : undefined;
 
   const viewTabs = VIEW_TABS.filter(
@@ -69,7 +72,11 @@ export function HhdbTableLayout({
     ? [{ label: "Exploration", href: `${basePath}/exploration` }]
     : [];
 
-  const tabs = [{ label: "Table", href: basePath }, ...viewTabs, ...explorationTab];
+  const tabs = [
+    { label: "Table", href: basePath },
+    ...viewTabs,
+    ...explorationTab,
+  ];
 
   // All non-Table tab hrefs for checking if Table tab should be active
   const nonTableHrefs = [...viewTabs, ...explorationTab].map((t) => t.href);

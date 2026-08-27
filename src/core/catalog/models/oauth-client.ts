@@ -18,11 +18,14 @@ export type OAuthClientAttrs = {
 };
 
 function asStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+  if (Array.isArray(value))
+    return value.filter((v): v is string => typeof v === "string");
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+      return Array.isArray(parsed)
+        ? parsed.filter((v) => typeof v === "string")
+        : [];
     } catch {
       return [];
     }
@@ -50,7 +53,9 @@ class OAuthClient {
     this.responseTypes = asStringArray(attrs.response_types);
     this.tokenEndpointAuthMethod = attrs.token_endpoint_auth_method ?? "none";
     this.scope = attrs.scope ?? "mcp";
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
   }
 
   redirectUriAllowed(uri: string): boolean {
@@ -64,7 +69,9 @@ class OAuthClient {
   toRegistrationResponse() {
     return {
       client_id: this.clientId,
-      client_id_issued_at: this.createdAt ? Math.floor(this.createdAt.getTime() / 1000) : 0,
+      client_id_issued_at: this.createdAt
+        ? Math.floor(this.createdAt.getTime() / 1000)
+        : 0,
       client_name: this.clientName ?? undefined,
       redirect_uris: this.redirectUris,
       grant_types: this.grantTypes,

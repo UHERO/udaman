@@ -44,6 +44,7 @@ export function formatTimestamp(timestampSeconds: number): string {
 
   const date = new Date(timestampSeconds * 1000);
   return date.toLocaleString("en-US", {
+    timeZone: "Pacific/Honolulu",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

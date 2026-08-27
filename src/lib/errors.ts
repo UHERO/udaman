@@ -62,7 +62,8 @@ export class NotFoundError extends HttpError {
     id?: string | number,
     metadata?: Record<string, unknown>,
   ) {
-    const msg = id != null ? `${resource} not found: ${id}` : `${resource} not found`;
+    const msg =
+      id != null ? `${resource} not found: ${id}` : `${resource} not found`;
     super(msg, 404, "not_found", { resource, id, ...metadata });
   }
 }
@@ -76,7 +77,10 @@ export class ValidationError extends HttpError {
 
 /** 500 — unexpected internal failure */
 export class InternalError extends HttpError {
-  constructor(message = "Internal server error", metadata?: Record<string, unknown>) {
+  constructor(
+    message = "Internal server error",
+    metadata?: Record<string, unknown>,
+  ) {
     super(message, 500, "internal", metadata);
   }
 }
@@ -90,7 +94,10 @@ export class ExternalServiceError extends HttpError {
 
 /** 503 — service temporarily unavailable */
 export class ServiceUnavailableError extends HttpError {
-  constructor(message = "Service unavailable", metadata?: Record<string, unknown>) {
+  constructor(
+    message = "Service unavailable",
+    metadata?: Record<string, unknown>,
+  ) {
     super(message, 503, "service_unavailable", metadata);
   }
 }

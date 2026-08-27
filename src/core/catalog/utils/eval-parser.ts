@@ -491,8 +491,7 @@ class EvalParser {
         // where the series-name-looking strings are plain args, not refs.
         const isSeriesRefStart =
           (tok.type === "QUOTED_STRING" || tok.type === "STRING_ARG") &&
-          (this.peek(1)?.type === "DOT_TS" ||
-            this.peek(1)?.type === "DOT_TSN");
+          (this.peek(1)?.type === "DOT_TS" || this.peek(1)?.type === "DOT_TSN");
         // Tokens that can start an expression — parse as full expression
         // to support arithmetic in args (e.g. "A".ts + "B".ts)
         if (

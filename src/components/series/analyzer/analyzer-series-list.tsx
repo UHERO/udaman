@@ -12,7 +12,10 @@ interface AnalyzerSeriesListProps {
   selectedStatsId?: string | null;
   onSelectStats?: (id: string) => void;
   onExpressionChange: (id: string, expression: string) => void;
-  onVisibilityChange: (id: string, visibility: AnalyzerEntry["visibility"]) => void;
+  onVisibilityChange: (
+    id: string,
+    visibility: AnalyzerEntry["visibility"],
+  ) => void;
   onAxisChange: (id: string, axis: "left" | "right") => void;
   onRemove: (id: string) => void;
 }

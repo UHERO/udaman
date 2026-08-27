@@ -11,8 +11,12 @@ import type { HTMLElement } from "node-html-parser";
 
 import { getIslandCode } from "./config";
 import { normalizeProperty } from "./normalize-property";
-import { SECTION_PARSERS } from "./parse-sections";
-import { cleanText, normalizeNumericValues } from "./parse-utils";
+import { SECTION_KEY_ALIASES, SECTION_PARSERS } from "./parse-sections";
+import {
+  cleanText,
+  hasNoParcelRecord,
+  normalizeNumericValues,
+} from "./parse-utils";
 
 export interface ParsedProperty {
   tmk: string;
@@ -35,6 +39,10 @@ function detectPageStatus(html: string, root: HTMLElement): string {
     return "captcha";
   }
 
+  if (htmlLower.includes("<title>you are not authorized")) {
+    return "unauthorized";
+  }
+
   if (!root.querySelector("body") || html.length < 5000) {
     return "failed";
   }
@@ -48,16 +56,31 @@ function detectPageStatus(html: string, root: HTMLElement): string {
     return "condo_project";
   }
 
-  const strongTags = root.querySelectorAll("strong");
-  const hasParcelNumber = Array.from(strongTags).some(
-    (tag) => tag.textContent && tag.textContent.includes("Parcel Number"),
-  );
-
-  if (hasParcelNumber) {
-    return "success";
+  // A page for a TMK the county has no record of still renders the report
+  // shell and title, so nothing cheaper than the footer notice separates it.
+  // Checked ahead of the Parcel Number row because the phantom page's Parcel
+  // Information module comes back empty — no row, no label — which would
+  // otherwise land it in "unknown" and hide it among genuine parse failures.
+  if (hasNoParcelRecord(html)) {
+    return "no_record";
   }
 
-  return "unknown";
+  // qPublic answers a TMK it can't resolve at all with the search page rather
+  // than a report. Distinct from no_record: there is no parcel shell at all.
+  if (html.includes("No results match your search criteria")) {
+    return "no_results";
+  }
+
+  // Whitespace-collapsed: qPublic serves this label as "Parcel  Number" (two
+  // spaces) on a minority of Oahu pages. Matching the raw text dropped 2,318
+  // otherwise-complete profiles in the 2026-1 rebuild.
+  const hasParcelNumber = root
+    .querySelectorAll("strong")
+    .some((tag) =>
+      (tag.textContent ?? "").replace(/\s+/g, " ").includes("Parcel Number"),
+    );
+
+  return hasParcelNumber ? "success" : "unknown";
 }
 
 /**
@@ -75,7 +98,7 @@ function extractTwoColumnTable(table: HTMLElement): Record<string, string> {
       let key = cleanText(th.textContent);
       key = key.replace(/:$/, "");
 
-      let value = cleanText(td.textContent);
+      const value = cleanText(td.textContent);
 
       const link = td.querySelector("a");
       const href = link ? link.getAttribute("href") : null;
@@ -329,6 +352,40 @@ function getSectionTitle(section: HTMLElement): string | null {
 }
 
 /**
+ * Section keys that can hold a condo master's roster of units.
+ *
+ * The counties title the same table differently — Oahu and Hawaii use
+ * "Condominium/Apartment Unit Information", Kauai uses "CPR/Condo/Apt Unit
+ * Information" — and the title is what the section key is derived from. Code
+ * that only knew the first name silently found zero units on every Kauai
+ * master, despite the table being present and identically shaped.
+ *
+ * Maui publishes no unit roster on the master page at all, so no key here
+ * will match one.
+ */
+export const CONDO_UNIT_SECTIONS = [
+  "condominium_apartment_unit_information",
+  "cpr_condo_apt_unit_information",
+] as const;
+
+/** The unit rows from a parsed condo master, whichever section holds them. */
+export function condoUnitRows(
+  parsed: ParsedProperty,
+): Record<string, unknown>[] {
+  for (const key of CONDO_UNIT_SECTIONS) {
+    const section = parsed[key] as
+      | { table_data?: unknown[] }
+      | undefined
+      | null;
+    const rows = section?.table_data;
+    if (Array.isArray(rows) && rows.length > 0) {
+      return rows as Record<string, unknown>[];
+    }
+  }
+  return [];
+}
+
+/**
  * Main parsing function - extracts all data from the HTML
  */
 export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
@@ -349,8 +406,11 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
   const islandCode = getIslandCode(tmk);
 
   sections.forEach((section) => {
-    const sectionTitle = getSectionTitle(section);
-    if (!sectionTitle) return;
+    const rawTitle = getSectionTitle(section);
+    if (!rawTitle) return;
+    // Remap county-specific titles (e.g. Kauai's "Historical Payment
+    // Information") to the canonical section key consumers read.
+    const sectionTitle = SECTION_KEY_ALIASES[rawTitle] ?? rawTitle;
 
     const sectionData: Record<string, unknown> = {};
 
@@ -379,6 +439,18 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
         const kvData = extractTwoColumnTable(table);
         Object.assign(sectionData, kvData);
       } else if (isMultiRowTable(table)) {
+        // A section's sub-table is named from the table's HTML id, not from
+        // the section it sits in. That is deliberate for sales: some counties
+        // head the same table "Conveyance Information", and loadSales() reads
+        // `.sales` off either section because both ids contain "Sales".
+        //
+        // It also means the name can collide. qPublic renders Maui's Accessory
+        // Information with a control called grdSales, so those rows arrive
+        // under `sales` rather than `table_data` despite having nothing to do
+        // with sales. Measured across 301 pages, "Sales" is the only branch
+        // that collides ("AllOwners" and "Valuation" never appeared outside
+        // their own sections), and consumers should reach for rows via
+        // sectionRows() rather than assuming `table_data`.
         const tableId = table.id || "table";
         let tableName = "data";
 
@@ -406,7 +478,10 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
       const mapImg = section.querySelector('img[id*="Map"]');
       if (mapImg) {
         const src = mapImg.getAttribute("src");
-        if (src) {
+        // A page saved before the map JS settles still carries the spinner
+        // placeholder (src="/images/ajax-loader-small.gif") — that is not a
+        // map URL, so treat it as absent.
+        if (src && !src.includes("ajax-loader")) {
           sectionData.map_url = src.startsWith("http")
             ? src
             : "https://qpublic.schneidercorp.com" + src;
@@ -425,9 +500,10 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
       }
     }
 
-    // Special handling for Condominium/Apartment Unit Information section
+    // Special handling for the condo master's unit roster — under either of
+    // the county-specific section titles.
     if (
-      sectionTitle === "condominium_apartment_unit_information" &&
+      (CONDO_UNIT_SECTIONS as readonly string[]).includes(sectionTitle) &&
       sectionData.table_data
     ) {
       (sectionData.table_data as Record<string, unknown>[]).forEach((row) => {

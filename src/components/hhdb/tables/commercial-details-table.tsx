@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbCommercialDetailJSON } from "@catalog/models/hhdb-commercial-detail";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -16,8 +17,8 @@ const columns: ColumnDef<HhdbCommercialDetailJSON, unknown>[] = [
   { accessorKey: "perimeter", header: "Perimeter", enableSorting: true },
   { accessorKey: "exteriorWall", header: "Exterior Wall", enableSorting: true },
   { accessorKey: "wallHeight", header: "Wall Height", enableSorting: true },
-  { accessorKey: "occupancy", header: "Occupancy", enableSorting: true },
   { accessorKey: "construction", header: "Construction", enableSorting: true },
+  { accessorKey: "rank", header: "Rank", enableSorting: true },
   { accessorKey: "condoStyle", header: "Condo Style", enableSorting: true },
   { accessorKey: "condoType", header: "Condo Type", enableSorting: true },
   { accessorKey: "condoUnit", header: "Condo Unit", enableSorting: true },
@@ -36,7 +37,7 @@ const columns: ColumnDef<HhdbCommercialDetailJSON, unknown>[] = [
     enableSorting: true,
     cell: ({ getValue }) => {
       const v = getValue() as string | null;
-      return v ? new Date(v).toLocaleDateString() : "";
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
 ];

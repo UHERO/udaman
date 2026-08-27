@@ -3,7 +3,6 @@
 import type { HhdbListParams } from "@catalog/types/hhdb";
 
 import {
-  getHhdbAccessoryStructures,
   getHhdbAgriculturalAssessments,
   getHhdbAppeals,
   getHhdbAssessments,
@@ -17,6 +16,7 @@ import {
   getHhdbHistoricalTaxDetails,
   getHhdbHistoricalTaxPayments,
   getHhdbHistoricalTaxSummary,
+  getHhdbHomeExemptions,
   getHhdbLandClassifications,
   getHhdbOwners,
   getHhdbParcels,
@@ -25,9 +25,8 @@ import {
   getHhdbResidentialAdditions,
   getHhdbResidentialImprovements,
   getHhdbSales,
-  getHhdbYardImprovements,
+  getHhdbAccessoryImprovements,
 } from "@/actions/hhdb";
-import { AccessoryStructuresTable } from "@/components/hhdb/tables/accessory-structures-table";
 import { AgriculturalAssessmentsTable } from "@/components/hhdb/tables/agricultural-assessments-table";
 import { AppealsTable } from "@/components/hhdb/tables/appeals-table";
 import { AssessmentsTable } from "@/components/hhdb/tables/assessments-table";
@@ -42,6 +41,7 @@ import { HistoricalTaxCreditsTable } from "@/components/hhdb/tables/historical-t
 import { HistoricalTaxDetailsTable } from "@/components/hhdb/tables/historical-tax-details-table";
 import { HistoricalTaxPaymentsTable } from "@/components/hhdb/tables/historical-tax-payments-table";
 import { HistoricalTaxSummaryTable } from "@/components/hhdb/tables/historical-tax-summary-table";
+import { HomeExemptionsTable } from "@/components/hhdb/tables/home-exemptions-table";
 import { ImprovementsTable } from "@/components/hhdb/tables/improvements-table";
 import { LandClassificationsTable } from "@/components/hhdb/tables/land-classifications-table";
 import { OwnersTable } from "@/components/hhdb/tables/owners-table";
@@ -50,12 +50,12 @@ import { PermitsTable } from "@/components/hhdb/tables/permits-table";
 import { PropertiesTable } from "@/components/hhdb/tables/properties-table";
 import { ResidentialAdditionsTable } from "@/components/hhdb/tables/residential-additions-table";
 import { SalesTable } from "@/components/hhdb/tables/sales-table";
-import { YardImprovementsTable } from "@/components/hhdb/tables/yard-improvements-table";
+import { AccessoryImprovementsTable } from "@/components/hhdb/tables/accessory-improvements-table";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type ActionFn = (
   params: HhdbListParams,
-) => Promise<{ rows: any[]; total: number }>;
+) => Promise<{ rows: Record<string, unknown>[]; total: number }>;
 
 interface TableProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,6 +122,10 @@ const REGISTRY: Record<string, TableEntry> = {
     action: getHhdbDedications,
     render: (p) => <DedicationsTable {...p} />,
   },
+  "home-exemptions": {
+    action: getHhdbHomeExemptions,
+    render: (p) => <HomeExemptionsTable {...p} />,
+  },
   "land-classifications": {
     action: getHhdbLandClassifications,
     render: (p) => <LandClassificationsTable {...p} />,
@@ -150,10 +154,6 @@ const REGISTRY: Record<string, TableEntry> = {
     action: getHhdbAgriculturalAssessments,
     render: (p) => <AgriculturalAssessmentsTable {...p} />,
   },
-  "accessory-structures": {
-    action: getHhdbAccessoryStructures,
-    render: (p) => <AccessoryStructuresTable {...p} />,
-  },
   "commercial-details": {
     action: getHhdbCommercialDetails,
     render: (p) => <CommercialDetailsTable {...p} />,
@@ -162,9 +162,9 @@ const REGISTRY: Record<string, TableEntry> = {
     action: getHhdbResidentialAdditions,
     render: (p) => <ResidentialAdditionsTable {...p} />,
   },
-  "yard-improvements": {
-    action: getHhdbYardImprovements,
-    render: (p) => <YardImprovementsTable {...p} />,
+  "accessory-improvements": {
+    action: getHhdbAccessoryImprovements,
+    render: (p) => <AccessoryImprovementsTable {...p} />,
   },
 };
 

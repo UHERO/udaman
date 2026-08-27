@@ -41,6 +41,31 @@ function isConnectionError(err: unknown): boolean {
   );
 }
 
+/** First keyword of a statement, e.g. "insert" — used to label queries in logs. */
+function sqlVerb(sql: string): string {
+  return sql.trim().split(/\s+/, 1)[0].toLowerCase();
+}
+
+/**
+ * Build the log payload for a completed query.
+ *
+ * `result.length` is 0 for every non-SELECT, so it says nothing about whether
+ * a write did anything. Bun's result array carries `affectedRows` (rows the
+ * server actually changed — 0 for an UPDATE whose values already matched), so
+ * report that for writes and the row count for SELECTs.
+ */
+function queryLog(
+  sql: string,
+  result: unknown[] & { affectedRows?: number },
+  start: number,
+): Record<string, unknown> {
+  const verb = sqlVerb(sql);
+  const durationMs = +(performance.now() - start).toFixed(2);
+  return verb === "select" || verb === "show"
+    ? { verb, durationMs, rows: result.length, sql }
+    : { verb, durationMs, affectedRows: result.affectedRows ?? 0, sql };
+}
+
 /** Execute a raw SQL string with positional `?` parameters against the Hawaii Housing database. */
 async function rawQuery<T = Record<string, unknown>>(
   sql: string,
@@ -49,16 +74,14 @@ async function rawQuery<T = Record<string, unknown>>(
   const start = performance.now();
   try {
     const result = await (getConnection() as any).unsafe(sql, params);
-    const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, rows: result.length }, "hhdb query");
+    log.debug(queryLog(sql, result, start), "hhdb query");
     return result;
   } catch (err) {
     if (isConnectionError(err)) {
       log.warn("HHDB connection lost, reconnecting and retrying query");
       resetConnection();
       const result = await (getConnection() as any).unsafe(sql, params);
-      const durationMs = +(performance.now() - start).toFixed(2);
-      log.debug({ durationMs, rows: result.length }, "hhdb query (retry)");
+      log.debug(queryLog(sql, result, start), "hhdb query (retry)");
       return result;
     }
     throw err;

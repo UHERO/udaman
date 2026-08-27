@@ -176,6 +176,29 @@ export class AppLogCollection {
     return { logs, total };
   }
 
+  /**
+   * Most recent page view per user — i.e. when each user was last actually
+   * using the app. With long-lived JWT sessions a sign-in is a rare event, so
+   * this, not `users.current_sign_in_at`, is the real activity signal.
+   *
+   * Served by `idx_app_logs_user_created (user_id, created_at)`, so it's a
+   * grouped index scan with no extra writes anywhere.
+   */
+  static async getLastActiveByUser(): Promise<Map<number, Date>> {
+    const rows = await rawQuery<{
+      user_id: number;
+      last_active: Date | string;
+    }>(
+      `SELECT user_id, MAX(created_at) AS last_active
+         FROM app_logs
+        WHERE category = 'page_view' AND user_id IS NOT NULL
+        GROUP BY user_id`,
+    );
+    return new Map(
+      rows.map((r) => [Number(r.user_id), new Date(r.last_active)]),
+    );
+  }
+
   /** Get distinct category values from app_logs. */
   static async getDistinctCategories(): Promise<string[]> {
     const rows = await rawQuery(
@@ -188,9 +211,7 @@ export class AppLogCollection {
   static async getCounts(): Promise<AppLogCounts> {
     const [totalRows, levelRows, categoryRows] = await Promise.all([
       rawQuery(`SELECT COUNT(*) as total FROM app_logs`),
-      rawQuery(
-        `SELECT level, COUNT(*) as cnt FROM app_logs GROUP BY level`,
-      ),
+      rawQuery(`SELECT level, COUNT(*) as cnt FROM app_logs GROUP BY level`),
       rawQuery(
         `SELECT category, COUNT(*) as cnt FROM app_logs GROUP BY category ORDER BY cnt DESC`,
       ),

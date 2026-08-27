@@ -5,11 +5,12 @@ import type {
   SeriesMetadata,
 } from "@catalog/types/shared";
 import { numBool } from "@catalog/utils";
+import { formatHst } from "@catalog/utils/time";
 
 import { cn } from "@/lib/utils";
 
-import { AliasManager } from "../series/alias-manager";
 import { SAIndicator } from "../common";
+import { AliasManager } from "../series/alias-manager";
 import { Table, TableBody, TableCell, TableRow } from "../ui/table";
 
 type MetadataRow = {
@@ -36,8 +37,7 @@ export function MetaDataTable({
   isDev?: boolean;
 }) {
   // Build universe list: current series + aliases, bold the primary
-  const currentIsPrimary =
-    metadata.s_id === metadata.xs_primary_series_id;
+  const currentIsPrimary = metadata.s_id === metadata.xs_primary_series_id;
   const universeEntries: { name: string; isPrimary: boolean }[] = [
     { name: metadata.s_universe, isPrimary: currentIsPrimary },
     ...metadata.aliases.map((a) => ({
@@ -64,9 +64,7 @@ export function MetaDataTable({
           {uniqueUniverses.map((u, i) => (
             <span key={u.name}>
               {i > 0 && ", "}
-              <span className={u.isPrimary ? "font-bold" : ""}>
-                {u.name}
-              </span>
+              <span className={u.isPrimary ? "font-bold" : ""}>{u.name}</span>
             </span>
           ))}
         </span>
@@ -129,15 +127,11 @@ export function MetaDataTable({
     },
     {
       name: "Created at",
-      value: metadata.s_created_at
-        ? new Date(metadata.s_created_at).toDateString()
-        : "-",
+      value: formatHst(metadata.s_created_at, "EEE MMM dd yyyy"),
     },
     {
       name: "Updated at",
-      value: metadata.s_updated_at
-        ? new Date(metadata.s_updated_at).toDateString()
-        : "-",
+      value: formatHst(metadata.s_updated_at, "EEE MMM dd yyyy"),
     },
     ...(isDev ? [{ name: "XID (devs only)", value: metadata.xs_id }] : []),
     { name: "Internal ID", value: metadata.s_id },

@@ -5,7 +5,7 @@
  * `revokeByUser(userId)` bulk-sets `revoked_at` for emergency lockout.
  */
 
-import "server-only";
+import { toHstSql } from "@catalog/utils/time";
 
 import { insertAndGetId, mysql } from "@/lib/mysql/db";
 import { randomBase64Url, sha256Hex } from "@/lib/oauth/pkce";
@@ -41,7 +41,7 @@ class OAuthAccessTokenCollection {
         payload.userId,
         payload.userEmail,
         payload.scope ?? "mcp",
-        expiresAt,
+        toHstSql(expiresAt),
       ],
     );
 

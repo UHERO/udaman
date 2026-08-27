@@ -57,7 +57,7 @@ export async function SurfWidget() {
   const hawaiianFt = faceFt * HAWAIIAN_SCALE;
   const lo = Math.floor(hawaiianFt);
   const hi = Math.ceil(hawaiianFt + 0.5);
-  const waterTempF = ((factors.waterTemp * 9) / 5 + 32).toFixed(0);
+  const _waterTempF = ((factors.waterTemp * 9) / 5 + 32).toFixed(0);
 
   return (
     <div className="absolute right-6 bottom-6 z-10 w-56 rounded-xl border border-white/20 bg-black/30 p-4 text-white backdrop-blur-md">

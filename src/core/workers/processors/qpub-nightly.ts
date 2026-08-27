@@ -15,6 +15,9 @@ type StatusRow = {
 
 // ─── Repair phase ──────────────────────────────────────────────────────
 
+/** Mirrors CLAIM_TIMEOUT_MINUTES in scrape-runner.ts (worker-only module). */
+const CLAIM_TIMEOUT_MINUTES = 5;
+
 /**
  * Fix inconsistent scrape_status records before parsing:
  *
@@ -26,17 +29,28 @@ type StatusRow = {
  *    re-enter the pipeline.
  */
 async function repairStatusRecords(): Promise<void> {
-  // 1. Orphaned pending scrapes → failed
+  // 1. Orphaned pending scrapes → failed.
+  //
+  //    Only rows untouched for longer than the runner's claim timeout: a row
+  //    claimed seconds ago is 'pending' because a scraper is working on it
+  //    right now, and stealing it mid-batch would have two machines fetching
+  //    the same TMK and the result recorded as a failure either way.
   const [orphaned] = await rawQuery<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM scrape_status WHERE scrape_status = 'pending'`,
+    `SELECT COUNT(*) AS cnt FROM scrape_status
+     WHERE scrape_status = 'pending'
+       AND updated_at < NOW() - INTERVAL ${CLAIM_TIMEOUT_MINUTES} MINUTE`,
   );
   if (Number(orphaned?.cnt ?? 0) > 0) {
     await rawQuery(
       `UPDATE scrape_status
        SET scrape_status = 'failed', error = 'orphaned pending record'
-       WHERE scrape_status = 'pending'`,
+       WHERE scrape_status = 'pending'
+         AND updated_at < NOW() - INTERVAL ${CLAIM_TIMEOUT_MINUTES} MINUTE`,
     );
-    log.info({ count: Number(orphaned.cnt) }, "Repair: marked orphaned pending scrapes as failed");
+    log.info(
+      { count: Number(orphaned.cnt) },
+      "Repair: marked orphaned pending scrapes as failed",
+    );
   }
 
   // 2. Re-scraped but not re-parsed → reset parse+load to pending
@@ -56,7 +70,10 @@ async function repairStatusRecords(): Promise<void> {
          AND scraped_at > parsed_at
          AND parse_status = 'success'`,
     );
-    log.info({ count: Number(stale.cnt) }, "Repair: reset re-scraped records to pending parse+load");
+    log.info(
+      { count: Number(stale.cnt) },
+      "Repair: reset re-scraped records to pending parse+load",
+    );
   }
 }
 
@@ -74,11 +91,17 @@ export async function processNightly(): Promise<string> {
 
   // Query TMKs needing work: scrape succeeded but parse or load still pending/failed
   const rows = await rawQuery<StatusRow>(
-    `SELECT s.tmk, p.island_code, s.parse_status
+    // island_code from the TMK, not a join on properties — see claimItems().
+    // That table is recreated from parsed HTML on every sync, so joining it
+    // here would strand exactly the rows that most need reprocessing: the ones
+    // whose properties row went missing. Loading recreates it, so letting them
+    // through is what heals them.
+    `SELECT s.tmk, LEFT(s.tmk, 1) AS island_code, s.parse_status
      FROM scrape_status s
-     JOIN properties p ON s.tmk = p.tmk
      WHERE s.scrape_status = 'success'
-       AND (s.parse_status IN ('pending','failed') OR s.load_status IN ('pending','failed'))`,
+       AND (s.parse_status IN ('pending','failed') OR s.load_status IN ('pending','failed'))
+       -- No parcel to parse; these would fail every night forever
+       AND (s.no_results IS NULL OR s.no_results = 0)`,
   );
 
   // Build a tmk → island_code map for processParse
@@ -101,10 +124,7 @@ export async function processNightly(): Promise<string> {
       // Parse if needed
       if (parseStatus !== "success") {
         try {
-          await processParse(
-            { tmk, island },
-            (msg) => log.info(msg),
-          );
+          await processParse({ tmk, island }, (msg) => log.info(msg));
         } catch (e) {
           // Parse failed — can't load, propagate error
           throw new Error(`Parse failed: ${errorMessage(e)}`);
@@ -112,11 +132,9 @@ export async function processNightly(): Promise<string> {
       }
 
       // Load with skipStatusUpdate — pipeline handles batch status updates
-      await processLoad(
-        { tmk },
-        (msg) => log.debug(msg),
-        { skipStatusUpdate: true },
-      );
+      await processLoad({ tmk }, (msg) => log.debug(msg), {
+        skipStatusUpdate: true,
+      });
 
       return "done";
     },

@@ -318,7 +318,7 @@ export function ForecastSnapshotDataTable({
                         key={filteredDates[idx]}
                         className="text-muted-foreground px-3 pb-1 text-right font-mono text-xs whitespace-nowrap"
                       >
-                        {formatPct(pct)}
+                        {pct != null ? formatPct(pct) : "–"}
                       </td>
                     ))}
                   </tr>

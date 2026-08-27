@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 
 import UniverseCollection from "../collections/universe-collection";
@@ -77,4 +75,3 @@ export async function deleteUniverse({ name }: { name: string }) {
   log.info({ name }, "universe deleted");
   return { message: `Universe ${name} deleted` };
 }
-

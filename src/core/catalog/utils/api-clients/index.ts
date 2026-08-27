@@ -166,5 +166,3 @@ export function grokDate(param: string, otherStr?: string): string {
   throw new Error(`grokDate: ungrokkable date format: '${str}'`);
 }
 
-/** BEA suppression value — marks non-existent data points */
-export const BEA_SUPPRESSED_VALUE = 1.0e15;

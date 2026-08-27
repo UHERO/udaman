@@ -7,11 +7,11 @@ import { Plus } from "lucide-react";
 import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { ClipboardButtons } from "@/components/series/clipboard-buttons";
-import { SeriesListTable } from "@/components/series/series-list-table";
 import {
   PRESET_LABELS,
   SeriesListPresetSelect,
 } from "@/components/series/series-list-preset-select";
+import { SeriesListTable } from "@/components/series/series-list-table";
 import { Button } from "@/components/ui/button";
 import { isDbedt, isFsonly } from "@/lib/auth/authorization";
 import { getCurrentUserContext } from "@/lib/auth/dal";
@@ -66,6 +66,14 @@ export default async function Page({
 
   const count = data.length ?? 0;
   const isSearch = Boolean(q);
+
+  // A search that resolves to exactly one series jumps straight to the
+  // Analyzer with that series loaded.
+  if (isSearch && count === 1 && data[0].name) {
+    redirect(
+      `/udaman/${universe}/analyze?exprs=${encodeURIComponent(`"${data[0].name}".ts`)}`,
+    );
+  }
 
   return (
     <>

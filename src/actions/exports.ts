@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import {
   addSeriesToExport,
   createExport,
@@ -16,7 +17,6 @@ import {
   updateExport,
 } from "@catalog/controllers/exports";
 
-import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -80,7 +80,10 @@ export async function addSeriesToExportAction(
   try {
     await addSeriesToExport({ exportId, seriesId });
     revalidatePath("/udaman", "layout");
-    log.info({ exportId, seriesId, userId }, "addSeriesToExportAction completed");
+    log.info(
+      { exportId, seriesId, userId },
+      "addSeriesToExportAction completed",
+    );
     return { success: true, message: "Series added to export" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -99,7 +102,10 @@ export async function removeSeriesFromExportAction(
   try {
     await removeSeriesFromExport({ exportId, seriesId });
     revalidatePath("/udaman", "layout");
-    log.info({ exportId, seriesId, userId }, "removeSeriesFromExportAction completed");
+    log.info(
+      { exportId, seriesId, userId },
+      "removeSeriesFromExportAction completed",
+    );
     return { success: true, message: "Series removed from export" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

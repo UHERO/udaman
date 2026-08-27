@@ -151,16 +151,22 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description: "Number of residential living units on the parcel.",
       summary: ALL_VIEWS,
       format: "number",
+      source_notes: "Kauai only.",
     },
     {
       key: "map_url",
       label: "Map URL",
       description: "Link to the county GIS map viewer for this parcel.",
+      source_notes:
+        "Not published by Maui — Maui pages have no Map section, only a View Map link.",
     },
     {
       key: "sketch_url",
       label: "Sketch URL",
-      description: "Link to the assessor's building sketch or floor plan.",
+      description:
+        "Link to the assessor's building sketch. Deliberately not captured: the source renders sketches (all islands) but only as expiring Azure SAS URLs that go dead within days of the scrape, so this stays NULL. If ever captured, store all sketch URLs joined in this one column.",
+      disabled: true,
+      disabledReason: "Not parsed — source URLs expire shortly after scrape.",
     },
     {
       key: "zip",
@@ -209,6 +215,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description: "Assessor's valuation of the land component.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        "Published by Oahu, Maui, and Big Island. Kauai publishes totals only.",
     },
     {
       key: "assessed_building_value",
@@ -216,6 +224,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description: "Assessor's valuation of buildings and improvements.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        "Published by Oahu, Maui, and Big Island. Kauai publishes totals only. Maui's column is headed simply \"Building Value\" (no qualifier); it is the assessed figure — Maui publishes no market building column (only Big Island has market_building_value).",
     },
     {
       key: "dedicated_use_value",
@@ -224,6 +234,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Value attributed to dedicated land use (e.g. agricultural dedication).",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes: "Published by Oahu and Big Island only.",
     },
     {
       key: "land_exemption",
@@ -232,6 +243,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Exemption amount applied to land value (homeowner, disabled veteran, etc.).",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
     },
     {
       key: "building_exemption",
@@ -239,6 +252,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description: "Exemption amount applied to building value.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
     },
     {
       key: "net_taxable_land_value",
@@ -246,6 +261,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description: "Land value remaining after exemptions are applied.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
     },
     {
       key: "net_taxable_building_value",
@@ -253,6 +270,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description: "Building value remaining after exemptions are applied.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
     },
     {
       key: "total_property_assessed_value",
@@ -261,6 +280,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Sum of assessed land and building values before exemptions.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        'Published by all four counties (label varies: "Total Assessed Value" on Maui/Big Island).',
     },
     {
       key: "total_property_exemption",
@@ -269,6 +290,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Total dollar amount of all exemptions applied to the property.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        'Published by all four counties (label varies: "Total Exemption Value" on Maui/Big Island).',
     },
     {
       key: "total_net_taxable_value",
@@ -277,6 +300,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Total assessed value minus exemptions — the value taxes are computed on.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes:
+        'Published by all four counties (label varies: "Total Taxable Value" on Big Island).',
     },
     {
       key: "agricultural_land_value",
@@ -285,6 +310,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Land value computed under agricultural-use valuation rules.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes: "Published by Maui only.",
     },
     {
       key: "market_land_value",
@@ -293,6 +319,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Full market value of the land without agricultural or dedicated-use adjustments.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes: "Published by Maui and Big Island.",
     },
     {
       key: "market_building_value",
@@ -300,6 +327,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       description: "Full market value of buildings and improvements.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes: "Published by Big Island only.",
     },
     {
       key: "total_market_value",
@@ -308,6 +336,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Combined market value of land and buildings at full market rates.",
       summary: ALL_VIEWS,
       format: "dollar",
+      source_notes: "Published by Big Island and Kauai.",
     },
   ],
 
@@ -347,14 +376,15 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "instrument_description",
       label: "Instrument Description",
-      description: "Descriptive text for the instrument type.",
+      description:
+        "Descriptive text for the recorded document (e.g. Warranty Deed). Honolulu/Big Island head the column \"Instrument Description\"; Maui/Kauai head the same concept \"Document Type\" — one column. Big Island renders both headers; when both are filled they agree, and the first non-empty cell wins.",
       summary: ALL_VIEWS,
     },
     {
       key: "valid_sale",
       label: "Valid Sale",
       description:
-        "Flag indicating whether the sale is considered arm's-length and usable for valuation.",
+        "Flag indicating whether the sale is considered arm's-length and usable for valuation. Honolulu publishes a bare flag; Maui's column is \"Valid Sale or Other Reason\" and conflates the flag with a rejection reason (e.g. \"Leasehold unadj\"). Not published by Big Island or Kauai.",
       summary: ALL_VIEWS,
     },
     {
@@ -386,15 +416,10 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "conveyance_tax",
       label: "Conveyance Tax",
-      description: "State conveyance tax paid on the transaction.",
+      description:
+        "State conveyance tax paid on the transaction. Published by Big Island and Kauai only.",
       summary: ALL_VIEWS,
       format: "dollar",
-    },
-    {
-      key: "document_type",
-      label: "Document Type",
-      description: "Classification of the recorded document.",
-      summary: ALL_VIEWS,
     },
   ],
 
@@ -411,6 +436,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Building #",
       description: "Identifies which building on the parcel (1, 2, etc.).",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "year_built",
@@ -514,13 +540,24 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Total Room Count",
       description: "Total number of rooms in the dwelling.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "condo_style",
       label: "Condo Style",
       description:
-        "Condominium architectural style classification, if applicable.",
+        "Building form of the condo project (e.g. Highrise, Walk-Up).",
       summary: ALL_VIEWS,
+      source_notes: "Oahu only.",
+    },
+    {
+      key: "condo_type",
+      label: "Condo Type",
+      description:
+        "Position of the unit within the floor (e.g. Corner). Distinct variable from condo_style.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui only, from Improvement Information 'Condo Type'. Maui's Unit Number field is deliberately not stored — the unit designation already appears in the parcel's Location Address.",
     },
     {
       key: "condo_view",
@@ -534,12 +571,15 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Floor Level",
       description: "Floor level of the unit within a multi-story building.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "parking_spaces",
       label: "Parking Spaces",
-      description: "Number of assigned parking spaces.",
+      description:
+        "Number of assigned parking spaces. Fractional values occur (e.g. 1.75).",
       summary: ALL_VIEWS,
+      format: "number",
     },
   ],
 
@@ -562,6 +602,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Building Card",
       description: "Card number for assessor records.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "year_built",
@@ -580,7 +621,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "improvement_name",
       label: "Improvement Name",
-      description: "Descriptive name of the commercial improvement.",
+      description:
+        "Name of the commercial building (e.g. GRAND WAILEA, CENTURY SQUARE). Honolulu/Big Island label this \"Improvement Name\"; Maui/Kauai label the same concept \"Building Type\" and their values are copied here (building_type also keeps them verbatim).",
       summary: ALL_VIEWS,
     },
     {
@@ -592,7 +634,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "structure_type",
       label: "Structure Type",
-      description: "Structural classification of the building.",
+      description:
+        "Structure class code (e.g. WAREHOUSE MET/MAS/AVG, 232-COMM C-2). Honolulu/Big Island label this \"Structure Type\"; Kauai labels the same code column \"Structure\". Not published by Maui.",
       summary: ALL_VIEWS,
     },
     {
@@ -607,6 +650,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Identical Units",
       description: "Number of identical units used for mass appraisal.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "gross_building_description",
@@ -637,8 +681,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "structure",
       label: "Structure",
-      description: "Structural system description.",
+      description:
+        "Unused — written by nothing. Kauai's bare \"Structure\" header carries the same class-code vocabulary as Oahu's \"Structure Type\" and maps to structure_type. Retained pending confirmation nothing external reads it.",
       summary: ALL_VIEWS,
+      disabled: true,
+      disabledReason:
+        "No parser writes this column — Kauai's Structure label maps to structure_type.",
     },
     {
       key: "value",
@@ -970,6 +1018,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Living Units",
       description: "Number of residential living units.",
       summary: ALL_VIEWS,
+      format: "number",
+      source_notes: "Kauai only.",
     },
   ],
 
@@ -1067,6 +1117,9 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Taxpayer Opinion Class",
       description: "Property class the taxpayer believes is correct.",
       summary: ALL_VIEWS,
+      format: "number",
+      source_notes:
+        "Maui only. Numeric class code, stored verbatim: 0=Time Share, 1=Non-Owner-Occupied, 2=Apartment, 3=Commercial, 4=Industrial, 5=Agricultural, 7=Hotel/Resort, 9=Owner-Occupied, 10=Commercialized Residential, 11=TVR-STRH, 12=Long-Term Rental (6 and 8 unobserved). Mapping derived empirically by correlating appeals against same-year assessed property_class; the taxpayer's opinion class can legitimately differ from the assessed class.",
     },
     {
       key: "tax_payer_opinion_of_exemptions",
@@ -1100,6 +1153,33 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     },
   ],
 
+  // ── Home Exemptions ─────────────────────────────────────────────────────
+  home_exemptions: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key of the parcel the exemption claim is filed on.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "claimant_name",
+      label: "Claimant",
+      description:
+        "Homestead (owner-occupant) exemption claimant, as printed by the county. Multiple claimants on one parcel and year are co-owners each filing a claim.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui only. Scraped from the qPublic \"Home Exemption Information\" section, where each row is a packed \"CLAIMANT NAME YYYY\" string split at load.",
+    },
+    {
+      key: "tax_year",
+      label: "Tax Year",
+      description:
+        "Tax year the exemption claim applies to. Claim years run one year ahead of assessment years (2026 claims appear in the 2026-1 scrape).",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+  ],
+
   // ── Land Classifications ────────────────────────────────────────────────
   land_classifications: [
     {
@@ -1119,14 +1199,16 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Square Footage",
       description: "Area of this classification segment in square feet.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
+      source_notes:
+        "Scraped with thousands separators (e.g. \"5,000\"); commas stripped at load. Max observed 221,912,866.",
     },
     {
       key: "acreage",
       label: "Acreage",
       description: "Area of this classification segment in acres.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
     },
     {
       key: "agricultural_use_indicator",
@@ -1398,6 +1480,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Payment Sequence",
       description: "Identifier for the payment sequence or batch.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "effective_date",
@@ -1481,40 +1564,23 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "use_description",
       label: "Use Description",
-      description: "Specific description of the agricultural use.",
+      description:
+        "Use-class taxonomy for the row (e.g. HOMESITE, GOOD PASTURE 10 YR. DED.). Big Island heads the column \"Use Description\"; Maui heads the same taxonomy \"Description\" (\"HOME SITE\", \"PASTUR B 10YR\") — both aliased here. Oahu publishes no equivalent (see agricultural_type).",
       summary: ALL_VIEWS,
-    },
-    {
-      key: "description",
-      label: "Description",
-      description: "Additional details about the agricultural assessment.",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "acres",
-      label: "Acres",
-      description: "Total acreage under agricultural assessment.",
-      summary: ALL_VIEWS,
-      format: "text",
     },
     {
       key: "acres_in_production",
       label: "Acres in Production",
-      description: "Acres actively in agricultural production.",
+      description:
+        "Acreage in the agricultural use class (one row per class). Oahu/Big Island head the column \"Acres in Production\"; Maui heads the same column bare \"Acres\" — both are aliased here. Includes non-producing classes (e.g. WASTE LAND) in all counties.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
     },
     {
       key: "agricultural_value",
       label: "Agricultural Value",
-      description: "Value based on agricultural-use valuation.",
-      summary: ALL_VIEWS,
-      format: "dollar",
-    },
-    {
-      key: "assessed_value",
-      label: "Assessed Value",
-      description: "Assessed value for this agricultural segment.",
+      description:
+        "Discounted agricultural-use value for the row in whole dollars. Oahu/Big Island head the column \"Agricultural Value\"; Maui heads the same figure \"Assessed Value\" — both aliased here.",
       summary: ALL_VIEWS,
       format: "dollar",
     },
@@ -1533,6 +1599,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Card",
       description: "Assessor card number for this section.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "section",
@@ -1564,7 +1631,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Perimeter",
       description: "Perimeter measurement of this section.",
       summary: ALL_VIEWS,
-      format: "text",
+      format: "number",
     },
     {
       key: "exterior_wall",
@@ -1577,19 +1644,22 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Wall Height",
       description: "Wall height measurement.",
       summary: ALL_VIEWS,
-      format: "text",
-    },
-    {
-      key: "occupancy",
-      label: "Occupancy",
-      description: "Occupancy type classification.",
-      summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "construction",
       label: "Construction",
-      description: "Construction type classification.",
+      description:
+        "Construction type classification. Big Island/Kauai publish it under a \"Construction\" header (STEEL, WOOD FRAME, MASONRY, NONE, STEEL/MASONRY); Maui publishes the same concept under a \"Building Class\" header with a richer vocabulary (e.g. \"Wood/Steel Framing s1 p8\", \"Masonry Bearing Walls s1 p7\"); Oahu publishes neither.",
       summary: ALL_VIEWS,
+    },
+    {
+      key: "rank",
+      label: "Rank",
+      description:
+        "Quality/depreciation rank factor (e.g. 0.7, 1.2, 4.5). Maui only.",
+      summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "condo_style",
@@ -1632,6 +1702,9 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Description",
       description: "Free-text description of the improvement section.",
       summary: ALL_VIEWS,
+      disabled: true,
+      disabledReason:
+        "No county has been observed publishing a Description column in the commercial improvement detail tables (2026-1 survey). Kept for future observation.",
     },
   ],
 
@@ -1649,12 +1722,14 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Card",
       description: "Assessor card number.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "line",
       label: "Line",
       description: "Line item number on the assessor card.",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "lower",
@@ -1689,59 +1764,14 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     },
   ],
 
-  // ── Accessory Structures ────────────────────────────────────────────────
-  accessory_structures: [
-    {
-      key: "tmk",
-      label: "TMK",
-      description: "Tax Map Key",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "building_number",
-      label: "Building #",
-      description:
-        "Building number this accessory structure is associated with.",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "description",
-      label: "Description",
-      description:
-        "Description of the accessory structure (e.g. garage, carport, pool).",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "dimensions_units",
-      label: "Dimensions/Units",
-      description: "Size dimensions or unit count of the structure.",
-      summary: ALL_VIEWS,
-      format: "text",
-    },
-    {
-      key: "percent_complete",
-      label: "% Complete",
-      description: "Percentage of construction completed.",
-      summary: ALL_VIEWS,
-    },
-    {
-      key: "value",
-      label: "Value",
-      description: "Assessed value of the accessory structure.",
-      summary: ALL_VIEWS,
-      format: "dollar",
-    },
-    {
-      key: "year_built",
-      label: "Year Built",
-      description: "Year the structure was built.",
-      summary: ALL_VIEWS,
-      format: "year",
-    },
-  ],
-
-  // ── Yard Improvements ───────────────────────────────────────────────────
-  yard_improvements: [
+  // ── Accessory Improvements ──────────────────────────────────────────────
+  // Accessory/yard structures from three page sections: Oahu/Big Island/Kauai
+  // "Other Building and Yard Improvements", Maui residential "Accessory
+  // Information", and Maui commercial "Commercial Improvement Information >
+  // Other Features" (dgOtherFeatures; its Stops column is dropped). The former
+  // accessory_structures table never matched a section and was dropped
+  // (2026-08-14 migration).
+  accessory_improvements: [
     {
       key: "tmk",
       label: "TMK",
@@ -1752,14 +1782,16 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "description",
       label: "Description",
       description:
-        "Description of the yard improvement (e.g. fence, retaining wall, landscaping).",
+        "Description of the accessory or yard structure (e.g. fence, retaining wall, shed, garage, carport, pool, canopy, loading dock). Sourced from three sections: Oahu/Big Island/Kauai \"Other Building and Yard Improvements\", Maui residential \"Accessory Information\", and Maui commercial \"Commercial Improvement Information > Other Features\" (Structure column; the Stops column is dropped).",
       summary: ALL_VIEWS,
     },
     {
       key: "quantity",
       label: "Quantity",
-      description: "Quantity or count of the improvement.",
+      description:
+        "Quantity or count of the improvement. Mostly whole numbers; fractional values occur (e.g. 400.5).",
       summary: ALL_VIEWS,
+      format: "number",
     },
     {
       key: "year_built",
@@ -1777,6 +1809,68 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Table-level documentation
+// ---------------------------------------------------------------------------
+
+/**
+ * One paragraph of documentation per table: what it holds, which qPublic
+ * section(s) feed it, and the county coverage caveats a reader needs before
+ * trusting cross-county comparisons. Shown in the Docs section of each
+ * table's Summary tab. Keys match HHDB_TABLE_CONFIG.fieldsTable.
+ */
+export const HHDB_TABLE_DOCS: Record<string, string> = {
+  properties:
+    "One row per TMK — the central table other tables join to. Carries the current Parcel Information snapshot (address, legal, class, land area) plus externally joined fields (ZIP, latitude/longitude from the state address list, state parcel-list reconciliation flags). County quirks: Honolulu publishes no neighborhood code or zoning; Big Island refers zoning to the county GIS; the damage/reentry-zone/zone-color trio is Maui-only (Lahaina fire); non_taxable_status and living_units are Kauai-only.",
+  parcels:
+    "Per-scrape observations of the Parcel Information section — the same fields as properties, but versioned by observation (scraped_at / last_year_observed) rather than collapsed to one row per TMK. Use it to see how a parcel's recorded attributes changed across scrape periods.",
+  owners:
+    "Owner rows from the Owner Information section, one row per (name, type, address) per parcel. A single owner can legitimately appear several times with different representative addresses (estates with multiple C/O-ATTN contacts). Honolulu withholds owner addresses entirely — owner_address is NULL for all of Oahu. last_year_observed marks the most recent scrape that still listed the owner.",
+  assessments:
+    "Assessed valuations by tax year, combining the current and historical valuation grids. The counties publish very different detail: Oahu is the only county with land/building splits of exemptions and net-taxable; Maui adds market land and agricultural land values; Big Island is the only county splitting market value by component; Kauai publishes parcel-level totals only. Per-column county coverage is noted on each field.",
+  sales:
+    "Sales/conveyance records, accumulated across scrapes (new documents insert; re-scraped old sales are skipped on a document-identity match). Distinct documents can record on the same date with consecutive document numbers. valid_sale exists on Oahu/Maui only; book_page is unpublished by Maui; conveyance_tax is Big Island/Kauai only. Maui/Kauai's \"Document Type\" lands in instrument_description.",
+  residential_improvements:
+    "Residential building records from \"Residential Improvement Information\" (Honolulu/Big Island) and \"Improvement Information\" (Maui/Kauai), one row per building, versioned by change detection. Field coverage varies sharply: Oahu publishes 9 labels (incl. occupancy), Kauai only 8 basics, Maui/Big Island add materials/quality fields. Condo-unit attributes: condo_style is Oahu's building form, condo_type is Maui's unit position — distinct variables; Big Island units carry only a condo name.",
+  commercial_improvements:
+    "Commercial building summaries from \"Commercial Improvement Information\". Two report templates exist: Oahu/Big Island (card, improvement name, class, structure type, units, gross building description) and Maui/Kauai (building type, square footage, percent complete; value on Maui only). Maui/Kauai's \"Building Type\" holds the building's proper name and is copied into improvement_name; Kauai's \"Structure\" label maps to structure_type.",
+  commercial_improvement_details:
+    "Per-building detail rows, replaced wholesale with their parent on each load. Two row kinds share the table: floor-detail rows (card/section/floor/area/perimeter/usage/wall height/exterior wall, plus construction and Maui's rank) and Condominium Information rows (project/condo unit/floor level/condo type/view/condo style) from commercial condo pages. Maui has no Card column; Oahu's exterior_wall is almost always the constant \"DEFAULT WALLS\"; construction vocabularies differ by county.",
+  permits:
+    "Building permits, accumulated by permit number per parcel (first-seen wins; county re-entries of the same permit number are skipped).",
+  condominium_projects:
+    "Condo master records (the parent TMK listing all units), enriched with DCCA registration data (developer, project number, unit mix, registration dates) where matched.",
+  land_classifications:
+    "Land-use classification rows, several per parcel — one per (classification, square footage, acreage) segment, versioned by change detection. A parcel routinely carries multiple segments of the same classification differing only in size.",
+  current_tax_bills:
+    "Current-year tax bills, one row per (parcel, tax period), upserted in place. qPublic's blank-period rollup line (\"Tax Bill with Interest computed through <date>\") is filtered out on the way in — every stored row is a real per-period bill.",
+  historical_tax_summary:
+    "Historical tax summary, one row per (parcel, year), with totals from the nested detail/payment/credit tables denormalized on. Kauai publishes this under \"Historical Payment Information\" and has no Amount Due column; Big Island issues no tax-credit lines (relief is via exemptions).",
+  historical_tax_details:
+    "Per-period tax detail lines nested under each year (Beginning Tax, Payment, Adjustment…), replaced wholesale per parcel on each load.",
+  historical_tax_payments:
+    "Individual payment events nested under each year (payment sequence, effective date, amounts), replaced wholesale per parcel on each load.",
+  historical_tax_credits:
+    "Tax credit lines nested under each year (named county programs like Circuit Breaker Credit). Oahu, Maui and Kauai only — Big Island publishes none.",
+  appeals:
+    "Assessment appeals (Oahu, Maui, Kauai — Big Island publishes no appeals section). Matched in place on (year, appeal type/value): status, hearing date, settlement and value fields update as the appeal progresses, keeping one current row per appeal. The five settlement/taxpayer-opinion columns are Maui-only; the taxpayer-opinion property class is a Maui code (0=Time Share … 12=Long-Term Rental).",
+  agricultural_assessments:
+    "Agricultural-use assessment rows, one per land-use class per parcel (Oahu, Maui, Big Island — Kauai's template has no ag module). County labels are merged: acreage (\"Acres in Production\"/\"Acres\"), value (\"Agricultural Value\"/\"Assessed Value\") and use class (\"Use Description\"/\"Description\") each land in one column. agricultural_type is an Oahu-only dedication/ratio code kept separate.",
+  accessory_improvements:
+    "Accessory structures and yard improvements (sheds, garages, pools, fences, sprinklers, elevators…). Three source sections land here: \"Other Building and Yard Improvements\" (Oahu/Big Island/Kauai), Maui's residential \"Accessory Information\", and the Other Features grid inside Maui's Commercial Improvement Information (Stops column dropped). qPublic's GROSS BUILDING VALUE summary rows have their dollar amount repositioned from area into value on the way in.",
+  dedications:
+    "Land-use dedications by tax year (Oahu only), e.g. \"RESIDENTIAL USE(1)\", \"AG DEDI - 10 YEARS(2)\" — one row per parcel per tax year, updated in place.",
+  home_exemptions:
+    "Homestead (owner-occupant) exemption claims (Maui only, ~1/3 of Maui parcels): claimant name and tax year, split from qPublic's packed \"NAME YYYY\" rows. Claim years run one ahead of assessment years, and co-owners filing jointly appear as separate claimant rows.",
+  residential_additions:
+    "Residential additions/features by card and line (decks, lanais, garages attached to the main improvement), versioned by change detection.",
+};
+
+/** Get the table-level documentation paragraph, or null. */
+export function getTableDocs(tableName: string): string | null {
+  return HHDB_TABLE_DOCS[tableName] ?? null;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

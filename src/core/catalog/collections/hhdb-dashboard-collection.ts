@@ -115,12 +115,7 @@ const OWNER_ALIASES: [string, string[]][] = [
       "HAWAIIAN HOMELANDS",
     ],
   ],
-  [
-    "STATE OF HAWAII",
-    [
-      "STATE OF HAWAII",
-    ],
-  ],
+  ["STATE OF HAWAII", ["STATE OF HAWAII"]],
   [
     "CITY & COUNTY OF HONOLULU",
     [
@@ -129,24 +124,9 @@ const OWNER_ALIASES: [string, string[]][] = [
       "CITY&COUNTY OF HONOLULU",
     ],
   ],
-  [
-    "COUNTY OF MAUI",
-    [
-      "COUNTY OF MAUI",
-    ],
-  ],
-  [
-    "COUNTY OF HAWAII",
-    [
-      "COUNTY OF HAWAII",
-    ],
-  ],
-  [
-    "COUNTY OF KAUAI",
-    [
-      "COUNTY OF KAUAI",
-    ],
-  ],
+  ["COUNTY OF MAUI", ["COUNTY OF MAUI"]],
+  ["COUNTY OF HAWAII", ["COUNTY OF HAWAII"]],
+  ["COUNTY OF KAUAI", ["COUNTY OF KAUAI"]],
   [
     "UNITED STATES OF AMERICA",
     [
@@ -289,12 +269,8 @@ export default class HhdbDashboardCollection {
   static async getOutOfStateRatioByQuarter(
     islandCode?: string,
   ): Promise<OutOfStateRatioRow[]> {
-    const islandJoin = islandCode
-      ? "JOIN properties p ON t.tmk = p.tmk"
-      : "";
-    const islandWhere = islandCode
-      ? "AND p.island_code = ?"
-      : "";
+    const islandJoin = islandCode ? "JOIN properties p ON t.tmk = p.tmk" : "";
+    const islandWhere = islandCode ? "AND p.island_code = ?" : "";
     const params: (string | number)[] = [];
     if (islandCode) params.push(islandCode);
 
@@ -446,7 +422,10 @@ export default class HhdbDashboardCollection {
   private static normalizeOwnerName(name: string): string {
     const upper = name.trim().toUpperCase();
     for (const [canonical, aliases] of OWNER_ALIASES) {
-      if (upper === canonical || aliases.some((a) => upper.startsWith(a) || upper === a)) {
+      if (
+        upper === canonical ||
+        aliases.some((a) => upper.startsWith(a) || upper === a)
+      ) {
         return canonical;
       }
     }
@@ -463,7 +442,10 @@ export default class HhdbDashboardCollection {
     const merged = new Map<string, number>();
     for (const r of rows) {
       const canonical = this.normalizeOwnerName(String(r.owner_name));
-      merged.set(canonical, (merged.get(canonical) ?? 0) + Number(r.property_count));
+      merged.set(
+        canonical,
+        (merged.get(canonical) ?? 0) + Number(r.property_count),
+      );
     }
     return [...merged.entries()].map(([owner_name, property_count]) => ({
       owner_name,
@@ -475,12 +457,8 @@ export default class HhdbDashboardCollection {
   static async getOwnershipDistribution(
     islandCode?: string,
   ): Promise<OwnershipDistributionRow[]> {
-    const islandJoin = islandCode
-      ? "JOIN properties p ON o.tmk = p.tmk"
-      : "";
-    const islandWhere = islandCode
-      ? "AND p.island_code = ?"
-      : "";
+    const islandJoin = islandCode ? "JOIN properties p ON o.tmk = p.tmk" : "";
+    const islandWhere = islandCode ? "AND p.island_code = ?" : "";
     const params: (string | number)[] = [];
     if (islandCode) params.push(islandCode);
 
@@ -542,12 +520,8 @@ export default class HhdbDashboardCollection {
   static async getOwnershipLorenzCurve(
     islandCode?: string,
   ): Promise<OwnershipLorenzResult> {
-    const islandJoin = islandCode
-      ? "JOIN properties p ON o.tmk = p.tmk"
-      : "";
-    const islandWhere = islandCode
-      ? "AND p.island_code = ?"
-      : "";
+    const islandJoin = islandCode ? "JOIN properties p ON o.tmk = p.tmk" : "";
+    const islandWhere = islandCode ? "AND p.island_code = ?" : "";
     const params: (string | number)[] = [];
     if (islandCode) params.push(islandCode);
 
@@ -617,12 +591,8 @@ export default class HhdbDashboardCollection {
     limit = 25,
     islandCode?: string,
   ): Promise<TopOwnerRow[]> {
-    const islandJoin = islandCode
-      ? "JOIN properties p ON o.tmk = p.tmk"
-      : "";
-    const islandWhere = islandCode
-      ? "AND p.island_code = ?"
-      : "";
+    const islandJoin = islandCode ? "JOIN properties p ON o.tmk = p.tmk" : "";
+    const islandWhere = islandCode ? "AND p.island_code = ?" : "";
     const params: (string | number)[] = [];
     if (islandCode) params.push(islandCode);
 
@@ -650,7 +620,10 @@ export default class HhdbDashboardCollection {
     const merged = new Map<string, { count: number; islands: Set<string> }>();
     for (const r of rawRows) {
       const canonical = this.normalizeOwnerName(String(r.owner_name));
-      const existing = merged.get(canonical) ?? { count: 0, islands: new Set() };
+      const existing = merged.get(canonical) ?? {
+        count: 0,
+        islands: new Set(),
+      };
       existing.count += Number(r.property_count);
       for (const code of String(r.island_codes ?? "").split(",")) {
         if (code) existing.islands.add(code);

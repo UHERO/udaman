@@ -44,7 +44,7 @@ export function SeriesActionsBar({
   const [editOpen, setEditOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [destroyOpen, setDestroyOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [_isPending, startTransition] = useTransition();
 
   const handleAddToClipboard = () => {
     startTransition(async () => {

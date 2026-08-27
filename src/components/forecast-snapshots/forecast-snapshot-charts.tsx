@@ -529,18 +529,27 @@ export function ForecastSnapshotCharts({
         ];
         const barCount = barOrder.length;
         const fullWidthBar =
-          (index: number, fillOpacity: number) =>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (props: Record<string, any>) => (
-            <rect
-              x={props.x - index * props.width}
-              y={props.y}
-              width={barCount * props.width}
-              height={props.height}
-              fill={props.fill}
-              fillOpacity={fillOpacity}
-            />
-          );
+          (index: number, fillOpacity: number) => (raw: unknown) => {
+            const props = raw as Record<string, number | string>;
+            if (!Number.isFinite(props.y) || !Number.isFinite(props.height))
+              return <rect width={0} height={0} />;
+            let y = props.y as number;
+            let height = props.height as number;
+            if (height < 0) {
+              y += height;
+              height = -height;
+            }
+            return (
+              <rect
+                x={(props.x as number) - index * (props.width as number)}
+                y={y}
+                width={barCount * (props.width as number)}
+                height={height}
+                fill={props.fill as string}
+                fillOpacity={fillOpacity}
+              />
+            );
+          };
 
         return (
           <details key={name} className="rounded-md border">

@@ -48,9 +48,9 @@ export function OwnershipLorenzChart() {
 
   useEffect(() => {
     setResult(null);
-    getHhdbOwnershipLorenz(
-      islandCode === "all" ? undefined : islandCode,
-    ).then(setResult);
+    getHhdbOwnershipLorenz(islandCode === "all" ? undefined : islandCode).then(
+      setResult,
+    );
   }, [islandCode]);
 
   return (

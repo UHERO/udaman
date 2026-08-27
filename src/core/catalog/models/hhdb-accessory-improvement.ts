@@ -1,28 +1,28 @@
-export interface HhdbYardImprovementAttrs {
+export interface HhdbAccessoryImprovementAttrs {
   id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
   description?: string | null;
-  quantity?: string | null;
+  quantity?: number | null;
   year_built?: number | null;
   area?: string | null;
 }
 
-export class HhdbYardImprovement {
+export class HhdbAccessoryImprovement {
   id: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
   description: string | null;
-  quantity: string | null;
+  quantity: number | null;
   yearBuilt: number | null;
   area: string | null;
 
-  constructor(attrs: HhdbYardImprovementAttrs) {
+  constructor(attrs: HhdbAccessoryImprovementAttrs) {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.description = attrs.description ?? null;
-    this.quantity = attrs.quantity ?? null;
+    this.quantity = attrs.quantity != null ? Number(attrs.quantity) : null;
     this.yearBuilt = attrs.year_built != null ? Number(attrs.year_built) : null;
     this.area = attrs.area ?? null;
   }
@@ -40,11 +40,11 @@ export class HhdbYardImprovement {
   }
 }
 
-export type HhdbYardImprovementJSON = ReturnType<HhdbYardImprovement["toJSON"]>;
+export type HhdbAccessoryImprovementJSON = ReturnType<HhdbAccessoryImprovement["toJSON"]>;
 
-export function hhdbYardImprovementRowToJSON(
-  attrs: HhdbYardImprovementAttrs,
-): HhdbYardImprovementJSON {
+export function hhdbAccessoryImprovementRowToJSON(
+  attrs: HhdbAccessoryImprovementAttrs,
+): HhdbAccessoryImprovementJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,
@@ -52,7 +52,7 @@ export function hhdbYardImprovementRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     description: attrs.description ?? null,
-    quantity: attrs.quantity ?? null,
+    quantity: attrs.quantity != null ? Number(attrs.quantity) : null,
     yearBuilt: attrs.year_built != null ? Number(attrs.year_built) : null,
     area: attrs.area ?? null,
   };

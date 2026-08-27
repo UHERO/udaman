@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatHst } from "@catalog/utils/time";
 import { ChevronDown } from "lucide-react";
 
 import type { SerializedLoaderAction } from "@/actions/loader-actions";
@@ -21,13 +22,7 @@ import {
 } from "@/components/ui/table";
 
 function formatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  const mon = d.toLocaleString("en-US", { month: "short" });
-  const day = d.getDate();
-  const year = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${mon} ${day}, ${year} ${hh}:${mm}`;
+  return formatHst(iso, "MMM d, yyyy HH:mm");
 }
 
 export function LoaderActionHistory({

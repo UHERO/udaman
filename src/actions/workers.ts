@@ -1,9 +1,13 @@
 "use server";
 
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { Queue } from "bullmq";
 
+import { createLogger } from "@/core/observability/logger";
 import { redisConnection } from "@/core/workers/connection";
 import { requirePermission } from "@/lib/auth/permissions";
+
+const log = createLogger("action.workers");
 
 const QUEUE_NAMES = ["default", "critical"] as const;
 const PREFIX = "udaman";
@@ -145,7 +149,13 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
   const maxAge = allWorkers.reduce((max, w) => Math.max(max, w.age), 0);
   const processStartedAt = maxAge > 0 ? Date.now() - maxAge * 1000 : null;
 
-  return { jobs: allJobs, counts, workers: allWorkers, processStartedAt, schedulers: allSchedulers };
+  return {
+    jobs: allJobs,
+    counts,
+    workers: allWorkers,
+    processStartedAt,
+    schedulers: allSchedulers,
+  };
 }
 
 export async function getSchedulers(): Promise<SerializedScheduler[]> {
@@ -184,14 +194,22 @@ export async function removeScheduler(
   queueName: string,
   schedulerKey: string,
 ): Promise<boolean> {
-  await requirePermission("worker", "execute");
+  const { userId } = await requirePermission("worker", "execute");
+  log.info({ queueName, schedulerKey }, "removeScheduler action called");
   const queue = new Queue(queueName, {
     connection: redisConnection,
     prefix: PREFIX,
   });
 
   try {
-    return await queue.removeJobScheduler(schedulerKey);
+    const result = await queue.removeJobScheduler(schedulerKey);
+    log.info({ queueName, schedulerKey }, "removeScheduler action completed");
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "removeScheduler failed");
+    AppLogCollection.logError(err, { userId, name: "worker.remove_scheduler" });
+    throw err;
   } finally {
     await queue.close();
   }
@@ -202,7 +220,8 @@ export async function triggerScheduledJob(
   jobName: string,
   jobData: Record<string, unknown>,
 ): Promise<void> {
-  await requirePermission("worker", "execute");
+  const { userId } = await requirePermission("worker", "execute");
+  log.info({ queueName, jobName }, "triggerScheduledJob action called");
   const queue = new Queue(queueName, {
     connection: redisConnection,
     prefix: PREFIX,
@@ -210,6 +229,12 @@ export async function triggerScheduledJob(
 
   try {
     await queue.add(jobName, jobData);
+    log.info({ queueName, jobName }, "triggerScheduledJob action completed");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "triggerScheduledJob failed");
+    AppLogCollection.logError(err, { userId, name: "worker.trigger_job" });
+    throw err;
   } finally {
     await queue.close();
   }
@@ -219,39 +244,55 @@ export async function triggerScheduledJob(
  * Cancel active jobs and drain waiting/delayed jobs from all queues.
  * Completed/failed job history is preserved.
  */
-export async function clearJobs(): Promise<{ cancelled: number; drained: number }> {
-  await requirePermission("worker", "execute");
+export async function clearJobs(): Promise<{
+  cancelled: number;
+  drained: number;
+}> {
+  const { userId } = await requirePermission("worker", "execute");
+  log.info("clearJobs action called");
   let cancelled = 0;
   let drained = 0;
 
-  for (const name of QUEUE_NAMES) {
-    const queue = new Queue(name, {
-      connection: redisConnection,
-      prefix: PREFIX,
-    });
+  try {
+    for (const name of QUEUE_NAMES) {
+      const queue = new Queue(name, {
+        connection: redisConnection,
+        prefix: PREFIX,
+      });
 
-    try {
-      // Count waiting + delayed before draining
-      const counts = await queue.getJobCounts("waiting", "delayed");
-      drained += (counts.waiting ?? 0) + (counts.delayed ?? 0);
+      try {
+        // Count waiting + delayed before draining
+        const counts = await queue.getJobCounts("waiting", "delayed");
+        drained += (counts.waiting ?? 0) + (counts.delayed ?? 0);
 
-      // Cancel active jobs by failing them
-      const activeJobs = await queue.getJobs(["active"]);
-      for (const job of activeJobs) {
-        if (job.id) {
-          await job.moveToFailed(new Error("Cancelled by user"), job.token ?? "0", false);
-          cancelled++;
+        // Cancel active jobs by failing them
+        const activeJobs = await queue.getJobs(["active"]);
+        for (const job of activeJobs) {
+          if (job.id) {
+            await job.moveToFailed(
+              new Error("Cancelled by user"),
+              job.token ?? "0",
+              false,
+            );
+            cancelled++;
+          }
         }
+
+        // Remove waiting and delayed jobs
+        await queue.drain();
+      } finally {
+        await queue.close();
       }
-
-      // Remove waiting and delayed jobs
-      await queue.drain();
-    } finally {
-      await queue.close();
     }
-  }
 
-  return { cancelled, drained };
+    log.info({ cancelled, drained }, "clearJobs action completed");
+    return { cancelled, drained };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "clearJobs failed");
+    AppLogCollection.logError(err, { userId, name: "worker.clear_jobs" });
+    throw err;
+  }
 }
 
 export async function getJobLogs(

@@ -3,8 +3,8 @@ export interface HhdbLandClassificationAttrs {
   tmk?: string | null;
   scraped_at?: Date | string | null;
   land_classification?: string | null;
-  square_footage?: string | null;
-  acreage?: string | null;
+  square_footage?: number | null;
+  acreage?: number | null;
   agricultural_use_indicator?: string | null;
 }
 
@@ -13,8 +13,8 @@ export class HhdbLandClassification {
   tmk: string | null;
   scrapedAt: Date | null;
   landClassification: string | null;
-  squareFootage: string | null;
-  acreage: string | null;
+  squareFootage: number | null;
+  acreage: number | null;
   agriculturalUseIndicator: string | null;
 
   constructor(attrs: HhdbLandClassificationAttrs) {
@@ -22,8 +22,9 @@ export class HhdbLandClassification {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.landClassification = attrs.land_classification ?? null;
-    this.squareFootage = attrs.square_footage ?? null;
-    this.acreage = attrs.acreage ?? null;
+    this.squareFootage =
+      attrs.square_footage != null ? Number(attrs.square_footage) : null;
+    this.acreage = attrs.acreage != null ? Number(attrs.acreage) : null;
     this.agriculturalUseIndicator = attrs.agricultural_use_indicator ?? null;
   }
 
@@ -54,8 +55,9 @@ export function hhdbLandClassificationRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     landClassification: attrs.land_classification ?? null,
-    squareFootage: attrs.square_footage ?? null,
-    acreage: attrs.acreage ?? null,
+    squareFootage:
+      attrs.square_footage != null ? Number(attrs.square_footage) : null,
+    acreage: attrs.acreage != null ? Number(attrs.acreage) : null,
     agriculturalUseIndicator: attrs.agricultural_use_indicator ?? null,
   };
 }

@@ -18,8 +18,8 @@ import {
   ChartLine,
   ClipboardList,
   FileSpreadsheet,
-  Globe,
   LineChart,
+  Megaphone,
   SearchSlash,
   Shield,
   TableProperties,
@@ -98,18 +98,6 @@ export const ROUTES: RouteEntry[] = [
     ],
   },
   {
-    label: "Downloads",
-    path: "/downloads",
-    icon: ArrowDownToLine,
-    roles: ["internal", "admin", "dev"],
-  },
-  {
-    label: "Exports",
-    path: "/exports",
-    icon: ArrowLeftFromLine,
-    roles: ["internal", "admin", "dev"],
-  },
-  {
     label: "Investigations",
     path: "/investigations",
     icon: SearchSlash,
@@ -155,6 +143,18 @@ export const ROUTES: RouteEntry[] = [
       },
     ],
   },
+  {
+    label: "Downloads",
+    path: "/downloads",
+    icon: ArrowDownToLine,
+    roles: ["internal", "admin", "dev"],
+  },
+  {
+    label: "Exports",
+    path: "/exports",
+    icon: ArrowLeftFromLine,
+    roles: ["internal", "admin", "dev"],
+  },
   // ── Rail routes (top-level, absolute paths) ──
   {
     label: "Admin",
@@ -172,6 +172,7 @@ export const ROUTES: RouteEntry[] = [
       { label: "Crawlers", path: "/admin/crawlers" },
       { label: "Stats", path: "/admin/stats" },
       { label: "API Keys", path: "/admin/api-keys", roles: ["dev"] },
+      { label: "Messages", path: "/admin/messages", roles: ["dev"] },
     ],
   },
   {
@@ -181,6 +182,14 @@ export const ROUTES: RouteEntry[] = [
     roles: ["internal", "admin", "dev"],
     universes: ["UHERO"],
     location: "rail",
+  },
+  {
+    label: "Comms",
+    path: "/comms",
+    icon: Megaphone,
+    roles: ["internal", "admin", "dev"],
+    location: "rail",
+    children: [{ label: "New form", path: "/comms/pub-form/new" }],
   },
   {
     label: "Docs",
@@ -276,7 +285,7 @@ export function isRouteAllowed(
   pathname: string,
 ): boolean {
   // ── Top-level routes: /admin/..., /hhdb/..., /docs/... ──
-  const topLevelPrefixes = ["/admin", "/hhdb", "/docs"];
+  const topLevelPrefixes = ["/admin", "/hhdb", "/docs", "/comms"];
   for (const prefix of topLevelPrefixes) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) {
       for (const entry of ROUTES) {

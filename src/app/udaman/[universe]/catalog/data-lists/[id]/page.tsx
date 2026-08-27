@@ -27,7 +27,9 @@ export default async function DataListDetailPage({
 
   return (
     <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden">
-      <h1 className="text-3xl font-bold">{data.dataList.name ?? `Data List #${id}`}</h1>
+      <h1 className="text-3xl font-bold">
+        {data.dataList.name ?? `Data List #${id}`}
+      </h1>
       <SuperTable data={data} />
     </div>
   );

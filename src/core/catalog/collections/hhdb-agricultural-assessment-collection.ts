@@ -13,9 +13,7 @@ const SORTABLE = [
   "tmk",
   "agricultural_type",
   "use_description",
-  "acres",
   "agricultural_value",
-  "assessed_value",
 ];
 
 export default class HhdbAgriculturalAssessmentCollection {

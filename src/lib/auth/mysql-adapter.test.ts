@@ -3,6 +3,7 @@ import { createHash, randomInt, randomUUID } from "crypto";
 import type { Adapter, VerificationToken } from "@auth/core/adapters";
 import { afterAll, beforeAll, expect, test } from "bun:test";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface TestOptions {
   adapter: Adapter;
   fixtures?: {
@@ -50,6 +51,7 @@ export interface TestOptions {
    */
   testWebAuthnMethods?: boolean;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /**
  * A wrapper to run the most basic tests.
@@ -85,6 +87,7 @@ export async function runBasicTests(options: TestOptions) {
 
   const maybeTest = (
     method: keyof Adapter,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ...args: Parameters<typeof test> extends [any, ...infer U] ? U : never
   ) =>
     skipTests.includes(method)
@@ -110,11 +113,13 @@ export async function runBasicTests(options: TestOptions) {
     user.phone = "00000000000";
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const session: any = options.fixtures?.session ?? {
     sessionToken: id(),
     expires: ONE_WEEK_FROM_NOW,
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const account: any = options.fixtures?.account ?? {
     provider: "github",
     providerAccountId: id(),

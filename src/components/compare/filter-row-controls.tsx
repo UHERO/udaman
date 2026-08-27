@@ -15,7 +15,6 @@ import {
 import { GeoMultiSelect } from "./geo-multi-select";
 import {
   ADJUSTMENT_OPTIONS,
-  ALL_FREQUENCY_OPTIONS,
   UNIVERSES,
   type FilterRowState,
 } from "./parse-filter-names";
@@ -37,7 +36,7 @@ export function FilterRowControls({
   onUpdate,
   onRemove,
   onUniverseChange,
-  error,
+  error: _error,
 }: FilterRowControlsProps) {
   return (
     <>

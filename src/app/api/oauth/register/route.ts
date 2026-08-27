@@ -36,7 +36,10 @@ export async function POST(req: Request) {
     body = (await req.json()) as RegisterBody;
   } catch {
     return Response.json(
-      { error: "invalid_client_metadata", error_description: "request body must be JSON" },
+      {
+        error: "invalid_client_metadata",
+        error_description: "request body must be JSON",
+      },
       { status: 400 },
     );
   }
@@ -66,7 +69,12 @@ export async function POST(req: Request) {
     const message = err instanceof Error ? err.message : "unknown_error";
     if (message.startsWith("invalid_redirect_uri:")) {
       return Response.json(
-        { error: "invalid_redirect_uri", error_description: message.slice("invalid_redirect_uri:".length).trim() },
+        {
+          error: "invalid_redirect_uri",
+          error_description: message
+            .slice("invalid_redirect_uri:".length)
+            .trim(),
+        },
         { status: 400 },
       );
     }

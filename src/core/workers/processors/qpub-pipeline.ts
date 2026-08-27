@@ -155,13 +155,19 @@ export async function runPipeline(opts: {
     const processed = done + failed + skipped;
     if (processed % batchInterval === 0) {
       await flush();
-      log.info(progressSummary(done + skipped, failed, total, startMs), `${label}: progress`);
+      log.info(
+        progressSummary(done + skipped, failed, total, startMs),
+        `${label}: progress`,
+      );
     }
   }
 
   // Final flush for any remaining
   await flush();
-  log.info(progressSummary(done + skipped, failed, total, startMs), `${label}: complete`);
+  log.info(
+    progressSummary(done + skipped, failed, total, startMs),
+    `${label}: complete`,
+  );
 
   return { done, failed, total, skipped };
 }

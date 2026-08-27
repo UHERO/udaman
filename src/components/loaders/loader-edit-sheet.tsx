@@ -68,7 +68,7 @@ export function LoaderEditSheet({
   loader,
 }: LoaderEditSheetProps) {
   const router = useRouter();
-  const { universe } = useParams();
+  const { universe: _universe } = useParams();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

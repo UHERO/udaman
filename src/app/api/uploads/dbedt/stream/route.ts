@@ -132,9 +132,11 @@ async function handleChunk(body: ChunkBody) {
       { uploadId: body.uploadId, chunkIndex: body.chunkIndex, err: message },
       "DBEDT stream chunk failed",
     );
-    await DbedtUploadCollection.updateStatus(body.uploadId, "fail", message).catch(
-      (e) => log.error({ err: e }, "Failed to mark upload as failed"),
-    );
+    await DbedtUploadCollection.updateStatus(
+      body.uploadId,
+      "fail",
+      message,
+    ).catch((e) => log.error({ err: e }, "Failed to mark upload as failed"));
     deleteSession(body.uploadId);
     return NextResponse.json(
       { success: false, message: `Chunk failed: ${message}` },

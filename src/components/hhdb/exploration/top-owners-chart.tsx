@@ -42,10 +42,9 @@ export function TopOwnersChart() {
 
   useEffect(() => {
     setData(null);
-    getHhdbTopOwners(
-      25,
-      islandCode === "all" ? undefined : islandCode,
-    ).then(setData);
+    getHhdbTopOwners(25, islandCode === "all" ? undefined : islandCode).then(
+      setData,
+    );
   }, [islandCode]);
 
   return (

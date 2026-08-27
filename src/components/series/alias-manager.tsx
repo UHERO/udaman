@@ -1,14 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { SeriesAlias, Universe } from "@catalog/types/shared";
+import { UNIVERSES } from "@catalog/types/shared";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { SeriesAlias, Universe } from "@catalog/types/shared";
-import { UNIVERSES } from "@catalog/types/shared";
-import { createAlias } from "@/actions/series-actions";
-import { deleteSeries } from "@/actions/series-actions";
+import { createAlias, deleteSeries } from "@/actions/series-actions";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -56,10 +55,7 @@ export function AliasManager({
   const handleCreate = () => {
     if (!selectedUniverse) return;
     startCreate(async () => {
-      const result = await createAlias(
-        seriesId,
-        selectedUniverse as Universe,
-      );
+      const result = await createAlias(seriesId, selectedUniverse as Universe);
       if ("error" in result) {
         toast.error(result.error);
       } else {
@@ -92,7 +88,11 @@ export function AliasManager({
       {isPrimary && (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-muted-foreground h-5 w-5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground h-5 w-5"
+            >
               <Plus className="h-3 w-3" />
             </Button>
           </SheetTrigger>
@@ -107,7 +107,7 @@ export function AliasManager({
             <div className="flex flex-col gap-4 p-4">
               {/* Current series */}
               <div>
-                <h4 className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
+                <h4 className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
                   Current Universes
                 </h4>
                 <div className="flex flex-col gap-1">
@@ -140,7 +140,7 @@ export function AliasManager({
               {/* Add alias */}
               {availableUniverses.length > 0 && (
                 <div>
-                  <h4 className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
+                  <h4 className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
                     Add Alias
                   </h4>
                   <div className="flex items-center gap-2">
@@ -174,7 +174,9 @@ export function AliasManager({
         </Sheet>
       )}
       {!isPrimary && aliasCount > 0 && (
-        <span className="text-muted-foreground text-xs">(managed by primary)</span>
+        <span className="text-muted-foreground text-xs">
+          (managed by primary)
+        </span>
       )}
     </span>
   );

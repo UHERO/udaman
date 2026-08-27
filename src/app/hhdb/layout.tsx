@@ -1,7 +1,7 @@
 import { mysql } from "@database/mysql";
 
-import { CatalogLayout } from "@/components/catalog/catalog-layout";
 import { AppSidebar } from "@/components/app-sidebar";
+import { CatalogLayout } from "@/components/catalog/catalog-layout";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {

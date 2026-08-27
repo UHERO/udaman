@@ -99,18 +99,11 @@ export function OutOfStateDrilldown() {
               <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <ChartContainer
-              config={stateConfig}
-              className="h-[400px] w-full"
-            >
+            <ChartContainer config={stateConfig} className="h-[400px] w-full">
               <BarChart data={stateData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
-                <YAxis
-                  type="category"
-                  dataKey="mailing_state"
-                  width={40}
-                />
+                <YAxis type="category" dataKey="mailing_state" width={40} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
@@ -131,9 +124,7 @@ export function OutOfStateDrilldown() {
                   cursor="pointer"
                   onClick={(data) => {
                     const state = (data as OutOfStateByStateRow).mailing_state;
-                    setSelectedState(
-                      state === selectedState ? null : state,
-                    );
+                    setSelectedState(state === selectedState ? null : state);
                   }}
                 />
               </BarChart>
@@ -145,9 +136,7 @@ export function OutOfStateDrilldown() {
       {selectedState && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              Top Zip Codes from {selectedState}
-            </CardTitle>
+            <CardTitle>Top Zip Codes from {selectedState}</CardTitle>
             <CardDescription>
               Most active source zip codes for out-of-state buyers
             </CardDescription>
@@ -158,14 +147,8 @@ export function OutOfStateDrilldown() {
                 <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
               </div>
             ) : (
-              <ChartContainer
-                config={zipConfig}
-                className="h-[400px] w-full"
-              >
-                <BarChart
-                  data={zipData.slice(0, 20)}
-                  layout="vertical"
-                >
+              <ChartContainer config={zipConfig} className="h-[400px] w-full">
+                <BarChart data={zipData.slice(0, 20)} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
                   <YAxis

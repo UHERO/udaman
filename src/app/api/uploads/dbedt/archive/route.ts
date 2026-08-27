@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { NextRequest, NextResponse } from "next/server";
 import { DbedtUploadCollection } from "@catalog/collections/universe-upload-collection";
+import { toHstSql } from "@catalog/utils/time";
 
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -40,14 +41,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate timestamped filename
-    const now = new Date();
-    const ts = now
-      .toISOString()
+    // Timestamped filename in HST wall-clock, matching upload_at (NOW())
+    const uploadId = Number(uploadIdStr);
+    const ts = toHstSql(Date.now())
       .slice(0, 16)
-      .replace("T", "-")
+      .replace(" ", "-")
       .replace(":", "");
-    const storedFilename = `econ_${ts}_upload.xlsx`;
+    const storedFilename = `econ_${ts}_upload_${uploadId}.xlsx`;
 
     // Save file to disk
     const dir = join(getDataDir(), "dbedt_files");
@@ -55,12 +55,16 @@ export async function POST(request: NextRequest) {
     const filePath = join(dir, storedFilename);
     await writeFile(filePath, Buffer.from(arrayBuffer));
 
-    // Update upload record with the archived filename so downloads work
-    const uploadId = Number(uploadIdStr);
+    // Update upload record with the archived filename so downloads work.
+    // Data is already loaded, so a failure here is non-fatal — but it leaves
+    // the row pointing at a file that doesn't exist, so log it loudly.
     try {
       await DbedtUploadCollection.updateFilename(uploadId, storedFilename);
-    } catch {
-      // Non-critical — data is already loaded
+    } catch (e) {
+      log.error(
+        { uploadId, storedFilename, err: e },
+        "Archived file saved but updateFilename failed — DB filename is stale",
+      );
     }
 
     log.info({ uploadId, filePath }, "Archived DBEDT XLSX file");

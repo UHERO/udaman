@@ -1,5 +1,3 @@
-import "server-only";
-
 import GeographyCollection from "@catalog/collections/geography-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";

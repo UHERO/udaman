@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=360" />
+  <title>QPub Scraper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>QPub Scraper</h1>
+
+    <!-- Status Panel -->
+    <div id="status-panel" class="panel">
+      <div class="status-row">
+        <span class="label">Status:</span>
+        <span id="status-text" class="value stopped">Stopped</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Current TMK:</span>
+        <span id="current-tmk" class="value">—</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Scraped:</span>
+        <span id="scraped-count" class="value">0</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Errors:</span>
+        <span id="error-count" class="value">0</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Batch:</span>
+        <span id="batch-progress" class="value">—</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="btn-start" class="btn btn-start">Start</button>
+      <button id="btn-stop" class="btn btn-stop" disabled>Stop</button>
+    </div>
+
+    <!-- Settings (collapsible) -->
+    <details class="settings">
+      <summary>Settings</summary>
+      <div class="settings-body">
+        <label>
+          API URL
+          <input type="text" id="input-api-url" value="http://localhost:3008" />
+        </label>
+        <label>
+          API Key
+          <input type="password" id="input-api-key" placeholder="Enter API key" />
+        </label>
+        <label>
+          Claim Size
+          <input type="number" id="input-claim-size" value="10" min="1" max="50" />
+        </label>
+        <button id="btn-save-settings" class="btn btn-save">Save Settings</button>
+      </div>
+    </details>
+
+    <!-- Instructions -->
+    <details class="instructions">
+      <summary>Instructions</summary>
+      <div class="instructions-body">
+        <ol>
+          <li>Navigate to a QPub county page (links below)</li>
+          <li>Configure API URL and Key in Settings</li>
+          <li>Click <strong>Start</strong> — the active tab will be used for scraping</li>
+          <li>First download prompts Save As — navigate to<br>
+            <code>/Volumes/UHEROroot/work/scrapes/</code> and save</li>
+          <li>Subsequent downloads auto-save with structure:<br>
+            <code>qpub/html/{period}/{island}/{zone}/{section}/{tmk}.html</code>
+          </li>
+          <li>If a captcha appears, solve it in the tab — scraping resumes automatically</li>
+        </ol>
+      </div>
+    </details>
+
+    <!-- County Links -->
+    <div class="links">
+      <h3>County Search Pages</h3>
+      <ul>
+        <li><a href="https://qpublic.schneidercorp.com/Application.aspx?App=HonoluluCountyHI&PageType=Search" target="_blank">Oahu</a></li>
+        <li><a href="https://qpublic.schneidercorp.com/Application.aspx?App=MauiCountyHI&PageType=Search" target="_blank">Maui</a></li>
+        <li><a href="https://qpublic.schneidercorp.com/Application.aspx?App=HawaiiCountyHI&PageType=Search" target="_blank">Hawaii</a></li>
+        <li><a href="https://qpublic.schneidercorp.com/Application.aspx?App=KauaiCountyHI&PageType=Search" target="_blank">Kauai</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
