@@ -1,3 +1,8 @@
+import {
+  disaggregate as disaggregateArray,
+  type DisaggregateOptions,
+  type DisaggregateResult,
+} from "../../timeseries";
 import type {
   AnalyzeSeriesData,
   SeasonalAdjustment,
@@ -20,12 +25,7 @@ const NAME_REGEX =
 export type FrequencyCode = "A" | "S" | "Q" | "M" | "W" | "D";
 
 export type FrequencyLong =
-  | "year"
-  | "semi"
-  | "quarter"
-  | "month"
-  | "week"
-  | "day";
+  "year" | "semi" | "quarter" | "month" | "week" | "day";
 
 const FREQ_CODE_TO_LONG: Record<FrequencyCode, FrequencyLong> = {
   A: "year",
@@ -281,6 +281,46 @@ export type SeriesAttrs = {
 };
 
 // ─── Model ───────────────────────────────────────────────────────────
+
+/** Months per period for the month-based frequencies disaggregation supports. */
+const MONTHS_PER_FREQ: Record<string, number> = {
+  year: 12,
+  semi: 6,
+  quarter: 3,
+  month: 1,
+};
+
+/**
+ * Sorted non-null [dates, values] of a series, asserting that consecutive
+ * observations are exactly `months` apart (no gaps, no duplicates).
+ */
+function contiguousValues(
+  series: Series,
+  months: number,
+): [string[], number[]] {
+  const entries = [...series.data.entries()]
+    .filter(([, v]) => v != null)
+    .sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) throw new Error(`${series} has no data`);
+  for (let i = 1; i < entries.length; i++) {
+    const expected = addMonthsStr(entries[i - 1][0], months);
+    if (entries[i][0] !== expected) {
+      throw new Error(
+        `${series} is not contiguous: expected ${expected} after ${entries[i - 1][0]}, found ${entries[i][0]}`,
+      );
+    }
+  }
+  return [entries.map(([d]) => d), entries.map(([, v]) => v)];
+}
+
+/** Options for `Series.disaggregate()`; `ratio` is derived from the frequencies. */
+export type SeriesDisaggregateOptions = Omit<
+  DisaggregateOptions,
+  "ratio" | "indicator"
+> & {
+  /** High-frequency indicator series at the target frequency. */
+  indicator?: Series;
+};
 
 class Series {
   // series table fields
@@ -1211,6 +1251,87 @@ class Series {
     return s;
   }
 
+  // ─── Disaggregation (src/core/timeseries) ─────────────────────────
+
+  /**
+   * Temporally disaggregate this series to a higher frequency (e.g. year →
+   * quarter) using the `timeseries` port of R's tempdisagg. Returns the new
+   * high-frequency Series; use `disaggregateDetailed()` for the fit
+   * statistics as well.
+   *
+   * The series must be contiguous (no missing periods). `indicator`, if
+   * given, must be a Series at the target frequency that starts in the same
+   * period as this series; it may extend past the end, in which case the
+   * surplus periods are forecast.
+   */
+  disaggregate(
+    frequency: string,
+    options: SeriesDisaggregateOptions = {},
+  ): Series {
+    return this.disaggregateDetailed(frequency, options).series;
+  }
+
+  disaggregateDetailed(
+    frequency: string,
+    options: SeriesDisaggregateOptions = {},
+  ): { series: Series; result: DisaggregateResult } {
+    const srcFreq = normalizeFreq(this.frequency ?? "");
+    const targetFreq = normalizeFreq(frequency);
+    const srcMonths = MONTHS_PER_FREQ[srcFreq];
+    const targetMonths = MONTHS_PER_FREQ[targetFreq];
+    if (!srcMonths) {
+      throw new Error(
+        `Cannot disaggregate from frequency "${this.frequency}"; source must be year, semi, quarter or month`,
+      );
+    }
+    if (!targetMonths) {
+      throw new Error(
+        `Cannot disaggregate to frequency "${frequency}"; target must be year, semi, quarter or month`,
+      );
+    }
+    const ratio = freqPerFreq(targetFreq, srcFreq);
+    if (!ratio || ratio < 2) {
+      throw new Error("Can only disaggregate to a higher frequency");
+    }
+
+    const { indicator, ...rest } = options;
+    const [dates, values] = contiguousValues(this, srcMonths);
+    const start = periodStart(dates[0], srcFreq);
+
+    let indicatorValues: number[] | undefined;
+    if (indicator) {
+      if (normalizeFreq(indicator.frequency ?? "") !== targetFreq) {
+        throw new Error(
+          `Indicator frequency "${indicator.frequency}" must match the target frequency "${targetFreq}"`,
+        );
+      }
+      const [indDates, indValues] = contiguousValues(indicator, targetMonths);
+      if (periodStart(indDates[0], targetFreq) !== start) {
+        throw new Error(
+          `Indicator must start in the same period as the series (${start}); it starts at ${indDates[0]}`,
+        );
+      }
+      indicatorValues = indValues;
+    }
+
+    const result = disaggregateArray(values, {
+      ...rest,
+      ratio,
+      indicator: indicatorValues,
+    });
+
+    const newData = new Map<string, number>();
+    result.values.forEach((v, i) => {
+      newData.set(addMonthsStr(start, i * targetMonths), v);
+    });
+    const s = new Series({
+      name: `Disaggregated (${result.method}, ${result.conversion}) from ${this}`,
+    });
+    s.data = newData;
+    s.frequency = targetFreq;
+    return { series: s, result };
+  }
+
   // ─── Interpolation (series_interpolation.rb) ──────────────────────
 
   /** Fill gaps in monthly data with linear interpolation. */
@@ -2112,7 +2233,8 @@ class Series {
             this.trimPeriodEnd.getMonth() + 1,
             this.trimPeriodEnd.getDate(),
           )
-        : null) ?? hstToday();
+        : null) ??
+      hstToday();
 
     if (!start) {
       // No start date even after defaults — return data as-is

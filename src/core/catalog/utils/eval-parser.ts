@@ -239,15 +239,18 @@ function parseRubyHash(
   // Match key-value pairs in both Ruby hash syntaxes:
   //   new-style:  `word: value`
   //   old-style:  `:word => value`
+  // Values may be quoted strings, symbols (`:word`), numbers, or booleans.
   const pairRegex =
-    /(?::(\w+)\s*=>|(\w+):)\s*(?:(["'])(.*?)\3|(\d+(?:\.\d+)?)|true|false)/g;
+    /(?::(\w+)\s*=>|(\w+):)\s*(?:(["'])(.*?)\3|:(\w+)|(\d+(?:\.\d+)?)|true|false)/g;
   let match;
   while ((match = pairRegex.exec(hashStr)) !== null) {
     const key = match[1] || match[2];
     if (match[4] !== undefined) {
       result[key] = match[4];
     } else if (match[5] !== undefined) {
-      result[key] = Number(match[5]);
+      result[key] = match[5];
+    } else if (match[6] !== undefined) {
+      result[key] = Number(match[6]);
     } else {
       // true/false
       const raw = match[0];

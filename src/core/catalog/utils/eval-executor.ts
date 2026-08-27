@@ -68,6 +68,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "fillMissingMonthsLinear",
   "fillAlternateMissingMonths",
   "interpolate",
+  "disaggregate",
   "linearInterpolate",
   "fillInterpolateTo",
   "censusInterpolate",
@@ -934,6 +935,46 @@ class EvalExecutor {
             }
           }
           return target.trim(startDate ?? null, endDate ?? null);
+        }
+
+        // Temporal disaggregation (tempdisagg port):
+        //   disaggregate(:quarter)
+        //   disaggregate(:quarter, method: :denton_cholette, criterion: :additive)
+        //   disaggregate(:quarter, method: :chow_lin_maxlog, indicator: "X@HI.Q")
+        // TS method names are hyphenated ("chow-lin-maxlog") but Ruby symbols
+        // can't contain hyphens, so normalize underscores. Hash values can't
+        // be expressions, so `indicator:` takes a series NAME and is loaded
+        // from the DB here; a positional `.ts` expression also works.
+        if (methodName === "disaggregate") {
+          const args = await resolveArgs(node.args);
+          let frequency: string | undefined;
+          const opts: Record<string, unknown> = {};
+          for (const a of args) {
+            if (typeof a === "string") {
+              frequency ??= a;
+            } else if (a instanceof Series) {
+              opts.indicator = a;
+            } else if (a && typeof a === "object") {
+              Object.assign(opts, a);
+            }
+          }
+          if (!frequency) {
+            throw new EvalExecuteError(
+              "disaggregate requires a target frequency, e.g. disaggregate(:quarter)",
+            );
+          }
+          if (typeof opts.method === "string") {
+            opts.method = opts.method.replace(/_/g, "-");
+          }
+          if (typeof opts.indicator === "string") {
+            const indicator = await SeriesCollection.getByName(opts.indicator);
+            await SeriesCollection.loadCurrentData(indicator);
+            opts.indicator = indicator;
+          }
+          return target.disaggregate(
+            frequency,
+            opts as Parameters<Series["disaggregate"]>[1],
+          );
         }
 
         // Moving average methods: Rails defines these with a `window:`
