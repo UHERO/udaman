@@ -53,6 +53,12 @@ const r = disaggregate(annual, {
 aggregate(r.values, { ratio: 4, conversion: "sum" }); // ≈ annual
 ```
 
+`disaggregate()` defaults to `conversion: "sum"` like tempdisagg.
+**`Series.disaggregate()` defaults to `"average"`** — it replaces
+`interpolate(freq, "average")` and most catalog annual series are rates or
+levels. In evals: `disaggregate(:quarter)`, `disaggregate(:quarter, :sum)`,
+`disaggregate(:quarter, :sum, "X@HI.Q".ts)`.
+
 Series start at the beginning of a low-frequency period. An indicator longer
 than `lowFreq.length * ratio` yields that many forecast periods at the end
 (`nForecast`), exactly as `td()` does in numeric mode. Without an indicator,

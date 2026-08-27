@@ -938,9 +938,11 @@ class EvalExecutor {
           return target.trim(startDate ?? null, endDate ?? null);
         }
 
-        // Temporal disaggregation (tempdisagg port):
-        //   disaggregate(:quarter)
-        //   disaggregate(:quarter, method: :denton_cholette, criterion: :additive)
+        // Temporal disaggregation (tempdisagg port). Mirrors the old
+        // `interpolate(:quarter, :sum)` signature:
+        //   disaggregate(:quarter)                      # average (default)
+        //   disaggregate(:quarter, :sum)                # sum | average | first | last
+        //   disaggregate(:quarter, :sum, "X@HI.Q".ts)   # with an indicator series
         //   disaggregate(:quarter, method: :chow_lin_maxlog, indicator: "X@HI.Q")
         // TS method names are hyphenated ("chow-lin-maxlog") but Ruby symbols
         // can't contain hyphens, so normalize underscores. Hash values can't
@@ -952,7 +954,8 @@ class EvalExecutor {
           const opts: Record<string, unknown> = {};
           for (const a of args) {
             if (typeof a === "string") {
-              frequency ??= a;
+              if (frequency === undefined) frequency = a;
+              else opts.conversion = a;
             } else if (a instanceof Series) {
               opts.indicator = a;
             } else if (a && typeof a === "object") {

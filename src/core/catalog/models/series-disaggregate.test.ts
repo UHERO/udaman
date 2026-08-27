@@ -21,7 +21,10 @@ describe("Series.disaggregate", () => {
   ]);
 
   it("year → quarter with uniform and no indicator dates the output correctly", () => {
-    const q = annual.disaggregate("quarter", { method: "uniform" });
+    const q = annual.disaggregate("quarter", {
+      method: "uniform",
+      conversion: "sum",
+    });
     expect(q.frequency).toBe("quarter");
     expect([...q.data.keys()]).toEqual([
       "2020-01-01",
@@ -65,8 +68,12 @@ describe("Series.disaggregate", () => {
       }),
       "IND@HI.Q",
     );
-    const { series, result } = annual.disaggregateDetailed("quarter", {
+    const {
+      series,
+      results: [result],
+    } = annual.disaggregateDetailed("quarter", {
       method: "chow-lin-maxlog",
+      conversion: "sum",
       indicator: ind,
     });
     expect(result.nForecast).toBe(2);
@@ -79,12 +86,64 @@ describe("Series.disaggregate", () => {
       expect(back.data.get(d)).toBeCloseTo(v, 8);
   });
 
+  it("splits on gaps by default and leaves the hole in the output", () => {
+    const gappy = build("semi", [
+      ["2018-01-01", 10],
+      ["2018-07-01", 12],
+      ["2019-01-01", 14],
+      // 2019-07-01 missing
+      ["2020-01-01", 20],
+      ["2020-07-01", 22],
+    ]);
+    const { series: q, results } = gappy.disaggregateDetailed("quarter");
+    expect(results.length).toBe(2);
+    expect([...q.data.keys()].sort()).toEqual([
+      "2018-01-01",
+      "2018-04-01",
+      "2018-07-01",
+      "2018-10-01",
+      "2019-01-01",
+      "2019-04-01",
+      "2020-01-01",
+      "2020-04-01",
+      "2020-07-01",
+      "2020-10-01",
+    ]);
+    expect(q.data.has("2019-07-01")).toBe(false);
+    // each run still reconciles to its own source values
+    const back = q.aggregate("semi", "average");
+    for (const [d, v] of gappy.data) expect(back.data.get(d)).toBeCloseTo(v, 8);
+    // a single-point run is spread uniformly
+    const single = build("year", [
+      ["2020-01-01", 8],
+      ["2022-01-01", 12],
+      ["2023-01-01", 16],
+    ]);
+    const r = single.disaggregateDetailed("quarter", { conversion: "sum" });
+    expect(r.results[0].method).toBe("uniform");
+    expect(r.series.data.get("2020-04-01")).toBe(2);
+    expect(r.results[1].method).toBe("denton-cholette");
+  });
+
   it("rejects gaps, lower targets, mismatched indicators", () => {
     const gappy = build("year", [
       ["2020-01-01", 1],
       ["2022-01-01", 3],
     ]);
-    expect(() => gappy.disaggregate("quarter")).toThrow(/not contiguous/);
+    expect(() => gappy.disaggregate("quarter", { gaps: "error" })).toThrow(
+      /not contiguous/,
+    );
+    const gapInd = build(
+      "quarter",
+      [
+        ["2020-01-01", 1],
+        ["2020-04-01", 1],
+      ],
+      "I@HI.Q",
+    );
+    expect(() => gappy.disaggregate("quarter", { indicator: gapInd })).toThrow(
+      /not contiguous/,
+    );
     expect(() => annual.disaggregate("year")).toThrow(/higher frequency/);
     const monthly = build("month", [["2020-01-01", 1]], "M@HI.M");
     expect(() =>

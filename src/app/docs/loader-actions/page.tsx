@@ -415,6 +415,12 @@ Series.search("TOUR").first`}
             example={`"GDP@HI.A".ts.interpolate(:quarter, :average)\n"TAX@HI.A".ts.interpolate(:month, :sum)`}
           />
           <MethodBlock
+            name="disaggregate"
+            evalName="disaggregate"
+            description='Temporal disaggregation to a higher frequency (Denton-Cholette, ported from the R package tempdisagg). Produces the smoothest series whose sub-periods reconcile to each source value. Conversion can be "average" (default), "sum", "first" or "last". Gaps in the source are skipped, not filled. Replaces interpolate and census_interpolate.'
+            example={`"NBIR@HI.A".ts.disaggregate(:quarter)\n"TAX@HI.A".ts.disaggregate(:month, :sum)\n"GDP@HI.A".ts.disaggregate(:quarter, :sum, "E_NF@HI.Q".ts)`}
+          />
+          <MethodBlock
             name="linear_interpolate"
             evalName="linear_interpolate"
             description="Linear match-last interpolation to the given frequency. Draws a straight line between known values, matching the last sub-period to the source value."

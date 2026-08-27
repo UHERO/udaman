@@ -291,26 +291,46 @@ const MONTHS_PER_FREQ: Record<string, number> = {
 };
 
 /**
- * Sorted non-null [dates, values] of a series, asserting that consecutive
- * observations are exactly `months` apart (no gaps, no duplicates).
+ * Sorted non-null observations of a series, split into contiguous runs:
+ * consecutive observations within a run are exactly `months` apart. A gap
+ * (or a duplicate/misaligned date) starts a new run.
  */
-function contiguousValues(
+function contiguousRuns(
   series: Series,
   months: number,
-): [string[], number[]] {
+): Array<{ dates: string[]; values: number[] }> {
   const entries = [...series.data.entries()]
     .filter(([, v]) => v != null)
     .sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) throw new Error(`${series} has no data`);
+  const runs: Array<{ dates: string[]; values: number[] }> = [];
+  let run = { dates: [entries[0][0]], values: [entries[0][1]] };
   for (let i = 1; i < entries.length; i++) {
-    const expected = addMonthsStr(entries[i - 1][0], months);
-    if (entries[i][0] !== expected) {
-      throw new Error(
-        `${series} is not contiguous: expected ${expected} after ${entries[i - 1][0]}, found ${entries[i][0]}`,
-      );
+    const [date, value] = entries[i];
+    if (date !== addMonthsStr(run.dates[run.dates.length - 1], months)) {
+      runs.push(run);
+      run = { dates: [], values: [] };
     }
+    run.dates.push(date);
+    run.values.push(value);
   }
-  return [entries.map(([d]) => d), entries.map(([, v]) => v)];
+  runs.push(run);
+  return runs;
+}
+
+/** Single contiguous run, or throw naming the first gap. */
+function contiguousValues(
+  series: Series,
+  months: number,
+): [string[], number[]] {
+  const runs = contiguousRuns(series, months);
+  if (runs.length > 1) {
+    const last = runs[0].dates[runs[0].dates.length - 1];
+    throw new Error(
+      `${series} is not contiguous: expected ${addMonthsStr(last, months)} after ${last}, found ${runs[1].dates[0]}`,
+    );
+  }
+  return [runs[0].dates, runs[0].values];
 }
 
 /** Options for `Series.disaggregate()`; `ratio` is derived from the frequencies. */
@@ -320,6 +340,15 @@ export type SeriesDisaggregateOptions = Omit<
 > & {
   /** High-frequency indicator series at the target frequency. */
   indicator?: Series;
+  /**
+   * What to do when the source series has missing periods.
+   * - `"split"` (default): disaggregate each contiguous run separately and
+   *   leave the gap in the output — nothing is filled in. Matches the
+   *   behaviour of `interpolate`.
+   * - `"error"`: throw naming the gap.
+   * Gaps always throw when an `indicator` is given.
+   */
+  gaps?: "split" | "error";
 };
 
 class Series {
@@ -1259,10 +1288,15 @@ class Series {
    * high-frequency Series; use `disaggregateDetailed()` for the fit
    * statistics as well.
    *
-   * The series must be contiguous (no missing periods). `indicator`, if
-   * given, must be a Series at the target frequency that starts in the same
-   * period as this series; it may extend past the end, in which case the
-   * surplus periods are forecast.
+   * `conversion` defaults to "average" (quarters average to the annual);
+   * use "sum" for flows, "first"/"last" for start/end-of-period readings.
+   *
+   * Missing periods split the series into contiguous runs that are
+   * disaggregated separately; the gap is left in the output (see `gaps`).
+   * `indicator`, if given, must be a Series at the target frequency that
+   * starts in the same period as this series; it may extend past the end,
+   * in which case the surplus periods are forecast. Gaps are not allowed
+   * with an indicator.
    */
   disaggregate(
     frequency: string,
@@ -1274,7 +1308,7 @@ class Series {
   disaggregateDetailed(
     frequency: string,
     options: SeriesDisaggregateOptions = {},
-  ): { series: Series; result: DisaggregateResult } {
+  ): { series: Series; results: DisaggregateResult[] } {
     const srcFreq = normalizeFreq(this.frequency ?? "");
     const targetFreq = normalizeFreq(frequency);
     const srcMonths = MONTHS_PER_FREQ[srcFreq];
@@ -1294,9 +1328,24 @@ class Series {
       throw new Error("Can only disaggregate to a higher frequency");
     }
 
-    const { indicator, ...rest } = options;
-    const [dates, values] = contiguousValues(this, srcMonths);
-    const start = periodStart(dates[0], srcFreq);
+    // Default to "average" here (the array-level API keeps tempdisagg's
+    // "sum"): this replaces `interpolate(freq, "average")`, and most udaman
+    // annual series are rates/levels, not flows.
+    const {
+      indicator,
+      conversion = "average",
+      gaps = "split",
+      ...rest
+    } = options;
+
+    const runs =
+      gaps === "split" && !indicator
+        ? contiguousRuns(this, srcMonths)
+        : [
+            (([dates, values]) => ({ dates, values }))(
+              contiguousValues(this, srcMonths),
+            ),
+          ];
 
     let indicatorValues: number[] | undefined;
     if (indicator) {
@@ -1305,6 +1354,7 @@ class Series {
           `Indicator frequency "${indicator.frequency}" must match the target frequency "${targetFreq}"`,
         );
       }
+      const start = periodStart(runs[0].dates[0], srcFreq);
       const [indDates, indValues] = contiguousValues(indicator, targetMonths);
       if (periodStart(indDates[0], targetFreq) !== start) {
         throw new Error(
@@ -1314,22 +1364,31 @@ class Series {
       indicatorValues = indValues;
     }
 
-    const result = disaggregateArray(values, {
-      ...rest,
-      ratio,
-      indicator: indicatorValues,
-    });
-
     const newData = new Map<string, number>();
-    result.values.forEach((v, i) => {
-      newData.set(addMonthsStr(start, i * targetMonths), v);
-    });
+    const results: DisaggregateResult[] = [];
+    for (const run of runs) {
+      const start = periodStart(run.dates[0], srcFreq);
+      const result = disaggregateArray(run.values, {
+        ...rest,
+        // Smoothing across a single point is meaningless; spread it evenly.
+        method: run.values.length < 2 ? "uniform" : rest.method,
+        conversion,
+        ratio,
+        indicator: indicatorValues,
+      });
+      result.values.forEach((v, i) => {
+        newData.set(addMonthsStr(start, i * targetMonths), v);
+      });
+      results.push(result);
+    }
+
+    const { method } = results[results.length - 1];
     const s = new Series({
-      name: `Disaggregated (${result.method}, ${result.conversion}) from ${this}`,
+      name: `Disaggregated (${method}, ${conversion}) from ${this}`,
     });
     s.data = newData;
     s.frequency = targetFreq;
-    return { series: s, result };
+    return { series: s, results };
   }
 
   // ─── Interpolation (series_interpolation.rb) ──────────────────────
