@@ -19,6 +19,7 @@ import {
   Globe,
   House,
   KeyRound,
+  Library,
   LogOut,
   Mail,
   Megaphone,
@@ -80,6 +81,11 @@ const MODE_BRANDING: Record<
     subtitle: "Communications",
   },
   uhu: { icon: Wrench, title: "UHU", subtitle: "UHERO Utilities" },
+  "data-registry": {
+    icon: Library,
+    title: "Data Registry",
+    subtitle: "Data Sources",
+  },
 };
 
 const RAIL_ITEMS = [
@@ -117,6 +123,13 @@ const RAIL_ITEMS = [
     icon: BookOpen,
     href: "/docs",
     match: "/docs",
+    roles: ["internal", "admin", "dev"],
+  },
+  {
+    label: "Registry",
+    icon: Library,
+    href: "/data-registry",
+    match: "/data-registry",
     roles: ["internal", "admin", "dev"],
   },
 ] as const;
@@ -171,7 +184,7 @@ export function AppSidebar({
     universe: string;
   };
   universes?: { name: string; description: string | null }[];
-  mode?: "udaman" | "admin" | "hhdb" | "docs" | "comms";
+  mode?: "udaman" | "admin" | "hhdb" | "docs" | "comms" | "data-registry";
 }) {
   const params = useParams();
   const pathname = usePathname();
@@ -203,6 +216,8 @@ export function AppSidebar({
     if (mode === "hhdb") return []; // hhdb renders its own grouped nav (NavHhdb)
     if (mode === "docs") return DOCS_NAV_ITEMS;
     if (mode === "comms") return COMMS_NAV_ITEMS;
+    // Data Registry has no nav items — the page renders a description instead.
+    if (mode === "data-registry") return [];
     return sidebarRoutes.map((entry) => ({
       title: entry.label,
       url: prefixUrl(entry.path, universe),
@@ -353,6 +368,10 @@ export function AppSidebar({
         <SidebarContent>
           {mode === "hhdb" ? (
             <NavHhdb />
+          ) : mode === "data-registry" ? (
+            <div className="text-muted-foreground px-4 py-3 text-xs leading-relaxed">
+              A catalog of upstream UHERO data sources
+            </div>
           ) : (
             <NavMain items={navMain} label={branding?.title ?? "UDAMAN"} />
           )}
