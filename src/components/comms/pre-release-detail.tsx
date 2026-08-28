@@ -180,6 +180,10 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
             label="The work complies with applicable UH policies, research protocols, disclosure requirements, and professional standards."
             checked={d.certCompliance}
           />
+          <CheckRow
+            label="The manuscript is the independent work of the authors."
+            checked={d.certIndependent}
+          />
           <dl>
             <Row label="Certified by">
               {approval.author}

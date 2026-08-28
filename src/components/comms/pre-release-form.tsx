@@ -65,7 +65,7 @@ function isEmail(address: string): boolean {
   return z.string().email().safeParse(address).success;
 }
 
-const CERT_MESSAGE = "All four certifications must be confirmed to submit";
+const CERT_MESSAGE = "All five certifications must be confirmed to submit";
 
 /**
  * Textareas open one row tall and grow with what's typed — most answers here
@@ -106,6 +106,7 @@ const formSchema = z
     certEvidence: z.boolean().refine((v) => v, { message: CERT_MESSAGE }),
     certUncertainties: z.boolean().refine((v) => v, { message: CERT_MESSAGE }),
     certCompliance: z.boolean().refine((v) => v, { message: CERT_MESSAGE }),
+    certIndependent: z.boolean().refine((v) => v, { message: CERT_MESSAGE }),
 
     // E — Availability and dissemination
     availableOnRelease: z.enum(["yes", "no"]),
@@ -213,6 +214,7 @@ const EMPTY: Omit<FormValues, "recipients"> = {
   certEvidence: false,
   certUncertainties: false,
   certCompliance: false,
+  certIndependent: false,
   availableOnRelease: "yes",
   mediaContactName: "",
   mediaContactEmail: "",
@@ -273,6 +275,7 @@ function toFormValues(
     certEvidence: d.certEvidence ?? false,
     certUncertainties: d.certUncertainties ?? false,
     certCompliance: d.certCompliance ?? false,
+    certIndependent: d.certIndependent ?? false,
     availableOnRelease: d.availableOnRelease ?? "yes",
     mediaContactName: d.mediaContactName ?? "",
     mediaContactEmail: d.mediaContactEmail ?? "",
@@ -303,6 +306,10 @@ const CERTIFICATIONS = [
     key: "certCompliance",
     label:
       "The work complies with applicable UH policies, research protocols, disclosure requirements, and professional standards.",
+  },
+  {
+    key: "certIndependent",
+    label: "The manuscript is the independent work of the authors.",
   },
 ] as const;
 
@@ -616,6 +623,7 @@ export function PreReleaseForm({
       certEvidence: values.certEvidence,
       certUncertainties: values.certUncertainties,
       certCompliance: values.certCompliance,
+      certIndependent: values.certIndependent,
       availableOnRelease: values.availableOnRelease,
       mediaContactName: values.mediaContactName,
       mediaContactEmail: values.mediaContactEmail,
@@ -923,7 +931,7 @@ export function PreReleaseForm({
 
       <FormSection
         title="D. Lead author certification"
-        description="On behalf of all authors. Confirm each — all four are required."
+        description="On behalf of all authors. Confirm each — all five are required."
       >
         {/* gap-1: these are one-line checkbox rows, not labelled inputs. */}
         <FieldGroup className="gap-1">

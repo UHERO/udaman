@@ -178,11 +178,12 @@ export type PreReleaseFormData = {
   reviewers: string;
   stakeholderInput: string;
 
-  // D — Lead author certification. All four must be true to submit.
+  // D — Lead author certification. All five must be true to submit.
   certAccurate: boolean;
   certEvidence: boolean;
   certUncertainties: boolean;
   certCompliance: boolean;
+  certIndependent: boolean;
 
   // E — Availability and dissemination
   availableOnRelease: "yes" | "no";
