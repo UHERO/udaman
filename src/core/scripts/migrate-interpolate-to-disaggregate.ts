@@ -7,6 +7,12 @@
  *   .interpolate(:F, :average)    → .disaggregate(:F)
  *   .interpolate(:F, :sum)        → .disaggregate(:F, :sum)
  *   .census_interpolate(:F)       → .disaggregate(:F)
+ *   ("X@G.A".ts / 4).census_interpolate(:quarter)
+ *                                 → "X@G.A".ts.disaggregate(:quarter, :sum)
+ *     "divide a flow by the ratio, then interpolate so sub-periods average
+ *     to it" is exactly "sub-periods sum to the annual". The divisor must
+ *     equal the frequency ratio implied by the series name (4 for A→Q,
+ *     12 for A→M, 3 for Q→M, …); anything else is left for hand review.
  *
  * `linear_interpolate`, `fill_interpolate_to`, `trms_interpolate_to_quarterly`
  * and anything else are left alone. Every affected data source is printed
@@ -30,14 +36,42 @@ type Row = { id: number; eval: string; target: string | null };
 const CALL =
   /\.(census_interpolate|interpolate)\(\s*(:[a-z]+)\s*(?:,\s*:(average|sum)\s*)?\)/g;
 
+/** `("NAME".ts / N).interpolate(:freq[, :average])` */
+const DIVIDED_CALL =
+  /\(\s*("([^"]+)"\.ts)\s*\/\s*(\d+)\s*\)\.(?:census_interpolate|interpolate)\(\s*:([a-z]+)\s*(?:,\s*:average\s*)?\)/g;
+
+const MONTHS: Record<string, number> = {
+  A: 12,
+  S: 6,
+  Q: 3,
+  M: 1,
+  year: 12,
+  semi: 6,
+  quarter: 3,
+  month: 1,
+};
+
+/** Ratio implied by the source series name's frequency suffix and target. */
+function ratioFor(seriesName: string, targetFreq: string): number | null {
+  const src = MONTHS[seriesName.split(".").pop() ?? ""];
+  const tgt = MONTHS[targetFreq];
+  return src && tgt && src % tgt === 0 ? src / tgt : null;
+}
+
 export function rewriteEval(evalStr: string): string {
-  return evalStr.replace(
-    CALL,
-    (_m, _fn: string, freq: string, conv?: string) =>
+  return evalStr
+    .replace(
+      DIVIDED_CALL,
+      (m, ts: string, name: string, divisor: string, freq: string) =>
+        Number(divisor) === ratioFor(name, freq)
+          ? `${ts}.disaggregate(:${freq}, :sum)`
+          : m,
+    )
+    .replace(CALL, (_m, _fn: string, freq: string, conv?: string) =>
       conv === "sum"
         ? `.disaggregate(${freq}, :sum)`
         : `.disaggregate(${freq})`,
-  );
+    );
 }
 
 async function main() {
@@ -54,7 +88,10 @@ async function main() {
   for (const r of rows) {
     if (ONLY && !ONLY.has(r.target ?? "")) continue;
     const next = rewriteEval(r.eval);
-    if (next === r.eval) untouched.push(r);
+    // A division that survived the rewrite means the divisor didn't match
+    // the frequency ratio — don't rename the call underneath it.
+    const suspicious = /\/\s*\d+\s*\)\.disaggregate\(/.test(next);
+    if (next === r.eval || suspicious) untouched.push(r);
     else changes.push({ ...r, next });
   }
 
