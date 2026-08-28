@@ -1,5 +1,5 @@
 import { createLogger } from "@/core/observability/logger";
-import { mysql, rawQuery } from "@/lib/mysql/db";
+import { mysql, rawQuery, scopedConnection } from "@/lib/mysql/db";
 
 import CategoryCollection from "../collections/category-collection";
 import DataListCollection from "../collections/data-list-collection";
@@ -10,6 +10,7 @@ import SourceCollection from "../collections/source-collection";
 import UnitCollection from "../collections/unit-collection";
 import { DbedtUploadCollection } from "../collections/universe-upload-collection";
 import Series from "../models/series";
+import { AdaptiveThrottle } from "../utils/adaptive-throttle";
 import { makeDate } from "../utils/date-helpers";
 import type {
   DbedtDataRow,
@@ -50,11 +51,55 @@ async function parseFile(filePath: string): Promise<DbedtParseResult> {
   return result;
 }
 
+/** Rows per bounded DELETE statement. */
+const DELETE_CHUNK_ROWS = 5000;
+/** Key values per `IN (...)` list when deleting by parent id. */
+const DELETE_ID_BATCH = 200;
+
+/**
+ * Delete rows in bounded chunks instead of one unbounded statement.
+ *
+ * `DELETE ... WHERE <col> IN (ids) LIMIT n` is repeated until a statement
+ * affects fewer than `n` rows, with an adaptive pause between statements.
+ * Each statement holds locks and undo for at most `n` rows, so concurrent
+ * reloads / public syncs / page loads on the same table get a turn between
+ * chunks instead of queueing behind a single multi-minute transaction.
+ *
+ * Uses MySQL's per-statement `affectedRows` from Bun's result array, so it
+ * doesn't depend on running on the same connection as a `ROW_COUNT()` call.
+ */
+async function deleteInChunks(
+  table: string,
+  idColumn: string,
+  ids: number[],
+  throttle: AdaptiveThrottle,
+): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < ids.length; i += DELETE_ID_BATCH) {
+    const batch = ids.slice(i, i + DELETE_ID_BATCH);
+    const placeholders = batch.map(() => "?").join(",");
+    const sql = `DELETE FROM \`${table}\` WHERE \`${idColumn}\` IN (${placeholders}) LIMIT ${DELETE_CHUNK_ROWS}`;
+    for (;;) {
+      const result = (await throttle.time(() =>
+        rawQuery(sql, batch),
+      )) as unknown as { affectedRows?: number };
+      const affected = result.affectedRows ?? 0;
+      total += affected;
+      if (affected < DELETE_CHUNK_ROWS) break;
+      await throttle.pause();
+    }
+  }
+  return total;
+}
+
 /**
  * Wipe all DBEDT data except series, xseries, data_sources, and geographies.
- * Direct port of Rails `delete_universe_dbedt`.
+ * Port of Rails `delete_universe_dbedt`, restructured so no single statement
+ * touches more than a bounded number of rows on the big tables.
  */
 export async function wipeDbedtUniverse(): Promise<void> {
+  const throttle = new AdaptiveThrottle();
+
   // Delete categories with ancestry (keep root)
   await mysql`
     DELETE FROM categories
@@ -72,43 +117,73 @@ export async function wipeDbedtUniverse(): Promise<void> {
   await mysql`DELETE FROM data_lists WHERE universe = 'DBEDT'`;
   log.info("Deleted DBEDT data lists");
 
-  await rawQuery("SET FOREIGN_KEY_CHECKS = 0");
-  try {
-    log.info("Deleting DBEDT public_data_points");
-    await rawQuery(
-      `DELETE p FROM public_data_points p
-       JOIN series s ON s.id = p.series_id
-       WHERE s.universe = 'DBEDT'`,
-    );
-    await Bun.sleep(100); // let the DB breathe between heavy deletes
+  // Resolve the DBEDT key space once; every big delete below is a plain
+  // single-table DELETE by indexed key, so it can be chunked with LIMIT.
+  const seriesRows = await mysql<{ id: number; xseries_id: number | null }>`
+    SELECT id, xseries_id FROM series WHERE universe = 'DBEDT'
+  `;
+  const seriesIds = seriesRows.map((r) => r.id);
+  const xseriesIds = [
+    ...new Set(
+      seriesRows.map((r) => r.xseries_id).filter((x): x is number => x != null),
+    ),
+  ];
+  const measurementRows = await mysql<{ id: number }>`
+    SELECT id FROM measurements WHERE universe = 'DBEDT'
+  `;
+  const measurementIds = measurementRows.map((r) => r.id);
 
-    log.info("Deleting DBEDT data_points");
-    await rawQuery(
-      `DELETE d FROM data_points d
-       JOIN series s ON s.xseries_id = d.xseries_id
-       WHERE s.universe = 'DBEDT'`,
-    );
-    await Bun.sleep(100);
+  // Child rows — no FK constraint can be violated by removing these, so
+  // they run on ordinary pooled connections with FK checks left on.
+  log.info({ series: seriesIds.length }, "Deleting DBEDT public_data_points");
+  const publicDeleted = await deleteInChunks(
+    "public_data_points",
+    "series_id",
+    seriesIds,
+    throttle,
+  );
+  log.info({ deleted: publicDeleted }, "Deleted DBEDT public_data_points");
 
-    log.info("Deleting DBEDT measurement_series");
-    await rawQuery(
-      `DELETE ms FROM measurement_series ms
-       JOIN measurements m ON m.id = ms.measurement_id
-       WHERE m.universe = 'DBEDT'`,
-    );
-    await Bun.sleep(50);
+  log.info({ xseries: xseriesIds.length }, "Deleting DBEDT data_points");
+  const pointsDeleted = await deleteInChunks(
+    "data_points",
+    "xseries_id",
+    xseriesIds,
+    throttle,
+  );
+  log.info({ deleted: pointsDeleted }, "Deleted DBEDT data_points");
 
-    log.info("Deleting DBEDT measurements");
-    await rawQuery("DELETE FROM measurements WHERE universe = 'DBEDT'");
+  log.info("Deleting DBEDT measurement_series");
+  const msDeleted = await deleteInChunks(
+    "measurement_series",
+    "measurement_id",
+    measurementIds,
+    throttle,
+  );
+  log.info({ deleted: msDeleted }, "Deleted DBEDT measurement_series");
 
-    log.info("Deleting DBEDT units");
-    await rawQuery("DELETE FROM units WHERE universe = 'DBEDT'");
+  // Parent rows. `series.unit_id` / `series.source_id` are ON DELETE RESTRICT
+  // and the (kept) DBEDT series still point at these units/sources until
+  // loadDbedtData re-links them, so FK checks must be off for these three
+  // deletes. FOREIGN_KEY_CHECKS is a session variable: it only applies if
+  // set on the same connection that runs the DELETEs, which scopedConnection
+  // guarantees (the pool would otherwise hand each statement a random
+  // connection). These tables are small, so one short transaction is fine.
+  await scopedConnection(async (exec) => {
+    await exec("SET FOREIGN_KEY_CHECKS = 0");
+    try {
+      log.info("Deleting DBEDT measurements");
+      await exec("DELETE FROM measurements WHERE universe = 'DBEDT'");
 
-    log.info("Deleting DBEDT sources");
-    await rawQuery("DELETE FROM sources WHERE universe = 'DBEDT'");
-  } finally {
-    await rawQuery("SET FOREIGN_KEY_CHECKS = 1");
-  }
+      log.info("Deleting DBEDT units");
+      await exec("DELETE FROM units WHERE universe = 'DBEDT'");
+
+      log.info("Deleting DBEDT sources");
+      await exec("DELETE FROM sources WHERE universe = 'DBEDT'");
+    } finally {
+      await exec("SET FOREIGN_KEY_CHECKS = 1");
+    }
+  });
 }
 
 /**
@@ -138,8 +213,17 @@ export async function loadDbedtMetadata(
   // Track last category so measurement rows can link to it
   let lastCategory: { id: number; dataListId: number | null } | null = null;
 
+  // Each indicator row is several round trips; pause proportionally to how
+  // long the last row took so a busy server slows this loop down.
+  const throttle = new AdaptiveThrottle();
+  let rowsProcessed = 0;
+
   for (const row of indicatorRows) {
     allMeta.set(row.indId, row);
+    if (rowsProcessed++ > 0 && rowsProcessed % 10 === 0) {
+      await throttle.pause();
+    }
+    const rowStart = performance.now();
 
     if (!row.unit) {
       // ── Category entry ──────────────────────────────────────────
@@ -213,6 +297,7 @@ export async function loadDbedtMetadata(
         "Added measurement to data list",
       );
     }
+    throttle.record(performance.now() - rowStart);
   }
 
   log.info({ totalMeta: allMeta.size }, "loadDbedtMetadata: done");
@@ -239,6 +324,8 @@ export async function loadDbedtData(
   let currentDataSourceId: number | null = null;
   let currentMeasurementPrefix: string | null = null;
   let seriesProcessed = 0;
+  const throttle = new AdaptiveThrottle();
+  let seriesStart = 0;
 
   const dataPoints: {
     xseriesId: number;
@@ -289,10 +376,13 @@ export async function loadDbedtData(
       currentDataSourceId = null;
       seriesProcessed++;
 
-      // Throttle every 10 series to avoid flooding the DB
+      // Throttle every 10 series, proportionally to how long the previous
+      // series' round trips took, so a busy server slows this loop down.
+      if (seriesStart > 0) throttle.record(performance.now() - seriesStart);
       if (seriesProcessed % 10 === 0) {
-        await Bun.sleep(50);
+        await throttle.pause();
       }
+      seriesStart = performance.now();
 
       // Resolve source
       const sourceStr = indMeta.source;
@@ -417,7 +507,6 @@ export async function loadDbedtData(
     return true;
   });
 
-  const BATCH_THROTTLE_MS = 50;
   for (let i = 0; i < uniquePoints.length; i += 1000) {
     const batch = uniquePoints.slice(i, i + 1000);
     const placeholders = batch.map(() => "(?, ?, ?, ?, true, NOW())").join(",");
@@ -425,14 +514,14 @@ export async function loadDbedtData(
     for (const dp of batch) {
       params.push(dp.xseriesId, dp.dataSourceId, dp.date, dp.value ?? 0);
     }
-    await rawQuery(
-      `INSERT INTO data_points (xseries_id, data_source_id, \`date\`, \`value\`, \`current\`, created_at) VALUES ${placeholders}`,
-      params,
+    await throttle.run(
+      () =>
+        rawQuery(
+          `INSERT INTO data_points (xseries_id, data_source_id, \`date\`, \`value\`, \`current\`, created_at) VALUES ${placeholders}`,
+          params,
+        ),
+      i + 1000 >= uniquePoints.length,
     );
-    // Throttle to avoid overwhelming the DB server
-    if (i + 1000 < uniquePoints.length) {
-      await Bun.sleep(BATCH_THROTTLE_MS);
-    }
   }
 
   log.info({ inserted: uniquePoints.length }, "loadDbedtData: done");

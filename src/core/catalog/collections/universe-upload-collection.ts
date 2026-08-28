@@ -73,7 +73,7 @@ class UniverseUploadCollection {
   static async failStaleUploads(): Promise<number> {
     const result = await rawQuery<{ affectedRows: number }>(
       `UPDATE ${this.tableName} SET status = 'fail', last_error = 'Upload timed out', last_error_at = NOW()
-       WHERE status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)`,
+       WHERE status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 4 HOUR)`,
     );
     return (result as unknown as { affectedRows: number }).affectedRows ?? 0;
   }
@@ -138,7 +138,7 @@ class DvwUploadCollection extends UniverseUploadCollection {
   static override async failStaleUploads(): Promise<number> {
     const result = await rawQuery<{ affectedRows: number }>(
       `UPDATE ${this.tableName} SET series_status = 'fail', last_error = 'Upload timed out', last_error_at = NOW()
-       WHERE series_status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)`,
+       WHERE series_status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 4 HOUR)`,
     );
     return (result as unknown as { affectedRows: number }).affectedRows ?? 0;
   }

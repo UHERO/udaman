@@ -31,8 +31,23 @@ export function enqueueTsdExport() {
   return defaultQueue.add(JobName.TSD_EXPORT, {});
 }
 
-export function enqueueUpdatePublic(data: UpdatePublicJobData = {}) {
-  return defaultQueue.add(JobName.UPDATE_PUBLIC, data);
+/**
+ * Enqueue a public data points sweep. Deterministic jobId so a sweep that
+ * is already waiting/active is reused instead of stacking another full
+ * pass behind it. A finished (completed/failed) job with the same id is
+ * removed first so re-enqueueing after completion works.
+ */
+export async function enqueueUpdatePublic(data: UpdatePublicJobData = {}) {
+  const jobId = `update-public:${data.universe ?? "all"}`;
+  const existing = await defaultQueue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (state === "waiting" || state === "active" || state === "delayed") {
+      return existing;
+    }
+    await existing.remove();
+  }
+  return defaultQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
 }
 
 export function enqueueAdminAction(data: AdminActionJobData) {

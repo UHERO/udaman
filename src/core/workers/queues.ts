@@ -43,14 +43,23 @@ export type SeriesReloadJobData = {
   batchId?: string;
 };
 
+/**
+ * Upload jobs come in two flavours:
+ *  - legacy: `filePath` points at an XLSX to parse in the worker
+ *  - staged: `stagedDir` points at a directory of JSON chunk files written
+ *    by the streaming API route (client parsed the XLSX). `filePath` is
+ *    the same directory in that case, kept for log/compat.
+ */
 export type DbedtUploadJobData = {
   uploadId: number;
   filePath: string;
+  stagedDir?: string;
 };
 
 export type DvwUploadJobData = {
   uploadId: number;
   filePath: string;
+  stagedDir?: string;
 };
 
 export type ReloadJobData = {

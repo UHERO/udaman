@@ -58,8 +58,8 @@ type Stage =
 const PIPELINE_STEPS = [
   { key: "validating", label: "Validate" },
   { key: "uploading", label: "Upload" },
-  { key: "processing", label: "Process" },
   { key: "archiving", label: "Archive" },
+  { key: "processing", label: "Process" },
 ] as const;
 
 type PipelineStep = (typeof PIPELINE_STEPS)[number]["key"];
@@ -72,8 +72,8 @@ function stepStatus(
   const order: PipelineStep[] = [
     "validating",
     "uploading",
-    "processing",
     "archiving",
+    "processing",
   ];
   const stepIdx = order.indexOf(step);
   const stageIdx = order.indexOf(currentStage as PipelineStep);
@@ -481,14 +481,18 @@ export default function UploadPanel({
       return;
     }
 
-    // --- Stage 3: Process (finalize) ---
-    setStage("processing");
+    // --- Stage 3: Finalize (enqueue worker job) ---
+    // Finalize is now a quick enqueue; the long DB load is polled below
+    // under the "processing" step, after the raw file has been archived.
+    setStage("archiving");
     setProgress(null);
 
     let finalResult: {
       success: boolean;
       message?: string;
       totalDataPoints?: number;
+      /** Server staged the rows and enqueued a worker job; poll for result. */
+      queued?: boolean;
     };
     try {
       const finalResp = await fetch(`${apiEndpoint}/stream`, {
@@ -606,6 +610,43 @@ export default function UploadPanel({
       );
     }
 
+    // --- Stage 5: Wait for the worker (staged uploads) ---
+    // The DB load now runs in the BullMQ worker; finalize only enqueued it.
+    // Poll the upload row until the worker marks it ok/fail. Uploads can
+    // take a long time (and may queue behind another critical job), so
+    // poll patiently.
+    if (finalResult.queued) {
+      setStage("processing");
+      const record = await pollUploadStatus(uploadId, 1440, 5000); // ~2h
+      if (!record || record.status === "processing") {
+        const msg =
+          "Upload is still processing in the background — refresh this page later to check its status.";
+        toast.info(msg);
+        setStage("done");
+        return;
+      }
+      if (record.status === "fail") {
+        const msg = record.lastError ?? "Upload failed";
+        setError(msg);
+        setStage("error");
+        setDialogError(msg);
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.id === uploadId ? { ...u, status: "fail", lastError: msg } : u,
+          ),
+        );
+        reportUploadError("processing", msg, { phase: "worker", uploadId });
+        return;
+      }
+      // Worker stores "<n> data points loaded" in last_error on success.
+      const m = /^(\d+) data points/.exec(record.lastError ?? "");
+      finalResult = {
+        success: true,
+        message: record.lastError ?? "Upload complete",
+        totalDataPoints: m ? Number(m[1]) : undefined,
+      };
+    }
+
     // --- Done ---
     setStage("done");
     toast.success(finalResult.message ?? "Upload complete");
@@ -617,7 +658,10 @@ export default function UploadPanel({
               ...u,
               status: "ok",
               active: true,
-              lastError: `${finalResult.totalDataPoints} data points loaded`,
+              lastError:
+                finalResult.totalDataPoints != null
+                  ? `${finalResult.totalDataPoints} data points loaded`
+                  : (finalResult.message ?? null),
             }
           : { ...u, active: false },
       ),

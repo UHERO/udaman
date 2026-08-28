@@ -140,10 +140,11 @@ export async function registerSchedules(): Promise<void> {
   );
   log.info("Registered schedule: reload-bea (daily 6:00 AM HST)");
 
-  // BLS — 6:00 AM HST daily
+  // BLS — 6:30 AM HST daily (staggered from BEA at 6:00 so the two
+  // reloads + their public sweeps don't contend for the heavy-DB lock)
   await defaultQueue.upsertJobScheduler(
     "scheduled:reload-bls-morning",
-    { pattern: "0 6 * * *", tz },
+    { pattern: "30 6 * * *", tz },
     {
       name: JobName.RELOAD_BLS,
       data: {
@@ -154,7 +155,7 @@ export async function registerSchedules(): Promise<void> {
       },
     },
   );
-  log.info("Registered schedule: reload-bls-morning (daily 6:00 AM HST)");
+  log.info("Registered schedule: reload-bls-morning (daily 6:30 AM HST)");
 
   // BLS — 10:20 AM HST daily (second run)
   await defaultQueue.upsertJobScheduler(

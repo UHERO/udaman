@@ -20,6 +20,8 @@ export function NavMain({
   items: {
     title: string;
     url: string;
+    /** Path prefix used for active-state matching when it differs from `url`. */
+    match?: string;
     icon?: LucideIcon;
     isActive?: boolean;
     items?: {
@@ -33,9 +35,9 @@ export function NavMain({
 
   // Use longest-prefix matching so `/hhdb` doesn't highlight when
   // the user is on `/hhdb/tables/properties`.
-  const activeUrl = items
-    .map((item) => item.url)
-    .filter((url) => pathname === url || pathname.startsWith(url + "/"))
+  const activeMatch = items
+    .map((item) => item.match ?? item.url)
+    .filter((m) => pathname === m || pathname.startsWith(m + "/"))
     .sort((a, b) => b.length - a.length)[0];
 
   return (
@@ -43,7 +45,7 @@ export function NavMain({
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const active = item.url === activeUrl;
+          const active = (item.match ?? item.url) === activeMatch;
           return (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton

@@ -38,6 +38,14 @@ export type RouteChild = {
 export type RouteEntry = {
   label: string;
   path: string;
+  /**
+   * Sidebar link target when it differs from `path` — for sections whose
+   * index page only redirects to a default child. Linking straight to the
+   * child avoids a server redirect inside a client-side navigation, which
+   * bounces through the proxy prefix-strip and trips the error boundary.
+   * `path` is still what access checks and active-state matching use.
+   */
+  href?: string;
   icon: LucideIcon;
   roles: Role[];
   universes?: string[];
@@ -90,6 +98,7 @@ export const ROUTES: RouteEntry[] = [
   {
     label: "Data Tools",
     path: "/data-tools",
+    href: "/data-tools/tsd",
     icon: FileSpreadsheet,
     roles: ["internal", "admin", "dev"],
     children: [
@@ -117,6 +126,7 @@ export const ROUTES: RouteEntry[] = [
   {
     label: "Uploads",
     path: "/uploads",
+    href: "/uploads/econ",
     icon: ArrowUpToLine,
     roles: ["external", "internal", "admin", "dev"],
     children: [

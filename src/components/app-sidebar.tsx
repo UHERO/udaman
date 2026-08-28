@@ -220,7 +220,8 @@ export function AppSidebar({
     if (mode === "data-registry") return [];
     return sidebarRoutes.map((entry) => ({
       title: entry.label,
-      url: prefixUrl(entry.path, universe),
+      url: prefixUrl(entry.href ?? entry.path, universe),
+      match: prefixUrl(entry.path, universe),
       icon: entry.icon,
     }));
   }, [mode, sidebarRoutes, universe, user.role, user.universe]);

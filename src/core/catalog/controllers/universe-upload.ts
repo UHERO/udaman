@@ -131,7 +131,8 @@ export async function executeUpload(
     // Refresh public data points (skip for DVW — uses a separate DB)
     if (!config.skipPublicDataPoints) {
       log.info({ universe }, "Updating public data points");
-      await DataPointCollection.updatePublicDataPoints(universe);
+      // Upload rewrote the whole universe — bypass the incremental watermark.
+      await DataPointCollection.updatePublicDataPoints(universe, { full: true });
     }
 
     // Clear cache (non-fatal)

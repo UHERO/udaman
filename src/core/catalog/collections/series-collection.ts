@@ -5,6 +5,8 @@ import {
   mysql,
   rawQuery,
   scopedConnection,
+  transaction,
+  type TxExecutor,
 } from "@/lib/mysql/db";
 import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 
@@ -1044,9 +1046,11 @@ class SeriesCollection {
     return "ok";
   }
 
-  static async repairDataPoints(opts: { id: number }) {
+  static async repairDataPoints(opts: { id: number; exec?: TxExecutor }) {
     const { id } = opts;
-    const needRepairDates = await mysql<{ date: Date }>`
+    // `exec` lets a caller run the repair inside its own transaction.
+    const q = opts.exec ?? mysql;
+    const needRepairDates = await q<{ date: Date }>`
       SELECT DISTINCT dp.date
       FROM data_points dp
       WHERE dp.xseries_id = ${id}
@@ -1077,7 +1081,7 @@ class SeriesCollection {
       // Single UPDATE avoids round-tripping created_at through JS Date,
       // which breaks on non-UTC servers due to Bun SQL's local-time
       // deserialization vs UTC serialization asymmetry (oven-sh/bun#29208).
-      await mysql`
+      await q`
         UPDATE data_points
         SET current = 1
         WHERE xseries_id = ${id}
@@ -1618,14 +1622,20 @@ class SeriesCollection {
       }
     }
 
-    let inserted = 0;
+    // ── Plan phase (pure, no writes) ──────────────────────────────────
+    // Decide per date what needs to happen, then apply every write in one
+    // short transaction on a single connection. Dates are independent rows,
+    // so "all demotes, then all promotes, then all inserts" preserves the
+    // per-date ordering of the original row-by-row loop (demote before
+    // promote/insert for the same date).
+    const demoteDates: string[] = []; // SET current = 0 WHERE date IN (...)
+    const promoteDates: string[] = []; // SET current = 1 on own latest row
+    const insertRows: { date: string; value: number }[] = [];
+
     for (const [dateStr, newValue] of cleanData) {
       if (newValue === SENTINEL) {
         // Sentinel means "no data" — mark existing points as non-current
-        await mysql`
-          UPDATE data_points SET current = 0
-          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
-        `;
+        demoteDates.push(dateStr);
         continue;
       }
 
@@ -1648,18 +1658,8 @@ class SeriesCollection {
         }
         // Current is held by a lower/equal-priority loader, or no current
         // data point exists at all — promote this loader's existing row
-        if (current) {
-          await mysql`
-            UPDATE data_points SET current = 0
-            WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
-          `;
-        }
-        await mysql`
-          UPDATE data_points SET current = 1
-          WHERE xseries_id = ${xseriesId} AND date = ${dateStr}
-            AND data_source_id = ${dataSourceId}
-          ORDER BY created_at DESC LIMIT 1
-        `;
+        if (current) demoteDates.push(dateStr);
+        promoteDates.push(dateStr);
         continue;
       }
 
@@ -1672,30 +1672,65 @@ class SeriesCollection {
         continue;
       }
 
-      // Mark old current as non-current
-      if (current) {
-        await mysql`
-          UPDATE data_points SET current = 0
-          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
+      // Mark old current as non-current, then insert the new vintage
+      // (round to 6 decimal places for storage)
+      if (current) demoteDates.push(dateStr);
+      insertRows.push({ date: dateStr, value: round6(newValue) });
+    }
+
+    // ── Write phase: one transaction per loader ───────────────────────
+    // Previously every UPDATE/INSERT was its own autocommit statement (one
+    // redo-log fsync each); a series with N dates cost ~2N round trips and
+    // fsyncs. Now: ceil(N/500) demote statements, one UPDATE per promoted
+    // date (rare), ceil(N/500) multi-row INSERTs, plus repair — all
+    // committed once.
+    const CHUNK = 500;
+    const pseudo = pseudoHistory ? 1 : 0;
+    await transaction(async (tx) => {
+      for (let i = 0; i < demoteDates.length; i += CHUNK) {
+        const dates = demoteDates.slice(i, i + CHUNK);
+        await tx.unsafe(
+          `UPDATE data_points SET current = 0
+           WHERE xseries_id = ? AND current = 1
+             AND date IN (${dates.map(() => "?").join(",")})`,
+          [xseriesId, ...dates],
+        );
+      }
+
+      for (const dateStr of promoteDates) {
+        await tx`
+          UPDATE data_points SET current = 1
+          WHERE xseries_id = ${xseriesId} AND date = ${dateStr}
+            AND data_source_id = ${dataSourceId}
+          ORDER BY created_at DESC LIMIT 1
         `;
       }
 
-      // Insert new data point (round to 6 decimal places for storage)
-      const roundedValue = round6(newValue);
-      await mysql`
-        INSERT INTO data_points (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
-        VALUES (${xseriesId}, ${dateStr}, ${roundedValue}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
-      `;
-      inserted++;
-    }
+      for (let i = 0; i < insertRows.length; i += CHUNK) {
+        const rows = insertRows.slice(i, i + CHUNK);
+        const placeholders = rows
+          .map(() => "(?, ?, ?, NOW(), NOW(), 1, ?, ?)")
+          .join(",");
+        const params: (string | number)[] = [];
+        for (const r of rows) {
+          params.push(xseriesId, r.date, r.value, pseudo, dataSourceId);
+        }
+        await tx.unsafe(
+          `INSERT INTO data_points
+             (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
+           VALUES ${placeholders}`,
+          params,
+        );
+      }
 
-    // Repair any dates that have data points but none marked current.
-    // This matches Rails behavior: dates outside the loader's current
-    // window are left alone (not actively demoted). Stale point removal
-    // only happens via explicit clear (clearBeforeLoad or manual clear).
-    await this.repairDataPoints({ id: xseriesId });
+      // Repair any dates that have data points but none marked current.
+      // This matches Rails behavior: dates outside the loader's current
+      // window are left alone (not actively demoted). Stale point removal
+      // only happens via explicit clear (clearBeforeLoad or manual clear).
+      await this.repairDataPoints({ id: xseriesId, exec: tx });
+    });
 
-    return { inserted };
+    return { inserted: insertRows.length };
   }
 
   // ─── Static loader stubs (eval-callable) ─────────────────────────

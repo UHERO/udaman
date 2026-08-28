@@ -447,6 +447,12 @@ model public_data_points {
   @@id([series_id, date])
 }
 
+model public_sync_watermarks {
+  universe       String    @id @db.VarChar(10)
+  synced_at      DateTime? @db.DateTime(0)
+  full_synced_at DateTime? @db.DateTime(0)
+}
+
 model reload_job_series {
   reload_job_id BigInt
   series_id     BigInt

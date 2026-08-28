@@ -2,6 +2,7 @@ import { createLogger } from "@/core/observability/logger";
 import { rawQuery as dvwQuery } from "@/lib/mysql/dvw-db";
 
 import { DvwUploadCollection } from "../collections/universe-upload-collection";
+import { AdaptiveThrottle } from "../utils/adaptive-throttle";
 import { makeDate } from "../utils/date-helpers";
 import {
   parseDvwXlsx,
@@ -46,30 +47,95 @@ async function parseFile(filePath: string): Promise<DvwParseResult> {
   return result;
 }
 
+// ─── Staging tables ───────────────────────────────────────────────────
+//
+// The load never touches the live tables. Every table gets a `<name>_new`
+// twin (CREATE TABLE ... LIKE), all inserts go there, and `finalizeDvwLoad`
+// swaps the whole set into place with one atomic RENAME TABLE. Readers of
+// the DVW portal see either the complete old dataset or the complete new
+// one — never an empty table — and a failed upload leaves the live data
+// intact.
+//
+// CREATE TABLE ... LIKE does not copy FOREIGN KEY constraints, so the
+// staging set has none and no FOREIGN_KEY_CHECKS juggling is needed (which
+// would be unreliable anyway: it's a session variable and the pool hands
+// out arbitrary connections). Retired `_old` tables are dropped child-first
+// (data_toc, data_points, then dimensions) so any FKs the original tables
+// carried can't block the drop.
+
+/** Live DVW tables, parents first. */
+const DVW_TABLES = [
+  "groups",
+  "markets",
+  "destinations",
+  "categories",
+  "indicators",
+  "data_points",
+  "data_toc",
+] as const;
+
+const STAGING_SUFFIX = "_new";
+const RETIRED_SUFFIX = "_old";
+
+function q(table: string): string {
+  return `\`${table}\``;
+}
+
+/** Name of the staging twin for a live table. */
+export function dvwStagingTable(table: string): string {
+  return `${table}${STAGING_SUFFIX}`;
+}
+
+/** Drop leftover staging/retired tables from a previous (failed) run. */
+async function dropDvwScratchTables(): Promise<void> {
+  // Child-first so FK constraints on retired tables can't block the drop.
+  for (const table of [...DVW_TABLES].reverse()) {
+    await dvwQuery(`DROP TABLE IF EXISTS ${q(table + RETIRED_SUFFIX)}`);
+    await dvwQuery(`DROP TABLE IF EXISTS ${q(table + STAGING_SUFFIX)}`);
+  }
+}
+
 /**
- * Wipe all DVW data — truncate dimension tables, data_points, data_toc.
- * Direct port of Rails `delete_universe_dvw`.
+ * Prepare an empty staging set for a new DVW load.
+ *
+ * Drops any scratch tables left by an earlier failed run, then creates
+ * `<table>_new` for every DVW table. Live tables are untouched.
+ */
+export async function prepareDvwStaging(): Promise<void> {
+  await dropDvwScratchTables();
+  for (const table of DVW_TABLES) {
+    await dvwQuery(
+      `CREATE TABLE ${q(table + STAGING_SUFFIX)} LIKE ${q(table)}`,
+    );
+  }
+  log.info({ tables: DVW_TABLES.length }, "Created DVW staging tables");
+}
+
+/**
+ * Historical name for the "start a fresh load" step. It used to TRUNCATE
+ * the live tables; it now creates the staging set instead. Kept exported so
+ * existing callers (stream route init, worker handlers) keep working.
  */
 export async function wipeDvwUniverse(): Promise<void> {
-  await dvwQuery("SET FOREIGN_KEY_CHECKS = 0");
-  try {
-    await dvwQuery("TRUNCATE TABLE data_points");
-    log.info("Truncated DVW data_points");
-    await dvwQuery("TRUNCATE TABLE data_toc");
-    log.info("Truncated DVW data_toc");
-    await dvwQuery("TRUNCATE TABLE indicators");
-    log.info("Truncated DVW indicators");
-    await dvwQuery("TRUNCATE TABLE categories");
-    log.info("Truncated DVW categories");
-    await dvwQuery("TRUNCATE TABLE destinations");
-    log.info("Truncated DVW destinations");
-    await dvwQuery("TRUNCATE TABLE markets");
-    log.info("Truncated DVW markets");
-    await dvwQuery("TRUNCATE TABLE `groups`");
-    log.info("Truncated DVW groups");
-  } finally {
-    await dvwQuery("SET FOREIGN_KEY_CHECKS = 1");
+  await prepareDvwStaging();
+}
+
+/**
+ * Atomically swap the staging set into place and drop the retired tables.
+ * Safe to call only after every staging table has been fully loaded.
+ */
+export async function swapDvwStagingTables(): Promise<void> {
+  const pairs = DVW_TABLES.flatMap((t) => [
+    `${q(t)} TO ${q(t + RETIRED_SUFFIX)}`,
+    `${q(t + STAGING_SUFFIX)} TO ${q(t)}`,
+  ]);
+  await dvwQuery(`RENAME TABLE ${pairs.join(", ")}`);
+  log.info("Swapped DVW staging tables into place");
+
+  for (const table of [...DVW_TABLES].reverse()) {
+    await dvwQuery(`DROP TABLE IF EXISTS ${q(table + RETIRED_SUFFIX)}`);
   }
+  log.info("Dropped retired DVW tables");
 }
 
 /**
@@ -144,31 +210,47 @@ async function loadDvwDimension(
     ? `(${basePlaceholder}, ?, ?)`
     : `(${basePlaceholder})`;
 
+  const target = q(dvwStagingTable(table));
+  const throttle = new AdaptiveThrottle();
+
   for (let i = 0; i < insertRows.length; i += 1000) {
     const batch = insertRows.slice(i, i + 1000);
     const placeholders = batch.map(() => placeholder).join(",");
     const params = batch.flat() as (string | number | null)[];
-    await dvwQuery(
-      `INSERT INTO \`${table}\` (${cols}) VALUES ${placeholders}`,
-      params,
+    await throttle.run(
+      () =>
+        dvwQuery(
+          `INSERT INTO ${target} (${cols}) VALUES ${placeholders}`,
+          params,
+        ),
+      i + 1000 >= insertRows.length,
     );
-    // Throttle between dimension batches
-    if (i + 1000 < insertRows.length) {
-      await Bun.sleep(50);
-    }
   }
 
-  // Resolve parent references
-  for (let i = 0; i < parentSet.length; i++) {
-    const [parentHandle, childHandle] = parentSet[i];
-    await dvwQuery(
-      `UPDATE \`${table}\` t1 JOIN \`${table}\` t2 ON t1.module = t2.module SET t2.parent_id = t1.id WHERE t1.handle = ? AND t2.handle = ?`,
-      [parentHandle, childHandle],
+  // Resolve parent references. One self-join UPDATE per batch of edges
+  // (instead of one statement per edge): a derived table of
+  // (parent_handle, child_handle) pairs joined back to the staging table on
+  // module + handle. Parent rows for the same module share the same id, so
+  // the join is unambiguous.
+  const PARENT_BATCH = 500;
+  for (let i = 0; i < parentSet.length; i += PARENT_BATCH) {
+    const batch = parentSet.slice(i, i + PARENT_BATCH);
+    const rowsSql = batch
+      .map(() => "SELECT ? AS parent_handle, ? AS child_handle")
+      .join(" UNION ALL ");
+    await throttle.run(
+      () =>
+        dvwQuery(
+          `UPDATE ${target} child
+             JOIN (${rowsSql}) edges ON edges.child_handle = child.handle
+             JOIN ${target} parent
+               ON parent.module = child.module
+              AND parent.handle = edges.parent_handle
+           SET child.parent_id = parent.id`,
+          batch.flat(),
+        ),
+      i + PARENT_BATCH >= parentSet.length,
     );
-    // Throttle every 20 parent resolutions
-    if (i > 0 && i % 20 === 0) {
-      await Bun.sleep(50);
-    }
   }
 
   log.info({ table, inserted: insertRows.length }, "Loaded DVW dimension");
@@ -179,7 +261,7 @@ async function loadDvwDimension(
  */
 async function buildDimensionMap(table: string): Promise<Map<string, number>> {
   const rows = await dvwQuery<{ id: number; handle: string; module: string }>(
-    `SELECT id, handle, module FROM \`${table}\``,
+    `SELECT id, handle, module FROM ${q(dvwStagingTable(table))}`,
   );
   const map = new Map<string, number>();
   for (const row of rows) {
@@ -282,7 +364,8 @@ export async function insertDvwDataChunk(
   rows: DvwDataRow[],
   dimMaps: DvwDimensionMaps,
 ): Promise<number> {
-  const BATCH_THROTTLE_MS = 50;
+  const throttle = new AdaptiveThrottle();
+  const target = q(dvwStagingTable("data_points"));
   let totalInserted = 0;
 
   for (let i = 0; i < rows.length; i += DATA_BATCH_SIZE) {
@@ -292,31 +375,53 @@ export async function insertDvwDataChunk(
       params.push(...resolveDataRowParams(row, dimMaps));
     }
     const placeholders = Array(batch.length).fill(DATA_PLACEHOLDER).join(",");
-    await dvwQuery(
-      `INSERT INTO data_points (${DATA_INSERT_COLS}) VALUES ${placeholders}`,
-      params,
+    await throttle.run(
+      () =>
+        dvwQuery(
+          `INSERT INTO ${target} (${DATA_INSERT_COLS}) VALUES ${placeholders}`,
+          params,
+        ),
+      i + DATA_BATCH_SIZE >= rows.length,
     );
     totalInserted += batch.length;
-    // Throttle to avoid overwhelming the DB server
-    if (i + DATA_BATCH_SIZE < rows.length) {
-      await Bun.sleep(BATCH_THROTTLE_MS);
-    }
   }
 
   return totalInserted;
 }
 
 /**
- * Generate data_toc (table of contents) from data_points.
+ * Build data_toc (table of contents) in the staging set from the staged
+ * data_points.
  */
-export async function generateDvwDataToc(): Promise<void> {
+async function buildDvwStagingToc(): Promise<void> {
   await dvwQuery(
-    `INSERT INTO data_toc (module, group_id, market_id, destination_id, category_id, indicator_id, frequency, \`count\`)
+    `INSERT INTO ${q(dvwStagingTable("data_toc"))} (module, group_id, market_id, destination_id, category_id, indicator_id, frequency, \`count\`)
      SELECT module, group_id, market_id, destination_id, category_id, indicator_id, frequency, count(*)
-     FROM data_points
+     FROM ${q(dvwStagingTable("data_points"))}
      GROUP BY module, group_id, market_id, destination_id, category_id, indicator_id, frequency`,
   );
-  log.info("Generated DVW data_toc");
+  log.info("Generated DVW data_toc (staging)");
+}
+
+/**
+ * Finalize a DVW load: build the TOC in staging, then atomically swap the
+ * staging set into place and drop the retired tables.
+ *
+ * Call once, after all data chunks have been inserted.
+ */
+export async function finalizeDvwLoad(): Promise<void> {
+  await buildDvwStagingToc();
+  await swapDvwStagingTables();
+}
+
+/**
+ * Historical name for the finalize step. It used to only build data_toc
+ * against the live table; since the load now goes through staging tables
+ * it also performs the swap. Kept exported so the stream route's finalize
+ * phase keeps working unchanged.
+ */
+export async function generateDvwDataToc(): Promise<void> {
+  await finalizeDvwLoad();
 }
 
 /**
@@ -333,13 +438,17 @@ async function loadDvwData(
   let batchCount = 0;
   let totalInserted = 0;
 
-  const BATCH_THROTTLE_MS = 50;
+  const throttle = new AdaptiveThrottle();
+  const target = q(dvwStagingTable("data_points"));
   async function flushBatch(): Promise<void> {
     if (batchCount === 0) return;
     const placeholders = Array(batchCount).fill(DATA_PLACEHOLDER).join(",");
-    await dvwQuery(
-      `INSERT INTO data_points (${DATA_INSERT_COLS}) VALUES ${placeholders}`,
-      batch,
+    const params = batch;
+    await throttle.run(() =>
+      dvwQuery(
+        `INSERT INTO ${target} (${DATA_INSERT_COLS}) VALUES ${placeholders}`,
+        params,
+      ),
     );
     totalInserted += batchCount;
     if (totalInserted % 50000 < DATA_BATCH_SIZE) {
@@ -347,8 +456,6 @@ async function loadDvwData(
     }
     batch = [];
     batchCount = 0;
-    // Throttle to avoid overwhelming the DB server
-    await Bun.sleep(BATCH_THROTTLE_MS);
   }
 
   for (const row of dataRows) {
@@ -363,8 +470,8 @@ async function loadDvwData(
   // Flush remaining rows
   await flushBatch();
 
-  // Generate data_toc (table of contents)
-  await generateDvwDataToc();
+  // Build data_toc in staging and swap everything live
+  await finalizeDvwLoad();
 
   log.info({ inserted: totalInserted }, "Loaded DVW data points");
   return totalInserted;

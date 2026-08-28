@@ -70,13 +70,59 @@ function rawQuery<T = Record<string, unknown>>(
   });
 }
 
-/** Run a callback inside a database transaction (uses Bun SQL's `sql.begin`).
- *  The transaction is committed if the callback resolves, rolled back if it throws. */
-async function transaction<T>(fn: () => Promise<T>): Promise<T> {
+/**
+ * Query executor bound to a single transaction connection. Supports the same
+ * tagged-template form as `mysql\`...\`` plus `.unsafe(sql, params)`.
+ */
+export type TxExecutor = {
+  <T = Record<string, unknown>>(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<T[]>;
+  unsafe<T = Record<string, unknown>>(
+    sql: string,
+    params?: unknown[],
+  ): Promise<T[]>;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeTxExecutor(tx: any): TxExecutor {
+  const exec = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+    const query = strings.join("?");
+    assertNotReadOnly(query);
+    const start = performance.now();
+    return (tx(strings, ...values) as Promise<unknown[]>).then((result) => {
+      const durationMs = +(performance.now() - start).toFixed(2);
+      log.debug({ durationMs, rows: result.length }, query);
+      return result;
+    });
+  }) as TxExecutor;
+  exec.unsafe = (sql: string, params: unknown[] = []) => {
+    assertNotReadOnly(sql);
+    const start = performance.now();
+    return tx.unsafe(sql, params).then((result: unknown[]) => {
+      const durationMs = +(performance.now() - start).toFixed(2);
+      log.debug({ durationMs, rows: result.length }, sql);
+      return result;
+    });
+  };
+  return exec;
+}
+
+/**
+ * Run a callback inside a database transaction (uses Bun SQL's `sql.begin`).
+ * The transaction is committed if the callback resolves, rolled back if it throws.
+ *
+ * The callback receives a `TxExecutor` bound to the transaction's connection.
+ * Queries issued through the module-level `mysql`/`rawQuery` inside the
+ * callback go through the pool and are NOT part of the transaction — use
+ * the provided executor for anything that must commit/rollback atomically.
+ */
+async function transaction<T>(fn: (tx: TxExecutor) => Promise<T>): Promise<T> {
   const start = performance.now();
-  // Bun SQL's .begin() provides a scoped transaction that auto-commits/rollbacks
-  const [result] = await connection.begin(async () => {
-    const value = await fn();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [result] = await connection.begin(async (tx: any) => {
+    const value = await fn(makeTxExecutor(tx));
     return [value];
   });
   const durationMs = +(performance.now() - start).toFixed(2);
@@ -139,4 +185,20 @@ async function insertAndGetId(
   return result as number;
 }
 
-export { mysql, rawQuery, transaction, scopedConnection, insertAndGetId };
+/**
+ * Pull a dedicated connection out of the pool. The caller MUST call
+ * `.release()` when done. Used for session-scoped state (GET_LOCK, SET
+ * session variables) that must live on one connection.
+ */
+function reserveConnection() {
+  return connection.reserve();
+}
+
+export {
+  mysql,
+  rawQuery,
+  transaction,
+  scopedConnection,
+  insertAndGetId,
+  reserveConnection,
+};
