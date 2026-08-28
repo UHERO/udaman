@@ -13,6 +13,7 @@ const SUBDOMAIN_MAP: Record<string, string> = {
   api: "api",
   analytics: "analytics",
   data: "data",
+  registry: "registry"
 };
 
 /**
