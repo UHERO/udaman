@@ -154,6 +154,15 @@ class SqlWriter {
 
 // ─── Streaming File Loaders ─────────────────────────────────────────
 
+/** Fast line count via `wc -l` — used only to size the progress bar. */
+async function countJsonlLines(filePath: string): Promise<number> {
+  const proc = Bun.spawn(["wc", "-l", filePath], { stdout: "pipe" });
+  const out = await new Response(proc.stdout).text();
+  await proc.exited;
+  const n = parseInt(out.trim().split(/\s+/)[0] ?? "", 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /**
  * Stream a JSONL file through the writer, sending INSERT chunks as we go.
  * Reads line-by-line so memory stays constant regardless of file size.
@@ -169,13 +178,20 @@ async function streamJsonlFile(
 ): Promise<number> {
   if (!existsSync(filePath) || writer.isBroken) return 0;
 
+  const totalRows = await countJsonlLines(filePath);
+  const totalChunks = Math.max(1, Math.ceil(totalRows / INSERT_CHUNK));
+  // ~20 progress lines per table regardless of size.
+  const logEveryChunks = Math.max(1, Math.floor(totalChunks / 20));
+  const startMs = Date.now();
+
   const rl = createInterface({
     input: createReadStream(filePath, { encoding: "utf-8" }),
     crlfDelay: Infinity,
   });
 
   let buffer: SqlValue[][] = [];
-  let totalRows = 0;
+  let processedRows = 0;
+  let chunkNum = 0;
 
   for await (const line of rl) {
     if (!line || writer.isBroken) continue;
@@ -183,24 +199,41 @@ async function streamJsonlFile(
 
     if (buffer.length >= INSERT_CHUNK) {
       await writer.write(buildInsert(table, columns, buffer, opts));
-      totalRows += buffer.length;
+      processedRows += buffer.length;
       buffer = [];
+      chunkNum++;
+
+      if (chunkNum % logEveryChunks === 0 || chunkNum === totalChunks) {
+        const pct = totalRows > 0 ? (processedRows / totalRows) * 100 : 100;
+        const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+        log.info(
+          {
+            table,
+            processed: processedRows,
+            total: totalRows,
+            pct: `${pct.toFixed(1)}%`,
+            elapsed: `${elapsed}s`,
+          },
+          `Loading ${table}: ${processedRows.toLocaleString()}/${totalRows.toLocaleString()} (${pct.toFixed(1)}%, ${elapsed}s)`,
+        );
+      }
     }
   }
 
   if (buffer.length > 0 && !writer.isBroken) {
     await writer.write(buildInsert(table, columns, buffer, opts));
-    totalRows += buffer.length;
+    processedRows += buffer.length;
   }
 
-  if (totalRows > 0) {
+  if (processedRows > 0) {
+    const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
     log.info(
-      { table, rows: totalRows },
-      `Loaded ${table}: ${totalRows.toLocaleString()} rows`,
+      { table, rows: processedRows, elapsed: `${elapsed}s` },
+      `Loaded ${table}: ${processedRows.toLocaleString()} rows (${elapsed}s)`,
     );
   }
 
-  return totalRows;
+  return processedRows;
 }
 
 // ─── Table Load Order ───────────────────────────────────────────────

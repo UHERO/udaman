@@ -111,6 +111,11 @@ CREATE TABLE owners (
     owner_name VARCHAR(255) NOT NULL,
     owner_type VARCHAR(50) COMMENT 'Fee Owner, Lessee, etc.',
     owner_address TEXT COMMENT 'Owner mailing address',
+    mailing_address TEXT COMMENT 'Structured mailing street address (e.g. county tax-bill extract), independent of owner_address',
+    mailing_city VARCHAR(100) COMMENT 'Mailing city',
+    mailing_state VARCHAR(50) COMMENT 'Mailing state/province',
+    mailing_zip VARCHAR(10) COMMENT 'Mailing ZIP, or ZIP+4 as NNNNN-NNNN when available',
+    mailing_country VARCHAR(100) COMMENT 'Mailing country, populated only when outside the US',
     sequence_order INT UNSIGNED COMMENT 'Order in all_owners array',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
@@ -417,11 +422,14 @@ CREATE TABLE current_tax_bills (
     INDEX idx_tmk (tmk),
     INDEX idx_last_year_observed (last_year_observed),
     INDEX idx_tax_period (tax_period),
-    -- One bill per period per parcel. Note MySQL allows repeated NULLs in a
-    -- UNIQUE key, so this does NOT catch qPublic's blank-period rollup row —
-    -- realTaxBillRows() filtering that out on the way in is the real defence,
-    -- and this key is what makes the load an upsert rather than an append.
-    UNIQUE KEY unique_tax_bill (tmk, tax_period)
+    -- A parcel can carry several concurrent bills for the same period — the
+    -- base tax plus special-assessment district fees (e.g. "WAIKIKI SPECIAL
+    -- IMPROVEMENT DI") — differing only by description, so that's part of
+    -- the key too. Note MySQL allows repeated NULLs in a UNIQUE key, so this
+    -- does NOT catch qPublic's blank-period rollup row — realTaxBillRows()
+    -- filtering that out on the way in is the real defence, and this key is
+    -- what makes the load an upsert rather than an append.
+    UNIQUE KEY unique_tax_bill (tmk, tax_period, description)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Current tax bill information';
 
 -- ============================================================================
