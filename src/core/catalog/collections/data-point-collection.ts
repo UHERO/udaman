@@ -402,7 +402,8 @@ class DataPointCollection {
     universe: string,
     opts: PublicSyncOptions = {},
   ): Promise<void> {
-    log.info({ universe }, "updatePublicDataPoints: starting");
+    const t0 = Date.now();
+    log.info({ universe }, `Public update: starting ${universe}`);
 
     // Timestamps come from the DB (HST wall-clock, per the app convention)
     // so they compare cleanly against NOW()-stamped columns. Taken at the
@@ -439,7 +440,7 @@ class DataPointCollection {
     const since = full ? null : (wm?.synced_at ?? null);
     log.info(
       { universe, mode: full ? "full" : "incremental", reason, since },
-      "updatePublicDataPoints: mode",
+      `Public update: ${universe} running ${full ? "full" : "incremental"} sync (${reason})`,
     );
 
     // All series in the universe, with their quarantine flag. Steps 1+2
@@ -466,12 +467,16 @@ class DataPointCollection {
         eligible: eligible.length,
         chunks: eligibleChunks.length,
       },
-      "updatePublicDataPoints: series resolved",
+      `Public update: ${universe} resolved ${seriesRows.length} series (${eligible.length} eligible, ${seriesRows.length - eligible.length} quarantined) in ${eligibleChunks.length} chunks`,
     );
 
     const totals = { updated: 0, inserted: 0, deleted: 0, skipped: 0 };
 
     // ── Steps 1 + 2: UPDATE changed, INSERT missing ─────────────────────
+    log.info(
+      { universe },
+      `Public update: ${universe} step 1/2 — updating changed and inserting missing public data points`,
+    );
     for (let i = 0; i < eligibleChunks.length; i++) {
       const c = eligibleChunks[i];
       const ids = c.map((r) => r.id);
@@ -516,14 +521,27 @@ class DataPointCollection {
       totals.updated += updated;
       totals.inserted += inserted;
       log.debug(
-        { universe, chunk: i + 1, of: eligibleChunks.length, updated, inserted },
+        {
+          universe,
+          chunk: i + 1,
+          of: eligibleChunks.length,
+          updated,
+          inserted,
+        },
         "updatePublicDataPoints: chunk upserted",
       );
       if (i + 1 < eligibleChunks.length) await Bun.sleep(PUBLIC_SYNC_SLEEP_MS);
     }
-    log.info({ universe, ...totals }, "updatePublicDataPoints: upsert done");
+    log.info(
+      { universe, ...totals },
+      `Public update: ${universe} step 1/2 done — ${totals.updated} updated, ${totals.inserted} inserted, ${totals.skipped} quiet chunks skipped`,
+    );
 
     // ── Step 3: DELETE stale ────────────────────────────────────────────
+    log.info(
+      { universe, removeQuarantine },
+      `Public update: ${universe} step 2/2 — deleting stale${removeQuarantine ? " and quarantined" : ""} public data points`,
+    );
     for (let i = 0; i < allChunks.length; i++) {
       const c = allChunks[i];
       const ids = c.map((r) => r.id);
@@ -561,10 +579,16 @@ class DataPointCollection {
       if (i + 1 < allChunks.length) await Bun.sleep(PUBLIC_SYNC_SLEEP_MS);
     }
 
-    await setPublicSyncWatermark(universe, runStartedAt, full);
     log.info(
-      { universe, mode: full ? "full" : "incremental", ...totals },
-      "updatePublicDataPoints: done",
+      { universe, deleted: totals.deleted },
+      `Public update: ${universe} step 2/2 done — ${totals.deleted} deleted`,
+    );
+
+    await setPublicSyncWatermark(universe, runStartedAt, full);
+    const elapsedSec = Math.round((Date.now() - t0) / 1000);
+    log.info(
+      { universe, mode: full ? "full" : "incremental", elapsedSec, ...totals },
+      `Public update: completed ${universe} in ${elapsedSec}s (${totals.updated} updated, ${totals.inserted} inserted, ${totals.deleted} deleted)`,
     );
   }
 
@@ -646,15 +670,23 @@ class DataPointCollection {
       throw new Error("No universes found");
     }
     const universes = rows.map((r) => r.name);
-    log.info({ universes }, "updatePublicAllUniverses: starting");
+    const t0 = Date.now();
+    log.info(
+      { universes },
+      `Public update: starting all universes (${universes.join(", ")})`,
+    );
     for (let i = 0; i < universes.length; i++) {
       log.info(
         { universe: universes[i], progress: `${i + 1}/${universes.length}` },
-        "updatePublicAllUniverses: processing universe",
+        `Public update: universe ${i + 1}/${universes.length} — ${universes[i]}`,
       );
       await this.updatePublicDataPoints(universes[i], opts);
     }
-    log.info("updatePublicAllUniverses: done");
+    const elapsedSec = Math.round((Date.now() - t0) / 1000);
+    log.info(
+      { universes, elapsedSec },
+      `Public update: completed all universes in ${elapsedSec}s`,
+    );
   }
 }
 
