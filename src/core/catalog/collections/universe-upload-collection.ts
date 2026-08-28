@@ -69,6 +69,14 @@ class UniverseUploadCollection {
     ]);
   }
 
+  /** Ids of uploads still marked "processing" (for startup reconciliation). */
+  static async listProcessingIds(): Promise<number[]> {
+    const rows = await rawQuery<{ id: number }>(
+      `SELECT id FROM ${this.tableName} WHERE status = 'processing'`,
+    );
+    return rows.map((r) => r.id);
+  }
+
   /** Mark uploads stuck in "processing" for over 30 MINUTEs as failed */
   static async failStaleUploads(): Promise<number> {
     const result = await rawQuery<{ affectedRows: number }>(
@@ -133,6 +141,13 @@ class DvwUploadCollection extends UniverseUploadCollection {
         [status, id],
       );
     }
+  }
+
+  static override async listProcessingIds(): Promise<number[]> {
+    const rows = await rawQuery<{ id: number }>(
+      `SELECT id FROM ${this.tableName} WHERE series_status = 'processing'`,
+    );
+    return rows.map((r) => r.id);
   }
 
   static override async failStaleUploads(): Promise<number> {

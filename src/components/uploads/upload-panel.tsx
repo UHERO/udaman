@@ -44,6 +44,100 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_DISPLAY_ERRORS = 50;
 const CHUNK_SIZE = 5000;
 
+/** Retry schedule for a chunk POST that hits a gateway/server error. */
+const CHUNK_RETRY_DELAYS_MS = [1000, 3000, 9000];
+
+type ChunkPostResult = {
+  ok: boolean;
+  status: number;
+  message: string;
+  attempts: number;
+  rawBody?: unknown;
+};
+
+/**
+ * POST one chunk, retrying on transient failures.
+ *
+ * Chunk writes are idempotent server-side (the file is keyed by chunkIndex),
+ * so a retry after a 502/504 or a dropped connection is safe. Responses are
+ * inspected before parsing: an nginx error page is HTML, and calling
+ * `.json()` on it used to surface as "Unexpected token '<'" instead of the
+ * real HTTP status. A JSON `{ success: false }` from the app is a definitive
+ * failure and is not retried.
+ */
+async function postChunk(
+  url: string,
+  body: Record<string, unknown>,
+): Promise<ChunkPostResult> {
+  const payload = JSON.stringify(body);
+  let last: ChunkPostResult = {
+    ok: false,
+    status: 0,
+    message: "not attempted",
+    attempts: 0,
+  };
+
+  for (let attempt = 0; attempt <= CHUNK_RETRY_DELAYS_MS.length; attempt++) {
+    const attempts = attempt + 1;
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      });
+      const contentType = resp.headers.get("content-type") ?? "";
+
+      if (contentType.includes("application/json")) {
+        const json = (await resp.json()) as {
+          success?: boolean;
+          message?: string;
+          error?: string;
+        };
+        if (json.success) {
+          return { ok: true, status: resp.status, message: "ok", attempts };
+        }
+        // App-level rejection: definitive, don't retry.
+        return {
+          ok: false,
+          status: resp.status,
+          message:
+            json.message ??
+            json.error ??
+            `server rejected chunk (HTTP ${resp.status})`,
+          attempts,
+          rawBody: json,
+        };
+      }
+
+      // Non-JSON body — almost always an nginx 502/504 page while the
+      // server is unresponsive. Retry unless it's a client error.
+      const text = (await resp.text()).slice(0, 200);
+      last = {
+        ok: false,
+        status: resp.status,
+        message:
+          `HTTP ${resp.status} ${resp.statusText || ""} (non-JSON response from gateway)`.trim(),
+        attempts,
+        rawBody: text,
+      };
+      if (resp.status >= 400 && resp.status < 500) return last;
+    } catch (err) {
+      // Network failure / aborted connection.
+      last = {
+        ok: false,
+        status: 0,
+        message: err instanceof Error ? err.message : "network error",
+        attempts,
+      };
+    }
+
+    if (attempt < CHUNK_RETRY_DELAYS_MS.length) {
+      await new Promise((r) => setTimeout(r, CHUNK_RETRY_DELAYS_MS[attempt]));
+    }
+  }
+  return last;
+}
+
 // ─── Pipeline stages ──────────────────────────────────────────────────
 
 type Stage =
@@ -431,23 +525,13 @@ export default function UploadPanel({
         const chunk = dataRows.slice(i, i + CHUNK_SIZE);
         const chunkIndex = Math.floor(i / CHUNK_SIZE);
 
-        const chunkResp = await fetch(`${apiEndpoint}/stream`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phase: "chunk",
-            uploadId,
-            rows: chunk,
-            chunkIndex,
-          }),
-        });
-        const chunkResult = await chunkResp.json();
+        const { ok, status, message, attempts, rawBody } = await postChunk(
+          `${apiEndpoint}/stream`,
+          { phase: "chunk", uploadId, rows: chunk, chunkIndex },
+        );
 
-        if (!chunkResult.success) {
-          const msg =
-            chunkResult.message ??
-            chunkResult.error ??
-            `Chunk failed (HTTP ${chunkResp.status})`;
+        if (!ok) {
+          const msg = `Chunk ${chunkIndex + 1} of ${Math.ceil(totalRows / CHUNK_SIZE)} failed after ${attempts} attempt${attempts === 1 ? "" : "s"}: ${message}`;
           setError(msg);
           setStage("error");
           setDialogError(msg);
@@ -456,8 +540,9 @@ export default function UploadPanel({
             phase: "chunk",
             chunkIndex,
             uploadId,
-            httpStatus: chunkResp.status,
-            rawBody: chunkResult,
+            httpStatus: status,
+            attempts,
+            rawBody,
           });
           return;
         }

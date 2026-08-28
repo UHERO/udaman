@@ -5,6 +5,11 @@ import { createLogger } from "@/core/observability/logger";
 import { redisConnection } from "./connection";
 import { processors } from "./processors";
 import { registerSchedules } from "./scheduler";
+import {
+  isUploadJob,
+  reconcileProcessingUploads,
+  stampUploadFailed,
+} from "./upload-status";
 import { workerBindings } from "./worker-identity";
 
 // Ensure all date operations use Hawaii Standard Time.
@@ -75,6 +80,14 @@ for (const [name, worker] of [
       { queue: name, jobId: job?.id, jobName: job?.name, err: err.message },
       "Job failed",
     );
+    // Upload rows are what the UI polls; make sure the failure reaches
+    // them even if the DB was the thing that failed (retries with backoff).
+    if (job && isUploadJob(job.name)) {
+      const uploadId = (job.data as { uploadId?: number }).uploadId;
+      if (uploadId != null) {
+        void stampUploadFailed(job.name, uploadId, err.message);
+      }
+    }
   });
 
   worker.on("error", (err) => {
@@ -88,6 +101,11 @@ registerSchedules().catch((err) => {
   log.error({ err: err.message }, "Failed to register schedules");
 });
 
+// Stamp any upload rows orphaned by a previous worker crash/restart.
+reconcileProcessingUploads().catch((err) => {
+  log.error({ err: err.message }, "Upload reconciliation failed");
+});
+
 // ─── Graceful shutdown ───────────────────────────────────────────────
 
 async function shutdown() {
@@ -99,6 +117,19 @@ async function shutdown() {
 
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
+
+// A lost DB connection surfacing as a stray rejection (e.g. from a pool
+// callback after the server dropped us) must not exit the process: BullMQ
+// has already failed the job, and a crash costs a 10 s systemd restart plus
+// every other in-flight job (maxStalledCount: 0 → they fail, not retry).
+// Log loudly and keep serving.
+process.on("unhandledRejection", (reason) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  log.error({ err: err.message, stack: err.stack }, "Unhandled rejection");
+});
+process.on("uncaughtException", (err) => {
+  log.error({ err: err.message, stack: err.stack }, "Uncaught exception");
+});
 
 log.info(
   "Worker process started — listening on udaman/default and udaman/critical",

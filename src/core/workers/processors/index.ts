@@ -1,3 +1,8 @@
+import {
+  DbedtUploadCollection,
+  DvwUploadCollection,
+  UniverseUploadCollection,
+} from "@catalog/collections/universe-upload-collection";
 import type { Job } from "bullmq";
 
 import { withHeavyDbLock } from "@/lib/mysql/db-lock";
@@ -39,6 +44,34 @@ const heavy =
     withHeavyDbLock(`${job.name}#${job.id ?? "?"}`, () => fn(job));
 
 /**
+ * Upload jobs have a DB row the UI polls. `executeUpload` marks it failed
+ * for errors inside the load, but anything that throws *before* that —
+ * a heavy-lock timeout, a staging directory the worker can't see, an
+ * old-code worker choking on the payload — would otherwise leave the row
+ * on "processing" until the 4-hour stale sweep. Catch here, stamp the
+ * row, rethrow so BullMQ still records the failure.
+ */
+const uploadGuard =
+  (collection: typeof UniverseUploadCollection, fn: Processor): Processor =>
+  async (job) => {
+    try {
+      return await fn(job);
+    } catch (e) {
+      const uploadId = (job.data as { uploadId?: number }).uploadId;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (uploadId != null) {
+        await collection
+          .updateStatus(uploadId, "fail", `Worker: ${msg}`)
+          .catch(() => {
+            // Row may already be stamped by executeUpload; never mask the
+            // original error.
+          });
+      }
+      throw e;
+    }
+  };
+
+/**
  * Left unlocked on purpose (short, narrow, or not on the main DB):
  * SERIES_RELOAD (single loader, one short tx), CLIPBOARD_* (interactive,
  * single series), DOWNLOAD (network + small writes), TSD/KAUAI exports
@@ -51,8 +84,14 @@ export const processors: Record<string, Processor> = {
   [JobName.TSD_EXPORT]: processTsdExport,
   [JobName.UPDATE_PUBLIC]: heavy(processUpdatePublic),
   [JobName.ADMIN_ACTION]: processAdminAction,
-  [JobName.DBEDT_UPLOAD]: heavy(processDbedtUpload),
-  [JobName.DVW_UPLOAD]: heavy(processDvwUpload),
+  [JobName.DBEDT_UPLOAD]: uploadGuard(
+    DbedtUploadCollection,
+    heavy(processDbedtUpload),
+  ),
+  [JobName.DVW_UPLOAD]: uploadGuard(
+    DvwUploadCollection,
+    heavy(processDvwUpload),
+  ),
   [JobName.API_DVW_RELOAD]: heavy(processApiDvwReload),
   [JobName.DEPENDENCY_RESET]: heavy(processDependencyReset),
   [JobName.PURGE_OLD]: processPurgeOldStuff,

@@ -112,7 +112,18 @@ export async function withHeavyDbLock<T>(
       // Connection release below drops the lock anyway.
       log.warn({ holder, err: String(e) }, "RELEASE_LOCK failed");
     }
-    conn.release();
+    try {
+      conn.release();
+    } catch (e) {
+      // A connection the server already closed throws here. The lock died
+      // with the connection, so there is nothing left to clean up — and
+      // this must never escape: an uncaught throw in a finally took the
+      // whole worker process down on 2026-08-27.
+      log.warn(
+        { holder, err: String(e) },
+        "reserved connection release failed",
+      );
+    }
   }
 }
 
