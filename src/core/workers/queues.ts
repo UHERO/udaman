@@ -112,7 +112,8 @@ export type ClipboardActionJobData = {
     | "clear_data"
     | "restrict"
     | "unrestrict"
-    | "destroy";
+    | "destroy"
+    | "update_public";
   seriesIds: number[];
 };
 

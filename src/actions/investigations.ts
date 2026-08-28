@@ -1,7 +1,10 @@
 "use server";
 
 import { AppLogCollection } from "@catalog/collections/app-log-collection";
-import type { AdminAction } from "@catalog/collections/reload-job-collection";
+import type {
+  AdminAction,
+  AdminActionOptions,
+} from "@catalog/collections/reload-job-collection";
 import {
   deleteReloadJob as deleteReloadJobCtrl,
   rerunReloadJob as rerunReloadJobCtrl,
@@ -61,14 +64,17 @@ export async function rerunReloadJob(id: number) {
   }
 }
 
-export async function runAdminAction(action: AdminAction) {
+export async function runAdminAction(
+  action: AdminAction,
+  options: AdminActionOptions = {},
+) {
   const role = await getCurrentUserRole();
   if (!["internal", "admin", "dev"].includes(role))
     throw new AuthorizationError();
   const userId = await getCurrentUserId();
-  log.info({ action, userId }, "runAdminAction called");
+  log.info({ action, userId, ...options }, "runAdminAction called");
   try {
-    const result = await runAdminActionCtrl({ action });
+    const result = await runAdminActionCtrl({ action, options });
     AppLogCollection.log({
       category: "investigation",
       name: `investigation.${action}`,

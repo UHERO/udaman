@@ -1,4 +1,5 @@
 import ClipboardCollection from "@catalog/collections/clipboard-collection";
+import DataPointCollection from "@catalog/collections/data-point-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { Job } from "bullmq";
@@ -218,6 +219,44 @@ export async function processClipboardAction(
           stillFailed.length > 0
             ? `Destroyed ${destroyed} of ${seriesIds.length} series (${stillFailed.length} failed)`
             : `Destroyed ${destroyed} series`;
+        break;
+      }
+
+      case "update_public": {
+        // updatePublicDataPointsForSeries needs the series' universe; fetch
+        // them in one query rather than one getById per series.
+        const rows =
+          seriesIds.length > 0
+            ? await mysql<{ id: number; universe: string }>`
+                SELECT id, universe FROM series WHERE id IN ${mysql(seriesIds)}
+              `
+            : [];
+        const universeById = new Map(rows.map((r) => [r.id, r.universe]));
+        let synced = 0;
+        for (const sid of seriesIds) {
+          const universe = universeById.get(sid);
+          if (!universe) {
+            job.log(`Series ${sid} not found, skipping`);
+            continue;
+          }
+          try {
+            await DataPointCollection.updatePublicDataPointsForSeries(
+              sid,
+              universe,
+            );
+            synced++;
+            job.log(`Updated public data points for series ${sid}`);
+          } catch (e) {
+            log.warn(
+              { id: sid, error: e instanceof Error ? e.message : String(e) },
+              "update_public failed for series",
+            );
+            job.log(
+              `Series ${sid} public update failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
+          }
+        }
+        result = `Updated public data points for ${synced} of ${seriesIds.length} series`;
         break;
       }
 

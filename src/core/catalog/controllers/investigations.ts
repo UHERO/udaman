@@ -7,6 +7,7 @@
 import LoaderCollection from "@catalog/collections/loader-collection";
 import ReloadJobCollection from "@catalog/collections/reload-job-collection";
 import type {
+  AdminActionOptions,
   AdminAction,
   EnrichedReloadJob,
 } from "@catalog/collections/reload-job-collection";
@@ -58,11 +59,13 @@ export async function rerunReloadJob({
 
 export async function runAdminAction({
   action,
+  options = {},
 }: {
   action: AdminAction;
+  options?: AdminActionOptions;
 }): Promise<{ success: boolean; message: string }> {
-  log.info({ action }, "running admin action");
-  const result = await ReloadJobCollection.runAdminAction(action);
+  log.info({ action, ...options }, "running admin action");
+  const result = await ReloadJobCollection.runAdminAction(action, options);
   log.info({ action, success: result.success }, "admin action completed");
   return result;
 }

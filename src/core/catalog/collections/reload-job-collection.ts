@@ -26,6 +26,12 @@ export type AdminAction =
   | "update_public"
   | "sync_nas";
 
+/** Optional parameters for admin actions. */
+export type AdminActionOptions = {
+  /** For update_public: restrict the sweep to one universe (omit = all). */
+  universe?: string;
+};
+
 export interface EnrichedReloadJob {
   job: ReturnType<ReloadJob["toJSON"]>;
   username: string;
@@ -111,8 +117,9 @@ class ReloadJobCollection {
   /** Run an admin action — dispatches to background job queue */
   static async runAdminAction(
     action: AdminAction,
+    opts: AdminActionOptions = {},
   ): Promise<{ success: boolean; message: string }> {
-    log.info({ action }, `Queuing admin action: ${action}`);
+    log.info({ action, ...opts }, `Queuing admin action: ${action}`);
 
     switch (action) {
       case "export_tsd": {
@@ -120,8 +127,14 @@ class ReloadJobCollection {
         return { success: true, message: "TSD export queued" };
       }
       case "update_public": {
-        await enqueueUpdatePublic();
-        return { success: true, message: "Public data update queued" };
+        const universe = opts.universe;
+        await enqueueUpdatePublic(universe ? { universe } : {});
+        return {
+          success: true,
+          message: universe
+            ? `Public data update queued for ${universe}`
+            : "Public data update queued for all universes",
+        };
       }
       case "clear_cache": {
         await enqueueAdminAction({ action: "clear_cache" });

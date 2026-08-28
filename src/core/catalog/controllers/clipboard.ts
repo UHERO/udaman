@@ -154,6 +154,7 @@ export type ClipboardAction =
   | "restrict"
   | "unrestrict"
   | "destroy"
+  | "update_public"
   | "meta_update"
   | "export_csv"
   | "export_tsd"
@@ -236,6 +237,7 @@ const QUEUED_ACTIONS = new Set<ClipboardAction>([
   "restrict",
   "unrestrict",
   "destroy",
+  "update_public",
 ]);
 
 export async function doClipboardAction({

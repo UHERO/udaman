@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
   AdminAction,
+  AdminActionOptions,
   EnrichedReloadJob,
 } from "@catalog/collections/reload-job-collection";
 import { formatHst } from "@catalog/utils/time";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,6 +18,13 @@ import {
   runAdminAction,
 } from "@/actions/investigations";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -96,20 +104,27 @@ export default function InvestigationsPanel({
   loadErrors,
   reloadJobs,
   universe,
+  universes,
 }: {
   loadErrors: LoadError[];
   reloadJobs: EnrichedReloadJob[];
   universe: string;
+  /** All universe names, for the per-universe "Update public" menu. */
+  universes: string[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<AdminAction | null>(null);
 
-  function handleAdminAction(action: AdminAction, label: string) {
+  function handleAdminAction(
+    action: AdminAction,
+    label: string,
+    options: AdminActionOptions = {},
+  ) {
     setActiveAction(action);
     startTransition(async () => {
       try {
-        const result = await runAdminAction(action);
+        const result = await runAdminAction(action, options);
         if (result.success) {
           toast.success(result.message);
         } else {
@@ -158,6 +173,39 @@ export default function InvestigationsPanel({
         <div className="flex flex-wrap gap-2">
           {ADMIN_ACTIONS.map(({ action, label }) => {
             const isActive = activeAction === action;
+            if (action === "update_public") {
+              return (
+                <DropdownMenu key={action}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={isPending}>
+                      {isActive && (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      )}
+                      {label}
+                      <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      onClick={() => handleAdminAction(action, label)}
+                    >
+                      All universes
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {universes.map((u) => (
+                      <DropdownMenuItem
+                        key={u}
+                        onClick={() =>
+                          handleAdminAction(action, label, { universe: u })
+                        }
+                      >
+                        {u}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
             return (
               <Button
                 key={action}
