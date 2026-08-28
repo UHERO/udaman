@@ -3,8 +3,8 @@
 import type { Session } from "next-auth";
 import { revalidatePath } from "next/cache";
 
-import type { DataRegistryFormType } from "@/app/registry/dr-form";
-import type { RegistryListType } from "@/app/registry/dr-table";
+import type { DataRegistryFormType } from "@/app/data-registry/dr-form";
+import type { RegistryListType } from "@/app/data-registry/dr-table";
 import {
   createDataRegistryEntry,
   deleteDataRegistryEntry,

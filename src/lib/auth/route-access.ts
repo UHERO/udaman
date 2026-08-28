@@ -18,6 +18,7 @@ import {
   ChartLine,
   ClipboardList,
   FileSpreadsheet,
+  Library,
   LineChart,
   Megaphone,
   SearchSlash,
@@ -208,6 +209,13 @@ export const ROUTES: RouteEntry[] = [
     roles: ["internal", "admin", "dev"],
     location: "rail",
   },
+  {
+    label: "Registry",
+    path: "/data-registry",
+    icon: Library,
+    roles: ["internal", "admin", "dev"],
+    location: "rail",
+  },
 ];
 
 /**
@@ -295,7 +303,13 @@ export function isRouteAllowed(
   pathname: string,
 ): boolean {
   // ── Top-level routes: /admin/..., /hhdb/..., /docs/... ──
-  const topLevelPrefixes = ["/admin", "/hhdb", "/docs", "/comms"];
+  const topLevelPrefixes = [
+    "/admin",
+    "/hhdb",
+    "/docs",
+    "/comms",
+    "/data-registry",
+  ];
   for (const prefix of topLevelPrefixes) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) {
       for (const entry of ROUTES) {
