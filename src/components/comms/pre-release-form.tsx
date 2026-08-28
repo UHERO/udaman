@@ -563,7 +563,9 @@ export function PreReleaseForm({
   // After saving an edit, land back on the record you were editing rather than
   // the list — you almost always want to confirm what you just changed.
   const returnHref =
-    mode === "edit" && approval ? `${listHref}/${approval.id}` : listHref;
+    mode === "edit" && approval
+      ? `${listHref}/pub-form/${approval.id}`
+      : listHref;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
