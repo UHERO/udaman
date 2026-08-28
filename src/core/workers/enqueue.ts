@@ -38,7 +38,7 @@ export function enqueueTsdExport() {
  * removed first so re-enqueueing after completion works.
  */
 export async function enqueueUpdatePublic(data: UpdatePublicJobData = {}) {
-  const jobId = `update-public:${data.universe ?? "all"}`;
+  const jobId = `update-public-${data.universe ?? "all"}`;
   const existing = await defaultQueue.getJob(jobId);
   if (existing) {
     const state = await existing.getState();

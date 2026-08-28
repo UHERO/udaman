@@ -413,7 +413,7 @@ INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'MEDPRICETG_CND_INDEX' LIMIT 1);
 INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 3, 'indent0');
 INSERT INTO measurements (universe, prefix, data_portal_name, decimals, `percent`, seasonal_adjustment, created_at, updated_at)
-  SELECT 'HHF', 'RSI', 'rsi', 1, 1, 'not_applicable', NOW(), NOW()
+  SELECT 'HHF', 'RSI', 'rsi', 1, 0, 'not_applicable', NOW(), NOW()
   FROM dual WHERE NOT EXISTS (SELECT 1 FROM measurements WHERE universe = 'HHF' AND prefix = 'RSI');
 SET @m_id = (SELECT id FROM measurements WHERE universe = 'HHF' AND prefix = 'RSI' LIMIT 1);
 INSERT IGNORE INTO data_list_measurements (data_list_id, measurement_id, list_order, indent) VALUES (@dl_id, @m_id, 4, 'indent0');
