@@ -3,6 +3,7 @@ export interface HhdbCommercialDetailAttrs {
   commercial_improvement_id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
+  last_year_observed?: number | null;
   card?: number | null;
   section?: string | null;
   floor?: string | null;
@@ -27,6 +28,7 @@ export class HhdbCommercialDetail {
   commercialImprovementId: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
+  lastYearObserved: number | null;
   card: number | null;
   section: string | null;
   floor: string | null;
@@ -53,6 +55,8 @@ export class HhdbCommercialDetail {
         : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
+    this.lastYearObserved =
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
     this.card = attrs.card != null ? Number(attrs.card) : null;
     this.section = attrs.section ?? null;
     this.floor = attrs.floor ?? null;
@@ -79,6 +83,7 @@ export class HhdbCommercialDetail {
       commercialImprovementId: this.commercialImprovementId,
       tmk: this.tmk,
       scrapedAt: this.scrapedAt?.toISOString() ?? null,
+      lastYearObserved: this.lastYearObserved,
       card: this.card,
       section: this.section,
       floor: this.floor,
@@ -117,6 +122,8 @@ export function hhdbCommercialDetailRowToJSON(
     scrapedAt: attrs.scraped_at
       ? new Date(attrs.scraped_at).toISOString()
       : null,
+    lastYearObserved:
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
     card: attrs.card != null ? Number(attrs.card) : null,
     section: attrs.section ?? null,
     floor: attrs.floor ?? null,

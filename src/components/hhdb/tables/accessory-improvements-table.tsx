@@ -9,10 +9,27 @@ import { HhdbDataTable } from "../hhdb-data-table";
 const columns: ColumnDef<HhdbAccessoryImprovementJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
+  {
+    accessorKey: "buildingNumber",
+    header: "Building Number",
+    enableSorting: true,
+  },
   { accessorKey: "description", header: "Description", enableSorting: true },
+  { accessorKey: "dimensions", header: "Dimensions", enableSorting: true },
   { accessorKey: "quantity", header: "Quantity", enableSorting: true },
   { accessorKey: "yearBuilt", header: "Year Built", enableSorting: true },
   { accessorKey: "area", header: "Area", enableSorting: true },
+  {
+    accessorKey: "percentComplete",
+    header: "Percent Complete",
+    enableSorting: true,
+  },
+  { accessorKey: "value", header: "Value", enableSorting: true },
+  {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
   {
     accessorKey: "scrapedAt",
     header: "Scraped At",

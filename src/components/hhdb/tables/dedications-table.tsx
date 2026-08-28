@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbDedicationJSON } from "@catalog/models/hhdb-dedication";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -8,6 +9,15 @@ import { HhdbDataTable } from "../hhdb-data-table";
 const columns: ColumnDef<HhdbDedicationJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
+  {
+    accessorKey: "scrapedAt",
+    header: "Scraped At",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
   { accessorKey: "taxYear", header: "Tax Year", enableSorting: true },
   {
     accessorKey: "numberOfDedications",
@@ -16,7 +26,7 @@ const columns: ColumnDef<HhdbDedicationJSON, unknown>[] = [
   },
 ];
 
-const DEFAULT_HIDDEN: string[] = [];
+const DEFAULT_HIDDEN: string[] = ["scrapedAt"];
 
 interface DedicationsTableProps {
   data: HhdbDedicationJSON[];

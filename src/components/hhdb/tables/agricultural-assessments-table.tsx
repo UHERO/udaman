@@ -26,6 +26,11 @@ const columns: ColumnDef<HhdbAgriculturalAssessmentJSON, unknown>[] = [
     },
   },
   {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
+  {
     accessorKey: "scrapedAt",
     header: "Scraped At",
     enableSorting: true,

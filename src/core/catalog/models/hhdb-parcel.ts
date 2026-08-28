@@ -2,6 +2,7 @@ export interface HhdbParcelAttrs {
   id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
+  last_year_observed?: number | null;
   parcel_number?: string | null;
   location_address?: string | null;
   address_other?: string | null;
@@ -25,6 +26,7 @@ export class HhdbParcel {
   id: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
+  lastYearObserved: number | null;
   parcelNumber: string | null;
   locationAddress: string | null;
   addressOther: string | null;
@@ -47,6 +49,8 @@ export class HhdbParcel {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
+    this.lastYearObserved =
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
     this.parcelNumber = attrs.parcel_number ?? null;
     this.locationAddress = attrs.location_address ?? null;
     this.addressOther = attrs.address_other ?? null;
@@ -74,6 +78,7 @@ export class HhdbParcel {
       id: this.id,
       tmk: this.tmk,
       scrapedAt: this.scrapedAt?.toISOString() ?? null,
+      lastYearObserved: this.lastYearObserved,
       parcelNumber: this.parcelNumber,
       locationAddress: this.locationAddress,
       addressOther: this.addressOther,
@@ -104,6 +109,8 @@ export function hhdbParcelRowToJSON(attrs: HhdbParcelAttrs): HhdbParcelJSON {
     scrapedAt: attrs.scraped_at
       ? new Date(attrs.scraped_at).toISOString()
       : null,
+    lastYearObserved:
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
     parcelNumber: attrs.parcel_number ?? null,
     locationAddress: attrs.location_address ?? null,
     addressOther: attrs.address_other ?? null,

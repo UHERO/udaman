@@ -2,6 +2,7 @@ export interface HhdbHistoricalTaxDetailAttrs {
   id?: number | null;
   historical_tax_summary_id?: number | null;
   tmk?: string | null;
+  scraped_at?: Date | string | null;
   tax_period?: string | null;
   description?: string | null;
   tax?: number | null;
@@ -15,6 +16,7 @@ export class HhdbHistoricalTaxDetail {
   id: number | null;
   historicalTaxSummaryId: number | null;
   tmk: string | null;
+  scrapedAt: Date | null;
   taxPeriod: string | null;
   description: string | null;
   tax: number | null;
@@ -30,6 +32,7 @@ export class HhdbHistoricalTaxDetail {
         ? Number(attrs.historical_tax_summary_id)
         : null;
     this.tmk = attrs.tmk ?? null;
+    this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.taxPeriod = attrs.tax_period ?? null;
     this.description = attrs.description ?? null;
     this.tax = attrs.tax != null ? Number(attrs.tax) : null;
@@ -45,6 +48,7 @@ export class HhdbHistoricalTaxDetail {
       id: this.id,
       historicalTaxSummaryId: this.historicalTaxSummaryId,
       tmk: this.tmk,
+      scrapedAt: this.scrapedAt?.toISOString() ?? null,
       taxPeriod: this.taxPeriod,
       description: this.description,
       tax: this.tax,
@@ -70,6 +74,9 @@ export function hhdbHistoricalTaxDetailRowToJSON(
         ? Number(attrs.historical_tax_summary_id)
         : null,
     tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     taxPeriod: attrs.tax_period ?? null,
     description: attrs.description ?? null,
     tax: attrs.tax != null ? Number(attrs.tax) : null,

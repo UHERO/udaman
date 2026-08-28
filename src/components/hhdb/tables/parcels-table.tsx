@@ -18,6 +18,11 @@ const columns: ColumnDef<HhdbParcelJSON, unknown>[] = [
       return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
     },
   },
+  {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
   { accessorKey: "parcelNumber", header: "Parcel Number", enableSorting: true },
   {
     accessorKey: "locationAddress",

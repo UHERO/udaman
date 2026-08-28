@@ -1,7 +1,7 @@
 "use client";
 
 import type { HhdbAppealJSON } from "@catalog/models/hhdb-appeal";
-import { isoDate } from "@catalog/utils/time";
+import { formatHst, isoDate } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -9,6 +9,15 @@ import { HhdbDataTable } from "../hhdb-data-table";
 const columns: ColumnDef<HhdbAppealJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
+  {
+    accessorKey: "scrapedAt",
+    header: "Scraped At",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
   { accessorKey: "year", header: "Year", enableSorting: true },
   {
     accessorKey: "appealTypeValue",
@@ -65,6 +74,7 @@ const columns: ColumnDef<HhdbAppealJSON, unknown>[] = [
 ];
 
 const DEFAULT_HIDDEN = [
+  "scrapedAt",
   "taxPayerOpinionOfPropertyClass",
   "taxPayerOpinionOfExemptions",
 ];

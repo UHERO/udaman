@@ -17,6 +17,11 @@ const columns: ColumnDef<HhdbResidentialAdditionJSON, unknown>[] = [
   { accessorKey: "third", header: "Third", enableSorting: true },
   { accessorKey: "area", header: "Area", enableSorting: true },
   {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
+  {
     accessorKey: "scrapedAt",
     header: "Scraped At",
     enableSorting: true,

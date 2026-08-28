@@ -13,8 +13,26 @@ const columns: ColumnDef<HhdbOwnerJSON, unknown>[] = [
   { accessorKey: "ownerType", header: "Owner Type", enableSorting: true },
   { accessorKey: "ownerAddress", header: "Owner Address", enableSorting: true },
   {
+    accessorKey: "mailingAddress",
+    header: "Mailing Address",
+    enableSorting: true,
+  },
+  { accessorKey: "mailingCity", header: "Mailing City", enableSorting: true },
+  { accessorKey: "mailingState", header: "Mailing State", enableSorting: true },
+  { accessorKey: "mailingZip", header: "Mailing ZIP", enableSorting: true },
+  {
+    accessorKey: "mailingCountry",
+    header: "Mailing Country",
+    enableSorting: true,
+  },
+  {
     accessorKey: "sequenceOrder",
     header: "Sequence Order",
+    enableSorting: true,
+  },
+  {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
     enableSorting: true,
   },
   {

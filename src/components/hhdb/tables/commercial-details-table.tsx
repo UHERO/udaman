@@ -32,6 +32,11 @@ const columns: ColumnDef<HhdbCommercialDetailJSON, unknown>[] = [
     enableSorting: true,
   },
   {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
+  {
     accessorKey: "scrapedAt",
     header: "Scraped At",
     enableSorting: true,

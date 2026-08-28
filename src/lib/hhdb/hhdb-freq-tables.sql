@@ -423,6 +423,22 @@ BEGIN
   SELECT '0', 'living_units', LEFT(COALESCE(CAST(living_units AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM properties GROUP BY LEFT(CAST(living_units AS CHAR), 500);
 
+  -- map_url
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'map_url', LEFT(COALESCE(CAST(map_url AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(map_url AS CHAR), 500);
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT '0', 'map_url', LEFT(COALESCE(CAST(map_url AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(map_url AS CHAR), 500);
+
+  -- sketch_url
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'sketch_url', LEFT(COALESCE(CAST(sketch_url AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(sketch_url AS CHAR), 500);
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT '0', 'sketch_url', LEFT(COALESCE(CAST(sketch_url AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(sketch_url AS CHAR), 500);
+
   -- zip
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'zip', LEFT(COALESCE(CAST(zip AS CHAR), '[NULL]'), 500), COUNT(*)
@@ -446,6 +462,22 @@ BEGIN
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
   SELECT '0', 'longitude', LEFT(COALESCE(CAST(longitude AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM properties GROUP BY LEFT(CAST(longitude AS CHAR), 500);
+
+  -- in_parcel_list
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'in_parcel_list', LEFT(COALESCE(CAST(in_parcel_list AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(in_parcel_list AS CHAR), 500);
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT '0', 'in_parcel_list', LEFT(COALESCE(CAST(in_parcel_list AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(in_parcel_list AS CHAR), 500);
+
+  -- parcel_list_version
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'parcel_list_version', LEFT(COALESCE(CAST(parcel_list_version AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(parcel_list_version AS CHAR), 500);
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT '0', 'parcel_list_version', LEFT(COALESCE(CAST(parcel_list_version AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(parcel_list_version AS CHAR), 500);
 
   -- freq_owners
   TRUNCATE TABLE freq_owners;
@@ -481,6 +513,46 @@ BEGIN
   INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
   SELECT '0', 'owner_address', LEFT(COALESCE(CAST(owner_address AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM owners GROUP BY LEFT(CAST(owner_address AS CHAR), 500);
+
+  -- mailing_address
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailing_address', LEFT(COALESCE(CAST(mailing_address AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(tmk, 1), LEFT(CAST(mailing_address AS CHAR), 500);
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailing_address', LEFT(COALESCE(CAST(mailing_address AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(CAST(mailing_address AS CHAR), 500);
+
+  -- mailing_city
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailing_city', LEFT(COALESCE(CAST(mailing_city AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(tmk, 1), LEFT(CAST(mailing_city AS CHAR), 500);
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailing_city', LEFT(COALESCE(CAST(mailing_city AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(CAST(mailing_city AS CHAR), 500);
+
+  -- mailing_state
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailing_state', LEFT(COALESCE(CAST(mailing_state AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(tmk, 1), LEFT(CAST(mailing_state AS CHAR), 500);
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailing_state', LEFT(COALESCE(CAST(mailing_state AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(CAST(mailing_state AS CHAR), 500);
+
+  -- mailing_zip
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailing_zip', LEFT(COALESCE(CAST(mailing_zip AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(tmk, 1), LEFT(CAST(mailing_zip AS CHAR), 500);
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailing_zip', LEFT(COALESCE(CAST(mailing_zip AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(CAST(mailing_zip AS CHAR), 500);
+
+  -- mailing_country
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailing_country', LEFT(COALESCE(CAST(mailing_country AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(tmk, 1), LEFT(CAST(mailing_country AS CHAR), 500);
+  INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailing_country', LEFT(COALESCE(CAST(mailing_country AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM owners GROUP BY LEFT(CAST(mailing_country AS CHAR), 500);
 
   -- sequence_order
   INSERT INTO freq_owners (county_code, column_name, column_value, frequency)
@@ -1346,6 +1418,14 @@ BEGIN
   SELECT '0', 'tmk', LEFT(COALESCE(CAST(tmk AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM accessory_improvements GROUP BY LEFT(CAST(tmk AS CHAR), 500);
 
+  -- building_number
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'building_number', LEFT(COALESCE(CAST(building_number AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(tmk, 1), LEFT(CAST(building_number AS CHAR), 500);
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT '0', 'building_number', LEFT(COALESCE(CAST(building_number AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(CAST(building_number AS CHAR), 500);
+
   -- description
   INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'description', LEFT(COALESCE(CAST(`description` AS CHAR), '[NULL]'), 500), COUNT(*)
@@ -1353,6 +1433,14 @@ BEGIN
   INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
   SELECT '0', 'description', LEFT(COALESCE(CAST(`description` AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM accessory_improvements GROUP BY LEFT(CAST(`description` AS CHAR), 500);
+
+  -- dimensions
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'dimensions', LEFT(COALESCE(CAST(dimensions AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(tmk, 1), LEFT(CAST(dimensions AS CHAR), 500);
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT '0', 'dimensions', LEFT(COALESCE(CAST(dimensions AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(CAST(dimensions AS CHAR), 500);
 
   -- quantity
   INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
@@ -1377,6 +1465,22 @@ BEGIN
   INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
   SELECT '0', 'area', LEFT(COALESCE(CAST(area AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM accessory_improvements GROUP BY LEFT(CAST(area AS CHAR), 500);
+
+  -- percent_complete
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'percent_complete', LEFT(COALESCE(CAST(percent_complete AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(tmk, 1), LEFT(CAST(percent_complete AS CHAR), 500);
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT '0', 'percent_complete', LEFT(COALESCE(CAST(percent_complete AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(CAST(percent_complete AS CHAR), 500);
+
+  -- value
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'value', LEFT(COALESCE(CAST(`value` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(tmk, 1), LEFT(CAST(`value` AS CHAR), 500);
+  INSERT INTO freq_accessory_improvements (county_code, column_name, column_value, frequency)
+  SELECT '0', 'value', LEFT(COALESCE(CAST(`value` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM accessory_improvements GROUP BY LEFT(CAST(`value` AS CHAR), 500);
 
   -- freq_permits
   TRUNCATE TABLE freq_permits;
@@ -2126,6 +2230,14 @@ BEGIN
   SELECT '0', 'unit_count', LEFT(COALESCE(CAST(unit_count AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM condominium_projects GROUP BY LEFT(CAST(unit_count AS CHAR), 500);
 
+  -- dcca_link
+  INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'dcca_link', LEFT(COALESCE(CAST(dcca_link AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), LEFT(CAST(dcca_link AS CHAR), 500);
+  INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
+  SELECT '0', 'dcca_link', LEFT(COALESCE(CAST(dcca_link AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM condominium_projects GROUP BY LEFT(CAST(dcca_link AS CHAR), 500);
+
   -- zoning
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'zoning', LEFT(COALESCE(CAST(zoning AS CHAR), '[NULL]'), 500), COUNT(*)
@@ -2296,6 +2408,14 @@ BEGIN
   INSERT INTO freq_condominium_units (county_code, column_name, column_value, frequency)
   SELECT '0', 'tmk', LEFT(COALESCE(CAST(tmk AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM condominium_units GROUP BY LEFT(CAST(tmk AS CHAR), 500);
+
+  -- parent_tmk
+  INSERT INTO freq_condominium_units (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'parent_tmk', LEFT(COALESCE(CAST(parent_tmk AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM condominium_units GROUP BY LEFT(tmk, 1), LEFT(CAST(parent_tmk AS CHAR), 500);
+  INSERT INTO freq_condominium_units (county_code, column_name, column_value, frequency)
+  SELECT '0', 'parent_tmk', LEFT(COALESCE(CAST(parent_tmk AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM condominium_units GROUP BY LEFT(CAST(parent_tmk AS CHAR), 500);
 
   -- unit_number
   INSERT INTO freq_condominium_units (county_code, column_name, column_value, frequency)

@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbImprovementJSON } from "@catalog/models/hhdb-improvement";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -8,6 +9,20 @@ import { HhdbDataTable } from "../hhdb-data-table";
 const residentialColumns: ColumnDef<HhdbImprovementJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
+  {
+    accessorKey: "scrapedAt",
+    header: "Scraped At",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
+  {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
   { accessorKey: "buildingNumber", header: "Bldg #", enableSorting: true },
   { accessorKey: "yearBuilt", header: "Year Built", enableSorting: true },
   { accessorKey: "effYearBuilt", header: "Eff Year", enableSorting: true },
@@ -47,6 +62,20 @@ const residentialColumns: ColumnDef<HhdbImprovementJSON, unknown>[] = [
 const commercialColumns: ColumnDef<HhdbImprovementJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
+  {
+    accessorKey: "scrapedAt",
+    header: "Scraped At",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
+  {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
   { accessorKey: "buildingNumber", header: "Bldg #", enableSorting: true },
   { accessorKey: "buildingCard", header: "Card", enableSorting: false },
   { accessorKey: "yearBuilt", header: "Year Built", enableSorting: true },

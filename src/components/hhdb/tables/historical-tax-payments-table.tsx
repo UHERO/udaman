@@ -1,7 +1,7 @@
 "use client";
 
 import type { HhdbHistoricalTaxPaymentJSON } from "@catalog/models/hhdb-historical-tax-payment";
-import { isoDate } from "@catalog/utils/time";
+import { formatHst, isoDate } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -17,6 +17,15 @@ const columns: ColumnDef<HhdbHistoricalTaxPaymentJSON, unknown>[] = [
     enableSorting: false,
   },
   { accessorKey: "tmk", header: "TMK", enableSorting: false },
+  {
+    accessorKey: "scrapedAt",
+    header: "Scraped At",
+    enableSorting: false,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
   {
     accessorKey: "paymentSequence",
     header: "Payment Sequence",
@@ -57,7 +66,7 @@ const columns: ColumnDef<HhdbHistoricalTaxPaymentJSON, unknown>[] = [
   },
 ];
 
-const DEFAULT_HIDDEN = ["historicalTaxSummaryId"];
+const DEFAULT_HIDDEN = ["historicalTaxSummaryId", "scrapedAt"];
 
 interface HistoricalTaxPaymentsTableProps {
   data: HhdbHistoricalTaxPaymentJSON[];

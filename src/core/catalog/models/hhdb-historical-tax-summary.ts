@@ -1,6 +1,7 @@
 export interface HhdbHistoricalTaxSummaryAttrs {
   id?: number | null;
   tmk?: string | null;
+  scraped_at?: Date | string | null;
   year?: number | null;
   tax?: number | null;
   payments_and_credits?: number | null;
@@ -23,6 +24,7 @@ export interface HhdbHistoricalTaxSummaryAttrs {
 export class HhdbHistoricalTaxSummary {
   id: number | null;
   tmk: string | null;
+  scrapedAt: Date | null;
   year: number | null;
   tax: number | null;
   paymentsAndCredits: number | null;
@@ -44,6 +46,7 @@ export class HhdbHistoricalTaxSummary {
   constructor(attrs: HhdbHistoricalTaxSummaryAttrs) {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
+    this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.year = attrs.year != null ? Number(attrs.year) : null;
     this.tax = attrs.tax != null ? Number(attrs.tax) : null;
     this.paymentsAndCredits =
@@ -100,6 +103,7 @@ export class HhdbHistoricalTaxSummary {
     return {
       id: this.id,
       tmk: this.tmk,
+      scrapedAt: this.scrapedAt?.toISOString() ?? null,
       year: this.year,
       tax: this.tax,
       paymentsAndCredits: this.paymentsAndCredits,
@@ -131,6 +135,9 @@ export function hhdbHistoricalTaxSummaryRowToJSON(
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     year: attrs.year != null ? Number(attrs.year) : null,
     tax: attrs.tax != null ? Number(attrs.tax) : null,
     paymentsAndCredits:

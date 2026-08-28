@@ -1,6 +1,7 @@
 export interface HhdbAppealAttrs {
   id?: number | null;
   tmk?: string | null;
+  scraped_at?: Date | string | null;
   year?: number | null;
   appeal_type_value?: string | null;
   scheduled_hearing_date_subject_to_change?: string | null;
@@ -16,6 +17,7 @@ export interface HhdbAppealAttrs {
 export class HhdbAppeal {
   id: number | null;
   tmk: string | null;
+  scrapedAt: Date | null;
   year: number | null;
   appealTypeValue: string | null;
   scheduledHearingDateSubjectToChange: string | null;
@@ -29,6 +31,7 @@ export class HhdbAppeal {
   constructor(attrs: HhdbAppealAttrs) {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
+    this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.year = attrs.year != null ? Number(attrs.year) : null;
     this.appealTypeValue = attrs.appeal_type_value ?? null;
     this.scheduledHearingDateSubjectToChange =
@@ -55,6 +58,7 @@ export class HhdbAppeal {
     return {
       id: this.id,
       tmk: this.tmk,
+      scrapedAt: this.scrapedAt?.toISOString() ?? null,
       year: this.year,
       appealTypeValue: this.appealTypeValue,
       scheduledHearingDateSubjectToChange:
@@ -75,6 +79,9 @@ export function hhdbAppealRowToJSON(attrs: HhdbAppealAttrs): HhdbAppealJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     year: attrs.year != null ? Number(attrs.year) : null,
     appealTypeValue: attrs.appeal_type_value ?? null,
     scheduledHearingDateSubjectToChange:

@@ -3,6 +3,7 @@ export interface HhdbImprovementAttrs {
   id?: number;
   tmk?: string | null;
   scraped_at?: Date | string | null;
+  last_year_observed?: number | null;
   /** number for residential rows (SMALLINT), string for commercial (VARCHAR) */
   building_number?: number | string | null;
   year_built?: number | null;
@@ -45,6 +46,8 @@ export interface HhdbImprovementAttrs {
 export class HhdbImprovement {
   id: number;
   tmk: string | null;
+  scrapedAt: Date | null;
+  lastYearObserved: number | null;
   /** number for residential rows (SMALLINT), string for commercial (VARCHAR) */
   buildingNumber: number | string | null;
   yearBuilt: number | null;
@@ -87,6 +90,9 @@ export class HhdbImprovement {
   constructor(attrs: HhdbImprovementAttrs) {
     this.id = attrs.id ?? 0;
     this.tmk = attrs.tmk ?? null;
+    this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
+    this.lastYearObserved =
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
     this.buildingNumber = attrs.building_number ?? null;
     this.yearBuilt = attrs.year_built != null ? Number(attrs.year_built) : null;
     // Residential
@@ -143,6 +149,8 @@ export class HhdbImprovement {
     return {
       id: this.id,
       tmk: this.tmk,
+      scrapedAt: this.scrapedAt?.toISOString() ?? null,
+      lastYearObserved: this.lastYearObserved,
       buildingNumber: this.buildingNumber,
       yearBuilt: this.yearBuilt,
       effYearBuilt: this.effYearBuilt,
@@ -190,6 +198,11 @@ export function hhdbImprovementRowToJSON(
   return {
     id: attrs.id ?? 0,
     tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
+    lastYearObserved:
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
     buildingNumber: attrs.building_number ?? null,
     yearBuilt: attrs.year_built != null ? Number(attrs.year_built) : null,
     effYearBuilt:

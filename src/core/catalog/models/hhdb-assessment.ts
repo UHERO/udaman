@@ -1,6 +1,7 @@
 export interface HhdbAssessmentAttrs {
   id?: number;
   tmk?: string | null;
+  scraped_at?: Date | string | null;
   tax_year?: number | null;
   property_class?: string | null;
   assessed_land_value?: number | null;
@@ -23,6 +24,7 @@ export interface HhdbAssessmentAttrs {
 export class HhdbAssessment {
   id: number;
   tmk: string | null;
+  scrapedAt: Date | null;
   taxYear: number | null;
   propertyClass: string | null;
   assessedLandValue: number | null;
@@ -44,6 +46,7 @@ export class HhdbAssessment {
   constructor(attrs: HhdbAssessmentAttrs) {
     this.id = attrs.id ?? 0;
     this.tmk = attrs.tmk ?? null;
+    this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.taxYear = attrs.tax_year != null ? Number(attrs.tax_year) : null;
     this.propertyClass = attrs.property_class ?? null;
     this.assessedLandValue =
@@ -105,6 +108,7 @@ export class HhdbAssessment {
     return {
       id: this.id,
       tmk: this.tmk,
+      scrapedAt: this.scrapedAt?.toISOString() ?? null,
       taxYear: this.taxYear,
       propertyClass: this.propertyClass,
       assessedLandValue: this.assessedLandValue,
@@ -134,6 +138,9 @@ export function hhdbAssessmentRowToJSON(
   return {
     id: attrs.id ?? 0,
     tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     taxYear: attrs.tax_year != null ? Number(attrs.tax_year) : null,
     propertyClass: attrs.property_class ?? null,
     assessedLandValue:

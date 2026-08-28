@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbPropertyJSON } from "@catalog/models/hhdb-property";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -61,6 +62,21 @@ const columns: ColumnDef<HhdbPropertyJSON, unknown>[] = [
   { accessorKey: "longitude", header: "Longitude", enableSorting: true },
   { accessorKey: "mapUrl", header: "Map URL", enableSorting: false },
   { accessorKey: "sketchUrl", header: "Sketch URL", enableSorting: false },
+  { accessorKey: "inParcelList", header: "In Parcel List", enableSorting: true },
+  {
+    accessorKey: "parcelListVersion",
+    header: "Parcel List Version",
+    enableSorting: true,
+  },
+  {
+    accessorKey: "parcelListCheckedAt",
+    header: "Parcel List Checked At",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
   { accessorKey: "createdAt", header: "Created", enableSorting: false },
   { accessorKey: "updatedAt", header: "Updated", enableSorting: false },
 ];
@@ -81,6 +97,7 @@ const DEFAULT_HIDDEN = [
   "longitude",
   "mapUrl",
   "sketchUrl",
+  "parcelListCheckedAt",
   "createdAt",
   "updatedAt",
 ];

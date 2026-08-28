@@ -66,6 +66,11 @@ const columns: ColumnDef<HhdbCurrentTaxBillJSON, unknown>[] = [
     cell: ({ getValue }) => currency(getValue() as number | null),
   },
   {
+    accessorKey: "lastYearObserved",
+    header: "Last Year Observed",
+    enableSorting: true,
+  },
+  {
     accessorKey: "scrapedAt",
     header: "Scraped At",
     enableSorting: true,

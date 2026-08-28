@@ -2,6 +2,7 @@ export interface HhdbCurrentTaxBillAttrs {
   id?: number | null;
   tmk?: string | null;
   scraped_at?: Date | string | null;
+  last_year_observed?: number | null;
   tax_period?: string | null;
   description?: string | null;
   original_due_date?: Date | string | null;
@@ -18,6 +19,7 @@ export class HhdbCurrentTaxBill {
   id: number | null;
   tmk: string | null;
   scrapedAt: Date | null;
+  lastYearObserved: number | null;
   taxPeriod: string | null;
   description: string | null;
   originalDueDate: Date | null;
@@ -33,6 +35,8 @@ export class HhdbCurrentTaxBill {
     this.id = attrs.id != null ? Number(attrs.id) : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
+    this.lastYearObserved =
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
     this.taxPeriod = attrs.tax_period ?? null;
     this.description = attrs.description ?? null;
     this.originalDueDate = attrs.original_due_date
@@ -54,6 +58,7 @@ export class HhdbCurrentTaxBill {
       id: this.id,
       tmk: this.tmk,
       scrapedAt: this.scrapedAt?.toISOString() ?? null,
+      lastYearObserved: this.lastYearObserved,
       taxPeriod: this.taxPeriod,
       description: this.description,
       originalDueDate: this.originalDueDate?.toISOString() ?? null,
@@ -79,6 +84,8 @@ export function hhdbCurrentTaxBillRowToJSON(
     scrapedAt: attrs.scraped_at
       ? new Date(attrs.scraped_at).toISOString()
       : null,
+    lastYearObserved:
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
     taxPeriod: attrs.tax_period ?? null,
     description: attrs.description ?? null,
     originalDueDate: attrs.original_due_date

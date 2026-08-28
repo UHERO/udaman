@@ -22,6 +22,9 @@ export interface HhdbPropertyAttrs {
   longitude?: number | null;
   map_url?: string | null;
   sketch_url?: string | null;
+  in_parcel_list?: number | null;
+  parcel_list_version?: string | null;
+  parcel_list_checked_at?: Date | string | null;
   created_at?: Date | string | null;
   updated_at?: Date | string | null;
 }
@@ -50,6 +53,9 @@ export class HhdbProperty {
   longitude: number | null;
   mapUrl: string | null;
   sketchUrl: string | null;
+  inParcelList: number | null;
+  parcelListVersion: string | null;
+  parcelListCheckedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 
@@ -80,6 +86,12 @@ export class HhdbProperty {
     this.longitude = attrs.longitude != null ? Number(attrs.longitude) : null;
     this.mapUrl = attrs.map_url ?? null;
     this.sketchUrl = attrs.sketch_url ?? null;
+    this.inParcelList =
+      attrs.in_parcel_list != null ? Number(attrs.in_parcel_list) : null;
+    this.parcelListVersion = attrs.parcel_list_version ?? null;
+    this.parcelListCheckedAt = attrs.parcel_list_checked_at
+      ? new Date(attrs.parcel_list_checked_at)
+      : null;
     this.createdAt = attrs.created_at ? new Date(attrs.created_at) : null;
     this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at) : null;
   }
@@ -109,6 +121,9 @@ export class HhdbProperty {
       longitude: this.longitude,
       mapUrl: this.mapUrl,
       sketchUrl: this.sketchUrl,
+      inParcelList: this.inParcelList,
+      parcelListVersion: this.parcelListVersion,
+      parcelListCheckedAt: this.parcelListCheckedAt?.toISOString() ?? null,
       createdAt: this.createdAt?.toISOString() ?? null,
       updatedAt: this.updatedAt?.toISOString() ?? null,
     };
@@ -147,6 +162,12 @@ export function hhdbPropertyRowToJSON(
     longitude: attrs.longitude != null ? Number(attrs.longitude) : null,
     mapUrl: attrs.map_url ?? null,
     sketchUrl: attrs.sketch_url ?? null,
+    inParcelList:
+      attrs.in_parcel_list != null ? Number(attrs.in_parcel_list) : null,
+    parcelListVersion: attrs.parcel_list_version ?? null,
+    parcelListCheckedAt: attrs.parcel_list_checked_at
+      ? new Date(attrs.parcel_list_checked_at).toISOString()
+      : null,
     createdAt: attrs.created_at
       ? new Date(attrs.created_at).toISOString()
       : null,

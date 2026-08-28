@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbAssessmentJSON } from "@catalog/models/hhdb-assessment";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -11,6 +12,15 @@ const currency = (v: number | null) =>
 const columns: ColumnDef<HhdbAssessmentJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
+  {
+    accessorKey: "scrapedAt",
+    header: "Scraped At",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
   { accessorKey: "taxYear", header: "Tax Year", enableSorting: true },
   { accessorKey: "propertyClass", header: "Class", enableSorting: true },
   {
@@ -100,6 +110,7 @@ const columns: ColumnDef<HhdbAssessmentJSON, unknown>[] = [
 ];
 
 const DEFAULT_HIDDEN = [
+  "scrapedAt",
   "totalPropertyExemption",
   "totalNetTaxableValue",
   "dedicatedUseValue",

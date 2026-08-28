@@ -2,6 +2,7 @@ export interface HhdbHistoricalTaxPaymentAttrs {
   id?: number | null;
   historical_tax_summary_id?: number | null;
   tmk?: string | null;
+  scraped_at?: Date | string | null;
   payment_sequence?: number | null;
   effective_date?: Date | string | null;
   tax?: number | null;
@@ -14,6 +15,7 @@ export class HhdbHistoricalTaxPayment {
   id: number | null;
   historicalTaxSummaryId: number | null;
   tmk: string | null;
+  scrapedAt: Date | null;
   paymentSequence: number | null;
   effectiveDate: Date | null;
   tax: number | null;
@@ -28,6 +30,7 @@ export class HhdbHistoricalTaxPayment {
         ? Number(attrs.historical_tax_summary_id)
         : null;
     this.tmk = attrs.tmk ?? null;
+    this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.paymentSequence =
       attrs.payment_sequence != null ? Number(attrs.payment_sequence) : null;
     this.effectiveDate = attrs.effective_date
@@ -44,6 +47,7 @@ export class HhdbHistoricalTaxPayment {
       id: this.id,
       historicalTaxSummaryId: this.historicalTaxSummaryId,
       tmk: this.tmk,
+      scrapedAt: this.scrapedAt?.toISOString() ?? null,
       paymentSequence: this.paymentSequence,
       effectiveDate: this.effectiveDate?.toISOString() ?? null,
       tax: this.tax,
@@ -68,6 +72,9 @@ export function hhdbHistoricalTaxPaymentRowToJSON(
         ? Number(attrs.historical_tax_summary_id)
         : null,
     tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     paymentSequence:
       attrs.payment_sequence != null ? Number(attrs.payment_sequence) : null,
     effectiveDate: attrs.effective_date

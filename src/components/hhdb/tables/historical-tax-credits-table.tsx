@@ -1,6 +1,7 @@
 "use client";
 
 import type { HhdbHistoricalTaxCreditJSON } from "@catalog/models/hhdb-historical-tax-credit";
+import { formatHst } from "@catalog/utils/time";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { HhdbDataTable } from "../hhdb-data-table";
@@ -16,6 +17,15 @@ const columns: ColumnDef<HhdbHistoricalTaxCreditJSON, unknown>[] = [
     enableSorting: true,
   },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
+  {
+    accessorKey: "scrapedAt",
+    header: "Scraped At",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null;
+      return v ? formatHst(v, "yyyy-MM-dd HH:mm") : "";
+    },
+  },
   { accessorKey: "period", header: "Period", enableSorting: true },
   { accessorKey: "description", header: "Description", enableSorting: true },
   {
@@ -26,7 +36,7 @@ const columns: ColumnDef<HhdbHistoricalTaxCreditJSON, unknown>[] = [
   },
 ];
 
-const DEFAULT_HIDDEN = ["historicalTaxSummaryId"];
+const DEFAULT_HIDDEN = ["historicalTaxSummaryId", "scrapedAt"];
 
 interface HistoricalTaxCreditsTableProps {
   data: HhdbHistoricalTaxCreditJSON[];
