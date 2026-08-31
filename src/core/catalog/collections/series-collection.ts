@@ -2433,7 +2433,12 @@ class SeriesCollection {
 
       job?.log(`Depth ${depth}: ${depthIds.length} series`);
       log.info(
-        { batchId, depth, count: depthIds.length },
+        {
+          batchId,
+          depth,
+          count: depthIds.length,
+          rssMB: Math.round(process.memoryUsage.rss() / 1048576),
+        },
         "Processing depth level",
       );
 

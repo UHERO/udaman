@@ -18,6 +18,18 @@ process.env.TZ = "Pacific/Honolulu";
 
 const log = createLogger("worker", workerBindings());
 
+/**
+ * Process memory snapshot attached to job lifecycle logs. The worker has
+ * repeatedly grown to ~6 GB RSS over hours of normal work and then died in
+ * a JSC GC sweep (SIGILL, 2026-08-31); logging rss/heap per job shows
+ * whether growth tracks a specific job type or just process lifetime.
+ */
+function memStats() {
+  const m = process.memoryUsage();
+  const mb = (n: number) => Math.round(n / 1048576);
+  return { rssMB: mb(m.rss), heapMB: mb(m.heapUsed), extMB: mb(m.external) };
+}
+
 // ─── Dispatch function ───────────────────────────────────────────────
 
 const dispatch = async (job: Job): Promise<string> => {
@@ -88,14 +100,20 @@ for (const [name, worker] of [
 ] as const) {
   worker.on("completed", (job) => {
     log.info(
-      { queue: name, jobId: job.id, jobName: job.name },
+      { queue: name, jobId: job.id, jobName: job.name, ...memStats() },
       "Job completed",
     );
   });
 
   worker.on("failed", (job, err) => {
     log.error(
-      { queue: name, jobId: job?.id, jobName: job?.name, err: err.message },
+      {
+        queue: name,
+        jobId: job?.id,
+        jobName: job?.name,
+        err: err.message,
+        ...memStats(),
+      },
       "Job failed",
     );
     // Upload rows are what the UI polls; make sure the failure reaches

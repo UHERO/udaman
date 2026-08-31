@@ -146,3 +146,11 @@ Recovery for upload 185: plain re-upload. The swap never ran, so the live DVW ta
 ## Addendum 2 — 2026-08-31: light queue for interactive jobs
 
 Clipboard actions stalled in prod: a heavy job **waiting** on the DB lock still occupies a default-worker slot, so two queued heavies (e.g. the 10:00 SA + 10:20 BLS reloads) block the default queue entirely for up to the lock timeout — a starvation mode introduced by the lock change. Fix: new `udaman/light` queue with its own worker (concurrency 2); `clipboard.action`, `clipboard.loader-reload` and `series.reload` now enqueue there. These are short single-series jobs, safe to run beside a locked heavy job. Deploy: restart web + worker together (web enqueues to the new queue; only the new worker consumes it). Jobs already sitting on the default queue from before the restart will still be drained by the default worker.
+
+## Addendum 3 — 2026-08-31: worker SIGILL crashes = JS-heap OOM
+
+Worker (uhero13) crashed with SIGILL repeatedly (restart counter 12; core dumps 08:11, 11:48, 12:55), each time failing active clipboard jobs as "stalled". Decoded bun.report traces: `pas_allocation_result_zero` → `bmalloc zeroedMalloc` → JSC GC sweep — the JavaScriptCore allocator failing under memory pressure. Peak worker RSS was 6.04 / 5.72 GB on an 8.09 GB machine, reached while a clipboard-deps batch processed 3,141 series at depth 0. In short: the dependency-reload path balloons the JS heap until Bun 1.3.11 dies mid-GC.
+
+- Bun upgraded to 1.4 on the server (may fail more gracefully; does not remove the pressure).
+- The durable fix is bounding memory in the dependency processing path (`series-collection.ts` clipboard-deps / depth-level batches): process depth levels in bounded chunks and drop Series references between chunks. Not yet implemented.
+- The light queue (Addendum 2) is unrelated to this crash but still worth deploying: it isolates interactive jobs from heavy-job lock waits.
