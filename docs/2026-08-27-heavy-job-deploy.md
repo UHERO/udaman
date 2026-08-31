@@ -142,3 +142,7 @@ mysql -e "SHOW GLOBAL STATUS LIKE 'Memory_used'"
 If RSS tracks `Memory_used` and both climb during an upload, it's real usage and the buffer pool should drop to ~2 GB on a 7.6 GB box until it's understood. Either way the old universe-wide public sweeps, whose derived joins exceeded `tmp_table_size` (16 MB) and spilled to on-disk temp tables, are the likely source of the sustained 1.2 GB/s disk at 13:00 — the chunked sync removes that.
 
 Recovery for upload 185: plain re-upload. The swap never ran, so the live DVW tables are the previous dataset; the next upload's init drops the orphaned `*_new` tables.
+
+## Addendum 2 — 2026-08-31: light queue for interactive jobs
+
+Clipboard actions stalled in prod: a heavy job **waiting** on the DB lock still occupies a default-worker slot, so two queued heavies (e.g. the 10:00 SA + 10:20 BLS reloads) block the default queue entirely for up to the lock timeout — a starvation mode introduced by the lock change. Fix: new `udaman/light` queue with its own worker (concurrency 2); `clipboard.action`, `clipboard.loader-reload` and `series.reload` now enqueue there. These are short single-series jobs, safe to run beside a locked heavy job. Deploy: restart web + worker together (web enqueues to the new queue; only the new worker consumes it). Jobs already sitting on the default queue from before the restart will still be drained by the default worker.

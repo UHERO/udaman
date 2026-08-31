@@ -62,11 +62,29 @@ const criticalWorker = new Worker("critical", dispatch, {
   removeOnFail: { count: 500 },
 });
 
+// Interactive jobs (clipboard actions, single-series reloads). Separate
+// worker so a heavy job waiting on the cross-process DB lock — which
+// occupies a default-queue slot for up to the lock timeout — can never
+// starve them. These jobs are short and touch single series, so they are
+// safe to run alongside a locked heavy job.
+const lightWorker = new Worker("light", dispatch, {
+  connection: redisConnection,
+  prefix: "udaman",
+  concurrency: 2,
+  lockDuration: 600_000,
+  lockRenewTime: 60_000,
+  stalledInterval: 120_000,
+  maxStalledCount: 0,
+  removeOnComplete: { count: 100 },
+  removeOnFail: { count: 500 },
+});
+
 // ─── Lifecycle logging ───────────────────────────────────────────────
 
 for (const [name, worker] of [
   ["default", defaultWorker],
   ["critical", criticalWorker],
+  ["light", lightWorker],
 ] as const) {
   worker.on("completed", (job) => {
     log.info(
@@ -110,7 +128,11 @@ reconcileProcessingUploads().catch((err) => {
 
 async function shutdown() {
   log.info("Shutting down workers...");
-  await Promise.all([defaultWorker.close(), criticalWorker.close()]);
+  await Promise.all([
+    defaultWorker.close(),
+    criticalWorker.close(),
+    lightWorker.close(),
+  ]);
   log.info("Workers shut down");
   process.exit(0);
 }
@@ -132,5 +154,5 @@ process.on("uncaughtException", (err) => {
 });
 
 log.info(
-  "Worker process started — listening on udaman/default and udaman/critical",
+  "Worker process started — listening on udaman/default, udaman/critical and udaman/light",
 );

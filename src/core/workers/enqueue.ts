@@ -2,6 +2,7 @@ import {
   criticalQueue,
   defaultQueue,
   JobName,
+  lightQueue,
   type AdminActionJobData,
   type ApiDvwReloadJobData,
   type BatchReloadJobData,
@@ -20,7 +21,7 @@ import {
 } from "./queues";
 
 export function enqueueSeriesReload(data: SeriesReloadJobData) {
-  return defaultQueue.add(JobName.SERIES_RELOAD, data);
+  return lightQueue.add(JobName.SERIES_RELOAD, data);
 }
 
 export function enqueueReloadJob(data: ReloadJobData) {
@@ -98,13 +99,13 @@ export function enqueueKauaiExport() {
 }
 
 export function enqueueClipboardAction(data: ClipboardActionJobData) {
-  return defaultQueue.add(JobName.CLIPBOARD_ACTION, data, { priority: 1 });
+  return lightQueue.add(JobName.CLIPBOARD_ACTION, data, { priority: 1 });
 }
 
 export function enqueueClipboardLoaderReload(
   data: ClipboardLoaderReloadJobData,
 ) {
-  return defaultQueue.add(JobName.CLIPBOARD_LOADER_RELOAD, data, {
+  return lightQueue.add(JobName.CLIPBOARD_LOADER_RELOAD, data, {
     priority: 1,
   });
 }

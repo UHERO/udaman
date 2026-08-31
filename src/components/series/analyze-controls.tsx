@@ -2207,12 +2207,13 @@ export function AnalyzeControls({
       .map((r) => r.date);
   }, [chartData, brushRange, compareSeriesNames.length]);
 
-  // Effective index base date: use user selection, fall back to median
+  // Effective index base date: use user selection, fall back to the first
+  // date of the brush-selected sample (index = 100 at the sample start)
   const effectiveIndexBaseDate = useMemo(() => {
     if (indexBaseDate && availableDates.includes(indexBaseDate))
       return indexBaseDate;
     if (availableDates.length === 0) return "";
-    return availableDates[Math.floor(availableDates.length / 2)];
+    return availableDates[0];
   }, [indexBaseDate, availableDates]);
 
   // Derive year from date for the transformation functions

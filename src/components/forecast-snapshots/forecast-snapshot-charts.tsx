@@ -185,8 +185,8 @@ function computeQoq(values: (number | null | undefined)[]): (number | null)[] {
   });
 }
 
-/** Compute CAGR (annualized period-over-period): ((val/prev)^periodsPerYear - 1) * 100 */
-function computeCagr(
+/** Compute AGR (annualized period-over-period growth): ((val/prev)^periodsPerYear - 1) * 100 */
+function computeAgr(
   values: (number | null | undefined)[],
   periodsPerYear: number,
 ): (number | null)[] {
@@ -228,7 +228,7 @@ export function ForecastSnapshotCharts({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [allExpanded, setAllExpanded] = useState(false);
-  const [calcMode, setCalcMode] = useState<"yoy" | "qoq" | "cagr">("yoy");
+  const [calcMode, setCalcMode] = useState<"yoy" | "qoq" | "agr">("yoy");
 
   // Silently update URL search params when date range changes (for permalink)
   useEffect(() => {
@@ -273,17 +273,17 @@ export function ForecastSnapshotCharts({
   const periodsPerYear = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
 
   const newPctKey =
-    calcMode === "yoy" ? "newYoy" : calcMode === "qoq" ? "newQoq" : "newCagr";
+    calcMode === "yoy" ? "newYoy" : calcMode === "qoq" ? "newQoq" : "newAgr";
   const oldPctKey =
-    calcMode === "yoy" ? "oldYoy" : calcMode === "qoq" ? "oldQoq" : "oldCagr";
+    calcMode === "yoy" ? "oldYoy" : calcMode === "qoq" ? "oldQoq" : "oldAgr";
   const histPctKey =
     calcMode === "yoy"
       ? "histYoy"
       : calcMode === "qoq"
         ? "histQoq"
-        : "histCagr";
+        : "histAgr";
   const calcLabel =
-    calcMode === "yoy" ? "YoY %" : calcMode === "qoq" ? "QoQ %" : "CAGR %";
+    calcMode === "yoy" ? "YoY %" : calcMode === "qoq" ? "QoQ %" : "AGR %";
 
   const chartConfig = useMemo(
     () =>
@@ -343,7 +343,7 @@ export function ForecastSnapshotCharts({
               size="sm"
               value={calcMode}
               onValueChange={(v) => {
-                if (v) setCalcMode(v as "yoy" | "qoq" | "cagr");
+                if (v) setCalcMode(v as "yoy" | "qoq" | "agr");
               }}
             >
               <ToggleGroupItem value="yoy" className="h-7 px-2.5 text-xs">
@@ -390,10 +390,10 @@ export function ForecastSnapshotCharts({
                   </TooltipContent>
                 </TooltipRoot>
               </ToggleGroupItem>
-              <ToggleGroupItem value="cagr" className="h-7 px-2.5 text-xs">
+              <ToggleGroupItem value="agr" className="h-7 px-2.5 text-xs">
                 <TooltipRoot>
                   <TooltipTrigger asChild>
-                    <span className="inline-flex items-center">CAGR</span>
+                    <span className="inline-flex items-center">AGR</span>
                   </TooltipTrigger>
                   <TooltipContent
                     side="bottom"
@@ -407,7 +407,8 @@ export function ForecastSnapshotCharts({
                       </span>
                     </div>
                     <div className="text-[10px] opacity-70">
-                      Compound annual growth rate (annualized QoQ)
+                      Annualized growth rate: period-over-period change
+                      compounded to an annual rate
                     </div>
                   </TooltipContent>
                 </TooltipRoot>
@@ -449,9 +450,9 @@ export function ForecastSnapshotCharts({
         const newQoq = computeQoq(newVals);
         const oldQoq = computeQoq(oldVals);
         const histQoq = computeQoq(histVals);
-        const newCagr = computeCagr(newVals, periodsPerYear);
-        const oldCagr = computeCagr(oldVals, periodsPerYear);
-        const histCagr = computeCagr(histVals, periodsPerYear);
+        const newAgr = computeAgr(newVals, periodsPerYear);
+        const oldAgr = computeAgr(oldVals, periodsPerYear);
+        const histAgr = computeAgr(histVals, periodsPerYear);
 
         // Build chart data rows
         const chartData = filteredDates.map((date, idx) => ({
@@ -464,11 +465,11 @@ export function ForecastSnapshotCharts({
           oldYoy: oldYoy[idx] ?? undefined,
           newQoq: newQoq[idx] ?? undefined,
           oldQoq: oldQoq[idx] ?? undefined,
-          newCagr: newCagr[idx] ?? undefined,
-          oldCagr: oldCagr[idx] ?? undefined,
+          newAgr: newAgr[idx] ?? undefined,
+          oldAgr: oldAgr[idx] ?? undefined,
           histYoy: histYoy[idx] ?? undefined,
           histQoq: histQoq[idx] ?? undefined,
-          histCagr: histCagr[idx] ?? undefined,
+          histAgr: histAgr[idx] ?? undefined,
         }));
 
         const hasData = chartData.some(

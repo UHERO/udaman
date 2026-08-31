@@ -155,3 +155,12 @@ const defaultOpts = {
 
 export const defaultQueue = new Queue("default", defaultOpts);
 export const criticalQueue = new Queue("critical", defaultOpts);
+/**
+ * Interactive jobs (clipboard actions, single-series reloads from the UI).
+ * Separate queue + worker so they can never starve behind heavy jobs: a
+ * heavy job *waiting* on the cross-process DB lock still occupies one of
+ * the default worker's slots, and with two heavies lined up (e.g. the
+ * 10:00 SA and 10:20 BLS reloads) the default queue is fully blocked for
+ * up to the lock timeout.
+ */
+export const lightQueue = new Queue("light", defaultOpts);

@@ -243,8 +243,8 @@ export function ForecastSnapshotDataTable({
                 if (val == null || prev == null || prev === 0) return null;
                 return ((val - prev) / prev) * 100;
               });
-              // CAGR: annualized period-over-period
-              const cagrChange = vals.map((val, idx) => {
+              // AGR: annualized period-over-period growth
+              const agrChange = vals.map((val, idx) => {
                 if (idx < 1) return null;
                 const prev = vals[idx - 1];
                 if (val == null || prev == null || prev <= 0) return null;
@@ -308,12 +308,12 @@ export function ForecastSnapshotDataTable({
                       </td>
                     ))}
                   </tr>
-                  {/* CAGR % row */}
+                  {/* AGR % row */}
                   <tr>
                     <td className="text-muted-foreground bg-background sticky left-0 z-10 pr-4 pb-1 pl-4 align-baseline text-xs whitespace-nowrap">
-                      CAGR %
+                      AGR %
                     </td>
-                    {cagrChange.map((pct, idx) => (
+                    {agrChange.map((pct, idx) => (
                       <td
                         key={filteredDates[idx]}
                         className="text-muted-foreground px-3 pb-1 text-right font-mono text-xs whitespace-nowrap"
