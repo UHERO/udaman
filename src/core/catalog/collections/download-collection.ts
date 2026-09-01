@@ -263,7 +263,7 @@ class DownloadCollection {
       if (dl.lastDownloadAt && hstToInstant(dl.lastDownloadAt) > oneHourAgo)
         return;
 
-      let result: { status: number; changed: boolean };
+      let result: { status: number; changed: boolean; htmlPage?: boolean };
       try {
         result = await this.downloadToServer(dl.id);
       } catch (e) {
