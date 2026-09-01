@@ -154,3 +154,21 @@ Worker (uhero13) crashed with SIGILL repeatedly (restart counter 12; core dumps 
 - Bun upgraded to 1.4 on the server (may fail more gracefully; does not remove the pressure).
 - The durable fix is bounding memory in the dependency processing path (`series-collection.ts` clipboard-deps / depth-level batches): process depth levels in bounded chunks and drop Series references between chunks. Not yet implemented.
 - The light queue (Addendum 2) is unrelated to this crash but still worth deploying: it isolates interactive jobs from heavy-job lock waits.
+
+## Addendum 4 — 2026-08-31: soft-404 guard for downloads (HTA domain move)
+
+hawaiitourismauthority.org moved to hta.hawaii.gov; the old URLs now serve a not-found page. Where that page comes back as **HTTP 200 + HTML**, the old code saved it over the cached spreadsheet, and SheetJS then parsed the HTML into a "workbook", surfacing as `Cannot find header "Island of Hawai'i"` instead of the real error. (On a clean non-200, `ensureFresh` already kept and used the cached file — that path was fine.)
+
+Changes:
+- `downloadToServer` sniffs a 200 body: HTML where a data file is expected (any `filename_ext` except html/htm) → `htmlPage: true`, cached file kept, timestamps not bumped, `dsd_log_entries` still records status + content-type as evidence.
+- `ensureFresh` treats `htmlPage` like a failed fetch: warns `an HTML page instead of a data file (soft 404 — has the site moved?)`, keeps using the cached file; throws only if no cached file exists.
+- `readXlsFile` / `readCsvFile` refuse to parse a file whose content is HTML, with an error naming the real problem — this covers files already overwritten before the guard existed.
+
+Manual follow-ups:
+1. Update the `downloads.url` values for HTA handles to the hta.hawaii.gov equivalents.
+2. Audit for already-overwritten files: any cached download that is secretly HTML now fails loudly at parse time; `file $DATA_DIR/<...>/*.xls*` (look for "HTML document") finds them wholesale. Those months need re-fetching from the new site.
+3. tour_ocup reload slowness is separate: date-sensitive evals re-parse each monthly workbook per series (~2.5 s × files × series) because the parse cache is per-loader. A bounded cross-loader LRU is the fix — proposed, not yet implemented.
+
+### Addendum 4a — root cause of the header misses
+
+The `Cannot find header "Island of Hawai'i"` failures were not 404-related at all: the cached workbooks are fine. The file headers use U+2018 (‘) while the evals use ASCII apostrophes, and the ported `toAscii` only stripped combining accents — Rails' stringex `to_ascii` also transliterates typographic quotes to ASCII, so this matched in Rails and silently failed **every month** in the port (date-sensitive skips are non-fatal). Fixed by extending `toAscii` in `download-processor.ts` to map ‘ ’ ʻ ′ → ', “ ” ″ → ", – — → -. Replayed against all 98 local TOUR_OCUP monthly workbooks: 98/98 headers now match. Affected series (OCUP%NS@HAW.M, PRMNS@HAW.M, RMRVNS@HI.M, …) will backfill their missing months on the next reload.

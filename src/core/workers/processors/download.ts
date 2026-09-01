@@ -19,5 +19,8 @@ export async function processDownload(
 
   job.log(`Done — status=${result.status}, changed=${result.changed}`);
   log.info({ handle, ...result }, "Download complete");
+  if (result.htmlPage) {
+    return `${handle}: got an HTML page instead of a data file (soft 404 — site moved?); kept cached file (${result.status})`;
+  }
   return `${handle}: ${result.changed ? "data changed" : "no changes"} (${result.status})`;
 }

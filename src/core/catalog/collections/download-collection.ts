@@ -102,13 +102,28 @@ class DownloadCollection {
   }
 
   /**
+   * Does this response body look like an HTML page rather than a data file?
+   * Used to catch "soft 404s": HTTP 200 whose body is a not-found page.
+   */
+  static isHtmlPage(body: Buffer): boolean {
+    return looksLikeHtmlPage(body);
+  }
+
+  /**
    * Fetch a file from the external URL and save it to the server filesystem.
    * Mirrors the Rails `Download#download` method.
    * Returns a summary of the result.
+   *
+   * `htmlPage: true` means the server answered 200 but the body is an HTML
+   * page while we expected a data file — a "soft 404" (typical after a site
+   * moves domains and old URLs redirect to a not-found page). The cached
+   * file is NOT overwritten in that case; without this guard the HTML page
+   * replaces the last good spreadsheet and later surfaces as a baffling
+   * "Cannot find header" during parsing (hta.hawaii.gov move, 2026-08).
    */
   static async downloadToServer(
     id: number,
-  ): Promise<{ status: number; changed: boolean }> {
+  ): Promise<{ status: number; changed: boolean; htmlPage?: boolean }> {
     const dl = await this.getById(id);
     if (dl.freezeFile) {
       throw new Error(`Download "${dl.handle}" is temporarily frozen`);
@@ -127,35 +142,48 @@ class DownloadCollection {
 
     const status = resp.status;
     let dataChanged = false;
+    let htmlPage = false;
     const now = new Date();
 
     if (status === 200) {
       const body = Buffer.from(await resp.arrayBuffer());
       const savePath = dl.savePath();
 
-      // Check if content changed
-      if (existsSync(savePath)) {
-        const existing = readFileSync(savePath);
-        dataChanged = !body.equals(existing);
+      const ext = (dl.filenameExt ?? "").toLowerCase();
+      if (ext !== "html" && ext !== "htm" && looksLikeHtmlPage(body)) {
+        htmlPage = true;
+        console.warn(
+          `[download] ${dl.handle}: got an HTML page instead of a .${ext || "?"} file (soft 404 — site moved?) — keeping cached file`,
+        );
+        // Fall through to the log entry below (content-type header records
+        // the evidence) without writing the file or bumping timestamps.
       } else {
-        dataChanged = true;
-      }
+        // Check if content changed
+        if (existsSync(savePath)) {
+          const existing = readFileSync(savePath);
+          dataChanged = !body.equals(existing);
+        } else {
+          dataChanged = true;
+        }
 
-      // Ensure directory exists and write file
-      mkdirSync(dirname(savePath), { recursive: true });
-      await Bun.write(savePath, body);
+        // Ensure directory exists and write file
+        mkdirSync(dirname(savePath), { recursive: true });
+        await Bun.write(savePath, body);
 
-      // Update timestamps (HST wall-clock, consistent with NOW())
-      const updates: Record<string, string> = { last_download_at: toHstSql(now) };
-      if (dataChanged || !dl.lastChangeAt) {
-        updates.last_change_at = toHstSql(now);
-      }
-      await mysql`
+        // Update timestamps (HST wall-clock, consistent with NOW())
+        const updates: Record<string, string> = {
+          last_download_at: toHstSql(now),
+        };
+        if (dataChanged || !dl.lastChangeAt) {
+          updates.last_change_at = toHstSql(now);
+        }
+        await mysql`
         UPDATE downloads
         SET last_download_at = ${updates.last_download_at},
             last_change_at = ${updates.last_change_at ?? dl.lastChangeAt}
         WHERE id = ${id}
       `;
+      }
     }
 
     // Create log entry (deduplicate: skip if same url+date+status already logged)
@@ -177,7 +205,7 @@ class DownloadCollection {
       `;
     }
 
-    return { status, changed: dataChanged };
+    return { status, changed: dataChanged, htmlPage };
   }
 
   /**
@@ -217,9 +245,12 @@ class DownloadCollection {
           continue;
         try {
           const result = await this.downloadToServer(dl.id);
-          if (result.status !== 200 && !existsSync(dl.effectivePath())) {
+          if (
+            (result.status !== 200 || result.htmlPage) &&
+            !existsSync(dl.effectivePath())
+          ) {
             console.warn(
-              `[ensureFresh] ${dl.handle}: HTTP ${result.status}, no cached file`,
+              `[ensureFresh] ${dl.handle}: ${result.htmlPage ? "HTML page (soft 404)" : `HTTP ${result.status}`}, no cached file`,
             );
           }
         } catch {
@@ -249,15 +280,16 @@ class DownloadCollection {
         return;
       }
 
-      if (result.status !== 200) {
+      if (result.status !== 200 || result.htmlPage) {
+        const what = result.htmlPage
+          ? "an HTML page instead of a data file (soft 404 — has the site moved?)"
+          : `HTTP ${result.status}`;
         if (!existsSync(dl.effectivePath())) {
           throw new Error(
-            `Download "${handle}" returned HTTP ${result.status} and no cached file exists at ${dl.effectivePath()}`,
+            `Download "${handle}" returned ${what} and no cached file exists at ${dl.effectivePath()}`,
           );
         }
-        console.warn(
-          `[ensureFresh] ${handle}: HTTP ${result.status}, using cached file`,
-        );
+        console.warn(`[ensureFresh] ${handle}: ${what}, using cached file`);
       }
     }
   }
@@ -369,3 +401,32 @@ export type RelatedSeries = {
 };
 
 export default DownloadCollection;
+
+/**
+ * Sniff a response body / file head for HTML. Data files we ingest (xls,
+ * xlsx, csv, txt, zip) never open with an HTML tag; a body that does is a
+ * web page — almost always an error/not-found page served with HTTP 200.
+ */
+export function looksLikeHtmlPage(body: Buffer): boolean {
+  // Skip a UTF-8 BOM if present, then inspect the first bytes as text.
+  let start = 0;
+  if (
+    body.length >= 3 &&
+    body[0] === 0xef &&
+    body[1] === 0xbb &&
+    body[2] === 0xbf
+  ) {
+    start = 3;
+  }
+  const head = body
+    .subarray(start, start + 512)
+    .toString("latin1")
+    .trimStart()
+    .toLowerCase();
+  return (
+    head.startsWith("<!doctype html") ||
+    head.startsWith("<html") ||
+    head.startsWith("<head") ||
+    (head.startsWith("<") && head.includes("<html"))
+  );
+}

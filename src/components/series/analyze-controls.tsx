@@ -70,6 +70,7 @@ import {
   computeOverlaysMulti,
   LevelChart,
   SERIES_COLORS,
+  TRANSFORMATION_LABELS,
   type BarMode,
   type ChartRow,
   type Overlay,
@@ -77,6 +78,28 @@ import {
   type Transformation,
   type VintageChartPoint,
 } from "./analyze-chart";
+
+/** When a transform changes what the values mean, the axis "unit" is the
+ *  transform itself (%, index, z-score) rather than the source unit.
+ *  Unit-preserving transforms (level change, rolling mean, trend fits,
+ *  deviation from trend) return null so the source unit labels stand. */
+function transformUnitLabel(t: Transformation | null): string | null {
+  switch (t) {
+    case "cagr":
+      return "CAGR %";
+    case "agr":
+      return "AGR %";
+    case "yoy":
+    case "ytd":
+    case "pop":
+    case "zScore":
+    case "logLevel":
+    case "indexToYear":
+      return TRANSFORMATION_LABELS[t];
+    default:
+      return null;
+  }
+}
 import { AnalyzeDataTable } from "./analyze-data-table";
 import { AnalyzerSeriesRow } from "./analyzer/analyzer-series-row";
 import type { AnalyzerEntry } from "./analyzer/types";
@@ -1919,6 +1942,8 @@ export function AnalyzeControls({
   /** Collect distinct unit labels for each axis side */
   const leftAxisLabel = useMemo(() => {
     if (!hasRightAxis) return undefined;
+    const override = transformUnitLabel(transformation);
+    if (override) return override;
     const labels = new Set<string>();
     for (let i = 0; i < compareSeriesData.length; i++) {
       if (seriesVisibility.get(i) === "hidden") continue;
@@ -1926,10 +1951,18 @@ export function AnalyzeControls({
         labels.add(compareSeriesData[i].unitShortLabel ?? "—");
     }
     return [...labels].join(", ") || undefined;
-  }, [hasRightAxis, compareSeriesData, seriesAxisMap, seriesVisibility]);
+  }, [
+    hasRightAxis,
+    transformation,
+    compareSeriesData,
+    seriesAxisMap,
+    seriesVisibility,
+  ]);
 
   const rightAxisLabel = useMemo(() => {
     if (!hasRightAxis) return undefined;
+    const override = transformUnitLabel(rightTransformation);
+    if (override) return override;
     const labels = new Set<string>();
     for (let i = 0; i < compareSeriesData.length; i++) {
       if (seriesVisibility.get(i) === "hidden") continue;
@@ -1937,9 +1970,16 @@ export function AnalyzeControls({
         labels.add(compareSeriesData[i].unitShortLabel ?? "—");
     }
     return [...labels].join(", ") || undefined;
-  }, [hasRightAxis, compareSeriesData, seriesAxisMap, seriesVisibility]);
+  }, [
+    hasRightAxis,
+    rightTransformation,
+    compareSeriesData,
+    seriesAxisMap,
+    seriesVisibility,
+  ]);
 
-  /** Distinct unit labels of visible series, grouped by axis side */
+  /** Distinct unit labels of visible series, grouped by axis side. A
+   *  unit-changing transform replaces the axis's source units entirely. */
   const unitsByAxis = useMemo(() => {
     const left = new Set<string>();
     const right = new Set<string>();
@@ -1949,17 +1989,34 @@ export function AnalyzeControls({
       if ((seriesAxisMap.get(i) ?? "left") === "right") right.add(label);
       else left.add(label);
     }
-    return { left: [...left], right: [...right] };
-  }, [compareSeriesData, seriesAxisMap, seriesVisibility]);
+    const leftOverride = transformUnitLabel(transformation);
+    const rightOverride = transformUnitLabel(rightTransformation);
+    return {
+      left: leftOverride && left.size > 0 ? [leftOverride] : [...left],
+      right: rightOverride && right.size > 0 ? [rightOverride] : [...right],
+    };
+  }, [
+    compareSeriesData,
+    seriesAxisMap,
+    seriesVisibility,
+    transformation,
+    rightTransformation,
+  ]);
 
-  /** Map series index → unit short label for tooltip display */
+  /** Map series index → unit short label for tooltip display. Series on an
+   *  axis with a unit-changing transform show the transform's unit. */
   const seriesUnitLabels = useMemo(() => {
     const map = new Map<number, string>();
     for (let i = 0; i < compareSeriesData.length; i++) {
-      map.set(i, compareSeriesData[i].unitShortLabel ?? "");
+      const tx =
+        seriesAxisMap.get(i) === "right" ? rightTransformation : transformation;
+      map.set(
+        i,
+        transformUnitLabel(tx) ?? compareSeriesData[i].unitShortLabel ?? "",
+      );
     }
     return map;
-  }, [compareSeriesData]);
+  }, [compareSeriesData, seriesAxisMap, transformation, rightTransformation]);
 
   // ── Vintages: only plain-series entries have vintages (calculated
   // expressions don't map to stored data points) ─────────────────────

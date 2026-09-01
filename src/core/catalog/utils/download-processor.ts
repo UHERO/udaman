@@ -15,7 +15,9 @@ import XLSX from "xlsx";
 
 import { getDataDir } from "@/lib/data-dir";
 
-import DownloadCollection from "../collections/download-collection";
+import DownloadCollection, {
+  looksLikeHtmlPage,
+} from "../collections/download-collection";
 import { splitCSVRow } from "./data-file-reader";
 
 // ─── Options type ────────────────────────────────────────────────────
@@ -343,6 +345,22 @@ const SUPPRESSED_VALUES = new Set([
  * would otherwise display-format). We short-circuit on number/boolean
  * inputs and only fall back to string parsing for text cells.
  */
+/**
+ * Refuse to parse a file that is actually an HTML page. XLSX.read happily
+ * parses HTML into a "workbook", so a saved error page (a soft-404 fetched
+ * before the download guard existed) otherwise surfaces as a misleading
+ * "Cannot find header" instead of naming the real problem.
+ */
+function assertNotHtmlFile(filePath: string, buf: Buffer): void {
+  if (looksLikeHtmlPage(buf)) {
+    throw new Error(
+      `File is an HTML page, not a data file: ${filePath}. ` +
+        `The source URL likely returned a "not found" page when this was downloaded — ` +
+        `check the download's URL (the site may have moved) and re-fetch the file.`,
+    );
+  }
+}
+
 function parseCell(value: unknown): number | null | "BREAK" {
   if (value == null) return "BREAK";
 
@@ -380,6 +398,7 @@ function parseCell(value: unknown): number | null | "BREAK" {
 
 /** Read a CSV file and return a 2D array of cells (always strings for CSV). */
 function readCsvFile(filePath: string): CellValue[][] {
+  assertNotHtmlFile(filePath, readFileSync(filePath));
   const content = readFileSync(filePath, "utf-8");
   const lines = content.split(/\r?\n/);
   const data: CellValue[][] = [];
@@ -423,6 +442,7 @@ function readXlsFile(
   // Use XLSX.read(buffer) instead of XLSX.readFile() — the latter's
   // built-in fs detection doesn't work in Bun's runtime.
   const buf = readFileSync(filePath);
+  assertNotHtmlFile(filePath, buf);
   const workbook = XLSX.read(buf, { cellDates: true });
   const sheetNames = workbook.SheetNames;
 
@@ -986,7 +1006,12 @@ function normalizeMatchType(raw?: string): MatchType {
  * a combining mark, so it survives this step — okina stripping handles it).
  */
 function toAscii(s: string): string {
-  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u2018\u2019\u02bb\u2032]/g, "'")
+    .replace(/[\u201c\u201d\u2033]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-");
 }
 
 /**
