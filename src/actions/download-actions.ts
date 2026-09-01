@@ -44,7 +44,7 @@ export async function fetchDownloadForEdit(
 
 export async function downloadToServer(
   id: number,
-): Promise<{ status: number; changed: boolean }> {
+): Promise<{ status: number; changed: boolean; htmlPage?: boolean }> {
   const { userId } = await requirePermission("download", "execute");
   log.info({ id }, "downloadToServer action called");
   try {

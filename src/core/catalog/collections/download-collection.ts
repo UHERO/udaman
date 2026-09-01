@@ -214,7 +214,7 @@ class DownloadCollection {
    */
   static async downloadByHandle(
     handle: string,
-  ): Promise<{ status: number; changed: boolean }> {
+  ): Promise<{ status: number; changed: boolean; htmlPage?: boolean }> {
     const dl = await this.getByHandle(handle);
     return this.downloadToServer(dl.id);
   }
