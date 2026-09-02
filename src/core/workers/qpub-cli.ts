@@ -3,6 +3,7 @@ import { createLogger } from "@/core/observability/logger";
 import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
 import { backfillCondoUnits } from "./processors/qpub-enqueue";
+import { runDumpCsv } from "./processors/qpub-dump-csv";
 import { runParcelList } from "./processors/qpub-parcel-list";
 import { runParseAudit } from "./processors/qpub-parse-audit";
 import { runRepair } from "./processors/qpub-repair";
@@ -51,6 +52,10 @@ Commands:
   sync                          Sync: Dump local DB to remote + update scrape_status
   sync-table <table>            Sync: Dump specific table to remote
 
+  dump-csv [table]              Export remote DB tables to CSV files on the NAS
+                                datashare. All pipeline tables by default, or a
+                                single named table (e.g. tg_transactions).
+
 Options:
   --island <code>               Filter by island (1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai)
   --period <period>             Filter by NAS period dir (e.g., 2026-1)
@@ -64,6 +69,10 @@ Repair options:
 Parse-audit options:
   --staging <dir>               Staging dir (default: the extract's own)
   --sample <n>                  Pages to sample for section coverage (0 skips)
+
+Dump-csv options:
+  --out <dir>                   Output directory (default:
+                                /Volumes/UHEROroot/datashare/qpub/<YYYY-MM-DD>)
 
 Parcel-list options:
   --execute                     Apply changes (dry run without it)
@@ -95,8 +104,9 @@ function parseArgs() {
   let addNew = false;
   let staging: string | undefined;
   let sample: number | undefined;
+  let out: string | undefined;
 
-  const tableCommands = ["rebuild-table", "load-table", "sync-table"];
+  const tableCommands = ["rebuild-table", "load-table", "sync-table", "dump-csv"];
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "--island" && args[i + 1]) {
@@ -121,6 +131,8 @@ function parseArgs() {
       staging = args[++i];
     } else if (args[i] === "--sample" && args[i + 1]) {
       sample = Number(args[++i]);
+    } else if (args[i] === "--out" && args[i + 1]) {
+      out = args[++i];
     } else if (!table && tableCommands.includes(command)) {
       table = args[i];
     }
@@ -140,6 +152,7 @@ function parseArgs() {
     addNew,
     staging,
     sample,
+    out,
   };
 }
 
@@ -158,6 +171,7 @@ async function run() {
     addNew,
     staging,
     sample,
+    out,
   } = parseArgs();
 
   switch (command) {
@@ -248,6 +262,19 @@ async function run() {
     case "sync": {
       const result = await runSync({ island, period });
       log.info(result);
+      break;
+    }
+
+    case "dump-csv": {
+      const result = await runDumpCsv({ table, out });
+      log.info(
+        {
+          outDir: result.outDir,
+          tables: result.tables.length,
+          totalRows: result.totalRows,
+        },
+        "dump-csv complete",
+      );
       break;
     }
 

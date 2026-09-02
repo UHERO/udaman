@@ -21,17 +21,22 @@ export async function processUpdatePublic(
   return withHeavyDbLock(
     `${job.name}#${job.id ?? "?"}`,
     async ({ yieldPoint }) => {
+      const logLine = (msg: string) => void job.log(msg);
       if (universe) {
         job.log(`Starting public data points update for ${universe}`);
         await DataPointCollection.updatePublicDataPoints(universe, {
           yieldPoint,
+          logLine,
         });
         const msg = `Completed public data points update for ${universe}`;
         job.log(msg);
         return msg;
       } else {
         job.log("Starting public data points update for all universes");
-        await DataPointCollection.updatePublicAllUniverses({ yieldPoint });
+        await DataPointCollection.updatePublicAllUniverses({
+          yieldPoint,
+          logLine,
+        });
         const msg = "Completed public data points update for all universes";
         job.log(msg);
         return msg;

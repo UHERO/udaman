@@ -39,6 +39,14 @@ export type PublicSyncOptions = {
    * is safe.
    */
   yieldPoint?: () => Promise<void>;
+  /**
+   * Progress hook for user-facing logs (the BullMQ job log). The pino
+   * logs keep the full detail; this gets the per-universe milestones —
+   * mode decision and totals — so the job UI explains itself (an
+   * incremental sweep that skips every quiet chunk can finish in
+   * seconds, which looks broken without the mode/skip counts).
+   */
+  logLine?: (msg: string) => void;
 };
 
 /** Series per chunk for the public sync statements. */
@@ -450,6 +458,9 @@ class DataPointCollection {
       { universe, mode: full ? "full" : "incremental", reason, since },
       `Public update: ${universe} running ${full ? "full" : "incremental"} sync (${reason})`,
     );
+    opts.logLine?.(
+      `${universe}: ${full ? "full" : "incremental"} sync (${reason})`,
+    );
 
     // All series in the universe, with their quarantine flag. Steps 1+2
     // apply only to non-quarantined series; step 3 applies to all (the
@@ -602,6 +613,9 @@ class DataPointCollection {
       { universe, mode: full ? "full" : "incremental", elapsedSec, ...totals },
       `Public update: completed ${universe} in ${elapsedSec}s (${totals.updated} updated, ${totals.inserted} inserted, ${totals.deleted} deleted)`,
     );
+    opts.logLine?.(
+      `${universe}: done in ${elapsedSec}s — ${totals.updated} updated, ${totals.inserted} inserted, ${totals.deleted} deleted, ${totals.skipped} quiet chunks skipped`,
+    );
   }
 
   /** Update public data points for a single series. */
@@ -692,6 +706,9 @@ class DataPointCollection {
         { universe: universes[i], progress: `${i + 1}/${universes.length}` },
         `Public update: universe ${i + 1}/${universes.length} — ${universes[i]}`,
       );
+      opts.logLine?.(
+        `Universe ${i + 1}/${universes.length}: ${universes[i]}`,
+      );
       await this.updatePublicDataPoints(universes[i], opts);
     }
     const elapsedSec = Math.round((Date.now() - t0) / 1000);
@@ -699,6 +716,7 @@ class DataPointCollection {
       { universes, elapsedSec },
       `Public update: completed all universes in ${elapsedSec}s`,
     );
+    opts.logLine?.(`All ${universes.length} universes completed in ${elapsedSec}s`);
   }
 }
 
