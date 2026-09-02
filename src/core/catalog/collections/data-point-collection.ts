@@ -31,6 +31,14 @@ const VINTAGE_CHART_LIMIT_PER_DATE = 100;
 export type PublicSyncOptions = {
   /** Force a full (non-watermarked) pass over every series. */
   full?: boolean;
+  /**
+   * Cooperative yield hook, called between chunks. The UPDATE_PUBLIC
+   * worker passes the heavy-DB-lock yieldPoint here so a waiting
+   * priority job (upload) can take the lock mid-sweep instead of timing
+   * out behind it. Each chunk is self-contained, so a gap between chunks
+   * is safe.
+   */
+  yieldPoint?: () => Promise<void>;
 };
 
 /** Series per chunk for the public sync statements. */
@@ -487,6 +495,8 @@ class DataPointCollection {
         continue;
       }
 
+      if (opts.yieldPoint) await opts.yieldPoint();
+
       const updated = await rawQueryAffected(
         `UPDATE public_data_points p
          JOIN series s ON s.id = p.series_id
@@ -557,6 +567,8 @@ class DataPointCollection {
       ) {
         continue;
       }
+
+      if (opts.yieldPoint) await opts.yieldPoint();
 
       const quarantineClause = removeQuarantine ? "OR xs.quarantined = 1" : "";
       const deleted = await rawQueryAffected(

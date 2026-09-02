@@ -1,11 +1,11 @@
 import { AppLogCollection } from "@catalog/collections/app-log-collection";
-import DataPointCollection from "@catalog/collections/data-point-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { Job } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/db";
 
+import { enqueueUpdatePublic } from "../enqueue";
 import type { BatchReloadJobData } from "../queues";
 
 const log = createLogger("worker.batch-reload");
@@ -17,7 +17,8 @@ const log = createLogger("worker.batch-reload");
  * 1. Gets all UHERO series IDs
  * 2. Subtracts series matching the exclude searches (BLS, BEA, tour_ocup, SA)
  * 3. Calls SeriesCollection.batchReload() with the remaining IDs
- * 4. Calls DataPointCollection.updatePublicAllUniverses()
+ * 4. Enqueues the deduplicated UPDATE_PUBLIC sweep job (never inline —
+ *    see the same note in targeted-reload.ts)
  */
 export async function processBatchReload(
   job: Job<BatchReloadJobData>,
@@ -72,10 +73,9 @@ export async function processBatchReload(
 
   let publicMsg = "";
   if (updatePublic) {
-    job.log("Updating public data points...");
-    await DataPointCollection.updatePublicAllUniverses();
-    job.log("Public data points updated");
-    publicMsg = "; updated public data points";
+    await enqueueUpdatePublic();
+    job.log("Queued public data points update");
+    publicMsg = "; queued public data points update";
   }
 
   log.info("Nightly batch reload complete");

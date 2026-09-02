@@ -44,6 +44,20 @@ const heavy =
     withHeavyDbLock(`${job.name}#${job.id ?? "?"}`, () => fn(job));
 
 /**
+ * Like `heavy`, but raises the lock's yield flag while waiting: the
+ * public sweep releases the lock at its next chunk boundary so these
+ * short, user-watched jobs run within a couple of minutes instead of
+ * timing out behind a long sweep. Only for jobs that are themselves
+ * quick (the tour/econ uploads).
+ */
+const heavyPriority =
+  (fn: Processor): Processor =>
+  (job) =>
+    withHeavyDbLock(`${job.name}#${job.id ?? "?"}`, () => fn(job), {
+      priority: true,
+    });
+
+/**
  * Upload jobs have a DB row the UI polls. `executeUpload` marks it failed
  * for errors inside the load, but anything that throws *before* that —
  * a heavy-lock timeout, a staging directory the worker can't see, an
@@ -82,15 +96,17 @@ export const processors: Record<string, Processor> = {
   [JobName.SERIES_RELOAD]: processSeriesReload,
   [JobName.RELOAD_JOB]: heavy(processReloadJob),
   [JobName.TSD_EXPORT]: processTsdExport,
-  [JobName.UPDATE_PUBLIC]: heavy(processUpdatePublic),
+  // Not wrapped in heavy(): it takes the lock itself so it can yield it
+  // to priority jobs between sweep chunks (see processors/update-public.ts).
+  [JobName.UPDATE_PUBLIC]: processUpdatePublic,
   [JobName.ADMIN_ACTION]: processAdminAction,
   [JobName.DBEDT_UPLOAD]: uploadGuard(
     DbedtUploadCollection,
-    heavy(processDbedtUpload),
+    heavyPriority(processDbedtUpload),
   ),
   [JobName.DVW_UPLOAD]: uploadGuard(
     DvwUploadCollection,
-    heavy(processDvwUpload),
+    heavyPriority(processDvwUpload),
   ),
   [JobName.API_DVW_RELOAD]: heavy(processApiDvwReload),
   [JobName.DEPENDENCY_RESET]: heavy(processDependencyReset),
