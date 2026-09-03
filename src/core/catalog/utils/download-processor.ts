@@ -664,6 +664,9 @@ class DownloadProcessor {
 
     // Download resolution cache: resolved handle → file path
     const downloadPathCache = new Map<string, string>();
+    // Sheets already validated against disk during this call (see
+    // getCachedSheet) — one stat per file per loader, not per date.
+    const localSheets = new Map<string, CellValue[][]>();
 
     const data = new Map<string, number>();
     let index = 0;
@@ -705,7 +708,13 @@ class DownloadProcessor {
       // the Rails behavior where date-sensitive misses are non-fatal.
       let sheet2d: CellValue[][];
       try {
-        sheet2d = getCachedSheet(currentPath, fileType, currentSheet, date);
+        sheet2d = getCachedSheet(
+          currentPath,
+          fileType,
+          currentSheet,
+          date,
+          localSheets,
+        );
       } catch (e) {
         if (handleProcessor.isDateSensitive) {
           console.warn(
@@ -962,6 +971,7 @@ function getCachedSheet(
   fileType: string,
   sheetSpec: string | null,
   date: string | null,
+  local?: Map<string, CellValue[][]>,
 ): CellValue[][] {
   // `sheet_name:M3` resolves to a different sheet per month (see
   // resolveSheetName), so the month has to be part of the key — otherwise
@@ -971,6 +981,24 @@ function getCachedSheet(
     date && /^sheet_name:m3$/i.test(sheetSpec ?? "") ? `|${date.slice(0, 7)}` : "";
   const cacheKey = `${filePath}|${sheetSpec ?? ""}${monthKey}`;
 
+  // Per-call memo: getData asks for the same sheet once per date, and
+  // the mtime check below is a statSync on DATA_DIR, which in production
+  // is a network mount shared by the web and worker hosts. Validate
+  // against the file once per loader, not once per date.
+  const held = local?.get(cacheKey);
+  if (held) return held;
+  const sheet = getCachedSheetGlobal(cacheKey, filePath, fileType, sheetSpec, date);
+  local?.set(cacheKey, sheet);
+  return sheet;
+}
+
+function getCachedSheetGlobal(
+  cacheKey: string,
+  filePath: string,
+  fileType: string,
+  sheetSpec: string | null,
+  date: string | null,
+): CellValue[][] {
   // Missing file: skip the cache and let the reader throw its own
   // descriptive error.
   let mtimeMs = -1;

@@ -22,6 +22,16 @@ depth fix all shipped **after** it. So the 08/31 run cannot be explained
 by items 1, 3 or 4 below; it needs the lock-wait numbers from the log
 before we can say what it was.
 
+## Production topology
+
+Three hosts: web, worker, and database (MariaDB and Redis together).
+`DATA_DIR` is a network mount visible to web and worker. So: the heavy
+queue serializes within the one worker process (the MySQL lock is what
+serializes against the web host); memory pressure from the worker never
+competes with the buffer pool; and every `statSync` / `readFileSync` on a
+cached spreadsheet is a network round trip, not a local disk read. The
+08/27 runbook's "both run as `uhero` on the same host" (step 4) is stale.
+
 ## What one batch reload does now
 
 `reload.batch` (default queue, 19:44 HST) → `heavy()` wrapper takes the
@@ -257,7 +267,7 @@ these have been observed for a few nights.
 | New `udaman/heavy` queue, worker concurrency 1. Every `heavy()` job (batch + targeted reloads, `public.update`, dependency reset, `reload-job.process`, api-dvw reload, universe archive/purge) enqueues and schedules there. BullMQ now serializes them FIFO; the MySQL lock is only contended by uploads (priority) and the web process. Waiting heavies no longer occupy `default` slots or pool connections. Scheduler removes the moved keys from `default` on startup so the old copies can't double-fire. | `workers/queues.ts`, `enqueue.ts`, `scheduler.ts`, `worker.ts` |
 | `heavy()` passes the lock context through; `batchReload` takes a `yieldPoint` and calls it between groups, so an upload arriving during a multi-hour reload gets the lock within one group instead of failing at 30 min. `reload-job.process` yields per series and passes `yieldPoint` into its inline sweep. | `processors/index.ts`, `batch-reload.ts`, `targeted-reload.ts`, `reload-job.ts`, `series-collection.ts` |
 | `updateData` skips `BEGIN`/`COMMIT` and the pool checkout when there is nothing to demote, promote or insert (the common nightly case). The repair pass still runs. | `series-collection.ts` |
-| CSV files are read once, not twice. Sheet cache key includes the month for `sheet_name:M3` specs, which resolve to a different sheet per date. | `utils/download-processor.ts` |
+| CSV files are read once, not twice. Sheet cache key includes the month for `sheet_name:M3` specs, which resolve to a different sheet per date. `getData` memoises sheets per call so the LRU's `statSync` validation runs once per file per loader rather than once per date — `DATA_DIR` is a network mount in prod, so each of those was a metadata round trip. | `utils/download-processor.ts` |
 | Admin worker panel lists all four queues (it was missing `light` too). Loader "reload" status poll now checks `light`, where the job actually goes, then `default`. | `actions/workers.ts`, `actions/data-loaders.tsx` |
 
 Not changed, on purpose: the 32-entry sheet LRU (memory pressure is the
