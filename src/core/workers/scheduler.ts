@@ -1,6 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 
-import { defaultQueue, JobName } from "./queues";
+import { defaultQueue, heavyQueue, JobName } from "./queues";
 
 const log = createLogger("worker.scheduler");
 
@@ -10,12 +10,45 @@ const log = createLogger("worker.scheduler");
  * from firing unexpectedly.
  */
 async function removeAllSchedulers(): Promise<void> {
-  const schedulers = await defaultQueue.getJobSchedulers();
-  for (const s of schedulers) {
-    await defaultQueue.removeJobScheduler(s.key);
+  let removed = 0;
+  for (const queue of [defaultQueue, heavyQueue]) {
+    const schedulers = await queue.getJobSchedulers();
+    for (const s of schedulers) {
+      await queue.removeJobScheduler(s.key);
+      removed++;
+    }
   }
-  if (schedulers.length > 0) {
-    log.info("Removed %d stale scheduler(s) from Redis", schedulers.length);
+  if (removed > 0) {
+    log.info("Removed %d stale scheduler(s) from Redis", removed);
+  }
+}
+
+/**
+ * Scheduler keys that moved from `default` to `heavy` (2026-09-03). Job
+ * schedulers persist in Redis per queue, so without this the old
+ * default-queue copies would keep firing alongside the new ones.
+ */
+const MOVED_TO_HEAVY = [
+  "scheduled:update-public",
+  "scheduled:dependency-reset",
+  "scheduled:batch-reload",
+  "scheduled:reload-tour-ocup",
+  "scheduled:reload-bea",
+  "scheduled:reload-bls-morning",
+  "scheduled:reload-bls-midday",
+  "scheduled:reload-sa",
+  "scheduled:reload-vap-hi",
+  "scheduled:reload-uic",
+];
+
+async function removeMovedSchedulers(): Promise<void> {
+  const existing = new Set(
+    (await defaultQueue.getJobSchedulers()).map((s) => s.key),
+  );
+  for (const key of MOVED_TO_HEAVY) {
+    if (!existing.has(key)) continue;
+    await defaultQueue.removeJobScheduler(key);
+    log.info("Removed %s from default queue (now on heavy)", key);
   }
 }
 
@@ -35,6 +68,8 @@ export async function registerSchedules(): Promise<void> {
   }
 
   const tz = "Pacific/Honolulu";
+
+  await removeMovedSchedulers();
 
   // ─── Exports ────────────────────────────────────────────────────────
 
@@ -57,7 +92,7 @@ export async function registerSchedules(): Promise<void> {
   // ─── Public data ────────────────────────────────────────────────────
 
   // Update Public Data Points — 4x daily at 11:01 AM, 1:01 PM, 3:01 PM, 5:01 PM HST
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:update-public",
     { pattern: "1 11,13,15,17 * * *", tz },
     { name: JobName.UPDATE_PUBLIC, data: {} },
@@ -69,7 +104,7 @@ export async function registerSchedules(): Promise<void> {
   // ─── Admin / maintenance ────────────────────────────────────────────
 
   // Reset dependency depth — 6:09 PM HST daily
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:dependency-reset",
     { pattern: "9 18 * * *", tz },
     { name: JobName.DEPENDENCY_RESET, data: {} },
@@ -87,7 +122,7 @@ export async function registerSchedules(): Promise<void> {
   // ─── Nightly batch reload ───────────────────────────────────────────
 
   // The (in)famous "Nightly Reload" — 7:44 PM HST daily
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:batch-reload",
     { pattern: "44 19 * * *", tz },
     {
@@ -108,7 +143,7 @@ export async function registerSchedules(): Promise<void> {
   // ─── Targeted reloads ──────────────────────────────────────────────
 
   // Tour occupancy — 3:00 AM HST daily
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:reload-tour-ocup",
     { pattern: "0 3 * * *", tz },
     {
@@ -124,7 +159,7 @@ export async function registerSchedules(): Promise<void> {
   log.info("Registered schedule: reload-tour-ocup (daily 3:00 AM HST)");
 
   // BEA — 6:00 AM HST daily
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:reload-bea",
     { pattern: "0 6 * * *", tz },
     {
@@ -142,7 +177,7 @@ export async function registerSchedules(): Promise<void> {
 
   // BLS — 6:30 AM HST daily (staggered from BEA at 6:00 so the two
   // reloads + their public sweeps don't contend for the heavy-DB lock)
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:reload-bls-morning",
     { pattern: "30 6 * * *", tz },
     {
@@ -158,7 +193,7 @@ export async function registerSchedules(): Promise<void> {
   log.info("Registered schedule: reload-bls-morning (daily 6:30 AM HST)");
 
   // BLS — 10:20 AM HST daily (second run)
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:reload-bls-midday",
     { pattern: "20 10 * * *", tz },
     {
@@ -174,7 +209,7 @@ export async function registerSchedules(): Promise<void> {
   log.info("Registered schedule: reload-bls-midday (daily 10:20 AM HST)");
 
   // SA — 10:00 AM weekdays HST
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:reload-sa",
     { pattern: "0 10 * * 1-5", tz },
     {
@@ -190,7 +225,7 @@ export async function registerSchedules(): Promise<void> {
   log.info("Registered schedule: reload-sa (weekdays 10:00 AM HST)");
 
   // VAP HI — 4:15 PM weekdays HST
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:reload-vap-hi",
     { pattern: "15 16 * * 1-5", tz },
     {
@@ -206,7 +241,7 @@ export async function registerSchedules(): Promise<void> {
   log.info("Registered schedule: reload-vap-hi (weekdays 4:15 PM HST)");
 
   // UIC weekly — 11:00 AM Thursdays HST
-  await defaultQueue.upsertJobScheduler(
+  await heavyQueue.upsertJobScheduler(
     "scheduled:reload-uic",
     { pattern: "0 11 * * 4", tz },
     {

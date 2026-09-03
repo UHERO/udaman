@@ -4,6 +4,7 @@ import type { Job } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
+import type { HeavyDbLockContext } from "@/lib/mysql/db-lock";
 
 import type { ReloadJobData } from "../queues";
 
@@ -21,6 +22,7 @@ interface ReloadJobSeriesRow {
 
 export async function processReloadJob(
   job: Job<ReloadJobData>,
+  ctx?: HeavyDbLockContext,
 ): Promise<string> {
   const { reloadJobId } = job.data;
 
@@ -73,12 +75,15 @@ export async function processReloadJob(
         log.warn({ seriesId, err: msg }, "Series reload failed, continuing");
         job.log(`Series ${seriesId} failed: ${msg}`);
       }
+      if (ctx) await ctx.yieldPoint();
     }
 
     // Update public data points if requested
     let publicMsg = "";
     if (reloadJob.update_public) {
-      await DataPointCollection.updatePublicAllUniverses();
+      await DataPointCollection.updatePublicAllUniverses({
+        yieldPoint: ctx?.yieldPoint,
+      });
       job.log("Updated public data points");
       publicMsg = "; updated public data points";
     }

@@ -91,10 +91,28 @@ const lightWorker = new Worker("light", dispatch, {
   removeOnFail: { count: 500 },
 });
 
+// Lock-holding jobs (reloads, sweeps, dependency reset, archive/purge).
+// Concurrency 1 so BullMQ serializes them FIFO and none of them ever sits
+// in a default slot waiting on the DB lock. Concurrency here must stay 1:
+// two heavy jobs in this worker would just re-create the lock-wait
+// starvation this queue exists to remove.
+const heavyWorker = new Worker("heavy", dispatch, {
+  connection: redisConnection,
+  prefix: "udaman",
+  concurrency: 1,
+  lockDuration: 600_000,
+  lockRenewTime: 60_000,
+  stalledInterval: 120_000,
+  maxStalledCount: 0,
+  removeOnComplete: { count: 100 },
+  removeOnFail: { count: 500 },
+});
+
 // ─── Lifecycle logging ───────────────────────────────────────────────
 
 for (const [name, worker] of [
   ["default", defaultWorker],
+  ["heavy", heavyWorker],
   ["critical", criticalWorker],
   ["light", lightWorker],
 ] as const) {
@@ -148,6 +166,7 @@ async function shutdown() {
   log.info("Shutting down workers...");
   await Promise.all([
     defaultWorker.close(),
+    heavyWorker.close(),
     criticalWorker.close(),
     lightWorker.close(),
   ]);
@@ -172,5 +191,5 @@ process.on("uncaughtException", (err) => {
 });
 
 log.info(
-  "Worker process started — listening on udaman/default, udaman/critical and udaman/light",
+  "Worker process started — listening on udaman/default, udaman/heavy, udaman/critical and udaman/light",
 );

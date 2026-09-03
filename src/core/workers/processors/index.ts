@@ -5,7 +5,7 @@ import {
 } from "@catalog/collections/universe-upload-collection";
 import type { Job } from "bullmq";
 
-import { withHeavyDbLock } from "@/lib/mysql/db-lock";
+import { withHeavyDbLock, type HeavyDbLockContext } from "@/lib/mysql/db-lock";
 
 import { JobName } from "../queues";
 import { processAdminAction } from "./admin-action";
@@ -30,7 +30,16 @@ import { processUniverseArchive } from "./universe-archive";
 import { processUniversePurge } from "./universe-purge";
 import { processUpdatePublic } from "./update-public";
 
-type Processor = (job: Job) => Promise<string>;
+/**
+ * `ctx` is present only when the processor runs under `heavy()` /
+ * `heavyPriority()`: long-running processors should pass `ctx.yieldPoint`
+ * into their chunk loops so a waiting upload can take the lock between
+ * chunks instead of timing out behind them.
+ */
+export type Processor = (
+  job: Job,
+  ctx?: HeavyDbLockContext,
+) => Promise<string>;
 
 /**
  * Wrap a processor so it runs under the cross-process heavy-DB advisory
@@ -41,7 +50,7 @@ type Processor = (job: Job) => Promise<string>;
 const heavy =
   (fn: Processor): Processor =>
   (job) =>
-    withHeavyDbLock(`${job.name}#${job.id ?? "?"}`, () => fn(job));
+    withHeavyDbLock(`${job.name}#${job.id ?? "?"}`, (ctx) => fn(job, ctx));
 
 /**
  * Like `heavy`, but raises the lock's yield flag while waiting: the
@@ -53,7 +62,7 @@ const heavy =
 const heavyPriority =
   (fn: Processor): Processor =>
   (job) =>
-    withHeavyDbLock(`${job.name}#${job.id ?? "?"}`, () => fn(job), {
+    withHeavyDbLock(`${job.name}#${job.id ?? "?"}`, (ctx) => fn(job, ctx), {
       priority: true,
     });
 

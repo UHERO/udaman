@@ -4,6 +4,7 @@ import type { Job } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
 import { mysql } from "@/lib/mysql/db";
+import type { HeavyDbLockContext } from "@/lib/mysql/db-lock";
 
 import { enqueueUpdatePublic } from "../enqueue";
 import type { TargetedReloadJobData } from "../queues";
@@ -28,6 +29,7 @@ const log = createLogger("worker.targeted-reload");
  */
 export async function processTargetedReload(
   job: Job<TargetedReloadJobData>,
+  ctx?: HeavyDbLockContext,
 ): Promise<string> {
   const { name, search, nightly, updatePublic, groupSize } = job.data;
 
@@ -153,6 +155,7 @@ export async function processTargetedReload(
         nightly,
         groupSize,
         job,
+        yieldPoint: ctx?.yieldPoint,
       });
     }
   } else {
@@ -163,6 +166,7 @@ export async function processTargetedReload(
       nightly,
       groupSize,
       job,
+      yieldPoint: ctx?.yieldPoint,
     });
   }
 

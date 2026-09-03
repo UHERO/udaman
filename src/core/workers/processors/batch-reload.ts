@@ -4,6 +4,7 @@ import type { Job } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/db";
+import type { HeavyDbLockContext } from "@/lib/mysql/db-lock";
 
 import { enqueueUpdatePublic } from "../enqueue";
 import type { BatchReloadJobData } from "../queues";
@@ -22,6 +23,7 @@ const log = createLogger("worker.batch-reload");
  */
 export async function processBatchReload(
   job: Job<BatchReloadJobData>,
+  ctx?: HeavyDbLockContext,
 ): Promise<string> {
   const { excludeSearches = [], updatePublic = true } = job.data;
 
@@ -69,6 +71,7 @@ export async function processBatchReload(
     suffix: "full",
     nightly: true,
     job,
+    yieldPoint: ctx?.yieldPoint,
   });
 
   let publicMsg = "";

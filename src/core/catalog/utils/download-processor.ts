@@ -398,8 +398,9 @@ function parseCell(value: unknown): number | null | "BREAK" {
 
 /** Read a CSV file and return a 2D array of cells (always strings for CSV). */
 function readCsvFile(filePath: string): CellValue[][] {
-  assertNotHtmlFile(filePath, readFileSync(filePath));
-  const content = readFileSync(filePath, "utf-8");
+  const buf = readFileSync(filePath);
+  assertNotHtmlFile(filePath, buf);
+  const content = buf.toString("utf-8");
   const lines = content.split(/\r?\n/);
   const data: CellValue[][] = [];
 
@@ -962,7 +963,13 @@ function getCachedSheet(
   sheetSpec: string | null,
   date: string | null,
 ): CellValue[][] {
-  const cacheKey = `${filePath}|${sheetSpec ?? ""}`;
+  // `sheet_name:M3` resolves to a different sheet per month (see
+  // resolveSheetName), so the month has to be part of the key — otherwise
+  // the first month parsed would be served for every later date. Every
+  // other spec resolves independently of `date`.
+  const monthKey =
+    date && /^sheet_name:m3$/i.test(sheetSpec ?? "") ? `|${date.slice(0, 7)}` : "";
+  const cacheKey = `${filePath}|${sheetSpec ?? ""}${monthKey}`;
 
   // Missing file: skip the cache and let the reader throw its own
   // descriptive error.

@@ -7,6 +7,20 @@ import Download from "../models/download";
 import type { DownloadAttrs } from "../models/download";
 import { hstToday, hstToInstant, toHstSql } from "../utils/time";
 
+/**
+ * When each download was last *attempted* by `ensureFresh` in this process,
+ * whatever the outcome. `last_download_at` is only written on a successful
+ * 200, so a handle whose URL now serves a 404 or a "not found" HTML page
+ * (the provider moved it without notice) is never fresh by that column —
+ * and every loader that references it, and every monthly file of a
+ * date-sensitive handle, re-fetched it on every reload. Rails avoided this
+ * because `DownloadsCache` memoised download results per process; this map
+ * is that memo. The web process and the worker each keep their own, which
+ * is fine: the point is one attempt per hour per process, not zero.
+ */
+const ensureFreshAttemptedAt = new Map<number, number>();
+const ENSURE_FRESH_TTL_MS = 60 * 60 * 1000;
+
 class DownloadCollection {
   /**
    * Fetch all downloads ordered by handle.
@@ -234,15 +248,28 @@ class DownloadCollection {
    * matching downloads (individual failures are non-fatal).
    */
   static async ensureFresh(handle: string): Promise<void> {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const now = Date.now();
+    const oneHourAgo = new Date(now - ENSURE_FRESH_TTL_MS);
+    // Fresh if the last successful download OR the last attempt from this
+    // process was within the hour. A failed attempt is not retried until
+    // the hour is up; the cached file (if any) is used meanwhile.
+    const isFresh = (dl: Download): boolean => {
+      if (dl.lastDownloadAt && hstToInstant(dl.lastDownloadAt) > oneHourAgo)
+        return true;
+      const attempted = ensureFreshAttemptedAt.get(dl.id);
+      return attempted != null && now - attempted < ENSURE_FRESH_TTL_MS;
+    };
+    const markAttempted = (dl: Download): void => {
+      ensureFreshAttemptedAt.set(dl.id, now);
+    };
 
     if (handle.includes("%")) {
       // Date-sensitive: refresh all matching downloads
       const downloads = await this.findByPattern(handle);
       for (const dl of downloads) {
         if (dl.freezeFile || !dl.url) continue;
-        if (dl.lastDownloadAt && hstToInstant(dl.lastDownloadAt) > oneHourAgo)
-          continue;
+        if (isFresh(dl)) continue;
+        markAttempted(dl);
         try {
           const result = await this.downloadToServer(dl.id);
           if (
@@ -260,8 +287,8 @@ class DownloadCollection {
     } else {
       const dl = await this.getByHandle(handle);
       if (dl.freezeFile || !dl.url) return;
-      if (dl.lastDownloadAt && hstToInstant(dl.lastDownloadAt) > oneHourAgo)
-        return;
+      if (isFresh(dl)) return;
+      markAttempted(dl);
 
       let result: { status: number; changed: boolean; htmlPage?: boolean };
       try {

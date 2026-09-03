@@ -1733,6 +1733,20 @@ class SeriesCollection {
     // committed once.
     const CHUNK = 500;
     const pseudo = pseudoHistory ? 1 : 0;
+
+    // Nothing to write — the common nightly case, where the source hasn't
+    // changed. Skip the BEGIN/COMMIT and the pool checkout; keep the
+    // repair pass so orphaned dates left by a clear or a vintage delete are
+    // still healed on the next reload.
+    if (
+      demoteDates.length === 0 &&
+      promoteDates.length === 0 &&
+      insertRows.length === 0
+    ) {
+      await this.repairDataPoints({ id: xseriesId });
+      return { inserted: 0 };
+    }
+
     await transaction(async (tx) => {
       for (let i = 0; i < demoteDates.length; i += CHUNK) {
         const dates = demoteDates.slice(i, i + CHUNK);
@@ -2443,6 +2457,12 @@ class SeriesCollection {
     clearFirst?: boolean;
     groupSize?: number;
     job?: { log: (msg: string) => void };
+    /**
+     * Heavy-lock cooperative yield (see db-lock.ts). Called between
+     * groups; a no-op unless a priority job (upload) is waiting, in which
+     * case the lock is handed over and re-acquired before we continue.
+     */
+    yieldPoint?: () => Promise<void>;
   }): Promise<void> {
     const {
       seriesIds,
@@ -2451,6 +2471,7 @@ class SeriesCollection {
       clearFirst = false,
       groupSize = 25,
       job,
+      yieldPoint,
     } = opts;
 
     // Lazy-import to avoid circular dependency
@@ -2518,6 +2539,10 @@ class SeriesCollection {
             job?.log(`Series ${seriesId} failed: ${msg}`);
           }
         }
+        // Let a waiting upload take the heavy lock between groups instead
+        // of timing out behind a multi-hour reload.
+        if (yieldPoint) await yieldPoint();
+
         // Progress heartbeat: without it a multi-hour depth level is
         // indistinguishable from a hung one in the job log (2026-09-02).
         processed += group.length;

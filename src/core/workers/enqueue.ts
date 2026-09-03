@@ -1,6 +1,7 @@
 import {
   criticalQueue,
   defaultQueue,
+  heavyQueue,
   JobName,
   lightQueue,
   type AdminActionJobData,
@@ -25,7 +26,7 @@ export function enqueueSeriesReload(data: SeriesReloadJobData) {
 }
 
 export function enqueueReloadJob(data: ReloadJobData) {
-  return defaultQueue.add(JobName.RELOAD_JOB, data);
+  return heavyQueue.add(JobName.RELOAD_JOB, data);
 }
 
 export function enqueueTsdExport() {
@@ -46,20 +47,20 @@ export function enqueueTsdExport() {
 export async function enqueueUpdatePublic(data: UpdatePublicJobData = {}) {
   const base = `update-public-${data.universe ?? "all"}`;
   for (const jobId of [base, `${base}-chaser`]) {
-    const existing = await defaultQueue.getJob(jobId);
+    const existing = await heavyQueue.getJob(jobId);
     if (!existing) {
-      return defaultQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
+      return heavyQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
     }
     const state = await existing.getState();
     if (state === "waiting" || state === "delayed") return existing;
     if (state === "active") continue;
     await existing.remove();
-    return defaultQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
+    return heavyQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
   }
   // Both slots in flight (the base sweep finishing while the chaser
   // starts) — a raced add dedups against the existing chaser, and the
   // scheduled sweeps are the backstop for anything it misses.
-  return defaultQueue.add(JobName.UPDATE_PUBLIC, data, {
+  return heavyQueue.add(JobName.UPDATE_PUBLIC, data, {
     jobId: `${base}-chaser`,
   });
 }
@@ -81,14 +82,14 @@ export function enqueueDvwUpload(data: DvwUploadJobData) {
 }
 
 export function enqueueApiDvwReload(data: ApiDvwReloadJobData) {
-  return defaultQueue.add(JobName.API_DVW_RELOAD, data, {
+  return heavyQueue.add(JobName.API_DVW_RELOAD, data, {
     attempts: 3,
     backoff: { type: "exponential", delay: 5000 },
   });
 }
 
 export function enqueueDependencyReset() {
-  return defaultQueue.add(JobName.DEPENDENCY_RESET, {});
+  return heavyQueue.add(JobName.DEPENDENCY_RESET, {});
 }
 
 export function enqueuePurgeOld() {
@@ -96,11 +97,11 @@ export function enqueuePurgeOld() {
 }
 
 export function enqueueBatchReload(data: BatchReloadJobData) {
-  return defaultQueue.add(JobName.BATCH_RELOAD, data);
+  return heavyQueue.add(JobName.BATCH_RELOAD, data);
 }
 
 export function enqueueTargetedReload(data: TargetedReloadJobData) {
-  return defaultQueue.add(JobName.TARGETED_RELOAD, data);
+  return heavyQueue.add(JobName.TARGETED_RELOAD, data);
 }
 
 export function enqueueDownload(data: DownloadJobData) {
@@ -141,10 +142,10 @@ export async function enqueueUniverseArchive(
   scheduledAt: Date,
 ) {
   const jobId = `universe-archive-${data.universe}`;
-  const existing = await defaultQueue.getJob(jobId);
+  const existing = await heavyQueue.getJob(jobId);
   if (existing) await existing.remove();
   const delay = Math.max(0, scheduledAt.getTime() - Date.now());
-  return defaultQueue.add(JobName.UNIVERSE_ARCHIVE, data, { jobId, delay });
+  return heavyQueue.add(JobName.UNIVERSE_ARCHIVE, data, { jobId, delay });
 }
 
 /**
@@ -157,8 +158,8 @@ export async function enqueueUniversePurge(
   scheduledAt: Date,
 ) {
   const jobId = `universe-purge-${data.universe}`;
-  const existing = await defaultQueue.getJob(jobId);
+  const existing = await heavyQueue.getJob(jobId);
   if (existing) await existing.remove();
   const delay = Math.max(0, scheduledAt.getTime() - Date.now());
-  return defaultQueue.add(JobName.UNIVERSE_PURGE, data, { jobId, delay });
+  return heavyQueue.add(JobName.UNIVERSE_PURGE, data, { jobId, delay });
 }
