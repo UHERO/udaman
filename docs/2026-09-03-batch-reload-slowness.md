@@ -438,3 +438,71 @@ real graph. Medium change; touches the 18:09 job and two collections.
 directive at `db.ts:42` predate this work). Tests: catalog 13, workers
 87, timeseries 1,356, crawlers 213, lib 24 pass; 1 fail, the known-flaky
 `getUser`. Not exercised against a production-sized DB.
+
+### Addendum — 2026-09-03 12:50 HST: first public sweep after deploy failed
+
+The first `public.update` after the round-two deploy died on the UHERO
+universe with `connection must be a MySQLConnection` out of Bun's
+transaction handler. Cause: the `idleTimeout: 300` added to the pool in
+A4. Bun applies the idle timeout to **reserved** connections as well as
+pooled ones; the heavy lock's reserved connection is idle for most of a
+job, so once it sat still long enough it was closed underneath the lock
+holder, and the next query on it (the sweep's `yieldPoint`) failed.
+Reproduced locally on Bun 1.4.0 with a 2 s timeout: reserved connection
+→ `Connection closed`; pool query and `begin()` after the same idle →
+fine. Closing that connection also releases the advisory lock server-side
+without any log line.
+
+Fix: `idleTimeout` removed (back to Bun's default of none); `max: 20`
+stays. `withHeavyDbLock` now pings its reserved connection every 60 s
+while the job runs and logs an error if the ping fails, so a lock lost
+to MySQL's own `wait_timeout` (8 h) is at least visible. Redeploy the
+worker before the 19:44 nightly — with the idle timeout in place the
+nightly would lose its lock connection in the first group that takes
+longer than five minutes.
+
+### Addendum — 2026-09-03: no implicit sweeps from targeted reloads
+
+Targeted reloads (BEA, both BLS runs, VAP, UIC) no longer enqueue a
+`public.update` when they finish; their scheduler entries carry
+`updatePublic: false`. Sweeps now run on a fixed schedule only — 07:15
+(new, publishes the 06:00 BEA and 06:30 BLS before the workday), 11:01,
+13:01, 15:01, 17:01 — plus the one the nightly batch enqueues and any
+clipboard reload job where the user asked for it. This matches Rails
+(4×/day + after the nightly) and takes about four lock-holding jobs a
+day off the heavy queue. The `updatePublic` flag still works on job data,
+so a manual targeted reload can request a sweep. Scheduler keys:
+`scheduled:update-public` (07:15) and `scheduled:update-public-afternoon`
+(the four later runs); both upsert on worker start.
+
+## /admin/perf — 2026-09-03
+
+Admin → Performance (`src/app/admin/perf`, admin/dev roles). Everything on
+it comes from rows the app already writes plus two new ones:
+
+- **`app_logs` category `worker`** — one row per finished job from
+  `worker.ts` (`completed` / `failed` events): `{queue, jobId, worker,
+  status, waitMs, runMs, rssMB, heapMB, result|err}`. `waitMs` is BullMQ
+  enqueue → pickup; `runMs` is pickup → finish. This is the backbone.
+- **`app_logs` name `loader.public_sweep`** — one row per universe per
+  sweep: `{universe, mode, elapsedSec, updated, inserted, deleted, skipped}`.
+- Existing: `loader.batch_reload` (with `perDepth`, `lockWaitMs`),
+  `data_sources.runtime` / `last_error_at`, `downloads.last_download_at`.
+
+What it shows: headline tiles (last nightly + lock wait, last UHERO
+sweep, failed jobs, loaders erroring in 24 h, downloads with no
+successful fetch in 24 h); one small duration chart per scheduled/heavy
+job, each on its own scale, failed runs marked; the nightly's per-depth
+seconds as stacked bars with a run table; longest queue wait per day per
+queue; worker RSS after each job per worker; tables for sweeps, failed
+jobs, slowest loaders, loader errors, stale downloads. Period 7/30/90 d.
+
+Charts use a validated categorical palette (light/dark pairs, checked
+with the dataviz validator against the app's surfaces) rather than the
+theme's `--chart-*` tokens, which fail the colorblind-separation and
+contrast checks in light mode. Every chart has a table under it.
+
+The page fills in as the new worker build runs jobs; before that only
+the loader/download tables have data. Not yet rendered against
+production data — check label collisions on the small multiples once a
+week of runs exists.

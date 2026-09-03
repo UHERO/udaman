@@ -9,6 +9,7 @@ import {
   Activity,
   AudioWaveform,
   BarChart3,
+  Gauge,
   BookOpen,
   Building2,
   Calendar,
@@ -150,6 +151,7 @@ const ADMIN_ICONS: Record<string, LucideIcon> = {
   "/admin/logs": ScrollText,
   "/admin/crawlers": Globe,
   "/admin/stats": BarChart3,
+  "/admin/perf": Gauge,
   "/admin/api-keys": KeyRound,
   "/admin/messages": Mail,
 };

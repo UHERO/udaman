@@ -91,14 +91,23 @@ export async function registerSchedules(): Promise<void> {
 
   // ─── Public data ────────────────────────────────────────────────────
 
-  // Update Public Data Points — 4x daily at 11:01 AM, 1:01 PM, 3:01 PM, 5:01 PM HST
+  // Update Public Data Points — 5x daily at 7:15 AM, 11:01 AM, 1:01 PM,
+  // 3:01 PM, 5:01 PM HST. These, plus the one the nightly batch enqueues,
+  // are the only sweeps: targeted reloads no longer request one (matches
+  // Rails, which swept 4x/day + after the nightly). The 7:15 run is what
+  // publishes the 6:00 BEA and 6:30 BLS reloads before the workday.
   await heavyQueue.upsertJobScheduler(
     "scheduled:update-public",
+    { pattern: "15 7 * * *", tz },
+    { name: JobName.UPDATE_PUBLIC, data: {} },
+  );
+  await heavyQueue.upsertJobScheduler(
+    "scheduled:update-public-afternoon",
     { pattern: "1 11,13,15,17 * * *", tz },
     { name: JobName.UPDATE_PUBLIC, data: {} },
   );
   log.info(
-    "Registered schedule: update-public (11:01, 13:01, 15:01, 17:01 HST)",
+    "Registered schedule: update-public (07:15, 11:01, 13:01, 15:01, 17:01 HST)",
   );
 
   // ─── Admin / maintenance ────────────────────────────────────────────
@@ -168,15 +177,15 @@ export async function registerSchedules(): Promise<void> {
         name: "bea",
         search: "#load_api_bea",
         nightly: true,
-        updatePublic: true,
+        updatePublic: false,
         groupSize: 10,
       },
     },
   );
   log.info("Registered schedule: reload-bea (daily 6:00 AM HST)");
 
-  // BLS — 6:30 AM HST daily (staggered from BEA at 6:00 so the two
-  // reloads + their public sweeps don't contend for the heavy-DB lock)
+  // BLS — 6:30 AM HST daily (staggered from BEA at 6:00; both are
+  // published by the 7:15 sweep)
   await heavyQueue.upsertJobScheduler(
     "scheduled:reload-bls-morning",
     { pattern: "30 6 * * *", tz },
@@ -186,13 +195,13 @@ export async function registerSchedules(): Promise<void> {
         name: "bls",
         search: "#load_api_bls",
         nightly: true,
-        updatePublic: true,
+        updatePublic: false,
       },
     },
   );
   log.info("Registered schedule: reload-bls-morning (daily 6:30 AM HST)");
 
-  // BLS — 10:20 AM HST daily (second run)
+  // BLS — 10:20 AM HST daily (second run; published by the 11:01 sweep)
   await heavyQueue.upsertJobScheduler(
     "scheduled:reload-bls-midday",
     { pattern: "20 10 * * *", tz },
@@ -202,7 +211,7 @@ export async function registerSchedules(): Promise<void> {
         name: "bls",
         search: "#load_api_bls",
         nightly: true,
-        updatePublic: true,
+        updatePublic: false,
       },
     },
   );
@@ -234,7 +243,7 @@ export async function registerSchedules(): Promise<void> {
         name: "vaphid",
         search: "^vap ~ns$ @hi .d",
         nightly: true,
-        updatePublic: true,
+        updatePublic: false,
       },
     },
   );
@@ -250,7 +259,7 @@ export async function registerSchedules(): Promise<void> {
         name: "uic_weekly",
         search: "#uic@hawa",
         nightly: true,
-        updatePublic: true,
+        updatePublic: false,
       },
     },
   );

@@ -1,3 +1,4 @@
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { Job, Worker } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
@@ -10,7 +11,7 @@ import {
   reconcileProcessingUploads,
   stampUploadFailed,
 } from "./upload-status";
-import { workerBindings } from "./worker-identity";
+import { WORKER_NAME, workerBindings } from "./worker-identity";
 
 // Ensure all date operations use Hawaii Standard Time.
 // Must be set before any module that touches Date is imported.
@@ -54,6 +55,49 @@ function memStats() {
   const m = process.memoryUsage();
   const mb = (n: number) => Math.round(n / 1048576);
   return { rssMB: mb(m.rss), heapMB: mb(m.heapUsed), extMB: mb(m.external) };
+}
+
+/**
+ * Queue wait and run time for a finished job, from BullMQ's own stamps.
+ * `timestamp` is enqueue time (for a scheduled job, when the cron fired).
+ */
+function jobTiming(job: Job) {
+  const now = Date.now();
+  const processedOn = job.processedOn ?? now;
+  return {
+    waitMs: job.timestamp ? Math.max(0, processedOn - job.timestamp) : null,
+    runMs: Math.max(0, (job.finishedOn ?? now) - processedOn),
+  };
+}
+
+/**
+ * One app_logs row per finished job (category "worker", name = job name).
+ * This is what /admin/perf charts: durations of the scheduled jobs over
+ * time, queue wait per queue, worker RSS after each job. Fire-and-forget.
+ */
+function recordJob(
+  queue: string,
+  job: Job,
+  status: "completed" | "failed",
+  err?: string,
+) {
+  void AppLogCollection.log({
+    level: status === "failed" ? "error" : "info",
+    category: "worker",
+    name: job.name,
+    subject: "job",
+    metadata: {
+      queue,
+      jobId: job.id ?? null,
+      worker: WORKER_NAME,
+      status,
+      ...jobTiming(job),
+      ...memStats(),
+      ...(status === "completed"
+        ? { result: String(job.returnvalue ?? "").slice(0, 500) }
+        : { err: (err ?? "").slice(0, 500) }),
+    },
+  });
 }
 
 // ─── Dispatch function ───────────────────────────────────────────────
@@ -113,6 +157,7 @@ for (const [name, worker] of workers) {
       { queue: name, jobId: job.id, jobName: job.name, ...memStats() },
       "Job completed",
     );
+    recordJob(name, job, "completed");
   });
 
   worker.on("failed", (job, err) => {
@@ -126,6 +171,7 @@ for (const [name, worker] of workers) {
       },
       "Job failed",
     );
+    if (job) recordJob(name, job, "failed", err.message);
     // Upload rows are what the UI polls; make sure the failure reaches
     // them even if the DB was the thing that failed (retries with backoff).
     if (job && isUploadJob(job.name)) {

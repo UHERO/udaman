@@ -29,9 +29,15 @@ const connection = new SQL({
   // left no headroom. MariaDB max_connections is 151; web + worker at 20
   // each is well inside that.
   max: Number(process.env.DB_POOL_MAX ?? 20),
-  // Seconds. Drop idle connections so a burst (nightly reload) doesn't pin
-  // 20 server threads for the rest of the day.
-  idleTimeout: Number(process.env.DB_POOL_IDLE_SEC ?? 300),
+  // No idleTimeout, deliberately. Bun applies it to *reserved* connections
+  // too: one that sits idle past the timeout is closed underneath its
+  // holder and the next query on it fails ("Connection closed" /
+  // "connection must be a MySQLConnection"). The heavy-DB lock lives on a
+  // reserved connection that is idle for most of a job — and closing it
+  // releases the advisory lock server-side, silently. Pool and
+  // transaction connections reconnect transparently; reserved ones don't.
+  // Verified against Bun 1.4.0 on 2026-09-03 after the first production
+  // public sweep died this way.
 });
 
 function mysql<T = Record<string, unknown>>(

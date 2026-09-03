@@ -47,6 +47,15 @@ const WAIT_SLICE_SEC = 60;
 /** How often a yielded holder re-checks the flag before re-queuing. */
 const YIELD_POLL_MS = 2000;
 
+/**
+ * Keepalive on the reserved connection while `fn` runs. The lock dies
+ * with the connection, and the connection is idle for most of a job —
+ * MySQL's wait_timeout (8 h by default) would otherwise cut a long
+ * holder off and release the lock without anyone noticing. A ping that
+ * fails is logged loudly: it means the lock is already gone.
+ */
+const KEEPALIVE_MS = 60_000;
+
 export class HeavyDbLockTimeoutError extends Error {
   constructor(holder: string, waitedMs: number) {
     super(
@@ -177,9 +186,26 @@ export async function withHeavyDbLock<T>(
     const waitMs = +(performance.now() - startedAt).toFixed(0);
     log.info({ holder, waitMs }, "Heavy DB lock acquired");
     const runStart = performance.now();
+    let pinging = false;
+    const keepalive = setInterval(() => {
+      if (pinging) return;
+      pinging = true;
+      conn
+        .unsafe("SELECT 1")
+        .catch((e: unknown) => {
+          log.error(
+            { holder, err: String(e) },
+            "Heavy DB lock connection lost mid-job — the lock is no longer held",
+          );
+        })
+        .finally(() => {
+          pinging = false;
+        });
+    }, KEEPALIVE_MS);
     try {
       return await fn({ yieldPoint, waitMs });
     } finally {
+      clearInterval(keepalive);
       log.info(
         { holder, heldMs: +(performance.now() - runStart).toFixed(0) },
         "Heavy DB lock released",

@@ -2,6 +2,7 @@ import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
 import type { DataPoint } from "../types/shared";
+import { AppLogCollection } from "./app-log-collection";
 
 const log = createLogger("catalog.data-point-collection");
 
@@ -616,6 +617,17 @@ class DataPointCollection {
     opts.logLine?.(
       `${universe}: done in ${elapsedSec}s — ${totals.updated} updated, ${totals.inserted} inserted, ${totals.deleted} deleted, ${totals.skipped} quiet chunks skipped`,
     );
+    // Per-universe sweep record for /admin/perf (mode, duration, rows).
+    void AppLogCollection.log({
+      category: "loader",
+      name: "loader.public_sweep",
+      metadata: {
+        universe,
+        mode: full ? "full" : "incremental",
+        elapsedSec,
+        ...totals,
+      },
+    });
   }
 
   /** Update public data points for a single series. */
