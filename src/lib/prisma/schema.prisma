@@ -520,6 +520,20 @@ model series {
   @@fulltext([name, dataPortalName], map: "name_data_portal_name_description")
 }
 
+/// One row per (loader, series name it references). Rebuilt nightly by the
+/// dependency reset from data_sources.dependencies; keyed by name because
+/// dependency matching is by name across universes.
+model series_dependencies {
+  data_source_id Int
+  series_id      Int
+  universe       String @db.VarChar(10)
+  dep_name       String @db.VarChar(255)
+
+  @@id([data_source_id, dep_name])
+  @@index([dep_name], map: "idx_series_dependencies_dep_name")
+  @@index([series_id], map: "idx_series_dependencies_series_id")
+}
+
 model series_reload_logs {
   batch_id   String    @db.VarChar(255)
   series_id  Int

@@ -26,8 +26,9 @@ export async function processBatchReload(
   ctx?: HeavyDbLockContext,
 ): Promise<string> {
   const { excludeSearches = [], updatePublic = true } = job.data;
+  const t0 = Date.now();
 
-  log.info("Starting nightly batch reload");
+  log.info({ lockWaitMs: ctx?.waitMs }, "Starting nightly batch reload");
   job.log("Gathering UHERO series...");
 
   // Get all UHERO series IDs
@@ -66,7 +67,7 @@ export async function processBatchReload(
 
   job.log(`Reloading ${seriesIds.length} series...`);
 
-  await SeriesCollection.batchReload({
+  const { perDepth } = await SeriesCollection.batchReload({
     seriesIds,
     suffix: "full",
     nightly: true,
@@ -81,13 +82,31 @@ export async function processBatchReload(
     publicMsg = "; queued public data points update";
   }
 
-  log.info("Nightly batch reload complete");
+  const elapsedSec = Math.round((Date.now() - t0) / 1000);
+  const failed = perDepth.reduce((n, d) => n + d.failed, 0);
+  log.info({ elapsedSec, failed, perDepth }, "Nightly batch reload complete");
 
+  // Durations land in app_logs so the nightly's trend is visible in the
+  // admin UI: one summary row, plus one row per depth level.
   AppLogCollection.log({
     category: "loader",
     name: "loader.batch_reload",
-    metadata: { reloaded: seriesIds.length, total: totalCount },
+    metadata: {
+      reloaded: seriesIds.length,
+      total: totalCount,
+      failed,
+      lockWaitMs: ctx?.waitMs ?? null,
+      elapsedSec,
+      perDepth,
+    },
   });
+  for (const d of perDepth) {
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.batch_reload.depth",
+      metadata: d,
+    });
+  }
 
-  return `Reloaded ${seriesIds.length} of ${totalCount} series${publicMsg}`;
+  return `Reloaded ${seriesIds.length} of ${totalCount} series in ${elapsedSec}s (${failed} failed)${publicMsg}`;
 }

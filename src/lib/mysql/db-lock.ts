@@ -75,6 +75,8 @@ export type HeavyDbLockContext = {
    * long work; everything before and after must tolerate the gap.
    */
   yieldPoint: () => Promise<void>;
+  /** How long this job waited for the lock before `fn` started. */
+  waitMs: number;
 };
 
 /**
@@ -176,7 +178,7 @@ export async function withHeavyDbLock<T>(
     log.info({ holder, waitMs }, "Heavy DB lock acquired");
     const runStart = performance.now();
     try {
-      return await fn({ yieldPoint });
+      return await fn({ yieldPoint, waitMs });
     } finally {
       log.info(
         { holder, heldMs: +(performance.now() - runStart).toFixed(0) },

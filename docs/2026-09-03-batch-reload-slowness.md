@@ -302,3 +302,139 @@ imports a script whose top-level `main()` runs a dry run against the dev
 DB and calls `process.exit(0)`, which ends a whole-tree `bun test` run
 early with exit 0 and no summary — pre-existing, worth guarding with
 `if (import.meta.main)`.
+
+## Proposed next steps — 2026-09-03
+
+Ordered by payoff per unit of risk. A and B are the ones to do next; C is
+the structural change worth making regardless; D and E wait on numbers.
+
+### A. Cheap fixes to do alongside parallelism
+
+1. **Record durations.** `batch-reload` already writes one `app_logs`
+   row at completion; add `{ waitMs, heldMs, perDepth: [{depth, count,
+   seconds}] }` to its metadata and write one row per depth level. Every
+   decision below needs a trend line, and today the only timing is the
+   BullMQ job pane in Redis.
+2. **Stamp `data_sources.updated_at` only when data changed.** The
+   incremental sweep keys off it, and `LoaderCollection.reload`'s
+   `finally` bumps it on every loader, so the post-nightly sweep is
+   always a full pass. Keep `last_run_at` / `runtime` as they are; touch
+   `updated_at` only when `inserted > 0` or a demote/promote happened.
+   The daily full pass still catches everything else.
+3. **Drop the re-SELECT in `LoaderCollection.update`.** It does an
+   UPDATE and then `getById`; the reload path never uses the returned
+   row. One round trip per loader.
+4. **Set the pool explicitly**: `max: 20`, `idleTimeout` — required by B
+   anyway (each in-flight loader can hold a transaction connection).
+
+### B. Parallelism within a depth level
+
+Series in one depth level are independent by construction (every input
+lives at a higher depth and has already been reloaded), so this is safe
+to parallelize *across series*. Two rules keep it correct:
+
+- **Sequential within a series.** A series' loaders are ordered by
+  priority and `updateData` depends on that order. Run one series'
+  loaders in sequence; run different series concurrently.
+- **Bounded.** `RELOAD_CONCURRENCY`, default 4. The wins come from
+  overlapping DB round trips and HTTP fetches (~10 queries per loader,
+  plus the occasional soft-404 fetch); above ~6 the single event loop
+  and InnoDB gain nothing, and memory grows linearly.
+
+Shape: inside `batchReload`, per group of `groupSize`, run a
+concurrency-limited map over the group's series (a 15-line limiter, no
+dependency needed), then `job.log` the heartbeat and `yieldPoint()` as
+now. Expect 2–4× on the DB-bound majority; no change for loaders that
+are pure XLSX parse, because `XLSX.read` is synchronous and serializes
+on the event loop regardless.
+
+Things to know: the process-wide sheet cache is safe under this (the
+parse is synchronous, so two loaders can't interleave a miss); the
+repair anti-join is scoped to one `xseries_id`; and if `dependency_depth`
+is ever wrong again, a same-level read-after-write race becomes
+possible where today it is merely a stale read — the depth fix on 09/02
+is what makes B safe, so keep the reset job ahead of the nightly.
+
+### C. Run the heavy queue in its own process
+
+Same code, one env var (`WORKER_QUEUES=heavy` vs `default,critical,light`)
+and a second systemd unit on the worker host. Gains:
+
+- A multi-hour reload's synchronous parsing and GC pauses stop stalling
+  uploads and clipboard jobs, which share the event loop today.
+- A JS-heap death in the reload process (Addendum 3) no longer fails
+  every in-flight upload as "stalled".
+- Memory budgets become per-process and observable.
+
+Constraints: exactly one heavy process, concurrency 1 (the MySQL lock
+still guards against the web host, but not against a second heavy
+worker); schedule registration should run in one process only.
+
+### D. Dependency edge table
+
+`assignDependencyDepth`, `getAllDependencies`, and the clipboard
+"reload with deps" path all parse `data_sources.dependencies` JSON with
+`LIKE`. `setAllDependencies` already computes the names in TypeScript,
+so write a `(series_id, depends_on_series_id)` table at the same time
+and make depth assignment an iterative join. Removes the O(depth × N²)
+scan, makes dependency expansion an indexed lookup, and gives the UI a
+real graph. Medium change; touches the 18:09 job and two collections.
+
+### E. Only if profiling says so
+
+- **Parse off the event loop.** If per-depth timings show parse-heavy
+  levels dominating after B, move `XLSX.read` into a Bun `Worker` pool.
+  Structured-clone of a large `CellValue[][]` is not free; measure.
+- **`data_points` index `(xseries_id, data_source_id, date)`.** The
+  read phase of `updateData` scans every vintage the loader ever wrote,
+  with a filesort. Real win, but DDL on the largest table — do it as an
+  online schema change in a window, not as a migration in a deploy.
+- **Bound the clipboard-deps path** (Addendum 3): process depth levels
+  in chunks and release Series references between them. Still the
+  open cause of the worker's RSS growth; C limits the blast radius but
+  does not remove it.
+
+## What shipped — 2026-09-03, second round (A–D)
+
+| # | Change | Where |
+|---|---|---|
+| A1 | Batch reload writes durations to `app_logs`: the `loader.batch_reload` row now carries `lockWaitMs`, `elapsedSec`, `failed`, `perDepth[]`; plus one `loader.batch_reload.depth` row per level. `withHeavyDbLock` exposes `ctx.waitMs`. | `batch-reload.ts`, `db-lock.ts`, `series-collection.ts` |
+| A2 | `data_sources.updated_at` is stamped only when a reload changed data points (insert, demote, promote, or a clear). `updateData` returns `changed`; `LoaderCollection.updateFields` takes `touchUpdatedAt`. The post-nightly sweep is now incremental for real. | `loader-collection.ts`, `series-collection.ts` |
+| A3 | The reload's `finally` no longer re-SELECTs the loader row (`updateFields` instead of `update`). | `loader-collection.ts` |
+| A4 | Pool: `max` 20 (`DB_POOL_MAX`), `idleTimeout` 300 s (`DB_POOL_IDLE_SEC`). | `db.ts` |
+| B | `batchReload` runs `RELOAD_CONCURRENCY` (default 4) series at a time within a depth level; a series' own loaders stay sequential. Heartbeat and `yieldPoint` still per group. `ensureFresh` dedups in-flight fetches per download id so two loaders sharing a handle can't race a half-written file on the mount. | `series-collection.ts`, `download-collection.ts` |
+| C | `WORKER_QUEUES` selects which queues a worker process consumes (default: all). `WORKER_SCHEDULES=0/1` overrides where cron schedules register (default: the process consuming `default`). Upload-row reconciliation runs only where `critical` is consumed. | `worker.ts` |
+| D | New `series_dependencies` table (loader → dependency *name*, keyed by name across universes as before). Rebuilt atomically by `setAllDependencies` for all universes; maintained on loader create / recompute / delete (best-effort). `assignDependencyDepth` joins it via a temp snapshot instead of the correlated `LIKE`; `getAllDependencies` reads it, falling back to the JSON scan until it has rows. `setAllDependencies` rewrites the `dependencies` column only when it changed and no longer touches `updated_at`. | `loader-collection.ts`, `series-collection.ts`, `prisma/migrations/20260903120000_series_dependencies`, `schema.prisma` |
+
+### Deploy (in this order)
+
+1. **Migration first**, on the DB host or from a checkout:
+   `bunx prisma migrate deploy` (creates `series_dependencies`). Until it
+   exists: dependency reset fails loudly; `getAllDependencies` logs a
+   warning and uses the old scan; loader create/delete log a warning and
+   continue.
+2. **Restart web and worker together** (web enqueues onto the queues the
+   new worker layout expects).
+3. **Split the worker** (optional now, recommended): two systemd units on
+   the worker host from the same checkout and `EnvironmentFile`, e.g.
+   ```
+   # udaman-worker.service        Environment=WORKER_QUEUES=default,critical,light
+   # udaman-worker-heavy.service  Environment=WORKER_QUEUES=heavy
+   ```
+   One `heavy` process only. Without `WORKER_QUEUES` a single process
+   consumes everything, as before.
+4. **Run the dependency reset once** (admin UI → dependency reset, or
+   wait for 18:09) so the edge table is populated before the nightly.
+   Check `SELECT COUNT(*) FROM series_dependencies` afterwards; expect
+   roughly the number of loader→name references (tens of thousands).
+5. **Tune if needed**: `RELOAD_CONCURRENCY` (4), `DB_POOL_MAX` (20).
+   Watch the nightly's `perDepth` rows in `app_logs` and worker RSS in
+   the `Job completed` lines; if RSS climbs with concurrency, lower it.
+
+### Verified locally
+
+`bun run check-types` clean. eslint clean on touched code (the
+`no-explicit-any` errors in `src/lib/mysql/hhdb.ts` and the unused
+directive at `db.ts:42` predate this work). Tests: catalog 13, workers
+87, timeseries 1,356, crawlers 213, lib 24 pass; 1 fail, the known-flaky
+`getUser`. Not exercised against a production-sized DB.

@@ -19,6 +19,32 @@ process.env.TZ = "Pacific/Honolulu";
 const log = createLogger("worker", workerBindings());
 
 /**
+ * Which queues this process consumes. Default: all of them (one process,
+ * as before). Production runs two units on the worker host:
+ *
+ *   udaman-worker        WORKER_QUEUES=default,critical,light
+ *   udaman-worker-heavy  WORKER_QUEUES=heavy
+ *
+ * so a multi-hour reload's synchronous parsing and GC pauses can't stall
+ * uploads or clipboard jobs, and a heap death in the reload process can't
+ * fail every in-flight upload as "stalled" (2026-08-31). Exactly one
+ * process may consume `heavy`, at concurrency 1 — the MySQL lock guards
+ * against the web host, not against a second heavy worker.
+ */
+const ALL_QUEUES = ["default", "heavy", "critical", "light"] as const;
+type QueueName = (typeof ALL_QUEUES)[number];
+const QUEUES: QueueName[] = (process.env.WORKER_QUEUES ?? ALL_QUEUES.join(","))
+  .split(",")
+  .map((s) => s.trim())
+  .filter((s): s is QueueName => (ALL_QUEUES as readonly string[]).includes(s));
+if (QUEUES.length === 0) {
+  throw new Error(
+    `WORKER_QUEUES="${process.env.WORKER_QUEUES}" names no known queue (${ALL_QUEUES.join(", ")})`,
+  );
+}
+const consumes = (q: QueueName) => QUEUES.includes(q);
+
+/**
  * Process memory snapshot attached to job lifecycle logs. The worker has
  * repeatedly grown to ~6 GB RSS over hours of normal work and then died in
  * a JSC GC sweep (SIGILL, 2026-08-31); logging rss/heap per job shows
@@ -40,82 +66,48 @@ const dispatch = async (job: Job): Promise<string> => {
 
 // ─── Workers ─────────────────────────────────────────────────────────
 
-const defaultWorker = new Worker("default", dispatch, {
+// Shared by every worker. lockDuration is long so a long-running job can't
+// be marked stalled and silently retried while still in flight (which
+// compounds OOM and double-writes data points); maxStalledCount 0 means a
+// job that does stall fails outright instead of re-running. removeOn*
+// caps what BullMQ keeps in Redis.
+const workerOpts = {
   connection: redisConnection,
   prefix: "udaman",
-  // Keep this low: every series_reload / batch_reload step holds many
-  // Series instances (Map<date, value>) in memory while EvalExecutor runs,
-  // and concurrent reloads also fight for InnoDB row locks on data_points.
-  concurrency: 2,
-  // Match criticalWorker so a long-running reload can't be marked stalled
-  // and silently retried while still in flight (which compounds OOM and
-  // double-writes data points).
   lockDuration: 600_000, // 10 min
   lockRenewTime: 60_000,
   stalledInterval: 120_000,
   maxStalledCount: 0,
-  // Cap how many completed/failed jobs BullMQ keeps in Redis so the
-  // queue doesn't grow without bound.
   removeOnComplete: { count: 100 },
   removeOnFail: { count: 500 },
-});
+} as const;
 
-const criticalWorker = new Worker("critical", dispatch, {
-  connection: redisConnection,
-  prefix: "udaman",
-  concurrency: 1,
-  // Upload jobs are memory-intensive (XLSX parsing). If the worker is
-  // killed mid-job (OOM), fail fast instead of silently re-running.
-  lockDuration: 600_000, // 10 min — max time before lock expires
-  lockRenewTime: 60_000, // renew lock every 60s (default 15s)
-  stalledInterval: 120_000, // check for stalled jobs every 2 min
-  maxStalledCount: 0, // do NOT retry stalled jobs — fail immediately
-  removeOnComplete: { count: 100 },
-  removeOnFail: { count: 500 },
-});
+const CONCURRENCY: Record<QueueName, number> = {
+  // Keep this low: reload steps hold many Series instances in memory
+  // while EvalExecutor runs.
+  default: 2,
+  // Lock-holding jobs (reloads, sweeps, dependency reset, archive/purge).
+  // Must stay 1: BullMQ serializes them FIFO and none ever sits in a slot
+  // waiting on the DB lock; two here would re-create that starvation.
+  heavy: 1,
+  // Uploads are memory-intensive (XLSX parsing).
+  critical: 1,
+  // Interactive jobs (clipboard actions, single-series reloads): short,
+  // single-series, safe beside a locked heavy job.
+  light: 2,
+};
 
-// Interactive jobs (clipboard actions, single-series reloads). Separate
-// worker so a heavy job waiting on the cross-process DB lock — which
-// occupies a default-queue slot for up to the lock timeout — can never
-// starve them. These jobs are short and touch single series, so they are
-// safe to run alongside a locked heavy job.
-const lightWorker = new Worker("light", dispatch, {
-  connection: redisConnection,
-  prefix: "udaman",
-  concurrency: 2,
-  lockDuration: 600_000,
-  lockRenewTime: 60_000,
-  stalledInterval: 120_000,
-  maxStalledCount: 0,
-  removeOnComplete: { count: 100 },
-  removeOnFail: { count: 500 },
-});
-
-// Lock-holding jobs (reloads, sweeps, dependency reset, archive/purge).
-// Concurrency 1 so BullMQ serializes them FIFO and none of them ever sits
-// in a default slot waiting on the DB lock. Concurrency here must stay 1:
-// two heavy jobs in this worker would just re-create the lock-wait
-// starvation this queue exists to remove.
-const heavyWorker = new Worker("heavy", dispatch, {
-  connection: redisConnection,
-  prefix: "udaman",
-  concurrency: 1,
-  lockDuration: 600_000,
-  lockRenewTime: 60_000,
-  stalledInterval: 120_000,
-  maxStalledCount: 0,
-  removeOnComplete: { count: 100 },
-  removeOnFail: { count: 500 },
-});
+const workers = new Map<QueueName, Worker>();
+for (const name of QUEUES) {
+  workers.set(
+    name,
+    new Worker(name, dispatch, { ...workerOpts, concurrency: CONCURRENCY[name] }),
+  );
+}
 
 // ─── Lifecycle logging ───────────────────────────────────────────────
 
-for (const [name, worker] of [
-  ["default", defaultWorker],
-  ["heavy", heavyWorker],
-  ["critical", criticalWorker],
-  ["light", lightWorker],
-] as const) {
+for (const [name, worker] of workers) {
   worker.on("completed", (job) => {
     log.info(
       { queue: name, jobId: job.id, jobName: job.name, ...memStats() },
@@ -151,25 +143,32 @@ for (const [name, worker] of [
 
 // ─── Register cron schedules ─────────────────────────────────────────
 
-registerSchedules().catch((err) => {
-  log.error({ err: err.message }, "Failed to register schedules");
-});
+// Schedules live in Redis per queue, so any process can register them;
+// upserts are idempotent. Do it from the process that consumes `default`
+// (the original single worker) unless WORKER_SCHEDULES overrides.
+const registersSchedules =
+  process.env.WORKER_SCHEDULES != null
+    ? process.env.WORKER_SCHEDULES === "1"
+    : consumes("default");
+if (registersSchedules) {
+  registerSchedules().catch((err) => {
+    log.error({ err: err.message }, "Failed to register schedules");
+  });
+}
 
 // Stamp any upload rows orphaned by a previous worker crash/restart.
-reconcileProcessingUploads().catch((err) => {
-  log.error({ err: err.message }, "Upload reconciliation failed");
-});
+// Upload jobs run on `critical`, so only that process reconciles them.
+if (consumes("critical")) {
+  reconcileProcessingUploads().catch((err) => {
+    log.error({ err: err.message }, "Upload reconciliation failed");
+  });
+}
 
 // ─── Graceful shutdown ───────────────────────────────────────────────
 
 async function shutdown() {
   log.info("Shutting down workers...");
-  await Promise.all([
-    defaultWorker.close(),
-    heavyWorker.close(),
-    criticalWorker.close(),
-    lightWorker.close(),
-  ]);
+  await Promise.all([...workers.values()].map((w) => w.close()));
   log.info("Workers shut down");
   process.exit(0);
 }
@@ -191,5 +190,6 @@ process.on("uncaughtException", (err) => {
 });
 
 log.info(
-  "Worker process started — listening on udaman/default, udaman/heavy, udaman/critical and udaman/light",
+  { queues: QUEUES, schedules: registersSchedules },
+  `Worker process started — listening on ${QUEUES.map((q) => `udaman/${q}`).join(", ")}`,
 );

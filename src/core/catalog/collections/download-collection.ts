@@ -21,6 +21,25 @@ import { hstToday, hstToInstant, toHstSql } from "../utils/time";
 const ensureFreshAttemptedAt = new Map<number, number>();
 const ENSURE_FRESH_TTL_MS = 60 * 60 * 1000;
 
+/**
+ * Downloads currently being fetched by this process. Loaders now run
+ * several series at a time, so two loaders can reach `ensureFresh` for
+ * the same handle together; the second must wait for the first's write
+ * to finish rather than read a half-written file off the mount.
+ */
+const ensureFreshInFlight = new Map<number, Promise<void>>();
+
+/** Run `fetch` for download `id` unless it is already running; share the result. */
+function dedupInFlight(id: number, fetch: () => Promise<void>): Promise<void> {
+  const running = ensureFreshInFlight.get(id);
+  if (running) return running;
+  const p = fetch().finally(() => {
+    ensureFreshInFlight.delete(id);
+  });
+  ensureFreshInFlight.set(id, p);
+  return p;
+}
+
 class DownloadCollection {
   /**
    * Fetch all downloads ordered by handle.
@@ -268,56 +287,75 @@ class DownloadCollection {
       const downloads = await this.findByPattern(handle);
       for (const dl of downloads) {
         if (dl.freezeFile || !dl.url) continue;
+        if (ensureFreshInFlight.has(dl.id)) {
+          await dedupInFlight(dl.id, async () => {});
+          continue;
+        }
         if (isFresh(dl)) continue;
         markAttempted(dl);
-        try {
-          const result = await this.downloadToServer(dl.id);
-          if (
-            (result.status !== 200 || result.htmlPage) &&
-            !existsSync(dl.effectivePath())
-          ) {
-            console.warn(
-              `[ensureFresh] ${dl.handle}: ${result.htmlPage ? "HTML page (soft 404)" : `HTTP ${result.status}`}, no cached file`,
-            );
+        await dedupInFlight(dl.id, async () => {
+          try {
+            const result = await this.downloadToServer(dl.id);
+            if (
+              (result.status !== 200 || result.htmlPage) &&
+              !existsSync(dl.effectivePath())
+            ) {
+              console.warn(
+                `[ensureFresh] ${dl.handle}: ${result.htmlPage ? "HTML page (soft 404)" : `HTTP ${result.status}`}, no cached file`,
+              );
+            }
+          } catch {
+            // Non-fatal for date-sensitive: file may already exist from prior download
           }
-        } catch {
-          // Non-fatal for date-sensitive: file may already exist from prior download
-        }
+        });
       }
     } else {
       const dl = await this.getByHandle(handle);
       if (dl.freezeFile || !dl.url) return;
+      // Another loader is fetching this handle right now: wait for it,
+      // then use whatever it produced (the file, or the cached one).
+      if (ensureFreshInFlight.has(dl.id)) {
+        await dedupInFlight(dl.id, async () => {});
+        if (!existsSync(dl.effectivePath())) {
+          throw new Error(
+            `Download "${handle}" failed and no cached file exists at ${dl.effectivePath()}`,
+          );
+        }
+        return;
+      }
       if (isFresh(dl)) return;
       markAttempted(dl);
 
-      let result: { status: number; changed: boolean; htmlPage?: boolean };
-      try {
-        result = await this.downloadToServer(dl.id);
-      } catch (e) {
-        // downloadToServer throws for frozen/URL-less (already checked above)
-        // or network-level failures (DNS, timeout, etc.)
-        if (!existsSync(dl.effectivePath())) {
-          throw new Error(
-            `Download "${handle}" failed: ${e instanceof Error ? e.message : String(e)}`,
+      await dedupInFlight(dl.id, async () => {
+        let result: { status: number; changed: boolean; htmlPage?: boolean };
+        try {
+          result = await this.downloadToServer(dl.id);
+        } catch (e) {
+          // downloadToServer throws for frozen/URL-less (already checked above)
+          // or network-level failures (DNS, timeout, etc.)
+          if (!existsSync(dl.effectivePath())) {
+            throw new Error(
+              `Download "${handle}" failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
+          }
+          console.warn(
+            `[ensureFresh] ${handle}: fetch error, using cached file — ${e instanceof Error ? e.message : String(e)}`,
           );
+          return;
         }
-        console.warn(
-          `[ensureFresh] ${handle}: fetch error, using cached file — ${e instanceof Error ? e.message : String(e)}`,
-        );
-        return;
-      }
 
-      if (result.status !== 200 || result.htmlPage) {
-        const what = result.htmlPage
-          ? "an HTML page instead of a data file (soft 404 — has the site moved?)"
-          : `HTTP ${result.status}`;
-        if (!existsSync(dl.effectivePath())) {
-          throw new Error(
-            `Download "${handle}" returned ${what} and no cached file exists at ${dl.effectivePath()}`,
-          );
+        if (result.status !== 200 || result.htmlPage) {
+          const what = result.htmlPage
+            ? "an HTML page instead of a data file (soft 404 — has the site moved?)"
+            : `HTTP ${result.status}`;
+          if (!existsSync(dl.effectivePath())) {
+            throw new Error(
+              `Download "${handle}" returned ${what} and no cached file exists at ${dl.effectivePath()}`,
+            );
+          }
+          console.warn(`[ensureFresh] ${handle}: ${what}, using cached file`);
         }
-        console.warn(`[ensureFresh] ${handle}: ${what}, using cached file`);
-      }
+      });
     }
   }
 

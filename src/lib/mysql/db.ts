@@ -23,6 +23,15 @@ const connection = new SQL({
   database: process.env.DB_NAME ?? "uhero_db_dev",
   username: process.env.DB_USER ?? "root",
   password: process.env.DB_PSWD ?? "",
+  // Pool size. The worker holds long-lived reservations (one per heavy
+  // lock holder) and, since reloads run RELOAD_CONCURRENCY series at a
+  // time, several per-loader transactions at once — Bun's default of 10
+  // left no headroom. MariaDB max_connections is 151; web + worker at 20
+  // each is well inside that.
+  max: Number(process.env.DB_POOL_MAX ?? 20),
+  // Seconds. Drop idle connections so a burst (nightly reload) doesn't pin
+  // 20 server threads for the rest of the day.
+  idleTimeout: Number(process.env.DB_POOL_IDLE_SEC ?? 300),
 });
 
 function mysql<T = Record<string, unknown>>(

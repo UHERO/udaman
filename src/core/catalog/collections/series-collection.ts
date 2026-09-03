@@ -257,6 +257,44 @@ async function getFactbookCache() {
 
 // ─── Collection ──────────────────────────────────────────────────────
 
+/** Per-depth-level timing from a batch reload, for app_logs. */
+export type BatchReloadDepthStat = {
+  depth: number;
+  count: number;
+  failed: number;
+  seconds: number;
+};
+
+/**
+ * How many series a batch reload works on at once within a depth level.
+ * The gain is overlapping DB round trips and HTTP fetches; XLSX parsing
+ * is synchronous and gains nothing. Above ~6 the single event loop and
+ * InnoDB stop helping and memory grows linearly.
+ */
+const RELOAD_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.RELOAD_CONCURRENCY ?? 4) || 1,
+);
+
+/** Run `fn` over `items` with at most `limit` in flight. `fn` must not throw. */
+async function mapWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+  const lanes = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (next < items.length) {
+        const item = items[next++];
+        await fn(item);
+      }
+    },
+  );
+  await Promise.all(lanes);
+}
+
 class SeriesCollection {
   /**
    * Create a new series and its backing TimeSeries (xseries) record.
@@ -1581,7 +1619,7 @@ class SeriesCollection {
     data: Map<string, number>;
     dataSourceId: number;
     pseudoHistory: boolean;
-  }): Promise<{ inserted: number }> {
+  }): Promise<{ inserted: number; changed: boolean }> {
     const { xseriesId, data, dataSourceId, pseudoHistory } = opts;
     const SENTINEL = 1.0e15;
 
@@ -1599,7 +1637,7 @@ class SeriesCollection {
         { xseriesId, dataSourceId },
         "updateData: cleanData empty, skipping (repairDataPoints will NOT run)",
       );
-      return { inserted: 0 };
+      return { inserted: 0, changed: false };
     }
 
     // Get this loader's priority
@@ -1744,7 +1782,7 @@ class SeriesCollection {
       insertRows.length === 0
     ) {
       await this.repairDataPoints({ id: xseriesId });
-      return { inserted: 0 };
+      return { inserted: 0, changed: false };
     }
 
     await transaction(async (tx) => {
@@ -1791,7 +1829,7 @@ class SeriesCollection {
       await this.repairDataPoints({ id: xseriesId, exec: tx });
     });
 
-    return { inserted: insertRows.length };
+    return { inserted: insertRows.length, changed: true };
   }
 
   // ─── Static loader stubs (eval-callable) ─────────────────────────
@@ -2100,27 +2138,23 @@ class SeriesCollection {
         CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
         SELECT id, name, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
       `);
+      // Edges for UHERO loaders, from series_dependencies (rebuilt by
+      // setAllDependencies, which always runs first in the dependency-reset
+      // job). Until 2026-09-03 this was a correlated leading-wildcard LIKE
+      // over every loader's dependencies JSON per depth level — no index
+      // possible, |series| × |loaders| comparisons per iteration. The edge
+      // table makes each level an indexed name lookup.
       await exec(`
-        CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-        SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+        CREATE TEMPORARY TABLE IF NOT EXISTS t_edges (INDEX idx_series_id (series_id), INDEX idx_dep_name (dep_name))
+        SELECT series_id, dep_name FROM series_dependencies WHERE universe = 'UHERO'
       `);
       await exec(`CREATE TEMPORARY TABLE t2_series LIKE t_series`);
       await exec(`INSERT INTO t2_series SELECT * FROM t_series`);
 
-      // First level: series whose name appears in any dependencies field.
-      // setAllDependencies (which always runs first in the dependency-reset
-      // job) writes dependencies as a JSON array — ["NAME1","NAME2"] — so
-      // match the quoted name. The old '% NAME%' pattern targeted the Rails
-      // YAML format ("- NAME"); against JSON it matched nothing, zeroing
-      // every dependency_depth (found 2026-09-02: nightly reload ran with
-      // maxDepth=0, all 15k series in one flat unordered bucket). % and _
-      // are LIKE wildcards and both occur in series names — escape them.
+      // First level: series that some loader depends on.
       await exec(`
         UPDATE t_series s SET dependency_depth = 1
-        WHERE EXISTS (
-          SELECT 1 FROM t_datasources
-          WHERE dependencies LIKE CONCAT('%"', REPLACE(REPLACE(s.name, '%', '\\\\%'), '_', '\\\\_'), '"%')
-        )
+        WHERE EXISTS (SELECT 1 FROM t_edges e WHERE e.dep_name = s.name)
       `);
 
       let previousDepth = 1;
@@ -2144,13 +2178,12 @@ class SeriesCollection {
           SET t2.dependency_depth = t.dependency_depth
         `);
 
-        // Next level (same JSON-quoted match as the first-level update)
+        // Next level: series that a previous-level series' loader depends on
         await exec(
           `UPDATE t_series s SET dependency_depth = ?
            WHERE EXISTS (
-             SELECT 1 FROM t_datasources ds JOIN t2_series ON ds.series_id = t2_series.id
-             WHERE t2_series.dependency_depth = ?
-             AND ds.dependencies LIKE CONCAT('%"', REPLACE(REPLACE(s.name, '%', '\\\\%'), '_', '\\\\_'), '"%')
+             SELECT 1 FROM t_edges e JOIN t2_series ON e.series_id = t2_series.id
+             WHERE t2_series.dependency_depth = ? AND e.dep_name = s.name
            )`,
           [previousDepth + 1, previousDepth],
         );
@@ -2173,7 +2206,7 @@ class SeriesCollection {
       // Clean up temp tables
       await exec(`DROP TEMPORARY TABLE IF EXISTS t_series`);
       await exec(`DROP TEMPORARY TABLE IF EXISTS t2_series`);
-      await exec(`DROP TEMPORARY TABLE IF EXISTS t_datasources`);
+      await exec(`DROP TEMPORARY TABLE IF EXISTS t_edges`);
     });
 
     log.info("assignDependencyDepth: done");
@@ -2223,7 +2256,63 @@ class SeriesCollection {
    */
   static async getAllDependencies(baseList: number[]): Promise<number[]> {
     if (baseList.length === 0) return [];
+    if (!(await SeriesCollection.dependencyEdgesReady())) {
+      return SeriesCollection.getAllDependenciesLegacy(baseList);
+    }
 
+    const resultSet = new Set(baseList);
+    let nextSet = [...baseList];
+
+    while (nextSet.length > 0) {
+      const placeholders = nextSet.map(() => "?").join(",");
+      // By name across universes, as always (see series_dependencies).
+      const rows = await rawQuery<{ series_id: number }>(
+        `SELECT DISTINCT sd.series_id
+         FROM series_dependencies sd
+         JOIN series s ON s.name = sd.dep_name
+         WHERE s.id IN (${placeholders})`,
+        nextSet,
+      );
+
+      const newIds = rows
+        .map((r) => r.series_id)
+        .filter((id) => !resultSet.has(id));
+      for (const id of newIds) resultSet.add(id);
+      nextSet = newIds;
+    }
+
+    return Array.from(resultSet);
+  }
+
+  /** Once the edge table has rows it stays authoritative for this process. */
+  private static edgesReady = false;
+
+  /**
+   * Is series_dependencies populated? False until the first dependency
+   * reset after the table's migration (or if the migration hasn't run),
+   * in which case callers fall back to scanning the dependencies JSON.
+   */
+  private static async dependencyEdgesReady(): Promise<boolean> {
+    if (SeriesCollection.edgesReady) return true;
+    try {
+      const rows = await rawQuery<{ one: number }>(
+        `SELECT 1 AS one FROM series_dependencies LIMIT 1`,
+      );
+      if (rows.length > 0) SeriesCollection.edgesReady = true;
+      return rows.length > 0;
+    } catch (e) {
+      log.warn(
+        { err: e instanceof Error ? e.message : String(e) },
+        "series_dependencies unavailable — using legacy dependency scan",
+      );
+      return false;
+    }
+  }
+
+  /** Pre-edge-table implementation: scans every loader's dependencies JSON. */
+  private static async getAllDependenciesLegacy(
+    baseList: number[],
+  ): Promise<number[]> {
     const resultSet = new Set(baseList);
     let nextSet = [...baseList];
 
@@ -2463,7 +2552,7 @@ class SeriesCollection {
      * case the lock is handed over and re-acquired before we continue.
      */
     yieldPoint?: () => Promise<void>;
-  }): Promise<void> {
+  }): Promise<{ perDepth: BatchReloadDepthStat[] }> {
     const {
       seriesIds,
       suffix,
@@ -2479,7 +2568,7 @@ class SeriesCollection {
 
     if (seriesIds.length === 0) {
       job?.log("No series to reload");
-      return;
+      return { perDepth: [] };
     }
 
     // Get max dependency_depth
@@ -2499,6 +2588,7 @@ class SeriesCollection {
       "Starting batch reload",
     );
 
+    const perDepth: BatchReloadDepthStat[] = [];
     for (let depth = maxDepth; depth >= 0; depth--) {
       const depthRows = await rawQuery<{ id: number }>(
         `SELECT id FROM series WHERE id IN (${placeholders}) AND dependency_depth = ?`,
@@ -2507,12 +2597,15 @@ class SeriesCollection {
       const depthIds = depthRows.map((r) => r.id);
       if (depthIds.length === 0) continue;
 
-      job?.log(`Depth ${depth}: ${depthIds.length} series`);
+      job?.log(
+        `Depth ${depth}: ${depthIds.length} series (concurrency ${RELOAD_CONCURRENCY})`,
+      );
       log.info(
         {
           batchId,
           depth,
           count: depthIds.length,
+          concurrency: RELOAD_CONCURRENCY,
           rssMB: Math.round(process.memoryUsage.rss() / 1048576),
         },
         "Processing depth level",
@@ -2521,9 +2614,14 @@ class SeriesCollection {
       // Process in groups
       const depthStart = Date.now();
       let processed = 0;
+      let failed = 0;
       for (let i = 0; i < depthIds.length; i += groupSize) {
         const group = depthIds.slice(i, i + groupSize);
-        for (const seriesId of group) {
+        // Series within one depth level are independent — every input
+        // they read lives at a higher depth and has already been reloaded
+        // — so run several at a time. A series' *own* loaders stay
+        // sequential: updateData depends on their priority order.
+        await mapWithConcurrency(group, RELOAD_CONCURRENCY, async (seriesId) => {
           try {
             const loaders = await LoaderCol.getEnabledBySeriesId(seriesId);
             for (const loader of loaders) {
@@ -2531,6 +2629,7 @@ class SeriesCollection {
               await LoaderCol.reload({ loader, clearFirst });
             }
           } catch (e) {
+            failed++;
             const msg = e instanceof Error ? e.message : String(e);
             log.warn(
               { seriesId, err: msg },
@@ -2538,7 +2637,7 @@ class SeriesCollection {
             );
             job?.log(`Series ${seriesId} failed: ${msg}`);
           }
-        }
+        });
         // Let a waiting upload take the heavy lock between groups instead
         // of timing out behind a multi-hour reload.
         if (yieldPoint) await yieldPoint();
@@ -2553,10 +2652,17 @@ class SeriesCollection {
           );
         }
       }
+      perDepth.push({
+        depth,
+        count: depthIds.length,
+        failed,
+        seconds: Math.round((Date.now() - depthStart) / 1000),
+      });
     }
 
-    log.info({ batchId }, "Batch reload complete");
+    log.info({ batchId, perDepth }, "Batch reload complete");
     job?.log("Batch reload complete");
+    return { perDepth };
   }
 
   // Delegate to model for name/universe validation
