@@ -115,6 +115,16 @@ export type ClipboardActionJobData = {
     | "destroy"
     | "update_public";
   seriesIds: number[];
+  /** Only for `clear_data`; absent (older jobs) means clear all points */
+  clearOptions?: {
+    deleteBy:
+      | "observationDate"
+      | "beforeObservationDate"
+      | "vintageDate"
+      | "currentOnly"
+      | "none";
+    date?: string;
+  };
 };
 
 export type ClipboardLoaderReloadJobData = {

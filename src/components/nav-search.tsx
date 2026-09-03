@@ -57,6 +57,7 @@ const FLAG_OPTIONS = [
   { value: "nodata", label: "No data" },
   { value: "noclock", label: "No clock" },
   { value: "noclip", label: "Not on clipboard" },
+  { value: "deps", label: "Include dependents" },
 ];
 
 type FilterRow = {
@@ -405,6 +406,10 @@ export function SearchSyntaxHelp() {
             <td>&amp;noclip</td>
             <td>Exclude clipboard</td>
           </tr>
+          <tr>
+            <td>&amp;deps</td>
+            <td>Include matched dependent series</td>
+          </tr>
         </tbody>
       </table>
       <p className="font-semibold">Examples</p>
@@ -429,6 +434,10 @@ export function SearchSyntaxHelp() {
           <tr>
             <td>145746</td>
             <td>Find by series ID</td>
+          </tr>
+          <tr>
+            <td>^cpi &amp;deps</td>
+            <td>CPI series plus everything built from them</td>
           </tr>
         </tbody>
       </table>

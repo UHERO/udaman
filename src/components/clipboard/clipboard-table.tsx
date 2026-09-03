@@ -33,6 +33,7 @@ import {
   removeSeriesFromClipboard,
   searchClipboardLoaders,
 } from "@/actions/clipboard-actions";
+import { SAIndicator } from "@/components/common";
 import { getColor } from "@/components/helpers";
 import {
   AlertDialog,
@@ -63,6 +64,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { ClipboardClearDataDialog } from "./clipboard-clear-data-dialog";
 import { ClipboardMetadataDialog } from "./clipboard-metadata-dialog";
 
 const CLIPBOARD_ACTIONS: {
@@ -102,6 +104,7 @@ export function ClipboardTable({
   const [count, setCount] = useState(initialCount);
   const [isPending, startTransition] = useTransition();
   const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+  const [clearDataDialogOpen, setClearDataDialogOpen] = useState(false);
 
   // Loader filter state
   const [loaderFilter, setLoaderFilter] = useState("");
@@ -199,6 +202,11 @@ export function ClipboardTable({
     // Metadata update opens a dialog
     if (action === "meta_update") {
       setMetadataDialogOpen(true);
+      return;
+    }
+    // Clear data points opens a dialog to choose which points to clear
+    if (action === "clear_data") {
+      setClearDataDialogOpen(true);
       return;
     }
 
@@ -386,7 +394,7 @@ export function ClipboardTable({
                     {row.frequency ?? "-"}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {row.seasonalAdjustment ?? "-"}
+                    <SAIndicator sa={row.seasonalAdjustment} />
                   </TableCell>
                   <TableCell className="text-sm">
                     {row.unitShortLabel ?? "-"}
@@ -423,6 +431,12 @@ export function ClipboardTable({
         open={metadataDialogOpen}
         onOpenChange={setMetadataDialogOpen}
         universe={universe}
+        clipboardCount={count}
+        onSuccess={fetchData}
+      />
+      <ClipboardClearDataDialog
+        open={clearDataDialogOpen}
+        onOpenChange={setClearDataDialogOpen}
         clipboardCount={count}
         onSuccess={fetchData}
       />

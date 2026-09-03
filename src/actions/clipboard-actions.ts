@@ -15,6 +15,7 @@ import {
 import type {
   BulkMetadataPayload,
   ClipboardAction,
+  ClipboardClearOptions,
 } from "@catalog/controllers/clipboard";
 
 import { createLogger } from "@/core/observability/logger";
@@ -94,12 +95,20 @@ export async function clearClipboard() {
   }
 }
 
-export async function executeClipboardAction(action: ClipboardAction) {
+export async function executeClipboardAction(
+  action: ClipboardAction,
+  /** Only honoured for `clear_data`; validated in the controller */
+  clearOptions?: ClipboardClearOptions,
+) {
   await requirePermission("clipboard", "execute");
   const userId = await getCurrentUserId();
-  log.info({ userId, action }, "executeClipboardAction called");
+  log.info({ userId, action, clearOptions }, "executeClipboardAction called");
   try {
-    const result = await doClipboardActionCtrl({ userId, action });
+    const result = await doClipboardActionCtrl({
+      userId,
+      action,
+      clearOptions,
+    });
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

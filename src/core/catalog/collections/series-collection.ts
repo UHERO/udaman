@@ -1181,6 +1181,8 @@ class SeriesCollection {
    *   !PATTERN      — data-source last_error regex
    *   ;res=IDS      — resource ID filter (unit, src, det)
    *   &FLAG         — boolean flags: pub, pct, nodpn, sa, ns, nodata, noclock, hasph
+   *   &deps         — expand results to include every series that (transitively)
+   *                   depends on a matched series; requires another term
    *   {PATTERN      — dataPortalName regex
    *   }PATTERN      — description regex
    *   firstOP DATE  — filter by MIN observation date (e.g. first>=2020-01-01)
@@ -1206,6 +1208,7 @@ class SeriesCollection {
     const conditions: string[] = [];
     const variables: (string | number | Date)[] = [];
     let univ: string | null = universe as string;
+    let includeDeps = false;
 
     const OPERATORS = "^+~@.#!:;&/={}";
     const terms = text.split(/\s+/).filter(Boolean);
@@ -1395,6 +1398,12 @@ class SeriesCollection {
               conditions.push("l4.pseudo_history IS TRUE");
               break;
             }
+            if (flag === "deps") {
+              if (negated) throw new Error("Cannot negate &deps");
+              // Post-pass: expand the matched set via getAllDependencies.
+              includeDeps = true;
+              break;
+            }
             throw new Error(`Unknown fixed term &${flag}`);
           }
           case "{":
@@ -1460,15 +1469,19 @@ class SeriesCollection {
       variables.push(convertCommas(term.replace(/^["']/, "")));
     }
 
+    // `&deps` on its own would expand "everything" to "everything" — refuse
+    // rather than silently return the whole universe.
+    if (includeDeps && conditions.length === 0) {
+      throw new Error("&deps requires at least one other search term");
+    }
+
     // Universe filter
     if (univ) {
       conditions.push("series.universe = ?");
       variables.push(univ);
     }
 
-    const whereClause =
-      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const sql = [
+    const SELECT_COLS = [
       `SELECT DISTINCT`,
       `  series.id, series.xseries_id, series.geography_id, series.unit_id,`,
       `  series.source_id, series.source_detail_id, series.universe, series.decimals,`,
@@ -1479,6 +1492,12 @@ class SeriesCollection {
       `  xseries.quarantined, xseries.seasonal_adjustment, xseries.seasonally_adjusted,`,
       `  xseries.aremos_missing, xseries.aremos_diff, xseries.percent, xseries.real`,
       `FROM series`,
+    ];
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const sql = [
+      ...SELECT_COLS,
       joins.join(" "),
       whereClause,
       `ORDER BY series.name`,
@@ -1487,7 +1506,35 @@ class SeriesCollection {
     variables.push(limit);
 
     const rows = await rawQuery<SeriesAttrs>(sql, variables);
-    return rows.map((row) => new Series(row));
+    if (!includeDeps || rows.length === 0) {
+      return rows.map((row) => new Series(row));
+    }
+
+    // ── &deps expansion ─────────────────────────────────────────────
+    // getAllDependencies matches by series *name* across universes (same
+    // logic as "reload with deps"), so re-apply the universe filter here to
+    // keep the result scoped like every other search.
+    const baseIds = rows
+      .map((r) => r.id)
+      .filter((id): id is number => typeof id === "number");
+    const allIds = await SeriesCollection.getAllDependencies(baseIds);
+    const depConditions = [`series.id IN (${allIds.map(() => "?").join(",")})`];
+    const depVariables: (string | number)[] = [...allIds];
+    if (univ) {
+      depConditions.push("series.universe = ?");
+      depVariables.push(univ);
+    }
+    const depSql = [
+      ...SELECT_COLS,
+      `INNER JOIN xseries ON xseries.id = series.xseries_id`,
+      `WHERE ${depConditions.join(" AND ")}`,
+      `ORDER BY series.name`,
+      `LIMIT ?`,
+    ].join("\n");
+    depVariables.push(limit);
+
+    const depRows = await rawQuery<SeriesAttrs>(depSql, depVariables);
+    return depRows.map((row) => new Series(row));
   }
 
   /** Resolve a list of series names to a name→id map. Unknown names are omitted.

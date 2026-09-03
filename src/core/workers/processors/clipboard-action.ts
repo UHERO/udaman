@@ -27,7 +27,7 @@ export async function processClipboardAction(
   const origLog = job.log.bind(job);
   job.log = (msg: string) => origLog(`[${timestamp()}] ${msg}`);
 
-  const { reloadJobId, action, seriesIds } = job.data;
+  const { reloadJobId, action, seriesIds, clearOptions } = job.data;
 
   // Mark as processing
   await mysql`UPDATE reload_jobs SET status = 'processing' WHERE id = ${reloadJobId}`;
@@ -129,18 +129,24 @@ export async function processClipboardAction(
       }
 
       case "clear_data": {
+        // Older queued jobs carry no options — preserve the "clear all" default
+        const { deleteBy, date } = clearOptions ?? { deleteBy: "none" };
+        const modeLabel = date ? `${deleteBy} ${date}` : deleteBy;
+        job.log(`Clear mode: ${modeLabel}`);
         let cleared = 0;
         for (const sid of seriesIds) {
           try {
             const series = await SeriesCollection.getById(sid);
             if (series.xseriesId) {
-              await SeriesCollection.deleteAllDataPoints({
+              await SeriesCollection.deleteDataPoints({
                 id: series.xseriesId,
                 u: series.universe,
+                deleteBy,
+                date,
               });
             }
             cleared++;
-            job.log(`Cleared data for series ${sid}`);
+            job.log(`Cleared data (${modeLabel}) for series ${sid}`);
           } catch (e) {
             log.warn(
               { id: sid, error: e instanceof Error ? e.message : String(e) },
@@ -151,7 +157,7 @@ export async function processClipboardAction(
             );
           }
         }
-        result = `Cleared data points for ${cleared} of ${seriesIds.length} series`;
+        result = `Cleared data points (${modeLabel}) for ${cleared} of ${seriesIds.length} series`;
         break;
       }
 
