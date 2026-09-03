@@ -2046,11 +2046,19 @@ class SeriesCollection {
       await exec(`CREATE TEMPORARY TABLE t2_series LIKE t_series`);
       await exec(`INSERT INTO t2_series SELECT * FROM t_series`);
 
-      // First level: series whose name appears in any dependencies field
+      // First level: series whose name appears in any dependencies field.
+      // setAllDependencies (which always runs first in the dependency-reset
+      // job) writes dependencies as a JSON array — ["NAME1","NAME2"] — so
+      // match the quoted name. The old '% NAME%' pattern targeted the Rails
+      // YAML format ("- NAME"); against JSON it matched nothing, zeroing
+      // every dependency_depth (found 2026-09-02: nightly reload ran with
+      // maxDepth=0, all 15k series in one flat unordered bucket). % and _
+      // are LIKE wildcards and both occur in series names — escape them.
       await exec(`
         UPDATE t_series s SET dependency_depth = 1
         WHERE EXISTS (
-          SELECT 1 FROM t_datasources WHERE dependencies LIKE CONCAT('% ', s.name, '%')
+          SELECT 1 FROM t_datasources
+          WHERE dependencies LIKE CONCAT('%"', REPLACE(REPLACE(s.name, '%', '\\\\%'), '_', '\\\\_'), '"%')
         )
       `);
 
@@ -2075,13 +2083,13 @@ class SeriesCollection {
           SET t2.dependency_depth = t.dependency_depth
         `);
 
-        // Next level
+        // Next level (same JSON-quoted match as the first-level update)
         await exec(
           `UPDATE t_series s SET dependency_depth = ?
            WHERE EXISTS (
              SELECT 1 FROM t_datasources ds JOIN t2_series ON ds.series_id = t2_series.id
              WHERE t2_series.dependency_depth = ?
-             AND ds.dependencies LIKE CONCAT('% ', REPLACE(s.name, '%', '\\\\%'), '%')
+             AND ds.dependencies LIKE CONCAT('%"', REPLACE(REPLACE(s.name, '%', '\\\\%'), '_', '\\\\_'), '"%')
            )`,
           [previousDepth + 1, previousDepth],
         );
@@ -2443,6 +2451,8 @@ class SeriesCollection {
       );
 
       // Process in groups
+      const depthStart = Date.now();
+      let processed = 0;
       for (let i = 0; i < depthIds.length; i += groupSize) {
         const group = depthIds.slice(i, i + groupSize);
         for (const seriesId of group) {
@@ -2460,6 +2470,15 @@ class SeriesCollection {
             );
             job?.log(`Series ${seriesId} failed: ${msg}`);
           }
+        }
+        // Progress heartbeat: without it a multi-hour depth level is
+        // indistinguishable from a hung one in the job log (2026-09-02).
+        processed += group.length;
+        if (processed % 500 === 0 || processed === depthIds.length) {
+          const elapsedMin = Math.round((Date.now() - depthStart) / 60000);
+          job?.log(
+            `Depth ${depth}: ${processed}/${depthIds.length} series reloaded (${elapsedMin}m elapsed)`,
+          );
         }
       }
     }
