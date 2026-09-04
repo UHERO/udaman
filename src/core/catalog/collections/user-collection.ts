@@ -2,6 +2,7 @@ import { compare, hash } from "bcryptjs";
 
 import { createLogger } from "@/core/observability/logger";
 import { DEVISE_PEPPER } from "@/lib/auth/pepper";
+import { ALL_ROLES } from "@/lib/auth/roles";
 import { insertAndGetId, mysql } from "@/lib/mysql/db";
 
 import User from "../models/user";
@@ -11,7 +12,7 @@ const log = createLogger("collection.users");
 
 const BCRYPT_ROUNDS = 12;
 
-const VALID_ROLES = ["external", "fsonly", "internal", "admin", "dev"] as const;
+const VALID_ROLES = ALL_ROLES;
 
 export interface CreateUserPayload {
   email: string;

@@ -27,17 +27,25 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type Role = "external" | "internal" | "admin" | "dev";
+import { FULL_ACCESS_ROLES, type Role } from "./roles";
+
+export type { Role } from "./roles";
 
 export type RouteChild = {
   label: string;
   path: string;
-  roles?: Role[];
+  roles?: readonly Role[];
   universes?: string[];
 };
 
 export type RouteEntry = {
   label: string;
+  /**
+   * Permission resource this item owns. The admin Permissions page shows a
+   * CRUD row per top-level item keyed on this; finer-grained resources
+   * checked by server actions roll up to it via RESOURCE_PARENTS.
+   */
+  resource: string;
   path: string;
   /**
    * Sidebar link target when it differs from `path` — for sections whose
@@ -48,7 +56,7 @@ export type RouteEntry = {
    */
   href?: string;
   icon: LucideIcon;
-  roles: Role[];
+  roles: readonly Role[];
   universes?: string[];
   children?: RouteChild[];
   /** Where this route appears in the UI: "rail" (app rail) or "sidebar" (default) */
@@ -60,31 +68,42 @@ export type RouteEntry = {
  *
  * Sidebar routes: paths are relative to `/udaman/{universe}`.
  * Rail routes: paths are absolute top-level (e.g. `/admin`, `/hhdb`, `/docs`).
+ *
+ * Access policy: every tool is admin/dev only (FULL_ACCESS_ROLES). The
+ * `internal` role — which every auto-created Google account starts with —
+ * sees an empty sidebar and can only reach the universe homepage until an
+ * admin promotes it. Exceptions: the DBEDT external upload flow (a
+ * deliberately narrow, pre-existing workflow) and the `fellow` role, which
+ * gets the Housing Database, Comms, and Registry rail apps by default.
  */
 export const ROUTES: RouteEntry[] = [
   {
     label: "Time Series",
+    resource: "series",
     path: "/series",
     icon: TableProperties,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
   },
   {
     label: "Analyze",
+    resource: "analyze",
     path: "/analyze",
     icon: LineChart,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
   },
   {
     label: "Clipboard",
+    resource: "clipboard",
     path: "/clipboard",
     icon: ClipboardList,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
   },
   {
     label: "Data Portal Catalog",
+    resource: "catalog",
     path: "/catalog",
     icon: ChartLine,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
     children: [
       { label: "Universe", path: "/catalog" },
       { label: "Categories", path: "/catalog/categories" },
@@ -98,10 +117,11 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     label: "Data Tools",
+    resource: "data-tools",
     path: "/data-tools",
     href: "/data-tools/tsd",
     icon: FileSpreadsheet,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
     children: [
       { label: "TSD Convert & Inspect", path: "/data-tools/tsd" },
       { label: "Timeline Events", path: "/data-tools/timeline" },
@@ -109,9 +129,10 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     label: "Investigations",
+    resource: "investigation",
     path: "/investigations",
     icon: SearchSlash,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
     children: [
       { label: "Dashboard", path: "/investigations" },
       { label: "Missing Metadata", path: "/investigations/no-source" },
@@ -120,58 +141,64 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     label: "Forecast Snapshots",
+    resource: "forecast-snapshot",
     path: "/forecast/snapshots",
     icon: BookOpen,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
   },
   {
     label: "Uploads",
+    resource: "upload",
     path: "/uploads",
     href: "/uploads/econ",
     icon: ArrowUpToLine,
-    roles: ["external", "internal", "admin", "dev"],
+    // DBEDT external uploaders keep their Econ/Tour pages (see policy note).
+    roles: ["external", ...FULL_ACCESS_ROLES],
     children: [
       {
         label: "Econ",
         path: "/uploads/econ",
-        roles: ["external", "internal", "admin", "dev"],
+        roles: ["external", ...FULL_ACCESS_ROLES],
       },
       {
         label: "Tour",
         path: "/uploads/tour",
-        roles: ["external", "internal", "admin", "dev"],
+        roles: ["external", ...FULL_ACCESS_ROLES],
       },
       {
         label: "Forecast",
         path: "/uploads/forecast",
-        roles: ["internal", "admin", "dev"],
+        roles: FULL_ACCESS_ROLES,
       },
       {
         label: "Factbook",
         path: "/uploads/factbook",
-        roles: ["internal", "admin", "dev"],
+        roles: FULL_ACCESS_ROLES,
         universes: ["HHF"],
       },
     ],
   },
   {
     label: "Downloads",
+    resource: "download",
     path: "/downloads",
     icon: ArrowDownToLine,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
   },
   {
     label: "Exports",
+    resource: "export",
     path: "/exports",
     icon: ArrowLeftFromLine,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
   },
   // ── Rail routes (top-level, absolute paths) ──
   {
     label: "Admin",
+    resource: "admin",
     path: "/admin",
     icon: Shield,
-    roles: ["admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
     location: "rail",
     children: [
       { label: "Permissions", path: "/admin" },
@@ -189,32 +216,36 @@ export const ROUTES: RouteEntry[] = [
   },
   {
     label: "Housing Database",
+    resource: "hhdb",
     path: "/hhdb",
     icon: Building2,
-    roles: ["internal", "admin", "dev"],
+    roles: ["fellow", ...FULL_ACCESS_ROLES],
     universes: ["UHERO"],
     location: "rail",
   },
   {
     label: "Comms",
+    resource: "approval",
     path: "/comms",
     icon: Megaphone,
-    roles: ["internal", "admin", "dev"],
+    roles: ["fellow", ...FULL_ACCESS_ROLES],
     location: "rail",
     children: [{ label: "New form", path: "/comms/pub-form/new" }],
   },
   {
     label: "Docs",
+    resource: "docs",
     path: "/docs",
     icon: BookOpen,
-    roles: ["internal", "admin", "dev"],
+    roles: FULL_ACCESS_ROLES,
     location: "rail",
   },
   {
     label: "Registry",
+    resource: "data-registry",
     path: "/data-registry",
     icon: Library,
-    roles: ["internal", "admin", "dev"],
+    roles: ["fellow", ...FULL_ACCESS_ROLES],
     location: "rail",
   },
 ];
@@ -225,7 +256,7 @@ export const ROUTES: RouteEntry[] = [
 export function canAccess(
   userRole: string,
   userUniverse: string,
-  entry: { roles: Role[]; universes?: string[] },
+  entry: { roles: readonly Role[]; universes?: string[] },
 ): boolean {
   if (!entry.roles.includes(userRole as Role)) return false;
   if (
@@ -382,4 +413,22 @@ export function isRouteAllowed(
 
   // No matching route found — deny by default
   return false;
+}
+
+/**
+ * Resolve the landing page path for a role+universe after login.
+ *
+ * Users who can open the Time Series tool land there directly. Everyone
+ * else — including freshly auto-created `internal` accounts and DBEDT
+ * external uploaders — lands on the universe homepage, which renders cards
+ * for whatever (if anything) their role can reach. Kept in sync with the
+ * manifest by asking `isRouteAllowed`, so a policy change here can't leave
+ * login redirecting into a page the middleware then bounces.
+ */
+export function getLandingPath(userRole: string, userUniverse: string): string {
+  const u = userUniverse.toLowerCase();
+  const seriesPath = `/udaman/${u}/series`;
+  return isRouteAllowed(userRole, userUniverse, seriesPath)
+    ? seriesPath
+    : `/udaman/${u}`;
 }

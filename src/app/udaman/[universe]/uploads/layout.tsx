@@ -1,7 +1,8 @@
 import { UploadLayout } from "@/components/uploads/upload-layout";
 import { UploadTabs } from "@/components/uploads/upload-tabs";
-import { isDbedt, isHhf, isInternalUser } from "@/lib/auth/authorization";
+import { isDbedt, isHhf } from "@/lib/auth/authorization";
 import { getCurrentUserContext } from "@/lib/auth/dal";
+import { hasFullAccess } from "@/lib/auth/roles";
 
 export default async function Layout({
   children,
@@ -10,12 +11,12 @@ export default async function Layout({
 }) {
   const { role, universe } = await getCurrentUserContext();
 
+  // Defense in depth behind the middleware: only admin/dev, DBEDT external
+  // uploaders, and HHF factbook maintainers get past this layout.
   if (
+    !hasFullAccess(role) &&
     !isDbedt(role, universe) &&
-    !isInternalUser(role, universe) &&
-    !isHhf(role, universe) &&
-    role !== "admin" &&
-    role !== "dev"
+    !isHhf(role, universe)
   ) {
     return (
       <div className="p-8">

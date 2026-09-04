@@ -13,6 +13,10 @@ const CARD_DESCRIPTIONS: Record<string, string> = {
   Investigations: "Investigate data quality issues",
   Docs: "View documentation and guides",
   "Forecast Snapshots": "View and compare published forecast snapshots",
+  "Housing Database": "Browse the Hawaii housing database (qPublic, TG)",
+  Comms: "File and review pre-release sign-off forms",
+  Registry: "Catalog of upstream UHERO data sources",
+  Admin: "System administration",
   Uploads: "Upload economic and tourism data files",
   Settings: "Configure data portal settings",
   Econ: "Upload DBEDT economic indicators (XLSX)",
@@ -63,7 +67,11 @@ export default async function UniversePage({
       : routes.map((entry) => ({
           title: entry.label,
           description: CARD_DESCRIPTIONS[entry.label] ?? "",
-          href: prefixUrl(entry.path, universe),
+          // Rail apps (/hhdb, /comms, ...) live outside /udaman/{universe}.
+          href:
+            entry.location === "rail"
+              ? entry.path
+              : prefixUrl(entry.href ?? entry.path, universe),
           icon: entry.icon,
         }));
 
@@ -96,8 +104,9 @@ export default async function UniversePage({
       ) : (
         <div className="mt-8 rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground">
-            Your current role does not have access to any tools in this
-            universe. Contact an administrator if you believe this is an error.
+            Your account does not have access to any tools yet. New accounts
+            start with limited permissions — contact a UDAMAN administrator to
+            request access.
           </p>
         </div>
       )}

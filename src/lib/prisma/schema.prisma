@@ -812,6 +812,7 @@ enum users_role {
   external
   fsonly
   internal
+  fellow
   admin
   dev
 }

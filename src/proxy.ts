@@ -2,7 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { isRouteAllowed } from "@/lib/auth/route-access";
+import { getLandingPath, isRouteAllowed } from "@/lib/auth/route-access";
 
 /**
  * Subdomain → internal route prefix mapping.
@@ -164,12 +164,13 @@ export async function proxy(request: NextRequest) {
             secret: process.env.AUTH_SECRET,
           });
           const role = (token?.role as string) ?? "external";
-          const universe = (
-            (token?.universe as string) ?? "uhero"
-          ).toLowerCase();
-          // External users (e.g. DBEDT) → universe homepage; internal+ → /series
-          const landingPath =
-            role === "external" ? `/${universe}` : `/${universe}/series`;
+          const universe = (token?.universe as string) ?? "uhero";
+          // Same policy as the login page; strip the internal /udaman prefix
+          // so the browser URL stays clean on the subdomain.
+          const landingPath = getLandingPath(role, universe).replace(
+            /^\/udaman/,
+            "",
+          );
           return NextResponse.redirect(new URL(landingPath, request.url));
         }
         // No session — fall through to rewrite (serves login page)

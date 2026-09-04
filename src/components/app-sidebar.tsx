@@ -9,7 +9,6 @@ import {
   Activity,
   AudioWaveform,
   BarChart3,
-  Gauge,
   BookOpen,
   Building2,
   Calendar,
@@ -17,6 +16,7 @@ import {
   Command,
   FunctionSquare,
   GalleryVerticalEnd,
+  Gauge,
   Globe,
   House,
   KeyRound,
@@ -52,7 +52,13 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { UniverseSwitcher } from "@/components/universe-switcher";
-import { getVisibleChildren, getVisibleRoutes } from "@/lib/auth/route-access";
+import {
+  canAccess,
+  getLandingPath,
+  getVisibleChildren,
+  getVisibleRoutes,
+  ROUTES,
+} from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
 
 /** Per-universe icon overrides. Anything missing falls back to GalleryVerticalEnd. */
@@ -89,49 +95,28 @@ const MODE_BRANDING: Record<
   },
 };
 
+/**
+ * App rail. Access for every entry except the UDAMAN home comes from the
+ * matching `ROUTES` rail entry (looked up by `href`), so there is a single
+ * place — route-access.ts — that decides who sees and can open what. The
+ * middleware enforces the same manifest, so a hidden item is also unreachable.
+ */
 const RAIL_ITEMS = [
   {
     label: "UDAMAN",
     icon: ChartNoAxesCombined,
     href: "/udaman",
     match: "/udaman",
-    roles: ["external", "internal", "admin", "dev"],
   },
-  {
-    label: "HHDB",
-    icon: House,
-    href: "/hhdb",
-    match: "/hhdb",
-    roles: ["internal", "admin", "dev"],
-    universes: ["UHERO"],
-  },
-  {
-    label: "Admin",
-    icon: Shield,
-    href: "/admin",
-    match: "/admin",
-    roles: ["admin", "dev"],
-  },
-  {
-    label: "Comms",
-    icon: Megaphone,
-    href: "/comms",
-    match: "/comms",
-    roles: ["internal", "admin", "dev"],
-  },
-  {
-    label: "Docs",
-    icon: BookOpen,
-    href: "/docs",
-    match: "/docs",
-    roles: ["internal", "admin", "dev"],
-  },
+  { label: "HHDB", icon: House, href: "/hhdb", match: "/hhdb" },
+  { label: "Admin", icon: Shield, href: "/admin", match: "/admin" },
+  { label: "Comms", icon: Megaphone, href: "/comms", match: "/comms" },
+  { label: "Docs", icon: BookOpen, href: "/docs", match: "/docs" },
   {
     label: "Registry",
     icon: Library,
     href: "/data-registry",
     match: "/data-registry",
-    roles: ["internal", "admin", "dev"],
   },
 ] as const;
 
@@ -241,19 +226,15 @@ export function AppSidebar({
 
   const branding = MODE_BRANDING[mode];
 
-  // Rail visibility
-  const defaultUniverse = user.universe.toLowerCase();
+  // Rail visibility — the UDAMAN home is always available (it lands on the
+  // universe homepage for limited roles); everything else defers to ROUTES.
+  const homeHref = getLandingPath(user.role, user.universe);
   const visibleRailItems = RAIL_ITEMS.filter((item) => {
-    if (!(item.roles as readonly string[]).includes(user.role)) return false;
-    if (
-      "universes" in item &&
-      item.universes &&
-      !(item.universes as readonly string[]).includes(
-        user.universe.toUpperCase(),
-      )
-    )
-      return false;
-    return true;
+    if (item.href === "/udaman") return true;
+    const entry = ROUTES.find(
+      (r) => r.location === "rail" && r.path === item.href,
+    );
+    return entry ? canAccess(user.role, user.universe, entry) : false;
   });
 
   const initials = user.name
@@ -277,10 +258,7 @@ export function AppSidebar({
         {/* Nav items */}
         <nav className="flex flex-1 flex-col items-center gap-1 px-1.5 pt-3">
           {visibleRailItems.map((item) => {
-            const href =
-              item.href === "/udaman"
-                ? `/udaman/${defaultUniverse}/series`
-                : item.href;
+            const href = item.href === "/udaman" ? homeHref : item.href;
             const isActive = pathname.startsWith(item.match);
 
             return (

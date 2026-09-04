@@ -29,15 +29,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ALL_ROLES } from "@/lib/auth/roles";
 
 import { UserFormSheet } from "./user-form-sheet";
 import type { SerializedUser } from "./user-form-sheet";
 
-const ROLES = ["external", "fsonly", "internal", "admin", "dev"] as const;
+const ROLES = ALL_ROLES;
 
 const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   dev: "default",
   admin: "default",
+  fellow: "secondary",
   internal: "secondary",
   fsonly: "outline",
   external: "outline",

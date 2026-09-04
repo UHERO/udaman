@@ -12,16 +12,12 @@ import {
 } from "@catalog/controllers/investigations";
 
 import { createLogger } from "@/core/observability/logger";
-import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
-import { AuthorizationError } from "@/lib/errors";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.investigations");
 
 export async function deleteReloadJob(id: number) {
-  const role = await getCurrentUserRole();
-  if (!["internal", "admin", "dev"].includes(role))
-    throw new AuthorizationError();
-  const userId = await getCurrentUserId();
+  const { userId } = await requirePermission("investigation", "delete");
   log.info({ id, userId }, "deleteReloadJob action called");
   try {
     const result = await deleteReloadJobCtrl({ id });
@@ -43,10 +39,7 @@ export async function deleteReloadJob(id: number) {
 }
 
 export async function rerunReloadJob(id: number) {
-  const role = await getCurrentUserRole();
-  if (!["internal", "admin", "dev"].includes(role))
-    throw new AuthorizationError();
-  const userId = await getCurrentUserId();
+  const { userId } = await requirePermission("investigation", "update");
   log.info({ id, userId }, "rerunReloadJob action called");
   try {
     const result = await rerunReloadJobCtrl({ id });
@@ -68,10 +61,7 @@ export async function runAdminAction(
   action: AdminAction,
   options: AdminActionOptions = {},
 ) {
-  const role = await getCurrentUserRole();
-  if (!["internal", "admin", "dev"].includes(role))
-    throw new AuthorizationError();
-  const userId = await getCurrentUserId();
+  const { userId } = await requirePermission("investigation", "execute");
   log.info({ action, userId, ...options }, "runAdminAction called");
   try {
     const result = await runAdminActionCtrl({ action, options });

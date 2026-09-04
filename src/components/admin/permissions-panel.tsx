@@ -16,6 +16,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CRUD_ACTIONS, RESOURCE_PARENTS } from "@/lib/auth/resources";
+import type { Role } from "@/lib/auth/roles";
+import { ROUTES } from "@/lib/auth/route-access";
 
 type SerializedPermission = {
   id: number;
@@ -25,7 +28,7 @@ type SerializedPermission = {
   allowed: boolean;
 };
 
-/** A row in the grid — may or may not have a DB row yet. */
+/** A cell in the grid — may or may not have a DB row yet. */
 type PermissionEntry = {
   id: number | null;
   role: string;
@@ -34,19 +37,39 @@ type PermissionEntry = {
   allowed: boolean;
 };
 
-const ROLE_ORDER = ["dev", "admin", "internal", "fsonly", "external"] as const;
+const ROLE_ORDER: readonly Role[] = [
+  "dev",
+  "admin",
+  "fellow",
+  "internal",
+  "fsonly",
+  "external",
+];
 
-const ROLE_DESCRIPTIONS: Record<string, string> = {
+const ROLE_DESCRIPTIONS: Record<Role, string> = {
   dev: "Full access to all resources including admin features, permission management, and dangerous operations like database maintenance.",
   admin:
-    "Can manage most catalog resources (series, measurements, sources, etc.) but cannot access developer tools or modify permissions.",
+    "Full access to every tool. Cannot access developer-only admin pages or modify permissions.",
+  fellow:
+    "Research fellows. Housing Database, Comms, and Registry by default. These switches are the whole policy for this role — there is no hardcoded rule behind them.",
   internal:
-    "Read access to all data plus the ability to create and update series, measurements, and related catalog entries.",
+    "The role every new account starts with. No tools by default; promote the user to grant access. Sidebar items and pages stay hidden regardless of these switches.",
   fsonly:
-    "Limited access for forecast-only users. Can view and update series data but cannot modify catalog structure.",
+    "Forecast-only users. Can read forecast snapshots and download exports.",
   external:
-    "Read-only access to published data. Cannot create, update, or delete any resources.",
+    "DBEDT uploaders. Can use the Econ and Tour upload pages and nothing else.",
 };
+
+/** One matrix row per top-level sidebar/rail item, in manifest order. */
+const MATRIX_ROWS = ROUTES.map((entry) => ({
+  label: entry.label,
+  resource: entry.resource,
+  children: Object.entries(RESOURCE_PARENTS)
+    .filter(([, parent]) => parent === entry.resource)
+    .map(([child]) => child),
+}));
+const MATRIX_RESOURCES = new Set(MATRIX_ROWS.map((r) => r.resource));
+const MATRIX_ACTIONS = new Set<string>(CRUD_ACTIONS);
 
 function displayLabel(value: string): string {
   return value === "*" ? "all" : value;
@@ -66,12 +89,36 @@ export default function PermissionsPanel({
   // dirty tracks toggled values by composite key
   const [dirty, setDirty] = useState<Map<string, boolean>>(new Map());
 
-  // Build the full set of unique (resource, action) pairs across all roles
-  const pairSet = new Set<string>();
+  // Index existing permissions for fast lookup
+  const permIndex = new Map<string, SerializedPermission>();
   for (const p of permissions) {
-    pairSet.add(`${p.resource}\0${p.action}`);
+    permIndex.set(entryKey(p.role, p.resource, p.action), p);
   }
-  const pairs = Array.from(pairSet)
+
+  function getEntry(
+    role: string,
+    resource: string,
+    action: string,
+  ): PermissionEntry {
+    const existing = permIndex.get(entryKey(role, resource, action));
+    return existing
+      ? { ...existing }
+      : { id: null, role, resource, action, allowed: false };
+  }
+
+  // Rules that don't fit the CRUD matrix: wildcards, fine-grained resources,
+  // and non-CRUD actions like execute / csv-download. Shown so nothing an
+  // earlier migration created is hidden from the person editing policy.
+  const otherPairs = Array.from(
+    new Set(
+      permissions
+        .filter(
+          (p) =>
+            !MATRIX_RESOURCES.has(p.resource) || !MATRIX_ACTIONS.has(p.action),
+        )
+        .map((p) => `${p.resource}\0${p.action}`),
+    ),
+  )
     .map((s) => {
       const [resource, action] = s.split("\0");
       return { resource, action };
@@ -82,23 +129,6 @@ export default function PermissionsPanel({
         a.action.localeCompare(b.action),
     );
 
-  // Index existing permissions for fast lookup
-  const permIndex = new Map<string, SerializedPermission>();
-  for (const p of permissions) {
-    permIndex.set(entryKey(p.role, p.resource, p.action), p);
-  }
-
-  // Build full grid per role
-  function getEntries(role: string): PermissionEntry[] {
-    return pairs.map(({ resource, action }) => {
-      const existing = permIndex.get(entryKey(role, resource, action));
-      if (existing) {
-        return { ...existing };
-      }
-      return { id: null, role, resource, action, allowed: false };
-    });
-  }
-
   function isAllowed(entry: PermissionEntry): boolean {
     const key = entryKey(entry.role, entry.resource, entry.action);
     return dirty.has(key) ? dirty.get(key)! : entry.allowed;
@@ -108,8 +138,7 @@ export default function PermissionsPanel({
     const key = entryKey(entry.role, entry.resource, entry.action);
     setDirty((prev) => {
       const next = new Map(prev);
-      const currentValue = isAllowed(entry);
-      const newValue = !currentValue;
+      const newValue = !isAllowed(entry);
       // If toggling back to original, remove from dirty
       if (newValue === entry.allowed) {
         next.delete(key);
@@ -151,6 +180,18 @@ export default function PermissionsPanel({
     });
   }
 
+  function Cell({ entry }: { entry: PermissionEntry }) {
+    return (
+      <TableCell className="text-center">
+        <Switch
+          checked={isAllowed(entry)}
+          onCheckedChange={() => toggle(entry)}
+          aria-label={`${entry.role} ${entry.action} ${entry.resource}`}
+        />
+      </TableCell>
+    );
+  }
+
   return (
     <Tabs defaultValue={ROLE_ORDER[0]}>
       <div className="flex items-center justify-between">
@@ -171,41 +212,102 @@ export default function PermissionsPanel({
       </div>
 
       {ROLE_ORDER.map((role) => (
-        <TabsContent key={role} value={role} className="space-y-4">
+        <TabsContent key={role} value={role} className="space-y-6">
           <p className="text-muted-foreground text-sm">
             {ROLE_DESCRIPTIONS[role]}
           </p>
-          <div className="max-w-lg rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Resource</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead className="w-24 text-center">Allowed</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {getEntries(role).map((entry) => (
-                  <TableRow
-                    key={entryKey(entry.role, entry.resource, entry.action)}
-                  >
-                    <TableCell className="font-mono text-sm">
-                      {displayLabel(entry.resource)}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {displayLabel(entry.action)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={isAllowed(entry)}
-                        onCheckedChange={() => toggle(entry)}
-                      />
-                    </TableCell>
+
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold">Sidebar items</h2>
+            <p className="text-muted-foreground text-xs">
+              One row per top-level item. A rule here also covers the
+              item&apos;s finer-grained resources unless a more specific rule
+              exists below.
+            </p>
+            <div className="max-w-3xl rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Resource</TableHead>
+                    {CRUD_ACTIONS.map((action) => (
+                      <TableHead
+                        key={action}
+                        className="w-20 text-center capitalize"
+                      >
+                        {action}
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {MATRIX_ROWS.map((row) => (
+                    <TableRow key={row.resource}>
+                      <TableCell className="text-sm font-medium">
+                        {row.label}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {row.resource}
+                        {row.children.length > 0 && (
+                          <span
+                            className="text-muted-foreground block truncate"
+                            title={row.children.join(", ")}
+                          >
+                            + {row.children.join(", ")}
+                          </span>
+                        )}
+                      </TableCell>
+                      {CRUD_ACTIONS.map((action) => (
+                        <Cell
+                          key={action}
+                          entry={getEntry(role, row.resource, action)}
+                        />
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
+
+          {otherPairs.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold">Other rules</h2>
+              <p className="text-muted-foreground text-xs">
+                Wildcards, fine-grained resources, and non-CRUD actions. A
+                specific rule beats a sidebar-item rule, which beats a wildcard.
+              </p>
+              <div className="max-w-lg rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Resource</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead className="w-24 text-center">
+                        Allowed
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {otherPairs.map(({ resource, action }) => {
+                      const entry = getEntry(role, resource, action);
+                      return (
+                        <TableRow key={entryKey(role, resource, action)}>
+                          <TableCell className="font-mono text-sm">
+                            {displayLabel(resource)}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {displayLabel(action)}
+                          </TableCell>
+                          <Cell entry={entry} />
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </TabsContent>
       ))}
     </Tabs>

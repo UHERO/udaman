@@ -33,8 +33,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useUniverseNames } from "@/hooks/use-universe-names";
+import { ALL_ROLES, NEW_USER_ROLE, NEW_USER_UNIVERSE } from "@/lib/auth/roles";
 
-const ROLES = ["external", "fsonly", "internal", "admin", "dev"] as const;
+const ROLES = ALL_ROLES;
 
 export type SerializedUser = {
   id: number;
@@ -118,8 +119,8 @@ export function UserFormSheet({
     () => ({
       email: user?.email ?? "",
       name: user?.name ?? "",
-      role: (user?.role as (typeof ROLES)[number]) ?? "external",
-      universe: user?.universe ?? "UHERO",
+      role: (user?.role as (typeof ROLES)[number]) ?? NEW_USER_ROLE,
+      universe: user?.universe ?? NEW_USER_UNIVERSE,
       password: "",
       passwordConfirmation: "",
     }),

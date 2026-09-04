@@ -33,28 +33,13 @@ class PermissionCollection {
   }
 
   /** Check if a role is allowed to perform an action on a resource.
-   *  Finds the best match by specificity. No match = denied. */
+   *  Finds the best match by specificity (see Permission.resolve). */
   static async isAllowed(
     role: string,
     resource: string,
     action: string,
   ): Promise<boolean> {
-    const permissions = await this.getByRole(role);
-
-    let bestMatch: Permission | null = null;
-    let bestSpecificity = -1;
-
-    for (const perm of permissions) {
-      if (
-        perm.matches(resource, action) &&
-        perm.specificity > bestSpecificity
-      ) {
-        bestMatch = perm;
-        bestSpecificity = perm.specificity;
-      }
-    }
-
-    return bestMatch?.allowed ?? false;
+    return Permission.resolve(await this.getByRole(role), resource, action);
   }
 
   /** Fetch all permission rows, ordered by role/resource/action. */
