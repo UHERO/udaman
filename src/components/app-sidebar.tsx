@@ -29,12 +29,14 @@ import {
   Server,
   Shield,
   ToggleRight,
+  UserPlus,
   Users,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { CreateAccountDialog } from "@/components/create-account-dialog";
 import { NavHhdb } from "@/components/nav-hhdb";
 import { NavMain } from "@/components/nav-main";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,6 +54,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { UniverseSwitcher } from "@/components/universe-switcher";
+import { hasFullAccess } from "@/lib/auth/roles";
 import {
   canAccess,
   getLandingPath,
@@ -177,6 +180,8 @@ export function AppSidebar({
   const pathname = usePathname();
   const universe = (params.universe as string) || "uhero";
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
+  const canCreateAccounts = hasFullAccess(user.role);
 
   // Filter by the URL universe (current context) so a UHERO user who has
   // switched to another universe sees routes scoped to that universe.
@@ -318,6 +323,12 @@ export function AppSidebar({
                 <KeyRound />
                 Change Password
               </DropdownMenuItem>
+              {canCreateAccounts && (
+                <DropdownMenuItem onClick={() => setCreateAccountOpen(true)}>
+                  <UserPlus />
+                  Create Account
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => signOut({ callbackUrl: "/udaman" })}
               >
@@ -368,6 +379,12 @@ export function AppSidebar({
           createdAt: user.createdAt,
         }}
       />
+      {canCreateAccounts && (
+        <CreateAccountDialog
+          open={createAccountOpen}
+          onOpenChange={setCreateAccountOpen}
+        />
+      )}
     </Sidebar>
   );
 }

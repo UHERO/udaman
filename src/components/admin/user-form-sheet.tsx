@@ -33,7 +33,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useUniverseNames } from "@/hooks/use-universe-names";
-import { ALL_ROLES, NEW_USER_ROLE, NEW_USER_UNIVERSE } from "@/lib/auth/roles";
+import {
+  canUseGoogleLogin,
+  passwordRequirementHint,
+} from "@/lib/auth/google-login";
+import {
+  ALL_ROLES,
+  NEW_USER_ROLE,
+  NEW_USER_UNIVERSE,
+  ROLE_DESCRIPTIONS,
+} from "@/lib/auth/roles";
 
 const ROLES = ALL_ROLES;
 
@@ -55,8 +64,9 @@ export type SerializedUser = {
   updatedAt: string | null;
 };
 
-/** When editing, the password fields are optional — blank leaves the existing
- *  password alone. When creating, a password is always required. */
+/** When editing, a blank password leaves the existing one alone. When
+ *  creating, it may be blank only for addresses that can use UH Google login
+ *  (gmail.com, hawaii.edu); any other address needs a password to sign in. */
 function buildFormSchema(isEdit: boolean) {
   return z
     .object({
@@ -68,8 +78,16 @@ function buildFormSchema(isEdit: boolean) {
       passwordConfirmation: z.string(),
     })
     .superRefine((data, ctx) => {
-      const settingPassword = !isEdit || data.password.length > 0;
-      if (!settingPassword) return;
+      if (data.password.length === 0) {
+        if (!isEdit && !canUseGoogleLogin(data.email)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["password"],
+            message: "A password is required for this email address",
+          });
+        }
+        return;
+      }
 
       if (data.password.length < 8) {
         ctx.addIssue({
@@ -153,7 +171,8 @@ export function UserFormSheet({
               name: values.name.trim() || null,
               role: values.role,
               universe: values.universe,
-              password: values.password,
+              // Blank means "UH Google login only".
+              ...(values.password ? { password: values.password } : {}),
             });
 
       if (result.success) {
@@ -180,7 +199,7 @@ export function UserFormSheet({
           <SheetDescription>
             {isEdit
               ? "Update this account. Leave the password fields blank to keep the current password."
-              : "Fill in the details to create a new user account."}
+              : "Create a new account. gmail.com and hawaii.edu addresses sign in with UH Login and need no password; other addresses require one."}
           </SheetDescription>
         </SheetHeader>
 
@@ -226,8 +245,11 @@ export function UserFormSheet({
                   </SelectTrigger>
                   <SelectContent>
                     {ROLES.map((r) => (
-                      <SelectItem key={r} value={r} className="capitalize">
-                        {r}
+                      <SelectItem key={r} value={r}>
+                        <span className="capitalize">{r}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {ROLE_DESCRIPTIONS[r]}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -257,7 +279,11 @@ export function UserFormSheet({
 
               <Field data-invalid={!!form.formState.errors.password}>
                 <FieldLabel htmlFor="password">
-                  {isEdit ? "New Password" : "Password"}
+                  {isEdit
+                    ? "New Password"
+                    : canUseGoogleLogin(form.watch("email"))
+                      ? "Password (optional)"
+                      : "Password"}
                 </FieldLabel>
                 <Input
                   id="password"
@@ -266,6 +292,11 @@ export function UserFormSheet({
                   placeholder={isEdit ? "Leave blank to keep current" : ""}
                   {...form.register("password")}
                 />
+                {!isEdit && (
+                  <p className="text-muted-foreground text-xs">
+                    {passwordRequirementHint(form.watch("email"))}
+                  </p>
+                )}
                 <FieldError errors={[form.formState.errors.password]} />
               </Field>
 

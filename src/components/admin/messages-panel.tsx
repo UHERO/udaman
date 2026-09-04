@@ -156,7 +156,7 @@ export function MessagesPanel({
         <h2 className="mb-4 text-lg font-semibold">Send Message</h2>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FieldSet className="m-0 gap-1 p-0">
-            <FieldGroup className="gap-3">
+            <FieldGroup>
               <Field data-invalid={!!form.formState.errors.channel}>
                 <FieldLabel htmlFor="channel">Channel</FieldLabel>
                 <Select value={channel} onValueChange={handleChannelChange}>

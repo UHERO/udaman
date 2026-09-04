@@ -7,11 +7,13 @@ import { compare } from "bcryptjs";
 
 import { DEVISE_PEPPER } from "@/lib/auth/pepper";
 
-import { isEmailAllowed } from "./auth-whitelist";
 import { resolveClientIp } from "./client-ip";
 import { MySqlAdapter } from "./mysql-adapter";
 
 const adapter = MySqlAdapter();
+
+/** `?error=` value the login page turns into the "no account" dialog. */
+export const NO_ACCOUNT_ERROR = "no-account";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter,
@@ -33,7 +35,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
-        if (!isEmailAllowed(email)) return null;
 
         const rows = await mysql<{
           id: number;
@@ -76,12 +77,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Credentials sign-in: already validated in authorize(), allow through
       if (!account || account.provider === "credentials") return true;
 
-      // OAuth sign-in: link to existing user if one exists with the same email.
-      // With JWT strategy Auth.js doesn't auto-link, so we do it manually.
-      if (!user.email || !isEmailAllowed(user.email)) return false;
+      // OAuth sign-in: only pre-created accounts may sign in. Accounts are
+      // created by an admin (rail user menu → Create Account, /admin/users,
+      // or scripts/import-user-whitelist.ts) — never on first sign-in.
+      // Unknown emails are bounced to the login page, which shows a dialog
+      // telling them how to request access. Returning a URL here (rather
+      // than false) skips Auth.js's generic AccessDenied error page.
+      if (!user.email) return false;
 
       const existing = await adapter.getUserByEmail!(user.email);
-      if (existing) {
+      if (!existing) return `/udaman?error=${NO_ACCOUNT_ERROR}`;
+
+      {
         // Check if this OAuth account is already linked
         const linked = await adapter.getUserByAccount!({
           provider: account.provider,
@@ -117,8 +124,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             : "";
         }
       }
-      // If no existing user, Auth.js will call createUser + linkAccount via the adapter
-
       return true;
     },
     async jwt({ token, user }) {

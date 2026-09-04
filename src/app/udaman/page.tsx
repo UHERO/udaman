@@ -4,9 +4,11 @@ import { redirect } from "next/navigation";
 import { GalleryVerticalEnd } from "lucide-react";
 
 import { LoginForm } from "@/components/login-form";
+import { NoAccountDialog } from "@/components/no-account-dialog";
 import { SurfWidget } from "@/components/surf-widget";
 import { getLandingPath } from "@/lib/auth/authorization";
 import { getSession } from "@/lib/auth/dal";
+import { NO_ACCOUNT_ERROR } from "@/lib/auth/index";
 
 /**
  * Only follow same-site relative paths. Anything else (absolute URLs,
@@ -21,10 +23,12 @@ function safeCallbackUrl(raw: string | undefined): string | undefined {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
   const session = await getSession();
-  const callbackUrl = safeCallbackUrl((await searchParams).callbackUrl);
+  const params = await searchParams;
+  const callbackUrl = safeCallbackUrl(params.callbackUrl);
+  const noAccount = params.error === NO_ACCOUNT_ERROR;
 
   if (session?.user) {
     const universe = session.user.universe ?? "UHERO";
@@ -48,6 +52,7 @@ export default async function LoginPage({
             <LoginForm callbackUrl={callbackUrl} />
           </div>
         </div>
+        {noAccount && <NoAccountDialog />}
       </div>
       <div className="bg-muted relative hidden lg:block">
         <Image

@@ -64,8 +64,10 @@ export function MySqlAdapter(): Adapter {
   return {
     // ── User methods ───────────────────────────────────────────────
 
-    // First Google sign-in for an allow-listed email. The account starts as
-    // NEW_USER_ROLE, which grants no tools until an admin promotes it.
+    // Required by the Adapter interface, but not reached in practice: the
+    // signIn callback rejects any email without an existing account, so
+    // Auth.js never gets as far as creating one. Kept consistent with the
+    // NEW_USER_* defaults in case that policy ever changes.
     async createUser(user) {
       const { email, name, image, emailVerified } = user;
       await mysql`

@@ -46,6 +46,24 @@ export function hasFullAccess(role: string): boolean {
 }
 
 /**
+ * Roles an admin may hand out when inviting someone. admin and dev are
+ * deliberately absent: those are granted by a dev on the admin Users page.
+ */
+export const INVITE_ROLES: readonly Role[] = ALL_ROLES.filter(
+  (r) => !hasFullAccess(r),
+);
+
+/** One-line descriptions shown next to each role in role pickers. */
+export const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  external: "For DBEDT data upload accounts",
+  fsonly: "Accounts for viewing forecast snapshots",
+  internal: "Default for new UHERO accounts",
+  fellow: "Users needing limited access to comms forms",
+  admin: "Full access to every tool",
+  dev: "Full access plus developer tools and permissions",
+};
+
+/**
  * Research fellows. By default they get the Housing Database, Comms, and
  * Registry apps and nothing else. Their server-side access is governed
  * entirely by the role_permissions table (see enforceAccessPolicy), so a

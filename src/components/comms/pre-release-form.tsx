@@ -659,7 +659,7 @@ export function PreReleaseForm({
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <FormSection title="A. Publication details">
-        <FieldGroup className="gap-3">
+        <FieldGroup>
           <Field data-invalid={!!errors.name}>
             <FieldLabel htmlFor="name">Title</FieldLabel>
             <Input id="name" {...form.register("name")} />
@@ -777,7 +777,7 @@ export function PreReleaseForm({
       <Separator />
 
       <FormSection title="B. Disclosures">
-        <FieldGroup className="gap-3">
+        <FieldGroup>
           <Field data-invalid={!!errors.conflictsOfInterest}>
             <FieldLabel htmlFor="conflictsOfInterest">
               Conflicts of interest
@@ -900,7 +900,7 @@ export function PreReleaseForm({
       <Separator />
 
       <FormSection title="C. Development and prior review">
-        <FieldGroup className="gap-3">
+        <FieldGroup>
           <Field data-invalid={!!errors.reviewers}>
             <FieldLabel htmlFor="reviewers">
               Who commented on, reviewed, or contributed during development
@@ -980,7 +980,7 @@ export function PreReleaseForm({
       <Separator />
 
       <FormSection title="E. Availability and dissemination">
-        <FieldGroup className="gap-3">
+        <FieldGroup>
           <Field>
             <FieldLabel>
               Lead author available on release day for media inquiries
@@ -1052,7 +1052,7 @@ export function PreReleaseForm({
         title="Notification"
         description="Everyone on this list is emailed the submitted form. It starts with the standard UHERO recipients — add or remove anyone before submitting."
       >
-        <FieldGroup className="gap-3">
+        <FieldGroup>
           <Field data-invalid={!!errors.recipients}>
             <FieldLabel>Recipients</FieldLabel>
             <RecipientEditor

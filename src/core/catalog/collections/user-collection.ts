@@ -1,6 +1,7 @@
 import { compare, hash } from "bcryptjs";
 
 import { createLogger } from "@/core/observability/logger";
+import { canUseGoogleLogin } from "@/lib/auth/google-login";
 import { DEVISE_PEPPER } from "@/lib/auth/pepper";
 import { ALL_ROLES } from "@/lib/auth/roles";
 import { insertAndGetId, mysql } from "@/lib/mysql/db";
@@ -19,7 +20,9 @@ export interface CreateUserPayload {
   name?: string | null;
   role: string;
   universe: string;
-  password: string;
+  /** May be omitted only for addresses that can use UH Google login
+   *  (see canUseGoogleLogin); everyone else needs one to sign in at all. */
+  password?: string;
 }
 
 /** Fields an admin may change on an existing user. Omitted keys are left as-is;
@@ -44,16 +47,25 @@ class UserCollection {
     return rows.map((r) => new User(r));
   }
 
-  /** Create a new user with a bcrypt-hashed password */
+  /**
+   * Create a new user. With a password it is bcrypt-hashed (Devise-compatible);
+   * without one the account can only sign in through UH Google login, since
+   * the credentials provider rejects an empty hash.
+   */
   static async create(payload: CreateUserPayload): Promise<User> {
     const email = payload.email.trim().toLowerCase();
-    if (!email) throw new Error("Email is required");
+    if (!email || !email.includes("@")) {
+      throw new Error("A valid email is required");
+    }
 
     if (!VALID_ROLES.includes(payload.role as (typeof VALID_ROLES)[number])) {
       throw new Error(`Invalid role: ${payload.role}`);
     }
-    if (!payload.password || payload.password.length < 8) {
+    if (payload.password !== undefined && payload.password.length < 8) {
       throw new Error("Password must be at least 8 characters");
+    }
+    if (!payload.password && !canUseGoogleLogin(email)) {
+      throw new Error(`${email} can't use UH Login, so a password is required`);
     }
 
     const existing = await mysql<{ id: number }>`
@@ -61,16 +73,35 @@ class UserCollection {
     `;
     if (existing.length) throw new Error(`Email already in use: ${email}`);
 
-    const hashed = await hash(payload.password + DEVISE_PEPPER, BCRYPT_ROUNDS);
+    const hashed = payload.password
+      ? await hash(payload.password + DEVISE_PEPPER, BCRYPT_ROUNDS)
+      : "";
 
     const insertId = await insertAndGetId(
       `INSERT INTO users (
         email, name, role, universe, encrypted_password,
         created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-      [email, payload.name ?? null, payload.role, payload.universe, hashed],
+      [
+        email,
+        payload.name?.trim() || null,
+        payload.role,
+        payload.universe,
+        hashed,
+      ],
     );
     return this.getById(insertId);
+  }
+
+  /** Fetch a user by email (case-insensitive), or null if none exists. */
+  static async getByEmail(email: string): Promise<User | null> {
+    const rows = await mysql<UserAttrs>`
+      SELECT id, email, name, role, universe,
+             sign_in_count, current_sign_in_at, current_sign_in_ip,
+             last_sign_in_at, last_sign_in_ip, created_at, updated_at
+      FROM users WHERE email = ${email.trim().toLowerCase()} LIMIT 1
+    `;
+    return rows.length ? new User(rows[0]) : null;
   }
 
   /** Fetch a user by ID (excludes password fields) */
