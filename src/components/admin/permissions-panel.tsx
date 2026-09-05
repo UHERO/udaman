@@ -53,7 +53,7 @@ const ROLE_DESCRIPTIONS: Record<Role, string> = {
   fellow:
     "Research fellows. Housing Database, Comms, and Registry by default. These switches are the whole policy for this role — there is no hardcoded rule behind them.",
   internal:
-    "The role every new account starts with. No tools by default; promote the user to grant access. Sidebar items and pages stay hidden regardless of these switches.",
+    "The role every new account starts with. Comms (pre-release forms) only; promote the user to grant anything else. Sidebar items and pages stay hidden regardless of these switches.",
   fsonly:
     "Forecast-only users. Can read forecast snapshots and download exports.",
   external:

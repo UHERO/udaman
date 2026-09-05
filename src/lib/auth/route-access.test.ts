@@ -38,8 +38,10 @@ describe("roles", () => {
 });
 
 describe("sidebar visibility", () => {
-  test("a new (internal) user sees no sidebar or rail items", () => {
-    expect(getVisibleRoutes("internal", "UHERO")).toEqual([]);
+  test("a new (internal) user sees only the Comms rail app", () => {
+    expect(getVisibleRoutes("internal", "UHERO").map((r) => r.path)).toEqual([
+      "/comms",
+    ]);
     expect(getVisibleChildren("internal", "UHERO", "/admin")).toEqual([]);
     expect(getVisibleChildren("internal", "UHERO", "/uploads")).toEqual([]);
   });
@@ -91,9 +93,10 @@ describe("sidebar visibility", () => {
 });
 
 describe("route enforcement (middleware)", () => {
-  test("internal users are denied every manifest path", () => {
+  test("internal users are denied every manifest path except Comms", () => {
     for (const path of allPaths()) {
-      expect(isRouteAllowed("internal", "UHERO", path)).toBe(false);
+      const isComms = path === "/comms" || path.startsWith("/comms/");
+      expect(isRouteAllowed("internal", "UHERO", path)).toBe(isComms);
     }
   });
 

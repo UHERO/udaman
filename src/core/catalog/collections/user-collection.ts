@@ -116,16 +116,14 @@ class UserCollection {
     return new User(rows[0]);
   }
 
-  /** Update a user's role */
+  /**
+   * Update a user's role. Existence is checked with a SELECT first rather
+   * than by inspecting the UPDATE result: MySQL reports 0 affected rows when
+   * the row matched but nothing changed, which used to surface as a bogus
+   * "User not found".
+   */
   static async updateRole(id: number, role: string): Promise<void> {
-    if (!VALID_ROLES.includes(role as (typeof VALID_ROLES)[number])) {
-      throw new Error(`Invalid role: ${role}`);
-    }
-    const result = (await mysql`
-      UPDATE users SET role = ${role}, updated_at = NOW()
-      WHERE id = ${id}
-    `) as unknown as { count: number };
-    if (result.count === 0) throw new Error("User not found");
+    await this.update(id, { role });
   }
 
   /**

@@ -2621,23 +2621,27 @@ class SeriesCollection {
         // they read lives at a higher depth and has already been reloaded
         // — so run several at a time. A series' *own* loaders stay
         // sequential: updateData depends on their priority order.
-        await mapWithConcurrency(group, RELOAD_CONCURRENCY, async (seriesId) => {
-          try {
-            const loaders = await LoaderCol.getEnabledBySeriesId(seriesId);
-            for (const loader of loaders) {
-              if (nightly && !loader.reloadNightly) continue;
-              await LoaderCol.reload({ loader, clearFirst });
+        await mapWithConcurrency(
+          group,
+          RELOAD_CONCURRENCY,
+          async (seriesId) => {
+            try {
+              const loaders = await LoaderCol.getEnabledBySeriesId(seriesId);
+              for (const loader of loaders) {
+                if (nightly && !loader.reloadNightly) continue;
+                await LoaderCol.reload({ loader, clearFirst });
+              }
+            } catch (e) {
+              failed++;
+              const msg = e instanceof Error ? e.message : String(e);
+              log.warn(
+                { seriesId, err: msg },
+                "Series reload failed, continuing",
+              );
+              job?.log(`Series ${seriesId} failed: ${msg}`);
             }
-          } catch (e) {
-            failed++;
-            const msg = e instanceof Error ? e.message : String(e);
-            log.warn(
-              { seriesId, err: msg },
-              "Series reload failed, continuing",
-            );
-            job?.log(`Series ${seriesId} failed: ${msg}`);
-          }
-        });
+          },
+        );
         // Let a waiting upload take the heavy lock between groups instead
         // of timing out behind a multi-hour reload.
         if (yieldPoint) await yieldPoint();
@@ -2789,8 +2793,9 @@ class SeriesCollection {
        WHERE s.universe = ? AND x.quarantined = 1`,
       [universe],
     );
-    // rawQuery returns row array; for UPDATE, Bun SQL returns [{affectedRows}]
-    return (result as unknown as { count: number }).count ?? 0;
+    // Bun's MySQL driver reports UPDATE results on the (empty) array itself:
+    // `affectedRows` is the real number; `count` is always 0 for MySQL.
+    return (result as unknown as { affectedRows?: number }).affectedRows ?? 0;
   }
 
   // ─── Shared helpers ─────────────────────────────────────────────────

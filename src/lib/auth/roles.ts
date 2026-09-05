@@ -34,9 +34,9 @@ export const FULL_ACCESS_ROLES: readonly Role[] = ["admin", "dev"];
 /**
  * Role and universe assigned to accounts auto-created on first Google
  * sign-in, and the defaults in the admin "new user" form. `internal` is
- * deliberately a limited role: a new account can sign in and see the
- * universe homepage, but an admin or dev must promote it before any tool
- * becomes visible or reachable.
+ * deliberately a limited role: a new account can sign in, see the universe
+ * homepage, and file pre-release forms in Comms, but an admin or dev must
+ * promote it before any other tool becomes visible or reachable.
  */
 export const NEW_USER_ROLE: Role = "internal";
 export const NEW_USER_UNIVERSE = "UHERO";

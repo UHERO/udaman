@@ -72,9 +72,10 @@ export type RouteEntry = {
  * Access policy: every tool is admin/dev only (FULL_ACCESS_ROLES). The
  * `internal` role — which every auto-created Google account starts with —
  * sees an empty sidebar and can only reach the universe homepage until an
- * admin promotes it. Exceptions: the DBEDT external upload flow (a
- * deliberately narrow, pre-existing workflow) and the `fellow` role, which
- * gets the Housing Database, Comms, and Registry rail apps by default.
+ * admin promotes it. Exceptions: Comms, where internal users file their own
+ * pre-release forms; the DBEDT external upload flow (a deliberately narrow,
+ * pre-existing workflow); and the `fellow` role, which gets the Housing
+ * Database, Comms, and Registry rail apps by default.
  */
 export const ROUTES: RouteEntry[] = [
   {
@@ -228,7 +229,8 @@ export const ROUTES: RouteEntry[] = [
     resource: "approval",
     path: "/comms",
     icon: Megaphone,
-    roles: ["fellow", ...FULL_ACCESS_ROLES],
+    // UHERO staff (internal) file their own pre-release forms too.
+    roles: ["internal", "fellow", ...FULL_ACCESS_ROLES],
     location: "rail",
     children: [{ label: "New form", path: "/comms/pub-form/new" }],
   },
