@@ -314,6 +314,8 @@ export function MessagesPanel({
                           msg.status === "failed" && "bg-red-50 text-red-700",
                           msg.status === "pending" &&
                             "bg-yellow-50 text-yellow-700",
+                          msg.status === "skipped" &&
+                            "bg-gray-100 text-gray-600",
                         )}
                         title={msg.error ?? undefined}
                       >

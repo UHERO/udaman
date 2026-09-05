@@ -123,7 +123,11 @@ export type SendMailOptions = {
  * Honors MAIL_DISABLED (no-op) and dev-safety redirect so dev/staging
  * sessions can never accidentally email real recipients.
  */
-export async function sendMail(opts: SendMailOptions): Promise<void> {
+/** Outcome of a transport-level send. `skipped` means a global disable flag
+ * short-circuited delivery; the caller should not record it as sent. */
+export type SendResult = { skipped: boolean };
+
+export async function sendMail(opts: SendMailOptions): Promise<SendResult> {
   const disabled =
     process.env.MAIL_DISABLED === "1" || process.env.MAIL_DISABLED === "true";
   if (disabled) {
@@ -131,7 +135,7 @@ export async function sendMail(opts: SendMailOptions): Promise<void> {
       { to: opts.to, subject: opts.subject, sender: opts.sender },
       "MAIL_DISABLED — skipping send",
     );
-    return;
+    return { skipped: true };
   }
 
   const senderKey = opts.sender ?? "default";
@@ -173,6 +177,7 @@ export async function sendMail(opts: SendMailOptions): Promise<void> {
     },
     "Mail sent",
   );
+  return { skipped: false };
 }
 
 /** Naive HTML → text fallback for the plain-text body. */

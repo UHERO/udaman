@@ -1,6 +1,6 @@
 "use server";
 
-import { insertAndGetId, mysql } from "@database/mysql";
+import { mysql } from "@database/mysql";
 
 import { Mailer } from "@/core/mailers/mailer";
 import { createLogger } from "@/core/observability/logger";
@@ -41,53 +41,36 @@ export async function sendMessageAction(
   await requireDev();
   const userId = await getCurrentUserId();
 
-  let messageId: number | undefined;
-
+  // The Mailer records every send in the `messages` table (pending → sent /
+  // failed / skipped), so this action only needs to dispatch and report.
   try {
-    // Insert a pending message record
-    messageId = await insertAndGetId(
-      `INSERT INTO messages (channel, sender, from_addr, recipient, subject, body, status, user_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,
-      [
-        payload.channel,
-        payload.channel === "email" ? (payload.sender ?? "default") : null,
-        payload.channel === "email" ? (payload.from ?? null) : null,
-        payload.to,
-        payload.channel === "email" ? payload.subject : null,
-        payload.body,
-        userId,
-      ],
-    );
-
+    let messageId: number | undefined;
     switch (payload.channel) {
       case "email":
-        await Mailer.email({
+        messageId = await Mailer.email({
           to: payload.to,
           subject: payload.subject,
           text: payload.body,
           sender: payload.sender,
           from: payload.from,
+          userId,
         });
         break;
       case "slack":
-        await Mailer.slack({
+        messageId = await Mailer.slack({
           channel: payload.to,
           text: payload.body,
+          userId,
         });
         break;
       case "sms":
-        await Mailer.sms({
+        messageId = await Mailer.sms({
           to: payload.to,
           body: payload.body,
+          userId,
         });
         break;
     }
-
-    await mysql`
-      UPDATE messages
-      SET status = 'sent'
-      WHERE id = ${messageId}
-    `;
 
     log.info(
       { messageId, channel: payload.channel, to: payload.to, userId },
@@ -95,21 +78,15 @@ export async function sendMessageAction(
     );
     return {
       success: true,
-      message: `Message sent successfully (id: ${messageId})`,
+      message:
+        messageId === undefined
+          ? "Message sent successfully (audit row not recorded — see server log)"
+          : `Message sent successfully (id: ${messageId})`,
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-
-    if (messageId) {
-      await mysql`
-        UPDATE messages
-        SET status = 'failed', error = ${errorMessage}
-        WHERE id = ${messageId}
-      `.catch(() => {}); // best-effort status update
-    }
-
     log.error(
-      { messageId, channel: payload.channel, err: errorMessage, userId },
+      { channel: payload.channel, err: errorMessage, userId },
       "Message send failed",
     );
     return { success: false, message: errorMessage };

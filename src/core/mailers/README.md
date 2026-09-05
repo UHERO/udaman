@@ -36,6 +36,8 @@ await Mailer.sms({
 });
 ```
 
+Every send is recorded in the `messages` table (visible at Admin › Messages for dev users). A row is inserted as `pending` before the transport runs and then updated to `sent`, `failed` (with the error), or `skipped` (a `*_DISABLED` flag short-circuited delivery). Recording is best-effort: if the row cannot be written (missing table, DB outage) a warning is logged and the notification still goes out. Each method resolves to the audit row id, or `undefined` when it could not be written. Pass `userId` when a person triggered the send so the row is attributable; workers omit it.
+
 All `Mailer` methods are fire-and-forget friendly. Use `.catch()` so notification failures never break business logic:
 
 ```typescript
@@ -147,6 +149,7 @@ A Slack slash command webhook at `/api/webhooks/slack` provides a 2-way integrat
 
 ```
 Mailer.email()          ← public API (src/core/mailers/mailer.ts)
+  ├── withMessageLog()  ← audit row (src/core/mailers/message-log.ts)
   └── sendMail()        ← transport layer (src/core/mailers/transport.ts)
        └── nodemailer   ← SMTP / OAuth2 transporter per sender
 
@@ -162,7 +165,8 @@ Mailer.sms()            ← public API (src/core/mailers/mailer.ts)
   └── signature verify  ← HMAC-SHA256 via SLACK_SIGNING_SECRET
 ```
 
-- `mailer.ts` — validates options, logs, delegates to transport/slack/sms
+- `mailer.ts` — validates options, logs, records the audit row, delegates to transport/slack/sms
+- `message-log.ts` — best-effort `messages` table writes (pending → sent / failed / skipped)
 - `transport.ts` — multi-sender transporter cache, dev-safety redirect, MAIL_DISABLED
 - `slack.ts` — Slack Bot Token posting, SLACK_DISABLED
 - `sms.ts` — Twilio REST API, SMS_DISABLED

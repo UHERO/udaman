@@ -935,6 +935,7 @@ enum messages_status {
   pending
   sent
   failed
+  skipped
 }
 
 model approvals {
