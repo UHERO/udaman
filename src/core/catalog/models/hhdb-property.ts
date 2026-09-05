@@ -20,6 +20,10 @@ export interface HhdbPropertyAttrs {
   zip?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  zcta20?: string | null;
+  countyfp?: string | null;
+  tractce?: string | null;
+  tract_geoid?: string | null;
   map_url?: string | null;
   sketch_url?: string | null;
   in_parcel_list?: number | null;
@@ -51,6 +55,10 @@ export class HhdbProperty {
   zip: string | null;
   latitude: number | null;
   longitude: number | null;
+  zcta20: string | null;
+  countyfp: string | null;
+  tractce: string | null;
+  tractGeoid: string | null;
   mapUrl: string | null;
   sketchUrl: string | null;
   inParcelList: number | null;
@@ -84,6 +92,10 @@ export class HhdbProperty {
     this.zip = attrs.zip ?? null;
     this.latitude = attrs.latitude != null ? Number(attrs.latitude) : null;
     this.longitude = attrs.longitude != null ? Number(attrs.longitude) : null;
+    this.zcta20 = attrs.zcta20 ?? null;
+    this.countyfp = attrs.countyfp ?? null;
+    this.tractce = attrs.tractce ?? null;
+    this.tractGeoid = attrs.tract_geoid ?? null;
     this.mapUrl = attrs.map_url ?? null;
     this.sketchUrl = attrs.sketch_url ?? null;
     this.inParcelList =
@@ -119,6 +131,10 @@ export class HhdbProperty {
       zip: this.zip,
       latitude: this.latitude,
       longitude: this.longitude,
+      zcta20: this.zcta20,
+      countyfp: this.countyfp,
+      tractce: this.tractce,
+      tractGeoid: this.tractGeoid,
       mapUrl: this.mapUrl,
       sketchUrl: this.sketchUrl,
       inParcelList: this.inParcelList,
@@ -160,6 +176,10 @@ export function hhdbPropertyRowToJSON(
     zip: attrs.zip ?? null,
     latitude: attrs.latitude != null ? Number(attrs.latitude) : null,
     longitude: attrs.longitude != null ? Number(attrs.longitude) : null,
+    zcta20: attrs.zcta20 ?? null,
+    countyfp: attrs.countyfp ?? null,
+    tractce: attrs.tractce ?? null,
+    tractGeoid: attrs.tract_geoid ?? null,
     mapUrl: attrs.map_url ?? null,
     sketchUrl: attrs.sketch_url ?? null,
     inParcelList:

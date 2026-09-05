@@ -78,10 +78,18 @@ CREATE TABLE properties (
     -- Map and Sketch
     map_url TEXT,
     sketch_url TEXT,
-    -- Geographic Information (from state_address_list.csv)
-    zip VARCHAR(10) COMMENT 'ZIP code from address list',
-    latitude DECIMAL(10, 8) COMMENT 'Geographic latitude coordinate',
-    longitude DECIMAL(11, 8) COMMENT 'Geographic longitude coordinate',
+    -- Geographic Information
+    zip VARCHAR(10) COMMENT 'ZIP code from address list (never populated)',
+    -- Census geography (see qpub crosswalk). Declared here for the same
+    -- reason as the parcel-list columns below: the rebuild dumps this table
+    -- over the remote one. Values are mirrored from parcel_crosswalk, the
+    -- durable side; condo units inherit their parent land parcel's values.
+    latitude DECIMAL(10, 8) COMMENT 'Parcel centroid latitude (WGS84, from parcel_crosswalk)',
+    longitude DECIMAL(11, 8) COMMENT 'Parcel centroid longitude (WGS84, from parcel_crosswalk)',
+    zcta20 CHAR(5) NULL COMMENT '2020 ZIP Code Tabulation Area of the parcel (from parcel_crosswalk)',
+    countyfp CHAR(3) NULL COMMENT 'Census county FIPS: 001 Hawaii, 003 Honolulu, 005 Kalawao, 007 Kauai, 009 Maui',
+    tractce CHAR(6) NULL COMMENT 'Census tract code within the county',
+    tract_geoid CHAR(11) NULL COMMENT 'Full census tract GEOID (state + county + tract)',
     -- State parcel list reconciliation (see qpub parcel-list).
     -- Declared here, not only in the ALTER migration: the rebuild pipeline
     -- dumps this table over the remote one, so a column missing from this
@@ -97,6 +105,9 @@ CREATE TABLE properties (
     INDEX idx_property_class (property_class(100)),
     INDEX idx_location (location_address(100)),
     INDEX idx_zip (zip),
+    INDEX idx_zcta20 (zcta20),
+    INDEX idx_countyfp (countyfp),
+    INDEX idx_tract_geoid (tract_geoid),
     INDEX idx_in_parcel_list (in_parcel_list)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Primary property table - one record per TMK';
 

@@ -4,6 +4,7 @@ import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
 import { backfillCondoUnits } from "./processors/qpub-enqueue";
 import { runDumpCsv } from "./processors/qpub-dump-csv";
+import { runCrosswalk } from "./processors/qpub-crosswalk";
 import { runParcelList } from "./processors/qpub-parcel-list";
 import { runParseAudit } from "./processors/qpub-parse-audit";
 import { runRepair } from "./processors/qpub-repair";
@@ -37,6 +38,11 @@ Commands:
   parcel-list                   Flag TMKs by whether the State's statewide
                                 parcel list still contains them. Deletes
                                 nothing. Dry run unless --execute.
+
+  crosswalk                     Load the parcel/ZCTA/census-tract crosswalk
+                                into parcel_crosswalk and stamp centroid,
+                                zcta20 and tract FIPS onto properties.
+                                Dry run unless --execute.
 
   condo-units                   Queue condo units listed on masters already
                                 scraped to the NAS. Dry run unless --execute.
@@ -80,6 +86,13 @@ Parcel-list options:
   --properties-only             Skip the CSV; re-mirror scrape_status flags onto
                                 properties (run after a rebuild recreates it)
   --add-new                     Queue parcels the State lists that we don't have
+
+Crosswalk options:
+  --execute                     Apply changes (dry run without it)
+  --file <csv>                  Crosswalk CSV (default: the NAS copy beside
+                                the statewide parcel list)
+  --properties-only             Skip the CSV; re-mirror parcel_crosswalk onto
+                                properties (run after a rebuild recreates it)
 
 Valid tables:
   ${tables}
@@ -188,6 +201,12 @@ async function run() {
         propertiesOnly,
         addNew,
       });
+      log.info(result);
+      break;
+    }
+
+    case "crosswalk": {
+      const result = await runCrosswalk({ file, execute, propertiesOnly });
       log.info(result);
       break;
     }
@@ -314,4 +333,13 @@ function reportFatal(label: string, err: unknown): never {
 process.on("uncaughtException", (err) => reportFatal("Uncaught exception", err));
 process.on("unhandledRejection", (err) => reportFatal("Unhandled rejection", err));
 
-run().catch((err) => reportFatal("qpub-cli crashed", err));
+// Awaited at top level on purpose: a fire-and-forget `run().catch(...)` leaves
+// nothing pending in module scope, and Bun has been seen to exit 0 mid-command
+// while a database query was still in flight (the crosswalk upsert never ran,
+// no error, no summary). A top-level await keeps the process alive until the
+// command has actually finished.
+try {
+  await run();
+} catch (err) {
+  reportFatal("qpub-cli crashed", err);
+}

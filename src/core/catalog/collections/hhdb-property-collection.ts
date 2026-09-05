@@ -28,6 +28,10 @@ const SORTABLE = [
   "non_taxable_status",
   "latitude",
   "longitude",
+  "zcta20",
+  "countyfp",
+  "tractce",
+  "tract_geoid",
 ];
 
 export default class HhdbPropertyCollection {
@@ -48,9 +52,9 @@ export default class HhdbPropertyCollection {
     const qp: (string | number)[] = [];
     if (search) {
       where =
-        "WHERE (tmk LIKE ? OR location_address LIKE ? OR property_class LIKE ? OR zoning LIKE ? OR zip LIKE ? OR project_name LIKE ?)";
+        "WHERE (tmk LIKE ? OR location_address LIKE ? OR property_class LIKE ? OR zoning LIKE ? OR zip LIKE ? OR project_name LIKE ? OR zcta20 LIKE ? OR tract_geoid LIKE ?)";
       const term = `%${search}%`;
-      qp.push(term, term, term, term, term, term);
+      qp.push(term, term, term, term, term, term, term, term);
     }
 
     return { where, qp, sortCol, sortDir, limit, offset };
