@@ -71,6 +71,7 @@ export type FieldCategory =
   | "year"
   | "area"
   | "count"
+  | "coordinate"
   | "date"
   | "blob";
 

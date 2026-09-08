@@ -54,6 +54,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   year: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   area: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
   count: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
+  coordinate: "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200",
   date: "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200",
   blob: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
 };
@@ -69,6 +70,7 @@ function getDrilldownType(
     case "year":
     case "area":
     case "count":
+    case "coordinate":
       return "numeric";
     case "identifier":
     case "high-cardinality":

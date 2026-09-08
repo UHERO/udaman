@@ -15,6 +15,7 @@ const CATEGORY_DOTS: Record<string, string> = {
   year: "bg-orange-500",
   area: "bg-teal-500",
   count: "bg-cyan-500",
+  coordinate: "bg-lime-500",
   date: "bg-rose-500",
   blob: "bg-gray-400",
 };
