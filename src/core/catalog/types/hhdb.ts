@@ -11,13 +11,16 @@ export interface HhdbListResult<T> {
   total: number;
 }
 
+/**
+ * properties.island_code is the leading TMK digit, i.e. the county code
+ * (see qpub-nightly / scrape-runner: `LEFT(tmk, 1)`). Molokai and Lanai are
+ * in Maui County and carry code 2. Must match ISLANDS in crawlers/qpub/config.
+ */
 export const ISLAND_NAMES: Record<string, string> = {
-  "1": "Hawaii",
+  "1": "Oahu",
   "2": "Maui",
-  "3": "Oahu",
+  "3": "Hawaii",
   "4": "Kauai",
-  "5": "Molokai",
-  "6": "Lanai",
 };
 
 export type SummaryViewType = "summary";
