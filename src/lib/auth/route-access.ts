@@ -27,7 +27,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { FULL_ACCESS_ROLES, type Role } from "./roles";
+import { FULL_ACCESS_ROLES, normalizeUniverse, type Role } from "./roles";
 
 export type { Role } from "./roles";
 
@@ -253,19 +253,76 @@ export const ROUTES: RouteEntry[] = [
 ];
 
 /**
+ * Resources a user may read, resolved from the `role_permissions` table.
+ *
+ * Passed down from the server (a layout prop for the sidebar, a JWT claim for
+ * the proxy) because `canAccess` has to stay pure and synchronous — it runs in
+ * client components and in the proxy, neither of which can query MySQL.
+ *
+ * `undefined` means "not supplied here" and falls back to the hardcoded
+ * `roles` arrays alone. An empty set means "supplied, and grants nothing".
+ */
+export type ReadableResources = ReadonlySet<string> | undefined;
+
+export function toReadableSet(
+  resources: readonly string[] | null | undefined,
+): ReadableResources {
+  return resources ? new Set(resources) : undefined;
+}
+
+/**
+ * Access spec for a child route.
+ *
+ * A child that declares its own `roles` is deliberately narrower than its
+ * parent — the dev-only Admin pages, for instance. Withholding the resource in
+ * that case keeps a `read` grant on the parent from widening the child back
+ * open; children that simply inherit the parent's roles still get covered by
+ * the parent's grant.
+ */
+function childSpec(
+  entry: RouteEntry,
+  child: RouteChild,
+): { resource?: string; roles: readonly Role[]; universes?: string[] } {
+  return {
+    resource: child.roles ? undefined : entry.resource,
+    roles: child.roles ?? entry.roles,
+    universes: child.universes ?? entry.universes,
+  };
+}
+
+/**
  * Check if a user with the given role+universe can access a route entry.
+ *
+ * Access is the union of two sources:
+ *  1. the hardcoded `roles` array on the manifest entry, and
+ *  2. `read` on the entry's permission resource in `role_permissions`.
+ *
+ * The union is deliberate and transitional. The manifest is the stopgap that
+ * keeps working while JWTs still lack the permission claim (they only pick it
+ * up on refresh), and the table is what we are migrating to. Widening from the
+ * table can never remove access someone already has, so the two can coexist
+ * until the hardcoded arrays are retired.
+ *
+ * The `universes` scoping is a hard filter applied after the union — it is a
+ * property of the route, not a grant, so a permission row cannot override it.
  */
 export function canAccess(
   userRole: string,
   userUniverse: string,
-  entry: { roles: readonly Role[]; universes?: string[] },
+  entry: { resource?: string; roles: readonly Role[]; universes?: string[] },
+  readable?: ReadableResources,
 ): boolean {
-  if (!entry.roles.includes(userRole as Role)) return false;
-  if (
-    entry.universes &&
-    !entry.universes.includes(userUniverse.toUpperCase())
-  ) {
-    return false;
+  const grantedByRole = entry.roles.includes(userRole as Role);
+  const grantedByPermission = !!(
+    entry.resource &&
+    readable &&
+    readable.has(entry.resource)
+  );
+  if (!grantedByRole && !grantedByPermission) return false;
+
+  if (entry.universes) {
+    const scoped = entry.universes.map(normalizeUniverse);
+    if (!scoped.includes(normalizeUniverse(userUniverse))) return false;
   }
   return true;
 }
@@ -277,16 +334,14 @@ export function canAccess(
 export function getVisibleRoutes(
   userRole: string,
   userUniverse: string,
+  readable?: ReadableResources,
 ): RouteEntry[] {
   return ROUTES.flatMap((entry) => {
-    if (!canAccess(userRole, userUniverse, entry)) return [];
+    if (!canAccess(userRole, userUniverse, entry, readable)) return [];
 
     if (entry.children) {
       const filteredChildren = entry.children.filter((child) =>
-        canAccess(userRole, userUniverse, {
-          roles: child.roles ?? entry.roles,
-          universes: child.universes ?? entry.universes,
-        }),
+        canAccess(userRole, userUniverse, childSpec(entry, child), readable),
       );
       // If no children are visible, still show the parent (it may have its own page)
       return [
@@ -309,15 +364,13 @@ export function getVisibleChildren(
   userRole: string,
   userUniverse: string,
   parentPath: string,
+  readable?: ReadableResources,
 ): RouteChild[] {
   const entry = ROUTES.find((r) => r.path === parentPath);
   if (!entry?.children) return [];
 
   return entry.children.filter((child) =>
-    canAccess(userRole, userUniverse, {
-      roles: child.roles ?? entry.roles,
-      universes: child.universes ?? entry.universes,
-    }),
+    canAccess(userRole, userUniverse, childSpec(entry, child), readable),
   );
 }
 
@@ -335,6 +388,7 @@ export function isRouteAllowed(
   userRole: string,
   userUniverse: string,
   pathname: string,
+  readable?: ReadableResources,
 ): boolean {
   // ── Top-level routes: /admin/..., /hhdb/..., /docs/... ──
   const topLevelPrefixes = [
@@ -359,16 +413,18 @@ export function isRouteAllowed(
               pathname === child.path ||
               pathname.startsWith(child.path + "/")
             ) {
-              const childAccess = canAccess(userRole, userUniverse, {
-                roles: child.roles ?? entry.roles,
-                universes: child.universes ?? entry.universes,
-              });
+              const childAccess = canAccess(
+                userRole,
+                userUniverse,
+                childSpec(entry, child),
+                readable,
+              );
               return childAccess;
             }
           }
         }
 
-        return canAccess(userRole, userUniverse, entry);
+        return canAccess(userRole, userUniverse, entry, readable);
       }
       // No matching route found for this top-level prefix
       return false;
@@ -379,7 +435,7 @@ export function isRouteAllowed(
   const uniPrefixMatch = pathname.match(/^\/udaman\/([^/]+)(\/.*)?$/);
   if (!uniPrefixMatch) return true; // Not a udaman route — allow
 
-  const urlUniverse = uniPrefixMatch[1].toUpperCase();
+  const urlUniverse = normalizeUniverse(uniPrefixMatch[1]);
   const routePath = uniPrefixMatch[2] ?? "/"; // e.g. "/series", "/uploads/econ"
 
   // The universe homepage is always allowed
@@ -398,10 +454,12 @@ export function isRouteAllowed(
             routePath === child.path ||
             routePath.startsWith(child.path + "/")
           ) {
-            const childAccess = canAccess(userRole, urlUniverse, {
-              roles: child.roles ?? entry.roles,
-              universes: child.universes ?? entry.universes,
-            });
+            const childAccess = canAccess(
+              userRole,
+              urlUniverse,
+              childSpec(entry, child),
+              readable,
+            );
             if (childAccess) return true;
             // Child matched but access denied — don't fall through to parent
             return false;
@@ -409,7 +467,7 @@ export function isRouteAllowed(
         }
       }
 
-      if (canAccess(userRole, urlUniverse, entry)) return true;
+      if (canAccess(userRole, urlUniverse, entry, readable)) return true;
     }
   }
 
@@ -427,10 +485,14 @@ export function isRouteAllowed(
  * manifest by asking `isRouteAllowed`, so a policy change here can't leave
  * login redirecting into a page the middleware then bounces.
  */
-export function getLandingPath(userRole: string, userUniverse: string): string {
-  const u = userUniverse.toLowerCase();
+export function getLandingPath(
+  userRole: string,
+  userUniverse: string,
+  readable?: ReadableResources,
+): string {
+  const u = normalizeUniverse(userUniverse).toLowerCase();
   const seriesPath = `/udaman/${u}/series`;
-  return isRouteAllowed(userRole, userUniverse, seriesPath)
+  return isRouteAllowed(userRole, userUniverse, seriesPath, readable)
     ? seriesPath
     : `/udaman/${u}`;
 }

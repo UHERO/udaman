@@ -2,6 +2,7 @@ import { UploadLayout } from "@/components/uploads/upload-layout";
 import { UploadTabs } from "@/components/uploads/upload-tabs";
 import { isDbedt, isHhf } from "@/lib/auth/authorization";
 import { getCurrentUserContext } from "@/lib/auth/dal";
+import { getReadableResources } from "@/lib/auth/readable-resources";
 import { hasFullAccess } from "@/lib/auth/roles";
 
 export default async function Layout({
@@ -10,6 +11,7 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const { role, universe } = await getCurrentUserContext();
+  const readableResources = await getReadableResources(role);
 
   // Defense in depth behind the middleware: only admin/dev, DBEDT external
   // uploaders, and HHF factbook maintainers get past this layout.
@@ -29,8 +31,8 @@ export default async function Layout({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <UploadTabs role={role} />
+    <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
+      <UploadTabs role={role} readableResources={readableResources} />
       <UploadLayout>{children}</UploadLayout>
     </div>
   );

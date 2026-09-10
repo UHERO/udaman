@@ -359,12 +359,15 @@ export const LoaderSection = ({
 
   return (
     <div className="flex flex-col border-b">
-      <div className="flex h-6 flex-row items-center justify-start border-b pb-2 font-semibold">
-        <span className="mr-4">Loaders</span>
+      <div className="flex h-6 scrollbar-none flex-row items-center justify-start overflow-x-auto border-b pb-2 font-semibold">
+        <span className="mr-4 shrink-0">Loaders</span>
         <Button variant={"link"} onClick={() => setCreateOpen(true)}>
           new
         </Button>
-        <Separator orientation="vertical" className="bg-primary/60 h-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 h-4 shrink-0"
+        />
         <Button
           variant={"link"}
           onClick={() => setClearOpen(true)}
@@ -372,11 +375,17 @@ export const LoaderSection = ({
         >
           clear data
         </Button>
-        <Separator orientation="vertical" className="bg-primary/60 h-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 h-4 shrink-0"
+        />
         <Button variant={"link"} onClick={handleLoadAll} disabled={isLoading}>
           {isLoading ? "loading..." : "load all"}
         </Button>
-        <Separator orientation="vertical" className="bg-primary/60 h-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 h-4 shrink-0"
+        />
         <Button
           variant={"link"}
           onClick={handleSyncPublic}
@@ -501,7 +510,7 @@ const LoaderItem = ({
 
   return (
     <Card className={cn("p-2", getColor(loader.color))}>
-      <CardContent className="flex h-6 items-center justify-between gap-x-2">
+      <CardContent className="flex h-6 scrollbar-none items-center justify-between gap-x-2 overflow-x-auto">
         <CardDescription title="Load Priority" className="mr-auto">
           {loader.priority}
         </CardDescription>
@@ -518,7 +527,10 @@ const LoaderItem = ({
             {isLoading ? "loading..." : "load"}
           </Button>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <Button
             title="clear datapoints"
@@ -531,7 +543,10 @@ const LoaderItem = ({
             clear
           </Button>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -562,7 +577,10 @@ const LoaderItem = ({
             </AlertDialogContent>
           </AlertDialog>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <Button
             title="disable data loader"
@@ -575,7 +593,10 @@ const LoaderItem = ({
             disable
           </Button>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <Button
             title="edit data loader"

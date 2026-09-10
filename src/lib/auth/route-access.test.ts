@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { FULL_ACCESS_ROLES, hasFullAccess, NEW_USER_ROLE } from "./roles";
+import {
+  FULL_ACCESS_ROLES,
+  hasFullAccess,
+  NEW_USER_ROLE,
+  normalizeUniverse,
+  sameUniverse,
+} from "./roles";
 import {
   canAccess,
   getLandingPath,
@@ -8,6 +14,7 @@ import {
   getVisibleRoutes,
   isRouteAllowed,
   ROUTES,
+  toReadableSet,
 } from "./route-access";
 
 const LIMITED_ROLES = ["internal", "fellow", "fsonly", "external"] as const;
@@ -192,5 +199,88 @@ describe("getLandingPath", () => {
       expect(isRouteAllowed(role, "UHERO", path)).toBe(true);
     }
     expect(getLandingPath("external", "DBEDT")).toBe("/udaman/dbedt");
+  });
+});
+
+describe("permission-driven access", () => {
+  const readAll = toReadableSet(ROUTES.map((e) => e.resource));
+
+  test("a read grant opens a route the manifest roles do not", () => {
+    const series = ROUTES.find((e) => e.resource === "series")!;
+    // Manifest alone: internal is locked out.
+    expect(canAccess("internal", "UHERO", series)).toBe(false);
+    expect(isRouteAllowed("internal", "UHERO", "/udaman/uhero/series")).toBe(
+      false,
+    );
+    // With a read grant: open.
+    expect(canAccess("internal", "UHERO", series, readAll)).toBe(true);
+    expect(
+      isRouteAllowed("internal", "UHERO", "/udaman/uhero/series", readAll),
+    ).toBe(true);
+  });
+
+  test("omitting the grant falls back to the manifest, so old JWTs keep working", () => {
+    expect(getVisibleRoutes("internal", "UHERO", undefined)).toEqual(
+      getVisibleRoutes("internal", "UHERO"),
+    );
+    expect(getVisibleRoutes("admin", "UHERO", undefined).length).toBe(
+      ROUTES.length,
+    );
+  });
+
+  test("a grant never removes access the manifest already gave", () => {
+    for (const role of ["admin", "dev", ...LIMITED_ROLES]) {
+      for (const path of allPaths()) {
+        if (isRouteAllowed(role, "UHERO", path)) {
+          expect(isRouteAllowed(role, "UHERO", path, readAll)).toBe(true);
+        }
+      }
+    }
+  });
+
+  test("children that declare their own roles stay narrow", () => {
+    // /admin/api-keys and /admin/messages are dev-only; a read grant on the
+    // parent `admin` resource must not widen them.
+    for (const path of ["/admin/api-keys", "/admin/messages"]) {
+      expect(isRouteAllowed("dev", "UHERO", path, readAll)).toBe(true);
+      expect(isRouteAllowed("internal", "UHERO", path, readAll)).toBe(false);
+      expect(isRouteAllowed("admin", "UHERO", path, readAll)).toBe(false);
+    }
+  });
+
+  test("universe scoping is not overridable by a permission grant", () => {
+    const hhdb = ROUTES.find((e) => e.resource === "hhdb")!;
+    expect(hhdb.universes).toContain("UHERO");
+    expect(canAccess("internal", "DBEDT", hhdb, readAll)).toBe(false);
+  });
+});
+
+describe("universe case-insensitivity", () => {
+  const readAll = toReadableSet(ROUTES.map((e) => e.resource));
+
+  test("route checks treat uhero and UHERO as the same universe", () => {
+    for (const u of ["UHERO", "uhero", "Uhero", " uhero "]) {
+      expect(
+        isRouteAllowed("internal", u, "/udaman/uhero/series", readAll),
+      ).toBe(true);
+      expect(getLandingPath("internal", u, readAll)).toBe(
+        "/udaman/uhero/series",
+      );
+    }
+  });
+
+  test("universe scoping matches regardless of case", () => {
+    const hhdb = ROUTES.find((e) => e.resource === "hhdb")!;
+    for (const u of ["UHERO", "uhero"]) {
+      expect(canAccess("dev", u, hhdb)).toBe(true);
+    }
+  });
+
+  test("normalizeUniverse canonicalizes to uppercase", () => {
+    expect(normalizeUniverse("uhero")).toBe("UHERO");
+    expect(normalizeUniverse(" UHero ")).toBe("UHERO");
+    expect(normalizeUniverse(null)).toBe("");
+    expect(sameUniverse("uhero", "UHERO")).toBe(true);
+    expect(sameUniverse("uhero", "dbedt")).toBe(false);
   });
 });

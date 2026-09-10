@@ -224,7 +224,7 @@ export function ClipboardTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
           {isPending ? (
             <Loader2 className="inline size-4 animate-spin" />
@@ -233,14 +233,14 @@ export function ClipboardTable({
           )}
         </p>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {count > 0 && (
             <>
               <Input
                 placeholder="Filter loaders..."
                 value={loaderFilter}
                 onChange={(e) => setLoaderFilter(e.target.value)}
-                className="h-8 w-48"
+                className="h-8 w-full sm:w-48"
               />
 
               {isLoaderView ? (

@@ -35,7 +35,7 @@ export default function Page() {
         Browse and explore Hawaii real property data
       </p>
       <div className="mb-4 flex items-center border-b">
-        <div className="flex min-w-0 flex-1 gap-1">
+        <div className="flex min-w-0 flex-1 scrollbar-none gap-1 overflow-x-auto">
           {[
             { key: "about" as const, label: "About" },
             { key: "metrics" as const, label: "Sample Metrics" },
@@ -44,7 +44,7 @@ export default function Page() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={cn(
-                "border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+                "shrink-0 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors",
                 tab === t.key
                   ? "border-primary text-primary"
                   : "text-muted-foreground hover:text-foreground border-transparent",

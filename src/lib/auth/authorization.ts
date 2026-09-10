@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isFellow } from "./roles";
+import { isFellow, normalizeUniverse } from "./roles";
 
 /**
  * Role+universe predicates ported from Rails User model.
@@ -17,25 +17,28 @@ export class PermissionDeniedError extends Error {
 /** UHERO internal, admin, or dev */
 export function isInternalUser(role: string, universe: string): boolean {
   return (
-    universe === "UHERO" &&
+    normalizeUniverse(universe) === "UHERO" &&
     (role === "internal" || role === "admin" || role === "dev")
   );
 }
 
 /** UHERO admin or dev */
 export function isAdminUser(role: string, universe: string): boolean {
-  return universe === "UHERO" && (role === "admin" || role === "dev");
+  return (
+    normalizeUniverse(universe) === "UHERO" &&
+    (role === "admin" || role === "dev")
+  );
 }
 
 /** DBEDT external user */
 export function isDbedt(role: string, universe: string): boolean {
-  return universe === "DBEDT" && role === "external";
+  return normalizeUniverse(universe) === "DBEDT" && role === "external";
 }
 
 /** HHF internal/admin/dev user (Hawaii Housing Factbook universe) */
 export function isHhf(role: string, universe: string): boolean {
   return (
-    universe === "HHF" &&
+    normalizeUniverse(universe) === "HHF" &&
     (role === "internal" || role === "admin" || role === "dev")
   );
 }

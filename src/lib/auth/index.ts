@@ -9,6 +9,7 @@ import { DEVISE_PEPPER } from "@/lib/auth/pepper";
 
 import { resolveClientIp } from "./client-ip";
 import { MySqlAdapter } from "./mysql-adapter";
+import { getReadableResources } from "./readable-resources";
 
 const adapter = MySqlAdapter();
 
@@ -151,6 +152,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ).toISOString();
         }
       }
+      // Resources this role may read, for the proxy's route gate. Resolved
+      // here because the proxy cannot query MySQL. It is refreshed on every
+      // JWT rotation, so a permission change reaches the proxy only once the
+      // token turns over — the manifest's hardcoded roles remain the stopgap
+      // until then, and server actions always re-check the live table.
+      if (token.role) {
+        token.readable = await getReadableResources(token.role as string);
+      }
+
       return token;
     },
     async session({ session, token }) {

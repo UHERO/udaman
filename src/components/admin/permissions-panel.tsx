@@ -194,8 +194,8 @@ export default function PermissionsPanel({
 
   return (
     <Tabs defaultValue={ROLE_ORDER[0]}>
-      <div className="flex items-center justify-between">
-        <TabsList>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <TabsList className="max-w-full scrollbar-none justify-start overflow-x-auto">
           {ROLE_ORDER.map((role) => (
             <TabsTrigger key={role} value={role} className="capitalize">
               {role}

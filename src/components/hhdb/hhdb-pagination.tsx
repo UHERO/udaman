@@ -38,7 +38,7 @@ export function HhdbPagination({
   const end = Math.min(page * limit, total);
 
   return (
-    <div className="flex items-center justify-between px-2 py-4">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-2 py-4">
       <div className="text-muted-foreground text-sm">
         {total > 0 ? (
           <>
@@ -49,7 +49,7 @@ export function HhdbPagination({
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-sm">Rows</span>
           <Select

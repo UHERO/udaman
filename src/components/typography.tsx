@@ -115,7 +115,7 @@ export const DetailBlock = ({
         <dt className="shrink-0 font-medium text-stone-500 dark:text-stone-400">
           {item.label}
         </dt>
-        <dd className="truncate font-mono text-stone-800 dark:text-stone-200">
+        <dd className="min-w-0 truncate font-mono text-stone-800 dark:text-stone-200">
           {item.value}
         </dd>
       </div>
@@ -140,7 +140,9 @@ export const CopyBlock = ({
   return (
     <div
       className={cn(
-        "group relative my-4 rounded-lg bg-stone-100 p-4 pr-12 font-mono text-sm dark:bg-stone-800",
+        // `break-words` so a long command wraps inside the block instead of
+        // widening the page on a narrow screen.
+        "group relative my-4 rounded-lg bg-stone-100 p-4 pr-12 font-mono text-sm break-words dark:bg-stone-800",
         className,
       )}
       {...props}

@@ -95,7 +95,7 @@ export function HhdbTableLayout({
       </h1>
       {warningBanner}
       <div className="mb-4 flex items-center border-b">
-        <div className="flex min-w-0 flex-1 gap-1">
+        <div className="flex min-w-0 flex-1 scrollbar-none gap-1 overflow-x-auto">
           {tabs.map((tab) => {
             const isActive =
               tab.label === "Table"
@@ -108,7 +108,7 @@ export function HhdbTableLayout({
                 key={tab.label}
                 href={tab.href}
                 className={cn(
-                  "border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+                  "shrink-0 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors",
                   isActive
                     ? "border-primary text-primary"
                     : "text-muted-foreground hover:text-foreground border-transparent",

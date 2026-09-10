@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 import { getCurrentUserContext } from "@/lib/auth/dal";
-import { getVisibleRoutes } from "@/lib/auth/route-access";
+import { getReadableResources } from "@/lib/auth/readable-resources";
+import { getVisibleRoutes, toReadableSet } from "@/lib/auth/route-access";
 
 /** Supplementary descriptions for homepage cards (route-access only has labels). */
 const CARD_DESCRIPTIONS: Record<string, string> = {
@@ -50,7 +51,8 @@ export default async function UniversePage({
   const name = universeNames[key] ?? universe;
 
   const { role, universe: userUniverse } = await getCurrentUserContext();
-  const routes = getVisibleRoutes(role, userUniverse);
+  const readable = toReadableSet(await getReadableResources(role));
+  const routes = getVisibleRoutes(role, userUniverse, readable);
 
   // If the user has access to exactly one top-level entry that has children,
   // expand its children as the cards. This gives narrowly-scoped users

@@ -72,3 +72,24 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
 export function isFellow(role: string): boolean {
   return role === "fellow";
 }
+
+/**
+ * Canonical form for a universe identifier.
+ *
+ * Universes are written uppercase by hand ("UHERO") but arrive lowercase from
+ * URL segments ("/udaman/uhero/...") and from systems that expect lowercase,
+ * so every comparison has to normalize first. Uppercase is the canonical form
+ * because that is what `users.universe`, `universes.name`, and the `Universe`
+ * type all use.
+ */
+export function normalizeUniverse(universe: string | null | undefined): string {
+  return (universe ?? "").trim().toUpperCase();
+}
+
+/** Case-insensitive universe equality. */
+export function sameUniverse(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  return normalizeUniverse(a) === normalizeUniverse(b);
+}

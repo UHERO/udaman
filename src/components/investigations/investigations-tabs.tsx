@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { useAppPathname } from "@/hooks/use-app-pathname";
-import { getVisibleChildren } from "@/lib/auth/route-access";
+import { getVisibleChildren, toReadableSet } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
 
 const TABS: {
@@ -38,6 +38,7 @@ const TABS: {
 interface InvestigationsTabsProps {
   role: string;
   universe: string;
+  readableResources?: readonly string[];
   badgeCounts?: {
     noSource: number;
     quarantine: number;
@@ -47,6 +48,7 @@ interface InvestigationsTabsProps {
 export function InvestigationsTabs({
   role,
   universe: userUniverse,
+  readableResources,
   badgeCounts,
 }: InvestigationsTabsProps) {
   const { universe } = useParams();
@@ -57,6 +59,7 @@ export function InvestigationsTabs({
     role,
     userUniverse,
     "/investigations",
+    toReadableSet(readableResources),
   );
   const visibleTabs = TABS.filter((tab) =>
     visibleChildren.some(
@@ -67,7 +70,7 @@ export function InvestigationsTabs({
   );
 
   return (
-    <div className="flex items-center gap-1 border-b">
+    <div className="flex scrollbar-none items-center gap-1 overflow-x-auto border-b">
       {visibleTabs.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
         const isActive = tab.segment
@@ -80,7 +83,7 @@ export function InvestigationsTabs({
             key={tab.segment}
             href={href}
             className={cn(
-              "inline-flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+              "inline-flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors",
               isActive
                 ? "border-primary text-primary"
                 : "text-muted-foreground hover:text-foreground border-transparent",

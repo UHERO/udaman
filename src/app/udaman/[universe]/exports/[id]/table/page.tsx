@@ -31,7 +31,7 @@ export default async function ExportTablePage({
   const base = `/udaman/${universe}/exports`;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">{exp.name}</h1>
         <div className="flex items-center gap-1">

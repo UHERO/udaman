@@ -145,9 +145,9 @@ export function NavBreadcrumb() {
   if (crumbSegments.length === 0) {
     return (
       <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbPage>{rootLabel}</BreadcrumbPage>
+        <BreadcrumbList className="flex-nowrap">
+          <BreadcrumbItem className="min-w-0">
+            <BreadcrumbPage className="truncate">{rootLabel}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -161,8 +161,10 @@ export function NavBreadcrumb() {
 
   return (
     <Breadcrumb>
-      <BreadcrumbList>
-        <BreadcrumbItem className="hidden md:block">
+      {/* No wrapping: the header is a fixed height, so an overlong trail
+          truncates the current page instead of spilling onto a second line. */}
+      <BreadcrumbList className="flex-nowrap">
+        <BreadcrumbItem className="hidden shrink-0 md:block">
           <BreadcrumbLink asChild>
             <Link href={rootHref}>{rootLabel}</Link>
           </BreadcrumbLink>
@@ -171,15 +173,21 @@ export function NavBreadcrumb() {
           const isLast = i === crumbs.length - 1;
           return (
             <Fragment key={crumb.href}>
-              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbSeparator className="hidden shrink-0 md:block" />
               <BreadcrumbItem
-                className={!isLast ? "hidden md:block" : undefined}
+                className={
+                  isLast ? "min-w-0" : "hidden shrink-0 md:block md:shrink"
+                }
               >
                 {isLast ? (
-                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                  <BreadcrumbPage className="truncate">
+                    {crumb.label}
+                  </BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link href={crumb.href}>{crumb.label}</Link>
+                    <Link href={crumb.href} className="truncate">
+                      {crumb.label}
+                    </Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

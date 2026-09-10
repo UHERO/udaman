@@ -2,7 +2,12 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { getLandingPath, isRouteAllowed } from "@/lib/auth/route-access";
+import { normalizeUniverse } from "@/lib/auth/roles";
+import {
+  getLandingPath,
+  isRouteAllowed,
+  toReadableSet,
+} from "@/lib/auth/route-access";
 
 /**
  * Subdomain → internal route prefix mapping.
@@ -66,6 +71,38 @@ function hasSessionCookie(request: NextRequest): boolean {
 }
 
 /**
+ * Auth.js prefixes the session cookie with `__Secure-` and derives the JWE
+ * salt from that name whenever it is issued over HTTPS. `getToken` defaults to
+ * the unprefixed name, so without this it looks for a cookie that does not
+ * exist in production and returns null — silently turning every route check
+ * below into a no-op. Keyed off AUTH_URL, which is what Auth.js itself uses.
+ */
+function secureCookiesEnabled(): boolean {
+  return (process.env.AUTH_URL ?? "").startsWith("https://");
+}
+
+function readToken(request: NextRequest) {
+  return getToken({
+    req: request,
+    secret: process.env.AUTH_SECRET,
+    secureCookie: secureCookiesEnabled(),
+  });
+}
+
+/**
+ * Bounce a denied request to `target`, unless that is where it already is —
+ * redirecting a page to itself is an infinite loop. Letting the request
+ * through in that case is safe: the only target we bounce to is a homepage,
+ * which every authenticated user may see, and the page's own `requireAuth`
+ * still handles a session that is genuinely broken.
+ */
+function denyTo(request: NextRequest, target: string): NextResponse | null {
+  const url = new URL(target, request.url);
+  if (url.pathname === request.nextUrl.pathname) return null;
+  return NextResponse.redirect(url);
+}
+
+/**
  * Check route-level access using the JWT token claims.
  * Returns a redirect response if denied, or null if allowed.
  *
@@ -77,35 +114,35 @@ async function checkRouteAccess(
   internalPathname: string,
   homepageUrl: string,
 ): Promise<NextResponse | null> {
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-  });
-  if (!token) return null; // No token — session check already handles redirect
+  const token = await readToken(request);
+  // A session cookie was present (the caller checked) but it did not decode.
+  // Treat that as no access rather than full access — failing open here is
+  // what let any role reach any route.
+  if (!token) {
+    return denyTo(request, homepageUrl);
+  }
 
   const role = (token.role as string) ?? "external";
   const userUniverse = (token.universe as string) ?? "UHERO";
+  const readable = toReadableSet(token.readable as string[] | undefined);
 
   // Extract the URL universe from the internal pathname (/udaman/{universe}/...)
   const uniMatch = internalPathname.match(/^\/udaman\/([^/]+)/);
-  const urlUniverse = uniMatch ? uniMatch[1].toUpperCase() : null;
+  const urlUniverse = uniMatch ? normalizeUniverse(uniMatch[1]) : null;
+  const homeUniverse = normalizeUniverse(userUniverse);
 
   // Cross-universe guard: non-UHERO users can only access their own universe
-  if (
-    urlUniverse &&
-    urlUniverse !== userUniverse.toUpperCase() &&
-    userUniverse.toUpperCase() !== "UHERO"
-  ) {
+  if (urlUniverse && urlUniverse !== homeUniverse && homeUniverse !== "UHERO") {
     // Redirect to their own universe homepage
-    const ownUniverse = userUniverse.toLowerCase();
+    const ownUniverse = homeUniverse.toLowerCase();
     const ownHomepage = homepageUrl.includes("/udaman/")
       ? `/udaman/${ownUniverse}`
       : `/${ownUniverse}`;
-    return NextResponse.redirect(new URL(ownHomepage, request.url));
+    return denyTo(request, ownHomepage);
   }
 
-  if (!isRouteAllowed(role, userUniverse, internalPathname)) {
-    return NextResponse.redirect(new URL(homepageUrl, request.url));
+  if (!isRouteAllowed(role, userUniverse, internalPathname, readable)) {
+    return denyTo(request, homepageUrl);
   }
 
   return null;
@@ -159,15 +196,15 @@ export async function proxy(request: NextRequest) {
       // Root → redirect to a role+universe-aware landing page, or login if no session
       if (pathname === "/") {
         if (hasSessionCookie(request)) {
-          const token = await getToken({
-            req: request,
-            secret: process.env.AUTH_SECRET,
-          });
+          const token = await readToken(request);
           const role = (token?.role as string) ?? "external";
           const universe = (token?.universe as string) ?? "uhero";
+          const readable = toReadableSet(
+            token?.readable as string[] | undefined,
+          );
           // Same policy as the login page; strip the internal /udaman prefix
           // so the browser URL stays clean on the subdomain.
-          const landingPath = getLandingPath(role, universe).replace(
+          const landingPath = getLandingPath(role, universe, readable).replace(
             /^\/udaman/,
             "",
           );
@@ -244,14 +281,12 @@ export async function proxy(request: NextRequest) {
   // Top-level routes: /admin, /hhdb, /docs, /comms, /data-registry
   const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
   if (isTopLevel) {
-    const token = await getToken({
-      req: request,
-      secret: process.env.AUTH_SECRET,
-    });
+    const token = await readToken(request);
     const role = (token?.role as string) ?? "external";
     const userUniverse = (token?.universe as string) ?? "UHERO";
+    const readable = toReadableSet(token?.readable as string[] | undefined);
 
-    if (!isRouteAllowed(role, userUniverse, pathname)) {
+    if (!isRouteAllowed(role, userUniverse, pathname, readable)) {
       const universe = userUniverse.toLowerCase();
       return NextResponse.redirect(new URL(`/udaman/${universe}`, request.url));
     }

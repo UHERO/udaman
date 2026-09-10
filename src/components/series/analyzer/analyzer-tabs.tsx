@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 const tabClass = (isActive: boolean) =>
   cn(
-    "inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+    "inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors",
     isActive
       ? "border-primary text-primary"
       : "text-muted-foreground hover:text-foreground border-transparent",
@@ -60,22 +60,25 @@ export function AnalyzerTabs() {
   }
 
   return (
-    <div className="flex items-center gap-1 border-b">
-      <span className={tabClass(true)}>
-        <LineChart className="h-4 w-4" />
-        Analyzer View
-      </span>
-      <button
-        type="button"
-        onClick={handleSeriesView}
-        disabled={navigating}
-        className={cn(tabClass(false), navigating && "opacity-50")}
-      >
-        <Table2 className="h-4 w-4" />
-        Series View
-      </button>
+    <div className="flex items-center border-b">
+      {/* Scrolls sideways rather than overflowing the page on a narrow screen. */}
+      <div className="flex min-w-0 flex-1 scrollbar-none items-center gap-1 overflow-x-auto">
+        <span className={tabClass(true)}>
+          <LineChart className="h-4 w-4" />
+          Analyzer View
+        </span>
+        <button
+          type="button"
+          onClick={handleSeriesView}
+          disabled={navigating}
+          className={cn(tabClass(false), navigating && "opacity-50")}
+        >
+          <Table2 className="h-4 w-4" />
+          Series View
+        </button>
+      </div>
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1">
         <Button
           variant="ghost"
           size="icon"
