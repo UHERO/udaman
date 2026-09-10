@@ -11,7 +11,6 @@ import { Plus } from "lucide-react";
 
 import {
   getApprovalsWithReviews,
-  getCanSelfReview,
   currentUserName as getCurrentUserName,
 } from "@/actions/approvals";
 import { PreReleaseList } from "@/components/comms/pre-release-list";
@@ -24,12 +23,11 @@ export default async function Page({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const [{ approvals, reviews }, { userId, role }, { status }, selfReview] =
+  const [{ approvals, reviews }, { userId, role }, { status }] =
     await Promise.all([
       getApprovalsWithReviews(),
       getCurrentUserContext(),
       searchParams,
-      getCanSelfReview(),
     ]);
   const currentUserName = await getCurrentUserName();
   const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
@@ -75,7 +73,6 @@ export default async function Page({
         currentUserName={currentUserName}
         isAdmin={role === "admin" || role === "dev"}
         isDev={role === "dev"}
-        canSelfReview={selfReview}
         emptyMessage={
           active === "all"
             ? "No pre-release forms submitted yet."

@@ -14,6 +14,24 @@ const QUOTED_REF_RE =
   /"([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])"(\.tsn?)\b/gi;
 
 /**
+ * Drop a lone unpaired `"`.
+ *
+ * Eval syntax only ever uses quotes in pairs, so an odd count means the text is
+ * malformed — a stray quote typed into an expression input, or the tail of a
+ * reference that only partly converted back. Left in place it becomes a
+ * permanent part of the entry's display name (`VLOSNS@KAU.M"`) and rides along
+ * into the chart legend, the table header, the CSV export, and any entry
+ * duplicated from it. Balanced expressions are returned untouched.
+ */
+function dropUnpairedQuote(s: string): string {
+  const count = s.match(/"/g)?.length ?? 0;
+  if (count % 2 === 0) return s;
+  if (s.endsWith('"')) return s.slice(0, -1);
+  if (s.startsWith('"')) return s.slice(1);
+  return s.replace('"', "");
+}
+
+/**
  * Eval syntax → editable text.
  * `"VIS@HI.Q".ts` → `VIS@HI.Q`; `"A@HI.Q".ts / "B@US.Q".ts` → `A@HI.Q / B@US.Q`.
  * `.tsn` is kept because nullable loading is not the same as `.ts`.
@@ -26,9 +44,14 @@ export function exprToEditable(expr: string): string {
   const lone = expr.match(/^"([^"]+)"(\.tsn?)$/);
   if (lone) return lone[2] === ".tsn" ? `${lone[1]}.tsn` : lone[1];
 
-  return expr.replace(QUOTED_REF_RE, (_m, name: string, suffix: string) =>
-    suffix.toLowerCase() === ".tsn" ? `${name}.tsn` : name,
+  const unquoted = expr.replace(
+    QUOTED_REF_RE,
+    (_m, name: string, suffix: string) =>
+      suffix.toLowerCase() === ".tsn" ? `${name}.tsn` : name,
   );
+  // A partial conversion can leave a dangling quote behind (`"A@HI.M".ts"` →
+  // `A@HI.M"`); don't let it reach the label.
+  return dropUnpairedQuote(unquoted);
 }
 
 /**
@@ -38,20 +61,24 @@ export function exprToEditable(expr: string): string {
  * being quoted whole as one (nonexistent) series name.
  */
 export function editableToExpr(input: string): string {
+  // A stray unpaired quote is a typo, not eval syntax. Strip it first so it
+  // can't satisfy the pass-through below and be stored as the expression.
+  const cleaned = dropUnpairedQuote(input);
+
   // Already written in eval syntax — pass through untouched.
-  if (input.includes('"')) return input;
+  if (cleaned.includes('"')) return cleaned;
 
   let matched = false;
-  const converted = input.replace(
+  const converted = cleaned.replace(
     BARE_NAME_RE,
     (name: string, offset: number) => {
       // Preceded by a name character — this is the tail of a longer token
       // (an unrecognized vintage qualifier, say). Leave it alone.
-      const prev = offset > 0 ? input[offset - 1] : "";
+      const prev = offset > 0 ? cleaned[offset - 1] : "";
       if (prev && /[%$\w&]/.test(prev)) return name;
       matched = true;
       // Respect a suffix the user typed themselves (`VIS@HI.Q.tsn.yoy`).
-      const rest = input.slice(offset + name.length);
+      const rest = cleaned.slice(offset + name.length);
       return /^\.tsn?\b/.test(rest) ? `"${name}"` : `"${name}".ts`;
     },
   );
@@ -59,7 +86,7 @@ export function editableToExpr(input: string): string {
 
   // Nothing that looks like a series name (e.g. a name with no frequency
   // suffix, like `EMPL@HAW`) — treat the whole input as one name.
-  return `"${input}".ts`;
+  return `"${cleaned}".ts`;
 }
 
 /** Chart/table label for an expression: the same text the user typed. */

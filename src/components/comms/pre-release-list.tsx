@@ -71,7 +71,6 @@ export function PreReleaseList({
   currentUserName,
   isAdmin,
   isDev,
-  canSelfReview = false,
   emptyMessage = "No pre-release forms submitted yet.",
 }: {
   approvals: ApprovalJSON[];
@@ -81,8 +80,6 @@ export function PreReleaseList({
   currentUserName: string;
   isAdmin: boolean;
   isDev: boolean;
-  /** Author may review their own forms (developer testing exemption). */
-  canSelfReview?: boolean;
   emptyMessage?: string;
 }) {
   const router = useRouter();
@@ -99,8 +96,8 @@ export function PreReleaseList({
   const toggleExpanded = (id: number) => setExpanded((s) => toggle(s, id));
   const openAddReview = (id: number) => setExpanded((s) => toggle(s, id, true));
 
-  const canReview = (a: ApprovalJSON) =>
-    (canSelfReview || a.authorUserId !== currentUserId) && !a.reviewedByMe;
+  // Authors may review their own forms — many are filed on their behalf.
+  const canReview = (a: ApprovalJSON) => !a.reviewedByMe;
   const [pendingDelete, setPendingDelete] = useState<ApprovalJSON | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [pendingResend, setPendingResend] = useState<ApprovalJSON | null>(null);

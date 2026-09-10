@@ -22,6 +22,8 @@ export type CreateApprovalPayload = {
 export type UpdateApprovalPayload = {
   name?: string;
   author?: string;
+  /** Re-attribute the form. Pass together with `author` — the two must agree. */
+  authorUserId?: number;
   targetReleaseDate?: string | null;
   formData?: PreReleaseFormData;
 };
@@ -158,6 +160,7 @@ class ApprovalCollection {
       UPDATE approvals
       SET name = ${updates.name ?? current.name},
           author = ${updates.author ?? current.author},
+          author_user_id = ${updates.authorUserId ?? current.authorUserId},
           target_release_date = ${
             updates.targetReleaseDate !== undefined
               ? updates.targetReleaseDate || null

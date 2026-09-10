@@ -101,24 +101,17 @@ export async function submitReview({
   reviewerName,
   attested,
   notes,
-  allowSelfReview = false,
 }: {
   id: number;
   actor: Actor;
   reviewerName: string;
   attested: boolean;
   notes: string | null;
-  /** See SELF_REVIEW_EXEMPT_EMAILS — resolved by the caller from the session. */
-  allowSelfReview?: boolean;
 }) {
   log.info({ id, reviewerUserId: actor.userId }, "submitting review");
+  // Authors may review their own form. Forms are often filed on the author's
+  // behalf, so the reviewer pool can't be gated on who is named as author.
   const approval = await ApprovalCollection.getById(id);
-  if (approval.authorUserId === actor.userId && !allowSelfReview) {
-    throw new AuthorizationError("You can't review your own pre-release form", {
-      approvalId: id,
-      actorUserId: actor.userId,
-    });
-  }
   const before = await ApprovalReviewCollection.countForApproval(id);
   const review = await ApprovalReviewCollection.upsert({
     approvalId: id,

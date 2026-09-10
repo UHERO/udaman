@@ -115,17 +115,30 @@ type FormValues = {
   passwordConfirmation: string;
 };
 
+/** The subset of a freshly created account a caller can act on right away. */
+export type CreatedUser = {
+  id: number;
+  email: string;
+  name: string | null;
+};
+
 interface UserFormSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Pass a user to edit it; omit to create a new one. */
   user?: SerializedUser | null;
+  /**
+   * Called after a successful create, so a host that opened the sheet from a
+   * picker can select the new account without a round trip to the server.
+   */
+  onCreated?: (created: CreatedUser) => void;
 }
 
 export function UserFormSheet({
   open,
   onOpenChange,
   user,
+  onCreated,
 }: UserFormSheetProps) {
   const router = useRouter();
   const universes = useUniverseNames();
@@ -156,27 +169,36 @@ export function UserFormSheet({
 
   async function onSubmit(values: FormValues) {
     try {
+      const fields = {
+        email: values.email.trim(),
+        name: values.name.trim() || null,
+        role: values.role,
+        universe: values.universe,
+        // Blank means "keep the current password" when editing and "UH Google
+        // login only" when creating.
+        ...(values.password ? { password: values.password } : {}),
+      };
       const result =
         user != null
-          ? await updateUserAction(user.id, {
-              email: values.email.trim(),
-              name: values.name.trim() || null,
-              role: values.role,
-              universe: values.universe,
-              // Blank means "keep the current password".
-              ...(values.password ? { password: values.password } : {}),
-            })
-          : await createUserAction({
-              email: values.email.trim(),
-              name: values.name.trim() || null,
-              role: values.role,
-              universe: values.universe,
-              // Blank means "UH Google login only".
-              ...(values.password ? { password: values.password } : {}),
-            });
+          ? await updateUserAction(user.id, fields)
+          : await createUserAction(fields);
 
       if (result.success) {
         toast.success(result.message);
+        if (user == null) {
+          const created = result as Awaited<
+            ReturnType<typeof createUserAction>
+          >;
+          if (created.id != null) {
+            onCreated?.({
+              id: created.id,
+              // The collection stores the address lowercased; mirror that so
+              // the caller's copy matches what a later fetch would return.
+              email: fields.email.toLowerCase(),
+              name: fields.name,
+            });
+          }
+        }
         onOpenChange(false);
         router.refresh();
       } else {
@@ -204,7 +226,14 @@ export function UserFormSheet({
         </SheetHeader>
 
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={(e) => {
+            // The sheet portals to <body>, but React still bubbles the submit
+            // through the component tree. Stop it here so a host form (the
+            // pre-release form opens this sheet from its author picker) isn't
+            // submitted along with this one.
+            e.stopPropagation();
+            void form.handleSubmit(onSubmit)(e);
+          }}
           className="flex flex-col gap-0 overflow-y-auto px-4"
         >
           <FieldSet className="m-0 gap-1 p-0">

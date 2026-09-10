@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { createApproval, updateApproval } from "@/actions/approvals";
+import { authorLabel, AuthorPicker } from "@/components/comms/author-picker";
+import type { AuthorCandidate } from "@/components/comms/author-picker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -63,6 +65,15 @@ function parseRecipients(raw: string): string[] {
 
 function isEmail(address: string): boolean {
   return z.string().email().safeParse(address).success;
+}
+
+/** Append an address unless it's already there (case-insensitive). */
+function withRecipient(list: string[], address: string | null | undefined) {
+  const email = address?.trim();
+  if (!email) return list;
+  return list.some((a) => a.toLowerCase() === email.toLowerCase())
+    ? list
+    : [...list, email];
 }
 
 const CERT_MESSAGE = "All five certifications must be confirmed to submit";
@@ -107,6 +118,16 @@ const formSchema = z
     certUncertainties: z.boolean().refine((v) => v, { message: CERT_MESSAGE }),
     certCompliance: z.boolean().refine((v) => v, { message: CERT_MESSAGE }),
     certIndependent: z.boolean().refine((v) => v, { message: CERT_MESSAGE }),
+    // Filing for someone else (create) or re-attributing the form (edit).
+    // The author must be an existing account — see AuthorPicker.
+    onBehalf: z.boolean(),
+    author: z
+      .object({
+        id: z.number(),
+        name: z.string().nullable(),
+        email: z.string(),
+      })
+      .nullable(),
 
     // E — Availability and dissemination
     availableOnRelease: z.enum(["yes", "no"]),
@@ -117,6 +138,14 @@ const formSchema = z
     recipients: z.array(z.string()),
   })
   .superRefine((v, ctx) => {
+    if (v.onBehalf && !v.author) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["author"],
+        message: "Choose the lead author",
+      });
+    }
+
     if (v.publicationType === "other" && !v.publicationTypeOther.trim()) {
       ctx.addIssue({
         code: "custom",
@@ -215,6 +244,8 @@ const EMPTY: Omit<FormValues, "recipients"> = {
   certUncertainties: false,
   certCompliance: false,
   certIndependent: false,
+  onBehalf: false,
+  author: null,
   availableOnRelease: "yes",
   mediaContactName: "",
   mediaContactEmail: "",
@@ -276,6 +307,9 @@ function toFormValues(
     certUncertainties: d.certUncertainties ?? false,
     certCompliance: d.certCompliance ?? false,
     certIndependent: d.certIndependent ?? false,
+    // Editing keeps the author unless the box is ticked and someone new picked.
+    onBehalf: false,
+    author: null,
     availableOnRelease: d.availableOnRelease ?? "yes",
     mediaContactName: d.mediaContactName ?? "",
     mediaContactEmail: d.mediaContactEmail ?? "",
@@ -545,12 +579,25 @@ export function PreReleaseForm({
   mode,
   approval,
   authorName,
+  authorEmail = null,
+  canCreateUsers,
   standardRecipients,
 }: {
   mode: "create" | "edit";
   approval?: ApprovalJSON | null;
-  /** Signed-in user — always the lead author, shown read-only in section D. */
+  /**
+   * The lead author unless the form is filed on someone else's behalf: the
+   * signed-in user when creating, the stored author when editing.
+   */
   authorName: string;
+  /**
+   * Address of the default author, seeded into the recipient list. The
+   * server adds the lead author regardless; this just makes the list on
+   * screen match what will be sent.
+   */
+  authorEmail?: string | null;
+  /** Whether the author picker may offer to create a new account (admins). */
+  canCreateUsers: boolean;
   /**
    * The default notification list, passed down from the server page so the
    * mailer module stays server-only rather than being pulled into the
@@ -571,7 +618,10 @@ export function PreReleaseForm({
     resolver: zodResolver(formSchema),
     defaultValues: approval
       ? toFormValues(approval, standardRecipients)
-      : { ...EMPTY, recipients: standardRecipients },
+      : {
+          ...EMPTY,
+          recipients: withRecipient(standardRecipients, authorEmail),
+        },
   });
 
   const errors = form.formState.errors;
@@ -581,6 +631,27 @@ export function PreReleaseForm({
   const aiUses = form.watch("aiUses");
   const availableOnRelease = form.watch("availableOnRelease");
   const recipients = form.watch("recipients");
+  const onBehalf = form.watch("onBehalf");
+  const author = form.watch("author");
+
+  /** Who section D certifies for — the picked author once there is one. */
+  const certifiedBy = onBehalf && author ? authorLabel(author) : authorName;
+
+  function setOnBehalf(checked: boolean) {
+    form.setValue("onBehalf", checked);
+    // Unticking withdraws the choice; nothing about the author should linger.
+    if (!checked) form.clearErrors("author");
+    form.setValue("author", checked ? author : null);
+  }
+
+  function setAuthor(next: AuthorCandidate) {
+    form.setValue("author", next, {
+      shouldValidate: form.formState.isSubmitted,
+    });
+    // The author is always notified; show that rather than surprising the
+    // submitter when the server adds them.
+    form.setValue("recipients", withRecipient(recipients, next.email));
+  }
 
   /** Picking a primary type has to evict it from the derived list. */
   function setPrimaryType(next: PublicationType) {
@@ -639,6 +710,9 @@ export function PreReleaseForm({
       name: values.name,
       targetReleaseDate: values.targetReleaseDate || null,
       formData,
+      // Null tells the server "the signed-in user" (create) or "unchanged"
+      // (edit); the server re-checks that the id is a real account.
+      authorUserId: values.onBehalf && values.author ? values.author.id : null,
     };
 
     try {
@@ -724,11 +798,41 @@ export function PreReleaseForm({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field>
+            <Field data-invalid={!!errors.author}>
               <FieldLabel htmlFor="leadAuthor">Lead author</FieldLabel>
-              <Input id="leadAuthor" value={authorName} disabled readOnly />
+              {onBehalf ? (
+                <AuthorPicker
+                  id="leadAuthor"
+                  value={author}
+                  onChange={setAuthor}
+                  canCreateUsers={canCreateUsers}
+                />
+              ) : (
+                <Input id="leadAuthor" value={authorName} disabled readOnly />
+              )}
+              <FieldError errors={[errors.author]} />
+              {/*
+                orientation="horizontal" is required here, not cosmetic — see
+                the note on the certification rows in section D.
+              */}
+              <Field orientation="horizontal" className="mt-1">
+                <Checkbox
+                  id="onBehalf"
+                  checked={onBehalf}
+                  onCheckedChange={(checked) => setOnBehalf(checked === true)}
+                />
+                <FieldLabel htmlFor="onBehalf" className="font-normal">
+                  {mode === "create"
+                    ? "Submitting on behalf of the lead author"
+                    : "Change the lead author"}
+                </FieldLabel>
+              </Field>
               <FieldDescription>
-                Taken from your account. The lead author submits this form.
+                {onBehalf
+                  ? "Only existing accounts can be named, so every form spells a name the same way."
+                  : mode === "create"
+                    ? "Taken from your account unless you are filing for someone else."
+                    : "Tick the box to reassign this form to another account."}
               </FieldDescription>
             </Field>
 
@@ -968,7 +1072,7 @@ export function PreReleaseForm({
           ))}
 
           <FieldDescription className="mt-2">
-            Certified by <strong>{authorName}</strong>
+            Certified by <strong>{certifiedBy}</strong>
             {approval?.createdAt
               ? ` — submitted ${new Date(approval.createdAt).toLocaleDateString()}`
               : " on submission"}
@@ -1050,7 +1154,7 @@ export function PreReleaseForm({
 
       <FormSection
         title="Notification"
-        description="Everyone on this list is emailed the submitted form. It starts with the standard UHERO recipients — add or remove anyone before submitting."
+        description="Everyone on this list is emailed the submitted form. It starts with the standard UHERO recipients — add or remove anyone before submitting. The lead author is always included."
       >
         <FieldGroup>
           <Field data-invalid={!!errors.recipients}>

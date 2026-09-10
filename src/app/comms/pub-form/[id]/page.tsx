@@ -5,7 +5,6 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import {
   getApproval,
   getApprovalReviews,
-  getCanSelfReview,
   currentUserName as getCurrentUserName,
 } from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
@@ -35,10 +34,7 @@ export default async function Page({
     throw err;
   }
 
-  const [reviews, selfReview] = await Promise.all([
-    getApprovalReviews(numericId),
-    getCanSelfReview(),
-  ]);
+  const reviews = await getApprovalReviews(numericId);
   const currentUserName = await getCurrentUserName();
   const currentUserId = parseInt(userId) || 0;
   const isAdmin = role === "admin" || role === "dev";
@@ -85,7 +81,6 @@ export default async function Page({
         currentUserName={currentUserName}
         isAdmin={isAdmin}
         isDev={role === "dev"}
-        canSelfReview={selfReview}
       />
 
       <Separator />

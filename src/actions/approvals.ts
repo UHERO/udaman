@@ -16,13 +16,13 @@ import {
   updateApproval as updateApprovalCtrl,
 } from "@catalog/controllers/approvals";
 import type { PreReleaseFormData } from "@catalog/models/approval";
-import { canSelfReview } from "@catalog/models/approval";
 import type ApprovalReviewModel from "@catalog/models/approval-review";
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
 import { getSession } from "@/lib/auth/dal";
 import { requirePermission } from "@/lib/auth/permissions";
+import { normalizeUniverse } from "@/lib/auth/roles";
 import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 
@@ -33,6 +33,19 @@ export type PreReleaseSubmission = {
   name: string;
   targetReleaseDate: string | null;
   formData: PreReleaseFormData;
+  /**
+   * Lead author when the form is filed on someone else's behalf. Must be an
+   * existing user in the submitter's universe; null/undefined means the
+   * signed-in user is the author (create) or the author is unchanged (edit).
+   */
+  authorUserId?: number | null;
+};
+
+/** A user who can be named as lead author. Display name falls back to email. */
+export type AuthorCandidate = {
+  id: number;
+  name: string | null;
+  email: string;
 };
 
 const REVALIDATE_PATH = "/comms";
@@ -58,6 +71,93 @@ export async function currentUserName(): Promise<string> {
     if (u) return u.name?.trim() || u.email || "Unknown user";
   }
   return session?.user?.name || session?.user?.email || "Unknown user";
+}
+
+/**
+ * Users who may be named as lead author on a pre-release form.
+ *
+ * Restricted to accounts in the submitter's universe (an approval is scoped
+ * to it, and an author elsewhere could never open the form). DBEDT upload
+ * accounts are excluded — they aren't people who write publications.
+ */
+export async function listAuthorCandidates(): Promise<AuthorCandidate[]> {
+  const { universe } = await requirePermission("approval", "read");
+  const rows = await mysql<AuthorCandidate>`
+    SELECT id, name, email FROM users
+    WHERE universe = ${normalizeUniverse(universe)}
+      AND role != 'external'
+    ORDER BY name ASC, email ASC
+  `;
+  return rows.map((r) => ({ id: r.id, name: r.name, email: r.email }));
+}
+
+type ResolvedAuthor = {
+  author: string;
+  authorUserId: number;
+  /** Null only if the account somehow has no address. */
+  authorEmail: string | null;
+};
+
+/**
+ * Turn a requested author id into the `author` / `authorUserId` pair to store.
+ *
+ * No request (or a request for the submitter) attributes the form to the
+ * signed-in user. Anyone else has to be a real account in this universe so
+ * the stored name is the one on their user record, not free text.
+ */
+async function resolveAuthor(
+  requestedId: number | null | undefined,
+  submitterId: number,
+  universe: string,
+): Promise<ResolvedAuthor> {
+  const id = requestedId || submitterId;
+  const rows = await mysql<{
+    name: string | null;
+    email: string;
+    universe: string | null;
+  }>`
+    SELECT name, email, universe FROM users WHERE id = ${id} LIMIT 1
+  `;
+  const u = rows[0];
+
+  if (id === submitterId) {
+    // Same fallbacks as currentUserName — the submitter is always a valid author.
+    return {
+      author: u
+        ? u.name?.trim() || u.email || "Unknown user"
+        : await currentUserName(),
+      authorUserId: submitterId,
+      authorEmail: u?.email ?? null,
+    };
+  }
+  if (!u || normalizeUniverse(u.universe) !== normalizeUniverse(universe)) {
+    throw new Error("The selected author is not a user in this universe");
+  }
+  return {
+    author: u.name?.trim() || u.email || "Unknown user",
+    authorUserId: id,
+    authorEmail: u.email,
+  };
+}
+
+/**
+ * The lead author always gets the notification, whether or not the submitter
+ * left them on the list. Forms are often filed on the author's behalf, and the
+ * author is the one who most needs the copy.
+ */
+function withAuthorRecipient(
+  formData: PreReleaseFormData,
+  authorEmail: string | null,
+): PreReleaseFormData {
+  const email = authorEmail?.trim();
+  if (!email) return formData;
+  const recipients = formData.recipients ?? [];
+  const present = recipients.some(
+    (a) => a.trim().toLowerCase() === email.toLowerCase(),
+  );
+  return present
+    ? formData
+    : { ...formData, recipients: [...recipients, email] };
 }
 
 export async function getApprovals() {
@@ -100,12 +200,6 @@ export async function getApprovalsWithReviews() {
   return { approvals, reviews };
 }
 
-/** Whether the signed-in user may review forms they authored. */
-export async function getCanSelfReview(): Promise<boolean> {
-  const session = await getSession();
-  return canSelfReview(session?.user?.email);
-}
-
 export async function getApprovalReviews(id: number) {
   await getApproval(id); // permission + universe scoping
   const result = await fetchApprovalReviews({ id });
@@ -117,19 +211,17 @@ export async function submitReview(
   payload: { attested: boolean; notes: string },
 ) {
   // Reviewing is a write, but any internal user may do it — same gate as
-  // filing a form. Author-can't-self-review lives in the controller.
+  // filing a form. Authors may review their own forms.
   const { userId, role } = await requirePermission("approval", "update");
   await getApproval(id); // universe scoping
   log.info({ id }, "submitReview action called");
   try {
-    const session = await getSession();
     const result = await submitReviewCtrl({
       id,
       actor: { userId, role },
       reviewerName: await currentUserName(),
       attested: payload.attested,
       notes: payload.notes,
-      allowSelfReview: canSelfReview(session?.user?.email),
     });
     revalidatePath(REVALIDATE_PATH);
     revalidatePath(`/comms/pub-form/${id}`);
@@ -184,17 +276,24 @@ export async function setApprovalReleased(id: number, released: boolean) {
 
 export async function createApproval(payload: PreReleaseSubmission) {
   const { userId, universe } = await requirePermission("approval", "create");
-  log.info("createApproval action called");
+  log.info(
+    { onBehalfOf: payload.authorUserId ?? null },
+    "createApproval action called",
+  );
   try {
+    const { authorEmail, ...author } = await resolveAuthor(
+      payload.authorUserId,
+      userId,
+      universe,
+    );
     const result = await createApprovalCtrl({
       payload: {
         type: "pre_release",
         universe: universe as Universe,
         name: payload.name,
-        author: await currentUserName(),
-        authorUserId: userId,
+        ...author,
         targetReleaseDate: payload.targetReleaseDate,
-        formData: payload.formData,
+        formData: withAuthorRecipient(payload.formData, authorEmail),
       },
     });
     revalidatePath(REVALIDATE_PATH);
@@ -212,15 +311,25 @@ export async function updateApproval(
   id: number,
   payload: PreReleaseSubmission,
 ) {
-  const { userId, role } = await requirePermission("approval", "update");
+  const { userId, role, universe } = await requirePermission(
+    "approval",
+    "update",
+  );
   log.info({ id }, "updateApproval action called");
   try {
+    // Only re-attribute when the form explicitly asked to; a plain edit
+    // leaves the author alone. A new author joins the recipient list so a
+    // later resend reaches them.
+    const { authorEmail, ...author } = payload.authorUserId
+      ? await resolveAuthor(payload.authorUserId, userId, universe)
+      : { authorEmail: null };
     const result = await updateApprovalCtrl({
       id,
       payload: {
         name: payload.name,
         targetReleaseDate: payload.targetReleaseDate,
-        formData: payload.formData,
+        formData: withAuthorRecipient(payload.formData, authorEmail),
+        ...author,
       },
       actor: { userId, role },
     });
