@@ -39,8 +39,9 @@ export default async function Page({
       <div>
         <h1 className="text-3xl font-bold">Edit pre-release form</h1>
         <p className="text-muted-foreground text-sm">
-          Saving re-certifies the form as of now. Recipients are notified on
-          submission only, not on edits.
+          Saving re-certifies the form as of now. Edits don&apos;t notify
+          anyone unless you tick &ldquo;Resend notification&rdquo; before
+          saving.
         </p>
       </div>
       <PreReleaseForm

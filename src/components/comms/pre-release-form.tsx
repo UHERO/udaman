@@ -24,7 +24,11 @@ import { ChevronsUpDown, Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { createApproval, updateApproval } from "@/actions/approvals";
+import {
+  createApproval,
+  resendApprovalNotification,
+  updateApproval,
+} from "@/actions/approvals";
 import { authorLabel, AuthorPicker } from "@/components/comms/author-picker";
 import type { AuthorCandidate } from "@/components/comms/author-picker";
 import { Button } from "@/components/ui/button";
@@ -624,6 +628,10 @@ export function PreReleaseForm({
         },
   });
 
+  // Not part of the form data — an edit never mails anyone on its own, so this
+  // is an explicit per-save opt-in that runs after the update lands.
+  const [resendNotification, setResendNotification] = useState(false);
+
   const errors = form.formState.errors;
   const publicationType = form.watch("publicationType");
   const secondaryTypes = form.watch("secondaryPublicationTypes");
@@ -721,6 +729,23 @@ export function PreReleaseForm({
           ? await createApproval(payload)
           : await updateApproval(approval!.id, payload);
       toast.success(result.message);
+
+      // Resend after the update commits so the mail carries the edited form.
+      // A mail failure must not read as a failed save — the save already
+      // happened — so report it separately and still navigate.
+      if (mode === "edit" && resendNotification) {
+        try {
+          const resent = await resendApprovalNotification(approval!.id);
+          toast.success(resent.message);
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? `Saved, but the notification failed: ${error.message}`
+              : "Saved, but the notification failed to send",
+          );
+        }
+      }
+
       router.push(returnHref);
       router.refresh();
     } catch (error) {
@@ -1175,7 +1200,27 @@ export function PreReleaseForm({
 
       <Separator />
 
-      <div className="flex justify-end gap-2 pb-8">
+      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 pb-8">
+        {mode === "edit" && (
+          <Field orientation="horizontal" className="mr-auto w-auto">
+            <Checkbox
+              id="resendNotification"
+              checked={resendNotification}
+              onCheckedChange={(checked) =>
+                setResendNotification(checked === true)
+              }
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="resendNotification" className="font-normal">
+                Resend notification
+              </FieldLabel>
+              <FieldDescription>
+                Emails the updated form to everyone in the recipient list above.
+                Edits don&apos;t notify anyone unless this is checked.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
+        )}
         <Button
           type="button"
           variant="outline"
