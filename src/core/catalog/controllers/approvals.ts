@@ -1,6 +1,7 @@
 import {
   sendPreReleaseReviewed,
   sendPreReleaseSubmitted,
+  sendReviewMessage,
 } from "@/core/mailers/pre-release-mailer";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 import { createLogger } from "@/core/observability/logger";
@@ -13,9 +14,11 @@ import type {
   UpdateApprovalPayload,
 } from "../collections/approval-collection";
 import ApprovalReviewCollection from "../collections/approval-review-collection";
+import ReviewMessageCollection from "../collections/review-message-collection";
 import type Approval from "../models/approval";
 import { REQUIRED_REVIEWS } from "../models/approval";
 import type { ApprovalType } from "../models/approval";
+import type { ReviewBoardStatus } from "../models/approval-review";
 import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.approvals");
@@ -198,6 +201,132 @@ export async function deleteReview({
   await ApprovalReviewCollection.delete(reviewId);
   log.info({ reviewId, approvalId: review.approvalId }, "review deleted");
   return { message: "Review withdrawn", approvalId: review.approvalId };
+}
+
+/**
+ * Move a review's kanban card. Only the parent approval's author (or an
+ * admin/dev) may set it — this is the author's own progress signal, separate
+ * from whatever the reviewer has attested/noted.
+ */
+export async function setReviewBoardStatus({
+  reviewId,
+  status,
+  actor,
+}: {
+  reviewId: number;
+  status: ReviewBoardStatus;
+  actor: Actor;
+}) {
+  const review = await ApprovalReviewCollection.getById(reviewId);
+  const approval = await ApprovalCollection.getById(review.approvalId);
+  assertCanModify(approval, actor);
+  const data = await ApprovalReviewCollection.setBoardStatus(reviewId, status);
+  log.info({ reviewId, status }, "review board status updated");
+  return { message: "Review status updated", data, approvalId: approval.id };
+}
+
+/*************************************************************************
+ * Review messages (author <-> reviewer clarification thread)
+ *************************************************************************/
+
+/** Only the review's own reviewer, the parent approval's author, or an admin may read the thread. */
+function assertCanViewThread(
+  review: { reviewerUserId: number },
+  approval: Approval,
+  actor: Actor,
+): void {
+  if (isAdmin(actor.role)) return;
+  if (review.reviewerUserId === actor.userId) return;
+  if (approval.authorUserId === actor.userId) return;
+  throw new AuthorizationError(
+    "Only the author or the reviewer may view this thread",
+    { approvalId: approval.id, actorUserId: actor.userId },
+  );
+}
+
+export async function getReviewMessages({
+  reviewId,
+  actor,
+}: {
+  reviewId: number;
+  actor: Actor;
+}) {
+  const review = await ApprovalReviewCollection.getById(reviewId);
+  const approval = await ApprovalCollection.getById(review.approvalId);
+  assertCanViewThread(review, approval, actor);
+  const data = await ReviewMessageCollection.listForReview(reviewId);
+  return { data };
+}
+
+/**
+ * Post a message on a review's clarification thread and email the other
+ * party. Only the parent approval's author or the reviewer themself may
+ * post — the same two people who can see the thread.
+ */
+export async function sendReviewClarificationMessage({
+  reviewId,
+  actor,
+  actorName,
+  actorEmail,
+  body,
+}: {
+  reviewId: number;
+  actor: Actor;
+  actorName: string;
+  actorEmail: string;
+  body: string;
+}) {
+  const trimmed = body.trim();
+  if (!trimmed) {
+    throw new Error("Message can't be empty");
+  }
+
+  const review = await ApprovalReviewCollection.getById(reviewId);
+  const approval = await ApprovalCollection.getById(review.approvalId);
+  assertCanViewThread(review, approval, actor);
+  const isAuthor = approval.authorUserId === actor.userId;
+
+  const message = await ReviewMessageCollection.create({
+    approvalReviewId: reviewId,
+    senderUserId: actor.userId,
+    sender: actorName,
+    body: trimmed,
+  });
+
+  // The recipient is whichever side of the thread the sender isn't.
+  const recipientUserId = isAuthor
+    ? review.reviewerUserId
+    : approval.authorUserId;
+  const recipientEmailRows = await mysql<{ email: string }>`
+    SELECT email FROM users WHERE id = ${recipientUserId} LIMIT 1
+  `;
+  const recipientEmail = recipientEmailRows[0]?.email;
+
+  if (recipientEmail) {
+    sendReviewMessage({
+      approvalId: approval.id,
+      approvalName: approval.name,
+      senderName: actorName,
+      senderEmail: actorEmail,
+      reviewerEmail: recipientEmail,
+      body: trimmed,
+    })
+      .then(() => ReviewMessageCollection.markEmailed(message.id))
+      .catch((err) => {
+        log.error(
+          {
+            err: err instanceof Error ? err.message : String(err),
+            reviewId,
+          },
+          "review message email failed",
+        );
+      });
+  } else {
+    log.warn({ reviewId }, "message recipient has no email; skipping send");
+  }
+
+  log.info({ reviewId, messageId: message.id }, "review message posted");
+  return { message: "Message sent", data: message, approvalId: approval.id };
 }
 
 /** Mark a form released (or un-mark it). Author or admin only. */

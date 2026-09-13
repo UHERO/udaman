@@ -9,15 +9,19 @@ import {
   getApproval as fetchApproval,
   getApprovalReviews as fetchApprovalReviews,
   getApprovals as fetchApprovals,
+  getReviewMessages as fetchReviewMessages,
   getReviewsForApprovals as fetchReviewsForApprovals,
   resendApprovalNotification as resendApprovalNotificationCtrl,
+  sendReviewClarificationMessage as sendReviewClarificationMessageCtrl,
   setApprovalReleased as setApprovalReleasedCtrl,
+  setReviewBoardStatus as setReviewBoardStatusCtrl,
   submitReview as submitReviewCtrl,
   updateApproval as updateApprovalCtrl,
 } from "@catalog/controllers/approvals";
 import type { PreReleaseFormData } from "@catalog/models/approval";
 import { canSelfReview } from "@catalog/models/approval";
 import type ApprovalReviewModel from "@catalog/models/approval-review";
+import type { ReviewBoardStatus } from "@catalog/models/approval-review";
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
@@ -157,6 +161,66 @@ export async function deleteReview(reviewId: number) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteReview failed");
     AppLogCollection.logError(err, { userId, name: "approval.review.delete" });
+    throw err;
+  }
+}
+
+export async function setReviewBoardStatus(
+  reviewId: number,
+  status: ReviewBoardStatus,
+) {
+  const { userId, role } = await requirePermission("approval", "update");
+  log.info({ reviewId, status }, "setReviewBoardStatus action called");
+  try {
+    const result = await setReviewBoardStatusCtrl({
+      reviewId,
+      status,
+      actor: { userId, role },
+    });
+    revalidatePath(REVALIDATE_PATH);
+    revalidatePath(`/comms/pub-form/${result.approvalId}`);
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "setReviewBoardStatus failed");
+    AppLogCollection.logError(err, { userId, name: "approval.review.board" });
+    throw err;
+  }
+}
+
+/** Clarification thread for one review, oldest first. */
+export async function getReviewMessages(reviewId: number) {
+  const { userId, role } = await requirePermission("approval", "read");
+  const result = await fetchReviewMessages({
+    reviewId,
+    actor: { userId, role },
+  });
+  return result.data.map((m) => m.toJSON());
+}
+
+/**
+ * Post a message on a review's thread (author <-> reviewer only) and email
+ * the other party.
+ */
+export async function sendReviewMessage(reviewId: number, body: string) {
+  const { userId, role } = await requirePermission("approval", "update");
+  log.info({ reviewId }, "sendReviewMessage action called");
+  try {
+    const session = await getSession();
+    const result = await sendReviewClarificationMessageCtrl({
+      reviewId,
+      actor: { userId, role },
+      actorName: await currentUserName(),
+      actorEmail: session?.user?.email ?? "",
+      body,
+    });
+    revalidatePath(REVALIDATE_PATH);
+    revalidatePath(`/comms/pub-form/${result.approvalId}`);
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "sendReviewMessage failed");
+    AppLogCollection.logError(err, { userId, name: "approval.review.message" });
     throw err;
   }
 }

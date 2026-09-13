@@ -286,9 +286,16 @@ export type ApprovalAttrs = {
   reviewed_by_me?: number | string | null;
 };
 
-/** MySQL DATE/DATETIME columns come back as Date or string depending on driver path. */
+/**
+ * MySQL DATE/DATETIME columns come back as Date or string depending on driver
+ * path. Also guards against a corrupt/unparseable value producing an invalid
+ * Date that would blow up later at `.toISOString()` — seen intermittently
+ * from the pooled connection under concurrent queries.
+ */
 function toDate(value: Date | string | null | undefined): Date | null {
-  return value ? new Date(value as string | Date) : null;
+  if (!value) return null;
+  const date = new Date(value as string | Date);
+  return isNaN(date.getTime()) ? null : date;
 }
 
 /** Render a DATE column as `YYYY-MM-DD` without tripping over local timezone. */

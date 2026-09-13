@@ -2,7 +2,10 @@ import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 
 import ApprovalReview from "../models/approval-review";
-import type { ApprovalReviewAttrs } from "../models/approval-review";
+import type {
+  ApprovalReviewAttrs,
+  ReviewBoardStatus,
+} from "../models/approval-review";
 
 export type UpsertReviewPayload = {
   approvalId: number;
@@ -22,7 +25,7 @@ class ApprovalReviewCollection {
    */
   static async listForApproval(approvalId: number): Promise<ApprovalReview[]> {
     const rows = await mysql<ApprovalReviewAttrs>`
-      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer
+      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer_display
       FROM approval_reviews r
       LEFT JOIN users u ON u.id = r.reviewer_user_id
       WHERE r.approval_id = ${approvalId}
@@ -38,7 +41,7 @@ class ApprovalReviewCollection {
     const map = new Map<number, ApprovalReview[]>();
     if (!approvalIds.length) return map;
     const rows = await mysql<ApprovalReviewAttrs>`
-      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer
+      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer_display
       FROM approval_reviews r
       LEFT JOIN users u ON u.id = r.reviewer_user_id
       WHERE r.approval_id IN ${mysql(approvalIds)}
@@ -104,6 +107,19 @@ class ApprovalReviewCollection {
 
   static async delete(id: number): Promise<void> {
     await mysql`DELETE FROM approval_reviews WHERE id = ${id}`;
+  }
+
+  /** Author-set kanban column for this review. See `ReviewBoardStatus`. */
+  static async setBoardStatus(
+    id: number,
+    status: ReviewBoardStatus,
+  ): Promise<ApprovalReview> {
+    await mysql`
+      UPDATE approval_reviews
+      SET board_status = ${status}, updated_at = NOW()
+      WHERE id = ${id}
+    `;
+    return this.getById(id);
   }
 
   /** Signed-off reviews only — notes without the checkbox don't count. */
