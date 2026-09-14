@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/table";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 
+import { ReviewKanbanBoard } from "./review-kanban-board";
 import { ReviewTable } from "./review-table";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
@@ -267,7 +268,16 @@ export function PreReleaseList({
                 {isOpen && (
                   <TableRow className="bg-muted/60 hover:bg-muted/60">
                     <TableCell colSpan={7} className="p-2 sm:pl-10">
-                      <div className="border-muted-foreground/40 bg-background/40 space-y-3 rounded-md border border-dashed px-3 py-2">
+                      <div className="border-muted-foreground/40 bg-background/40 space-y-4 rounded-md border border-dashed px-3 py-2">
+                        {list.length > 0 && (
+                          <ReviewKanbanBoard
+                            reviews={list}
+                            approvals={{ [a.id]: a }}
+                            canDrag={() => canModify(a)}
+                            currentUserId={currentUserId}
+                          />
+                        )}
+                        {/* Temporarily hidden while iterating on the kanban board.
                         <ReviewTable
                           approvalId={a.id}
                           reviews={list}
@@ -276,6 +286,7 @@ export function PreReleaseList({
                           isDev={isDev}
                           canAdd={canReview(a)}
                         />
+                        */}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -14,6 +14,9 @@ import {
   getCanSelfReview,
   currentUserName as getCurrentUserName,
 } from "@/actions/approvals";
+import { AuthorReviewBoard } from "@/components/comms/author-review-board";
+import { CommsViewToggle } from "@/components/comms/comms-view-toggle";
+import type { CommsView } from "@/components/comms/comms-view-toggle";
 import { PreReleaseList } from "@/components/comms/pre-release-list";
 import { PreReleaseStatusTabs } from "@/components/comms/pre-release-status-tabs";
 import { Button } from "@/components/ui/button";
@@ -22,9 +25,9 @@ import { getCurrentUserContext } from "@/lib/auth/dal";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; view?: string }>;
 }) {
-  const [{ approvals, reviews }, { userId, role }, { status }, selfReview] =
+  const [{ approvals, reviews }, { userId, role }, { status, view }, selfReview] =
     await Promise.all([
       getApprovalsWithReviews(),
       getCurrentUserContext(),
@@ -32,9 +35,11 @@ export default async function Page({
       getCanSelfReview(),
     ]);
   const currentUserName = await getCurrentUserName();
+  const currentUserId = parseInt(userId) || 0;
   const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
     ? status
     : "all";
+  const activeView: CommsView = view === "board" ? "board" : "list";
   const visible = approvals.filter((a) => matches(a, active));
 
   return (
@@ -56,32 +61,44 @@ export default async function Page({
         </Button>
       </div>
 
-      <PreReleaseStatusTabs
-        active={active}
-        counts={
-          Object.fromEntries(
-            APPROVAL_STATUS_FILTERS.map((f) => [
-              f,
-              approvals.filter((a) => matches(a, f)).length,
-            ]),
-          ) as Record<ApprovalStatusFilter, number>
-        }
-      />
+      <CommsViewToggle active={activeView} />
 
-      <PreReleaseList
-        approvals={visible}
-        reviews={reviews}
-        currentUserId={parseInt(userId) || 0}
-        currentUserName={currentUserName}
-        isAdmin={role === "admin" || role === "dev"}
-        isDev={role === "dev"}
-        canSelfReview={selfReview}
-        emptyMessage={
-          active === "all"
-            ? "No pre-release forms submitted yet."
-            : `No ${APPROVAL_STATUS_LABELS[active].toLowerCase()} forms.`
-        }
-      />
+      {activeView === "board" ? (
+        <AuthorReviewBoard
+          approvals={approvals}
+          reviews={reviews}
+          currentUserId={currentUserId}
+        />
+      ) : (
+        <>
+          <PreReleaseStatusTabs
+            active={active}
+            counts={
+              Object.fromEntries(
+                APPROVAL_STATUS_FILTERS.map((f) => [
+                  f,
+                  approvals.filter((a) => matches(a, f)).length,
+                ]),
+              ) as Record<ApprovalStatusFilter, number>
+            }
+          />
+
+          <PreReleaseList
+            approvals={visible}
+            reviews={reviews}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            isAdmin={role === "admin" || role === "dev"}
+            isDev={role === "dev"}
+            canSelfReview={selfReview}
+            emptyMessage={
+              active === "all"
+                ? "No pre-release forms submitted yet."
+                : `No ${APPROVAL_STATUS_LABELS[active].toLowerCase()} forms.`
+            }
+          />
+        </>
+      )}
     </div>
   );
 }

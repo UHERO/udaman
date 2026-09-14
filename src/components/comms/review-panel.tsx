@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { setApprovalReleased } from "@/actions/approvals";
 import { Button } from "@/components/ui/button";
 
+import { ReviewKanbanBoard } from "./review-kanban-board";
 import { formatReviewTimestamp, ReviewTable } from "./review-table";
 
 /**
@@ -41,6 +42,7 @@ export function ReviewPanel({
   const isAuthor = approval.authorUserId === currentUserId;
   const canRelease = isAuthor || isAdmin;
   const canAdd = (canSelfReview || !isAuthor) && !mine;
+  const canModify = isAuthor || isAdmin;
 
   function handleRelease(released: boolean) {
     startTransition(async () => {
@@ -93,6 +95,16 @@ export function ReviewPanel({
         </div>
       </div>
 
+      {reviews.length > 0 && (
+        <ReviewKanbanBoard
+          reviews={reviews}
+          approvals={{ [approval.id]: approval }}
+          canDrag={() => canModify}
+          currentUserId={currentUserId}
+        />
+      )}
+
+      {/* Temporarily hidden while iterating on the kanban board.
       <ReviewTable
         approvalId={approval.id}
         reviews={reviews}
@@ -101,6 +113,7 @@ export function ReviewPanel({
         isDev={isDev}
         canAdd={canAdd}
       />
+      */}
 
       {isAuthor && !canSelfReview && (
         <p className="text-muted-foreground text-sm">

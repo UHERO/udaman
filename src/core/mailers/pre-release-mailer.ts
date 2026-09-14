@@ -25,9 +25,15 @@ const log = createLogger("mailer.pre-release");
  * Note the missing `/udaman` prefix — the deployed subdomain strips it from
  * browser URLs and rewrites internally (see src/proxy.ts), so an emailed link
  * must use the external form.
+ *
+ * Falls back to AUTH_URL (the app's own base URL, e.g. localhost in dev)
+ * before the hardcoded production default, so emailed links open the
+ * environment that actually sent them instead of always pointing at prod.
  */
 const BASE_URL =
-  process.env.UDAMAN_BASE_URL ?? "https://udaman.uhero.hawaii.edu";
+  process.env.UDAMAN_BASE_URL ??
+  process.env.AUTH_URL ??
+  "https://udaman.uhero.hawaii.edu";
 
 /** HTML escape so submitter-provided text is safe to embed. */
 function esc(s: string | number | null | undefined): string {
@@ -252,4 +258,46 @@ export async function sendPreReleaseReviewed(input: {
     "Sending pre-release reviewed email",
   );
   await Mailer.email({ to: [input.authorEmail], subject, html });
+}
+
+/**
+ * Notify a reviewer that the author left them a message on their review
+ * (e.g. asking for clarification). Reply-to is set to the sender so a reply
+ * reaches them directly, even though it won't appear in-thread here.
+ */
+export async function sendReviewMessage(input: {
+  approvalId: number;
+  approvalName: string;
+  senderName: string;
+  senderEmail: string;
+  reviewerEmail: string;
+  body: string;
+}): Promise<void> {
+  const url = `${BASE_URL}/comms/pub-form/${input.approvalId}`;
+  const subject = `Re: ${input.approvalName} — a message from ${input.senderName}`;
+
+  const html = shell(
+    subject,
+    `
+    <p>
+      <strong>${esc(input.senderName)}</strong> left you a message on your
+      review of <strong>${esc(input.approvalName)}</strong>:
+    </p>
+    <blockquote style="margin: 12px 0; padding: 8px 16px; border-left: 3px solid #ccc; white-space: pre-wrap;">${esc(
+      input.body,
+    )}</blockquote>
+    <p><a href="${esc(url)}">View and reply in udaman</a>.</p>
+    `,
+  );
+
+  log.info(
+    { approvalId: input.approvalId, to: input.reviewerEmail },
+    "Sending review message email",
+  );
+  await Mailer.email({
+    to: [input.reviewerEmail],
+    subject,
+    html,
+    replyTo: input.senderEmail,
+  });
 }
