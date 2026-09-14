@@ -263,128 +263,134 @@ const DataRegistryTable = ({
   });
 
   return (
-    <RawTable className="w-full rounded-lg">
-      <TableCaption>A list of all UHERO source data sets.</TableCaption>
-      <TableHeader>
-        {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow className="cursor-pointer" key={headerGroup.id}>
-            {headerGroup.headers.map((header) => {
-              const canSort = header.column.getCanSort();
-              const sorted = header.column.getIsSorted();
-              return (
-                <TableHead
-                  key={header.id}
-                  className={canSort ? "cursor-pointer select-none" : ""}
-                  onClick={
-                    canSort
-                      ? header.column.getToggleSortingHandler()
-                      : undefined
-                  }
-                >
-                  <div className="flex items-center gap-1">
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                    {canSort &&
-                      (sorted === "asc" ? (
-                        <ArrowUp className="h-3 w-3" />
-                      ) : sorted === "desc" ? (
-                        <ArrowDown className="h-3 w-3" />
-                      ) : (
-                        <ArrowUpDown className="text-muted-foreground h-3 w-3" />
-                      ))}
-                  </div>
-                </TableHead>
-              );
-            })}
-          </TableRow>
-        ))}
-      </TableHeader>
-      <TableBody>
-        {table.getRowModel().rows.map((row) => {
-          const isOpen = expandedIds.has(row.original.id);
-          return (
-            <Fragment key={row.id}>
-              <TableRow
-                onClick={() => toggleExpanded(row.original.id)}
-                className={cn(
-                  "cursor-pointer",
-                  isOpen && "dark:bg-accent bg-cyan-600/10",
-                )}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
+    // RawTable has no scroll wrapper of its own, unlike Table.
+    <div className="w-full overflow-x-auto">
+      <RawTable className="w-full rounded-lg">
+        <TableCaption>A list of all UHERO source data sets.</TableCaption>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow className="cursor-pointer" key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const canSort = header.column.getCanSort();
+                const sorted = header.column.getIsSorted();
+                return (
+                  <TableHead
+                    key={header.id}
+                    className={canSort ? "cursor-pointer select-none" : ""}
                     onClick={
-                      cell.column.id === "actions"
-                        ? (e) => e.stopPropagation()
+                      canSort
+                        ? header.column.getToggleSortingHandler()
                         : undefined
                     }
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-              {isOpen && (
-                <TableRow key={`${row.id}-detail`}>
-                  <TableCell colSpan={columns.length} className="bg-slate-50">
-                    <div className="mt-3 ml-5">
-                      {(
-                        [
-                          ["Source", row.original.source],
-                          ["Owner", row.original.owner],
-                          ["Access", row.original.access],
-                          ["Format", row.original.format],
-                          ["Contact", row.original.contact],
-                        ] as const
-                      ).map(([label, value]) => (
-                        <p key={label}>
-                          <strong>{label}</strong> {value}
-                        </p>
-                      ))}
-                      {row.original.requiresApproval && (
-                        <p>
-                          <strong>Approval details</strong>{" "}
-                          {row.original.approvalDetails || "—"}
-                        </p>
+                    <div className="flex items-center gap-1">
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
                       )}
-                      <p className="mt-2 flex items-center gap-x-2">
-                        <strong>Author </strong>
-                        <span className="rounded-full bg-blue-400/20 px-3 py-0.5">
-                          {row.original.author.email}
-                        </span>
-                      </p>
-                      <p className="mt-2 flex items-center gap-x-2 py-0.5">
-                        <strong>Security Level </strong>
-                        <span
-                          className={cn(
-                            securityColors[row.original.security],
-                            "rounded-full px-3 text-zinc-800",
-                          )}
-                        >
-                          {row.original.security}
-                        </span>
-                      </p>
-                      <p className="mt-5 whitespace-pre-line">
-                        {row.original.description}
-                      </p>
-                      <p className="text-muted-foreground my-3 text-sm italic">
-                        <span>Created at</span>{" "}
-                        {new Date(row.original.created_at).toLocaleDateString(
-                          "en-US",
-                          { year: "numeric", month: "short", day: "numeric" },
-                        )}
-                      </p>
+                      {canSort &&
+                        (sorted === "asc" ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : sorted === "desc" ? (
+                          <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="text-muted-foreground h-3 w-3" />
+                        ))}
                     </div>
-                  </TableCell>
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.map((row) => {
+            const isOpen = expandedIds.has(row.original.id);
+            return (
+              <Fragment key={row.id}>
+                <TableRow
+                  onClick={() => toggleExpanded(row.original.id)}
+                  className={cn(
+                    "cursor-pointer",
+                    isOpen && "dark:bg-accent bg-cyan-600/10",
+                  )}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      onClick={
+                        cell.column.id === "actions"
+                          ? (e) => e.stopPropagation()
+                          : undefined
+                      }
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
                 </TableRow>
-              )}
-            </Fragment>
-          );
-        })}
-      </TableBody>
-    </RawTable>
+                {isOpen && (
+                  <TableRow key={`${row.id}-detail`}>
+                    <TableCell colSpan={columns.length} className="bg-slate-50">
+                      <div className="mt-3 ml-5">
+                        {(
+                          [
+                            ["Source", row.original.source],
+                            ["Owner", row.original.owner],
+                            ["Access", row.original.access],
+                            ["Format", row.original.format],
+                            ["Contact", row.original.contact],
+                          ] as const
+                        ).map(([label, value]) => (
+                          <p key={label}>
+                            <strong>{label}</strong> {value}
+                          </p>
+                        ))}
+                        {row.original.requiresApproval && (
+                          <p>
+                            <strong>Approval details</strong>{" "}
+                            {row.original.approvalDetails || "—"}
+                          </p>
+                        )}
+                        <p className="mt-2 flex items-center gap-x-2">
+                          <strong>Author </strong>
+                          <span className="rounded-full bg-blue-400/20 px-3 py-0.5">
+                            {row.original.author.email}
+                          </span>
+                        </p>
+                        <p className="mt-2 flex items-center gap-x-2 py-0.5">
+                          <strong>Security Level </strong>
+                          <span
+                            className={cn(
+                              securityColors[row.original.security],
+                              "rounded-full px-3 text-zinc-800",
+                            )}
+                          >
+                            {row.original.security}
+                          </span>
+                        </p>
+                        <p className="mt-5 whitespace-pre-line">
+                          {row.original.description}
+                        </p>
+                        <p className="text-muted-foreground my-3 text-sm italic">
+                          <span>Created at</span>{" "}
+                          {new Date(row.original.created_at).toLocaleDateString(
+                            "en-US",
+                            { year: "numeric", month: "short", day: "numeric" },
+                          )}
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            );
+          })}
+        </TableBody>
+      </RawTable>
+    </div>
   );
 };
 

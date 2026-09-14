@@ -35,12 +35,23 @@ const chartConfig: ChartConfig = {
 export function OutOfStateRatioChart() {
   const [islandCode, setIslandCode] = useState<string>("all");
   const [data, setData] = useState<OutOfStateRatioRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setData(null);
-    getHhdbOutOfStateRatio(islandCode === "all" ? undefined : islandCode).then(
-      setData,
-    );
+    setError(null);
+    getHhdbOutOfStateRatio(islandCode === "all" ? undefined : islandCode)
+      .then((rows) => {
+        if (!cancelled) setData(rows);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : "Failed to load");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [islandCode]);
 
   return (
@@ -70,7 +81,11 @@ export function OutOfStateRatioChart() {
         </div>
       </CardHeader>
       <CardContent>
-        {!data ? (
+        {error ? (
+          <div className="text-destructive flex h-[300px] items-center justify-center text-sm">
+            Failed to load out-of-state ratio: {error}
+          </div>
+        ) : !data ? (
           <div className="flex h-[300px] items-center justify-center">
             <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
           </div>

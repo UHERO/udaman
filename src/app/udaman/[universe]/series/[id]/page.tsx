@@ -54,7 +54,7 @@ export default async function SeriesPage({
       />
       <SeriesHoverProvider xseriesId={metadata.xs_id}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(320px,400px)]">
-          <div className="min-w-0">
+          <div className="order-2 min-w-0 lg:order-1">
             <LoaderSection
               universe={universe}
               seriesId={id}
@@ -73,7 +73,9 @@ export default async function SeriesPage({
               }}
             />
           </div>
-          <div className="sticky top-4 self-start">
+          {/* Metadata leads when stacked, but stays in the right-hand column
+              on lg+ — hence the order swap rather than a DOM reorder. */}
+          <div className="order-1 self-start lg:sticky lg:top-4 lg:order-2">
             <MetaDataTable
               metadata={{ ...metadata, measurement, aliases }}
               universe={universe}

@@ -1,5 +1,7 @@
 import { createLogger } from "@/core/observability/logger";
 
+import type { SendResult } from "./transport";
+
 const log = createLogger("mailer.slack");
 
 export async function sendSlackMessage(opts: {
@@ -8,7 +10,7 @@ export async function sendSlackMessage(opts: {
   blocks?: unknown[];
   threadTs?: string;
   unfurlLinks?: boolean;
-}): Promise<void> {
+}): Promise<SendResult> {
   const disabled =
     process.env.SLACK_DISABLED === "1" || process.env.SLACK_DISABLED === "true";
   if (disabled) {
@@ -16,7 +18,7 @@ export async function sendSlackMessage(opts: {
       { channel: opts.channel, textLength: opts.text.length },
       "SLACK_DISABLED — skipping send",
     );
-    return;
+    return { skipped: true };
   }
 
   const token = process.env.SLACK_BOT_TOKEN;
@@ -56,4 +58,5 @@ export async function sendSlackMessage(opts: {
   }
 
   log.info({ channel: opts.channel, ts: data.ts }, "Slack message sent");
+  return { skipped: false };
 }

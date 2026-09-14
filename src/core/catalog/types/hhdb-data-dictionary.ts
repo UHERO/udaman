@@ -173,18 +173,57 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "ZIP",
       description: "Postal ZIP code for the property address.",
       summary: ALL_VIEWS,
+      source_notes:
+        "Never populated — the intended source (state address list) was not loaded. Use zcta20 for ZIP-level geography.",
     },
     {
       key: "latitude",
       label: "Latitude",
-      description: "Geographic latitude coordinate of the parcel centroid.",
-      summary: ALL_VIEWS,
+      description:
+        "Latitude of the land parcel centroid (WGS84). Condo units carry their parent parcel's centroid.",
+      source_notes:
+        "From the parcel/ZCTA/tract crosswalk (qpub crosswalk), not the assessor pages. NULL for the ~330 parcels absent from the State's parcel layer.",
     },
     {
       key: "longitude",
       label: "Longitude",
-      description: "Geographic longitude coordinate of the parcel centroid.",
+      description:
+        "Longitude of the land parcel centroid (WGS84). Condo units carry their parent parcel's centroid.",
+      source_notes:
+        "From the parcel/ZCTA/tract crosswalk (qpub crosswalk), not the assessor pages.",
+    },
+    {
+      key: "zcta20",
+      label: "ZCTA (2020)",
+      description:
+        "2020 Census ZIP Code Tabulation Area containing the parcel centroid. Approximates the postal ZIP but is a Census geography, not a USPS one.",
       summary: ALL_VIEWS,
+      source_notes:
+        "From the parcel/ZCTA/tract crosswalk. ~240 parcels whose centroid falls in no ZCTA polygon were assigned the nearest one (all within 1 km); ~180 remain NULL.",
+    },
+    {
+      key: "countyfp",
+      label: "County FIPS",
+      description:
+        "Census county FIPS code: 001 Hawaii, 003 Honolulu, 005 Kalawao, 007 Kauai, 009 Maui. Not the same as island_code — Kalawao (Kalaupapa, Molokai) is its own county.",
+      summary: ALL_VIEWS,
+      source_notes: "From the parcel/ZCTA/tract crosswalk.",
+    },
+    {
+      key: "tractce",
+      label: "Census Tract",
+      description:
+        "Six-digit census tract code within the county (2020 vintage). Divide by 100 for the conventional tract name, e.g. 020202 → 202.02.",
+      summary: ALL_VIEWS,
+      source_notes: "From the parcel/ZCTA/tract crosswalk.",
+    },
+    {
+      key: "tract_geoid",
+      label: "Tract GEOID",
+      description:
+        "Full 11-digit census tract GEOID (state 15 + countyfp + tractce), the key to join against ACS and decennial tables.",
+      summary: ALL_VIEWS,
+      source_notes: "From the parcel/ZCTA/tract crosswalk.",
     },
   ],
 
@@ -1822,7 +1861,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
  */
 export const HHDB_TABLE_DOCS: Record<string, string> = {
   properties:
-    "One row per TMK — the central table other tables join to. Carries the current Parcel Information snapshot (address, legal, class, land area) plus externally joined fields (ZIP, latitude/longitude from the state address list, state parcel-list reconciliation flags). County quirks: Honolulu publishes no neighborhood code or zoning; Big Island refers zoning to the county GIS; the damage/reentry-zone/zone-color trio is Maui-only (Lahaina fire); non_taxable_status and living_units are Kauai-only.",
+    "One row per TMK — the central table other tables join to. Carries the current Parcel Information snapshot (address, legal, class, land area) plus externally joined fields (parcel centroid, 2020 ZCTA and census-tract FIPS from the parcel crosswalk; state parcel-list reconciliation flags). Condo units inherit their parent land parcel's geography. County quirks: Honolulu publishes no neighborhood code or zoning; Big Island refers zoning to the county GIS; the damage/reentry-zone/zone-color trio is Maui-only (Lahaina fire); non_taxable_status and living_units are Kauai-only.",
   parcels:
     "Per-scrape observations of the Parcel Information section — the same fields as properties, but versioned by observation (scraped_at / last_year_observed) rather than collapsed to one row per TMK. Use it to see how a parcel's recorded attributes changed across scrape periods.",
   owners:

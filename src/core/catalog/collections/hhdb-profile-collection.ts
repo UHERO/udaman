@@ -297,6 +297,7 @@ async function getNumericSummaries(
     "year",
     "area",
     "count",
+    "coordinate",
   ];
   const numFields = overview.rows.filter((r) =>
     numericCategories.includes(r.fieldCategory),

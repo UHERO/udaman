@@ -20,7 +20,7 @@ export default async function ExportEditPage({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
       <h1 className="text-3xl font-bold">Edit: {data.export.name}</h1>
       <ExportForm
         export={data.export}

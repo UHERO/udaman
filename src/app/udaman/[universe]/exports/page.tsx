@@ -5,7 +5,7 @@ export default async function Page() {
   const data = await listExportsAction();
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
       <div>
         <h1 className="text-3xl font-bold">Exports</h1>
         <p className="text-muted-foreground text-sm">

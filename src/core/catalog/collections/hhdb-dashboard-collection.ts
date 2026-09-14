@@ -263,13 +263,66 @@ export default class HhdbDashboardCollection {
 
   // ---------------------------------------------------------------------------
   // Out-of-State Ownership
+  //
+  // All three queries are served by idx_tg_out_of_state
+  // (conveyanceAmount, recDate, mailingState, mailingZipCode, mailingCity) —
+  // see migrations/2026-09-08-tg-out-of-state-index.sql. Keep the predicates
+  // sargable: `conveyanceAmount > 0` leads the index, and year bounds must be
+  // expressed as recDate ranges, never YEAR(recDate).
   // ---------------------------------------------------------------------------
+
+  /** Half-open recDate range for an optional [startYear, endYear] window. */
+  private static yearRange(
+    startYear?: number,
+    endYear?: number,
+  ): { sql: string[]; params: string[] } {
+    const sql: string[] = [];
+    const params: string[] = [];
+    if (startYear) {
+      sql.push("recDate >= ?");
+      params.push(`${startYear}-01-01`);
+    }
+    if (endYear) {
+      sql.push("recDate < ?");
+      params.push(`${endYear + 1}-01-01`);
+    }
+    return { sql, params };
+  }
+
+  private static tgOutOfStateIndexPresent: Promise<boolean> | null = null;
+
+  /**
+   * Whether idx_tg_out_of_state exists on tg_transactions. Migrations are
+   * applied by hand, so the index can be missing on a given database; the
+   * FORCE INDEX hint below would then be a hard error instead of a slow query.
+   * Memoized per process.
+   */
+  private static hasTgOutOfStateIndex(): Promise<boolean> {
+    if (!this.tgOutOfStateIndexPresent) {
+      this.tgOutOfStateIndexPresent = rawQuery<{ Key_name: string }>(
+        "SHOW INDEX FROM tg_transactions WHERE Key_name = 'idx_tg_out_of_state'",
+      )
+        .then((rows) => rows.length > 0)
+        .catch(() => {
+          this.tgOutOfStateIndexPresent = null;
+          return false;
+        });
+    }
+    return this.tgOutOfStateIndexPresent;
+  }
 
   /** Out-of-state buyer ratio by quarter */
   static async getOutOfStateRatioByQuarter(
     islandCode?: string,
   ): Promise<OutOfStateRatioRow[]> {
-    const islandJoin = islandCode ? "JOIN properties p ON t.tmk = p.tmk" : "";
+    // The un-joined query picks the range scan on its own, but once
+    // properties is joined the optimizer prefers a full scan of
+    // tg_transactions (seconds warm, minutes cold), so force the index there.
+    const forceIndex =
+      islandCode && (await this.hasTgOutOfStateIndex())
+        ? "FORCE INDEX (idx_tg_out_of_state)"
+        : "";
+    const islandJoin = islandCode ? "JOIN properties p ON p.tmk = t.tmk" : "";
     const islandWhere = islandCode ? "AND p.island_code = ?" : "";
     const params: (string | number)[] = [];
     if (islandCode) params.push(islandCode);
@@ -284,13 +337,13 @@ export default class HhdbDashboardCollection {
         YEAR(t.recDate) as year,
         QUARTER(t.recDate) as quarter,
         COUNT(*) as total_transactions,
-        SUM(CASE WHEN t.mailingState != 'HI' THEN 1 ELSE 0 END) as out_of_state_count
-      FROM tg_transactions t
+        SUM(t.mailingState <> 'HI') as out_of_state_count
+      FROM tg_transactions t ${forceIndex}
       ${islandJoin}
       WHERE t.conveyanceAmount > 0
-        AND t.mailingState IS NOT NULL
-        AND t.mailingState != ''
         AND t.recDate IS NOT NULL
+        AND t.mailingState IS NOT NULL
+        AND t.mailingState <> ''
         ${islandWhere}
       GROUP BY YEAR(t.recDate), QUARTER(t.recDate)
       HAVING COUNT(*) >= 5
@@ -313,21 +366,13 @@ export default class HhdbDashboardCollection {
     startYear?: number,
     endYear?: number,
   ): Promise<OutOfStateByStateRow[]> {
+    const range = this.yearRange(startYear, endYear);
     const conditions: string[] = [
-      "mailingState != 'HI'",
-      "mailingState IS NOT NULL",
-      "mailingState != ''",
       "conveyanceAmount > 0",
+      "mailingState <> 'HI'",
+      "mailingState <> ''",
+      ...range.sql,
     ];
-    const params: (string | number)[] = [];
-    if (startYear) {
-      conditions.push("YEAR(recDate) >= ?");
-      params.push(startYear);
-    }
-    if (endYear) {
-      conditions.push("YEAR(recDate) <= ?");
-      params.push(endYear);
-    }
 
     const rows = await rawQuery<{
       mailingState: string;
@@ -341,7 +386,7 @@ export default class HhdbDashboardCollection {
       GROUP BY mailingState
       ORDER BY transaction_count DESC
       LIMIT 20`,
-      params,
+      range.params,
     );
 
     const total = rows.reduce((sum, r) => sum + Number(r.transaction_count), 0);
@@ -358,26 +403,19 @@ export default class HhdbDashboardCollection {
     startYear?: number,
     endYear?: number,
   ): Promise<OutOfStateByZipRow[]> {
+    const range = this.yearRange(startYear, endYear);
     const conditions: string[] = [
-      "mailingState != 'HI'",
-      "mailingState IS NOT NULL",
-      "mailingState != ''",
-      "mailingZipCode IS NOT NULL",
-      "mailingZipCode != ''",
       "conveyanceAmount > 0",
+      "mailingState <> 'HI'",
+      "mailingState <> ''",
+      "mailingZipCode IS NOT NULL",
+      "mailingZipCode <> ''",
+      ...range.sql,
     ];
-    const params: (string | number)[] = [];
+    const params: (string | number)[] = [...range.params];
     if (state) {
       conditions.push("mailingState = ?");
       params.push(state);
-    }
-    if (startYear) {
-      conditions.push("YEAR(recDate) >= ?");
-      params.push(startYear);
-    }
-    if (endYear) {
-      conditions.push("YEAR(recDate) <= ?");
-      params.push(endYear);
     }
 
     const rows = await rawQuery<{

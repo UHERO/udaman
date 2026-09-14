@@ -291,7 +291,10 @@ export async function getHhdbOutOfStateTopStates(
   endYear?: number,
 ) {
   await requirePermission("hhdb", "read");
-  return getOutOfStateTopStatesCtrl(startYear, endYear);
+  return cachedDashboard(
+    `outOfStateTopStates:${startYear ?? ""}:${endYear ?? ""}`,
+    () => getOutOfStateTopStatesCtrl(startYear, endYear),
+  );
 }
 
 export async function getHhdbOutOfStateTopZips(
@@ -300,7 +303,10 @@ export async function getHhdbOutOfStateTopZips(
   endYear?: number,
 ) {
   await requirePermission("hhdb", "read");
-  return getOutOfStateTopZipsCtrl(state, startYear, endYear);
+  return cachedDashboard(
+    `outOfStateTopZips:${state ?? ""}:${startYear ?? ""}:${endYear ?? ""}`,
+    () => getOutOfStateTopZipsCtrl(state, startYear, endYear),
+  );
 }
 
 // --- Exploration: Ownership Concentration ---

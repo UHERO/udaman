@@ -8,15 +8,19 @@
 -- To update a a single existing frequency count field:
 --
 -- 1. Delete existing data for that field
--- DELETE FROM freq_properties WHERE column_name = 'latitude';
+-- DELETE FROM freq_properties WHERE column_name = 'zcta20';
 
 -- 2. Re-insert (take from same query as original insert)
 -- INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
--- SELECT LEFT(tmk, 1), 'latitude', LEFT(COALESCE(CAST(latitude AS CHAR), '[NULL]'), 500), COUNT(*)
--- FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(latitude AS CHAR), 500);
+-- SELECT LEFT(tmk, 1), 'zcta20', LEFT(COALESCE(CAST(zcta20 AS CHAR), '[NULL]'), 500), COUNT(*)
+-- FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(zcta20 AS CHAR), 500);
 -- INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
--- SELECT '0', 'latitude', LEFT(COALESCE(CAST(latitude AS CHAR), '[NULL]'), 500), COUNT(*)
--- FROM properties GROUP BY LEFT(CAST(latitude AS CHAR), 500);
+-- SELECT '0', 'zcta20', LEFT(COALESCE(CAST(zcta20 AS CHAR), '[NULL]'), 500), COUNT(*)
+-- FROM properties GROUP BY LEFT(CAST(zcta20 AS CHAR), 500);
+--
+-- properties.latitude / longitude are deliberately NOT counted: they are
+-- continuous parcel-centroid coordinates (~380k distinct values each), so
+-- a frequency table of them is pure noise.
 
 -- Alternatively, rerun entire freq generation with (takes a while)
 -- CALL sp_regenerate_freq_tables();
@@ -447,21 +451,37 @@ BEGIN
   SELECT '0', 'zip', LEFT(COALESCE(CAST(zip AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM properties GROUP BY LEFT(CAST(zip AS CHAR), 500);
 
-  -- latitude
+  -- zcta20
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
-  SELECT LEFT(tmk, 1), 'latitude', LEFT(COALESCE(CAST(latitude AS CHAR), '[NULL]'), 500), COUNT(*)
-  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(latitude AS CHAR), 500);
+  SELECT LEFT(tmk, 1), 'zcta20', LEFT(COALESCE(CAST(zcta20 AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(zcta20 AS CHAR), 500);
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
-  SELECT '0', 'latitude', LEFT(COALESCE(CAST(latitude AS CHAR), '[NULL]'), 500), COUNT(*)
-  FROM properties GROUP BY LEFT(CAST(latitude AS CHAR), 500);
+  SELECT '0', 'zcta20', LEFT(COALESCE(CAST(zcta20 AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(zcta20 AS CHAR), 500);
 
-  -- longitude
+  -- countyfp
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
-  SELECT LEFT(tmk, 1), 'longitude', LEFT(COALESCE(CAST(longitude AS CHAR), '[NULL]'), 500), COUNT(*)
-  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(longitude AS CHAR), 500);
+  SELECT LEFT(tmk, 1), 'countyfp', LEFT(COALESCE(CAST(countyfp AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(countyfp AS CHAR), 500);
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
-  SELECT '0', 'longitude', LEFT(COALESCE(CAST(longitude AS CHAR), '[NULL]'), 500), COUNT(*)
-  FROM properties GROUP BY LEFT(CAST(longitude AS CHAR), 500);
+  SELECT '0', 'countyfp', LEFT(COALESCE(CAST(countyfp AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(countyfp AS CHAR), 500);
+
+  -- tractce
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'tractce', LEFT(COALESCE(CAST(tractce AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(tractce AS CHAR), 500);
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT '0', 'tractce', LEFT(COALESCE(CAST(tractce AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(tractce AS CHAR), 500);
+
+  -- tract_geoid
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'tract_geoid', LEFT(COALESCE(CAST(tract_geoid AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(tmk, 1), LEFT(CAST(tract_geoid AS CHAR), 500);
+  INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
+  SELECT '0', 'tract_geoid', LEFT(COALESCE(CAST(tract_geoid AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM properties GROUP BY LEFT(CAST(tract_geoid AS CHAR), 500);
 
   -- in_parcel_list
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)

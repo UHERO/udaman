@@ -9,6 +9,7 @@ const AREA_RE = /sqft|acres|area|acreage|square_footage|perimeter/i;
 const COUNT_RE =
   /bedrooms|floors|units|parking|count|bath|room|building_number|sequence|living_units|buildings|quantity|dimensions/i;
 const BLOB_RE = /url|note|legal_information|sketch|description|address/i;
+const COORD_RE = /^(latitude|longitude)$/i;
 
 const DATE_TYPES = new Set(["date", "datetime", "timestamp"]);
 const TEXT_TYPES = new Set(["text", "longtext", "mediumtext", "tinytext"]);
@@ -40,22 +41,25 @@ export function classifyField(
   // 6. DECIMAL dollar columns
   if (dt === "decimal" && DOLLAR_RE.test(columnName)) return "small-dollar";
 
-  // 7. Area columns
+  // 7. Lat/long — numeric, but neither dollars nor a count
+  if (COORD_RE.test(columnName)) return "coordinate";
+
+  // 8. Area columns
   if (AREA_RE.test(columnName)) return "area";
 
-  // 8. Count columns (SMALLINT/INT + count-like name)
+  // 9. Count columns (SMALLINT/INT + count-like name)
   if ((dt === "smallint" || dt === "int") && COUNT_RE.test(columnName))
     return "count";
 
-  // 9. Remaining BIGINT/INT → count
+  // 10. Remaining BIGINT/INT → count
   if (dt === "bigint" || dt === "int" || dt === "smallint" || dt === "tinyint")
     return "count";
 
-  // 10. Remaining DECIMAL → small-dollar
+  // 11. Remaining DECIMAL → small-dollar
   if (dt === "decimal" || dt === "double" || dt === "float")
     return "small-dollar";
 
-  // 11. VARCHAR/CHAR by cardinality
+  // 12. VARCHAR/CHAR by cardinality
   if (dt === "varchar" || dt === "char" || dt === "enum") {
     if (distinctCount != null && distinctCount <= 200) return "low-cardinality";
     return "high-cardinality";

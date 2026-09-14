@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAppPathname } from "@/hooks/use-app-pathname";
 import { useFullWidth } from "@/hooks/use-full-width";
-import { getVisibleChildren } from "@/lib/auth/route-access";
+import { getVisibleChildren, toReadableSet } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -35,15 +35,22 @@ const TABS = [
 export function CatalogTabs({
   role,
   universe: userUniverse,
+  readableResources,
 }: {
   role: string;
   universe: string;
+  readableResources?: readonly string[];
 }) {
   const { universe } = useParams();
   const pathname = useAppPathname();
   const base = `/udaman/${universe}/catalog`;
 
-  const visibleChildren = getVisibleChildren(role, userUniverse, "/catalog");
+  const visibleChildren = getVisibleChildren(
+    role,
+    userUniverse,
+    "/catalog",
+    toReadableSet(readableResources),
+  );
   const visibleTabs = TABS.filter((tab) =>
     visibleChildren.some((child) =>
       tab.segment === ""
@@ -55,30 +62,33 @@ export function CatalogTabs({
   const { fullWidth, toggleWidth } = useFullWidth();
 
   return (
-    <div className="flex items-center gap-1 border-b">
-      {visibleTabs.map((tab) => {
-        const href = tab.segment ? `${base}/${tab.segment}` : base;
-        const isActive = tab.segment
-          ? pathname.startsWith(`${base}/${tab.segment}`)
-          : pathname === base;
-        return (
-          <Link
-            key={tab.segment}
-            href={href}
-            className={cn(
-              "inline-flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
-              isActive
-                ? "border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground border-transparent",
-            )}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </Link>
-        );
-      })}
+    <div className="flex items-center border-b">
+      {/* Scrolls sideways rather than overflowing the page on a narrow screen. */}
+      <div className="flex min-w-0 flex-1 scrollbar-none items-center gap-1 overflow-x-auto">
+        {visibleTabs.map((tab) => {
+          const href = tab.segment ? `${base}/${tab.segment}` : base;
+          const isActive = tab.segment
+            ? pathname.startsWith(`${base}/${tab.segment}`)
+            : pathname === base;
+          return (
+            <Link
+              key={tab.segment}
+              href={href}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors",
+                isActive
+                  ? "border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground border-transparent",
+              )}
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </Link>
+          );
+        })}
+      </div>
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1">
         <Button
           variant="ghost"
           size="icon"

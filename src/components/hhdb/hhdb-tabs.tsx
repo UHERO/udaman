@@ -141,11 +141,7 @@ export function HhdbTabs() {
           </div>
         )}
 
-        <div
-          ref={scrollRef}
-          className="scrollbar-none overflow-x-auto"
-          style={{ scrollbarWidth: "none" }}
-        >
+        <div ref={scrollRef} className="scrollbar-none overflow-x-auto">
           <div className="flex items-center gap-1 whitespace-nowrap">
             {TABS.map((tab) => {
               const href = tab.segment ? `${base}/tables/${tab.segment}` : base;

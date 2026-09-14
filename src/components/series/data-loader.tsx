@@ -54,14 +54,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 import { getColor } from "../helpers";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
+import {
+  ClearDataOptions,
+  clearModeLabel,
+  clearModeNeedsDate,
+} from "./clear-data-options";
 
 /** Split text into segments, extracting HTML anchor tags as typed parts. */
 function splitTextSegments(
@@ -182,44 +184,6 @@ const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
   );
 };
 
-const CLEAR_MODES: {
-  value: DeleteByMode;
-  label: string;
-  description: string;
-  needsDate: boolean;
-}[] = [
-  {
-    value: "none",
-    label: "All",
-    description: "Clear all data points",
-    needsDate: false,
-  },
-  {
-    value: "observationDate",
-    label: "After date",
-    description: "Delete points on or after date",
-    needsDate: true,
-  },
-  {
-    value: "beforeObservationDate",
-    label: "Before date",
-    description: "Delete points on or before date",
-    needsDate: true,
-  },
-  {
-    value: "currentOnly",
-    label: "Current only",
-    description: "Delete only current points (preserves vintages)",
-    needsDate: false,
-  },
-  {
-    value: "vintageDate",
-    label: "After vintage",
-    description: "Delete points loaded after date",
-    needsDate: true,
-  },
-];
-
 function ClearDataDialog({
   open,
   onOpenChange,
@@ -239,8 +203,7 @@ function ClearDataDialog({
   const [deleteBy, setDeleteBy] = useState<DeleteByMode>("none");
   const [date, setDate] = useState("");
 
-  const needsDate =
-    CLEAR_MODES.find((m) => m.value === deleteBy)?.needsDate ?? false;
+  const needsDate = clearModeNeedsDate(deleteBy);
   const scope = loaderId ? `loader #${loaderId}` : "this series";
 
   const handleClear = () =>
@@ -255,8 +218,7 @@ function ClearDataDialog({
         } else {
           await deleteSeriesDataPoints(seriesId, { universe, date, deleteBy });
         }
-        const modeLabel =
-          CLEAR_MODES.find((m) => m.value === deleteBy)?.label ?? deleteBy;
+        const modeLabel = clearModeLabel(deleteBy);
         toast.success("Data cleared", {
           description: `Cleared data points (${modeLabel}${needsDate ? `: ${date}` : ""})`,
         });
@@ -278,48 +240,13 @@ function ClearDataDialog({
             Choose how to clear data points for {scope}.
           </DialogDescription>
         </DialogHeader>
-        <RadioGroup
-          value={deleteBy}
-          onValueChange={(v) => setDeleteBy(v as DeleteByMode)}
-          className="gap-3"
-        >
-          {CLEAR_MODES.map((mode) => (
-            <div key={mode.value} className="flex items-start gap-2">
-              <RadioGroupItem
-                value={mode.value}
-                id={`clear-${loaderId ?? "s"}-${mode.value}`}
-                className="mt-0.5"
-              />
-              <Label
-                htmlFor={`clear-${loaderId ?? "s"}-${mode.value}`}
-                className="cursor-pointer leading-tight font-normal"
-              >
-                <span className="font-semibold">{mode.label}</span>
-                <span className="text-muted-foreground ml-1 text-xs">
-                  {mode.description}
-                </span>
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
-        <div
-          className={cn(
-            "transition-opacity",
-            needsDate ? "opacity-100" : "pointer-events-none opacity-30",
-          )}
-        >
-          <Label htmlFor={`clear-date-${loaderId ?? "s"}`} className="text-xs">
-            Date <span className="text-muted-foreground">(YYYY-MM-DD)</span>
-          </Label>
-          <Input
-            id={`clear-date-${loaderId ?? "s"}`}
-            placeholder="YYYY-MM-DD"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            disabled={!needsDate}
-            className="mt-1"
-          />
-        </div>
+        <ClearDataOptions
+          deleteBy={deleteBy}
+          onDeleteByChange={setDeleteBy}
+          date={date}
+          onDateChange={setDate}
+          idPrefix={loaderId ? String(loaderId) : "s"}
+        />
         <DialogFooter>
           <Button
             variant="outline"
@@ -432,12 +359,15 @@ export const LoaderSection = ({
 
   return (
     <div className="flex flex-col border-b">
-      <div className="flex h-6 flex-row items-center justify-start border-b pb-2 font-semibold">
-        <span className="mr-4">Loaders</span>
+      <div className="flex h-6 scrollbar-none flex-row items-center justify-start overflow-x-auto border-b pb-2 font-semibold">
+        <span className="mr-4 shrink-0">Loaders</span>
         <Button variant={"link"} onClick={() => setCreateOpen(true)}>
           new
         </Button>
-        <Separator orientation="vertical" className="bg-primary/60 h-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 h-4 shrink-0"
+        />
         <Button
           variant={"link"}
           onClick={() => setClearOpen(true)}
@@ -445,11 +375,17 @@ export const LoaderSection = ({
         >
           clear data
         </Button>
-        <Separator orientation="vertical" className="bg-primary/60 h-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 h-4 shrink-0"
+        />
         <Button variant={"link"} onClick={handleLoadAll} disabled={isLoading}>
           {isLoading ? "loading..." : "load all"}
         </Button>
-        <Separator orientation="vertical" className="bg-primary/60 h-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 h-4 shrink-0"
+        />
         <Button
           variant={"link"}
           onClick={handleSyncPublic}
@@ -574,7 +510,7 @@ const LoaderItem = ({
 
   return (
     <Card className={cn("p-2", getColor(loader.color))}>
-      <CardContent className="flex h-6 items-center justify-between gap-x-2">
+      <CardContent className="flex h-6 scrollbar-none items-center justify-between gap-x-2 overflow-x-auto">
         <CardDescription title="Load Priority" className="mr-auto">
           {loader.priority}
         </CardDescription>
@@ -591,7 +527,10 @@ const LoaderItem = ({
             {isLoading ? "loading..." : "load"}
           </Button>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <Button
             title="clear datapoints"
@@ -604,7 +543,10 @@ const LoaderItem = ({
             clear
           </Button>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -635,7 +577,10 @@ const LoaderItem = ({
             </AlertDialogContent>
           </AlertDialog>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <Button
             title="disable data loader"
@@ -648,7 +593,10 @@ const LoaderItem = ({
             disable
           </Button>
         </CardAction>
-        <Separator orientation="vertical" className="bg-primary/60 w-4" />
+        <Separator
+          orientation="vertical"
+          className="bg-primary/60 w-4 shrink-0"
+        />
         <CardAction>
           <Button
             title="edit data loader"

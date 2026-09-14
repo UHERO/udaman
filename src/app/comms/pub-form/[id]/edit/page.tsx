@@ -4,6 +4,7 @@ import { getApproval } from "@/actions/approvals";
 import { PreReleaseForm } from "@/components/comms/pre-release-form";
 import { PRE_RELEASE_RECIPIENTS } from "@/core/mailers/recipients";
 import { getCurrentUserContext } from "@/lib/auth/dal";
+import { hasFullAccess } from "@/lib/auth/roles";
 import { NotFoundError } from "@/lib/errors";
 
 export default async function Page({
@@ -46,6 +47,7 @@ export default async function Page({
         mode="edit"
         approval={approval}
         authorName={approval.author}
+        canCreateUsers={hasFullAccess(role)}
         standardRecipients={[...PRE_RELEASE_RECIPIENTS]}
       />
     </div>
