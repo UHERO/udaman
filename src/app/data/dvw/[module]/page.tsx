@@ -9,7 +9,7 @@ import { modules } from "../utils";
 export default async function ModulePage({
   params,
 }: {
-  params: { module: Module };
+  params: Promise<{ module: Module }>;
 }) {
   const { module } = await params;
 
