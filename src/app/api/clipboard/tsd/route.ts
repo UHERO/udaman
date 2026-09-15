@@ -9,6 +9,8 @@ import { scopedConnection } from "@/lib/mysql/db";
 const MAX_SERIES = 500;
 const BATCH_SIZE = 50;
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   await requirePermission("clipboard", "read");
   const userId = await getCurrentUserId();
