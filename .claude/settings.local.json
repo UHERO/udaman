@@ -21,7 +21,9 @@
       "Bash(awk 'NR<=1073 && /^\\(export \\)?function /{l=NR\": \"$0} END{}' src/core/crawlers/qpub/parse-sections.ts)",
       "Bash(awk -F: '$1<1073')",
       "Bash(git rm *)",
-      "Bash(echo \"grep exit=$?\")"
+      "Bash(echo \"grep exit=$?\")",
+      "Bash(bun run *)",
+      "Bash(echo \"tsc exit=$?\")"
     ]
   }
 }

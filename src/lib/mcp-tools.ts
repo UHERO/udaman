@@ -27,6 +27,7 @@ import "server-only";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+import { canAccessRestrictedData } from "@/lib/auth/roles";
 import {
   clampObservations,
   describeDisambiguation,
@@ -76,7 +77,13 @@ const HAWAII_GEOGRAPHIES: RawGeography[] = [
 interface ToolContext {
   userId: string;
   userEmail?: string | null;
+  /** UDAMAN role; only some roles may read the restricted dataset. */
+  role: string;
 }
+
+const RESTRICTED_ACCESS_DENIED =
+  "Your UDAMAN account does not have access to UHERO's restricted dataset. " +
+  "Only UHERO staff accounts can use 'unrestricted: true'. Ask a UHERO admin if you need this data.";
 
 const SOURCE = {
   provider: "UHERO (University of Hawaii Economic Research Organization)",
@@ -171,6 +178,7 @@ function logToolCall(ctx: ToolContext, tool: string, input: unknown) {
       tool,
       userId: ctx.userId,
       userEmail: ctx.userEmail ?? null,
+      role: ctx.role,
       input,
     }),
   );
@@ -202,12 +210,14 @@ async function classifyMissingCode(
 function missingCodeError(
   code: string,
   classification: "restricted" | "not_found",
+  ctx: ToolContext,
 ): string {
   if (classification === "restricted") {
-    return (
-      `Series '${code}' exists in UHERO's restricted dataset but is not in the public API. ` +
-      `Re-run this tool with 'unrestricted: true' to fetch it.`
-    );
+    return canAccessRestrictedData(ctx.role)
+      ? `Series '${code}' exists in UHERO's restricted dataset but is not in the public API. ` +
+          `Re-run this tool with 'unrestricted: true' to fetch it.`
+      : `Series '${code}' exists only in UHERO's restricted dataset, which this UDAMAN account cannot access. ` +
+          `Tell the user the series is restricted; do not retry with 'unrestricted: true'.`;
   }
   return `No series found for code '${code}'.`;
 }
@@ -410,6 +420,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         "ytd=year-to-date, chg=period change, ch1=year-over-year change. " +
         "Set 'unrestricted: true' to query UHERO's restricted-access API for series not exposed publicly. " +
         "This requires 'series_code' (not series_id) and is meant for internal/research use; omit unless the user explicitly asks for a restricted series. " +
+        "Restricted access depends on the connected UDAMAN account: only UHERO staff roles have it, and other accounts get an error explaining that. " +
         "When charting or summarizing, label with 'series.name' (e.g. 'Earnings Per Job') and put 'series.units' on the axis. " +
         "ALWAYS cite the precise series — use 'series.citation' verbatim (e.g. 'Earnings Per Job (YPJ_R@HI.A, State of Hawaii, year). Source: UHERO (uhero.hawaii.edu).'). " +
         "Do not use only the generic 'source.citation' when a specific series is being shown — the per-series citation is more useful to the reader. " +
@@ -462,6 +473,9 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         // Unrestricted mode: must use code lookup with expand=true (the only
         // endpoint the /v1.u API supports for observations).
         if (unrestricted) {
+          if (!canAccessRestrictedData(ctx.role)) {
+            return jsonResult({ error: RESTRICTED_ACCESS_DENIED });
+          }
           if (!series_code) {
             return jsonResult({
               error:
@@ -534,7 +548,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           if (!found) {
             const classification = await classifyMissingCode(codeUpper);
             return jsonResult({
-              error: missingCodeError(codeUpper, classification),
+              error: missingCodeError(codeUpper, classification, ctx),
               restricted: classification === "restricted" ? true : undefined,
             });
           }
@@ -605,6 +619,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         "and an optional date range. Returns a wide table: { dates: [...], series: [{ code, name, geo_name, units, citation, values: [...] }, ...] }. " +
         "If start/end are omitted, returns the widest available range across the compared series. " +
         "Set 'unrestricted: true' to use UHERO's restricted-access API for non-public series; in that mode every entry must be a code (not id) and only transform='lvl' is supported. " +
+        "Restricted access depends on the connected UDAMAN account: only UHERO staff roles have it, and other accounts get an error explaining that. " +
         "When charting, use each series's 'name' + 'geo_name' as the legend label (e.g. 'Earnings Per Job — State of Hawaii'). " +
         "Falling back to 'code' alone is unreadable for non-technical audiences. " +
         "Include units from 'series[].units' in axis labels. " +
@@ -648,6 +663,9 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       try {
         const t: Transform = transform ?? "lvl";
 
+        if (unrestricted && !canAccessRestrictedData(ctx.role)) {
+          return jsonResult({ error: RESTRICTED_ACCESS_DENIED });
+        }
         if (unrestricted && t !== "lvl") {
           return jsonResult({
             error:
@@ -735,20 +753,23 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .filter((r) => r.error === "restricted")
           .map((r) => String(r.input));
 
+        const canRestricted = canAccessRestrictedData(ctx.role);
+        const restrictedRemedy = canRestricted
+          ? `Re-run with 'unrestricted: true' (codes only, transform='lvl') to include them.`
+          : `This UDAMAN account cannot access the restricted dataset; tell the user these series are restricted rather than retrying.`;
+
         if (ok.length < 2) {
           const baseError =
             restrictedCodes.length > 0
               ? `Could not resolve at least 2 valid series. ${restrictedCodes.length} of the requested series ` +
-                `(${restrictedCodes.join(", ")}) exist only in UHERO's restricted dataset — re-run with ` +
-                `'unrestricted: true' (and codes only, transform='lvl') to include them.`
+                `(${restrictedCodes.join(", ")}) exist only in UHERO's restricted dataset. ${restrictedRemedy}`
               : "Could not resolve at least 2 valid series.";
           return jsonResult({ error: baseError, failed });
         }
 
         const restrictedNote =
           restrictedCodes.length > 0
-            ? `${restrictedCodes.length} requested series (${restrictedCodes.join(", ")}) are restricted and were omitted. ` +
-              `Re-run with 'unrestricted: true' to include them.`
+            ? `${restrictedCodes.length} requested series (${restrictedCodes.join(", ")}) are restricted and were omitted. ${restrictedRemedy}`
             : undefined;
 
         const freqList = ok.map((r) => r.meta.frequencyShort);

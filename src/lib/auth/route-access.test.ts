@@ -1,10 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  ALL_ROLES,
+  canAccessRestrictedData,
   FULL_ACCESS_ROLES,
   hasFullAccess,
   NEW_USER_ROLE,
   normalizeUniverse,
+  RESTRICTED_DATA_ROLES,
   sameUniverse,
 } from "./roles";
 import {
@@ -16,6 +19,24 @@ import {
   ROUTES,
   toReadableSet,
 } from "./route-access";
+
+describe("canAccessRestrictedData", () => {
+  test("admin, dev, and internal may read the restricted dataset", () => {
+    expect(RESTRICTED_DATA_ROLES).toEqual(["admin", "dev", "internal"]);
+    for (const role of RESTRICTED_DATA_ROLES) {
+      expect(canAccessRestrictedData(role)).toBe(true);
+    }
+  });
+
+  test("every other role, and unknown values, may not", () => {
+    for (const role of ALL_ROLES) {
+      if (RESTRICTED_DATA_ROLES.includes(role)) continue;
+      expect(canAccessRestrictedData(role)).toBe(false);
+    }
+    expect(canAccessRestrictedData("")).toBe(false);
+    expect(canAccessRestrictedData("Admin")).toBe(false);
+  });
+});
 
 const LIMITED_ROLES = ["internal", "fellow", "fsonly", "external"] as const;
 

@@ -155,11 +155,15 @@ export async function proxy(request: NextRequest) {
 
   // ── Subdomain access ──────────────────────────────────────────────
   if (app) {
-    // Let NextAuth & static assets pass through untouched
+    // Let NextAuth, static assets, OAuth discovery, and the OAuth consent
+    // page pass through untouched. /oauth/consent is a top-level page with
+    // no universe segment; rewriting it to /udaman/oauth/consent would make
+    // the route-access check read "oauth" as a universe and deny it.
     if (
       (pathname.startsWith("/api/") && app !== "api") ||
       pathname.startsWith("/_next") ||
-      pathname.startsWith("/.well-known")
+      pathname.startsWith("/.well-known") ||
+      pathname.startsWith("/oauth/")
     ) {
       return NextResponse.next();
     }

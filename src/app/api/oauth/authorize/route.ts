@@ -1,13 +1,23 @@
 /**
- * Authorization endpoint. Validates query params, then checks NextAuth for a
- * signed-in user. If not signed in, redirects to /udaman with a `callbackUrl`
- * that brings them back here after login. On success, issues a one-time code
- * and redirects to the client's `redirect_uri` with `code` + `state`.
+ * Authorization endpoint. Validates query params and confirms the client is
+ * registered with this redirect_uri, then checks NextAuth for a signed-in
+ * user. If not signed in, redirects to /udaman with a `callbackUrl` that
+ * brings them back here after login. If signed in, it does NOT issue a code:
+ * it forwards the request (same query string) to the consent page at
+ * /oauth/consent, where the user must explicitly click Allow. The code is
+ * issued by the consent page's server action (src/actions/oauth-consent.ts).
+ *
+ * That pause is what stops a one-click token grab: registration is open, so
+ * anyone can mint a client with their own redirect_uri and link a signed-in
+ * user here. Without consent, the code would be issued and handed over
+ * silently.
+ *
  * Implements RFC 6749 §4.1.2.1 error redirects when client/URI are valid, and
  * JSON errors when they aren't (so we don't become an open redirector).
  */
 
-import OAuthController, { type OAuthError } from "@catalog/controllers/oauth";
+import OAuthClientCollection from "@catalog/collections/oauth-client-collection";
+import { type OAuthError } from "@catalog/controllers/oauth";
 
 import { auth } from "@/lib/auth/index";
 import { getPublicOrigin } from "@/lib/oauth/origin";
@@ -17,17 +27,14 @@ export const runtime = "nodejs";
 
 /**
  * Build a redirect URL that includes the `error`, `error_description`, and
- * `state` per RFC 6749 §4.1.2.1. Falls back to a plain 400 if we don't have
- * a valid redirect target (e.g. unknown client).
+ * `state` per RFC 6749 §4.1.2.1. Only used once the redirect_uri has been
+ * verified against the registered client.
  */
 function errorRedirect(
-  redirectUri: string | null,
+  redirectUri: string,
   state: string | null,
   err: OAuthError,
 ): Response {
-  if (!redirectUri) {
-    return Response.json(err, { status: 400 });
-  }
   const url = new URL(redirectUri);
   url.searchParams.set("error", err.error);
   if (err.error_description)
@@ -41,10 +48,7 @@ export async function GET(req: Request) {
   const clientId = url.searchParams.get("client_id");
   const redirectUri = url.searchParams.get("redirect_uri");
   const responseType = url.searchParams.get("response_type");
-  const codeChallenge = url.searchParams.get("code_challenge");
-  const codeChallengeMethod = url.searchParams.get("code_challenge_method");
   const state = url.searchParams.get("state");
-  const scope = url.searchParams.get("scope") ?? "mcp";
 
   // Hard input validation — error must NOT redirect if redirect_uri or
   // client_id is missing/unverified (per RFC 6749), since that could turn
@@ -58,6 +62,26 @@ export async function GET(req: Request) {
       { status: 400 },
     );
   }
+
+  const client = await OAuthClientCollection.getByClientId(clientId);
+  if (!client) {
+    return Response.json(
+      { error: "invalid_client", error_description: "unknown client_id" },
+      { status: 400 },
+    );
+  }
+  if (!client.redirectUriAllowed(redirectUri)) {
+    return Response.json(
+      {
+        error: "invalid_request",
+        error_description: "redirect_uri not registered for this client",
+      },
+      { status: 400 },
+    );
+  }
+
+  // From here on the redirect_uri is trusted, so protocol errors go back to
+  // the client per the RFC.
   if (responseType !== "code") {
     return errorRedirect(redirectUri, state, {
       error: "invalid_request",
@@ -65,47 +89,21 @@ export async function GET(req: Request) {
     });
   }
 
+  const origin = getPublicOrigin(req);
+
   // Require sign-in. If not signed in, redirect to NextAuth sign-in with a
   // callbackUrl that brings us right back here.
   const session = await auth();
   if (!session?.user?.id) {
     const callbackUrl = url.pathname + url.search;
-    const signInUrl = new URL("/udaman", getPublicOrigin(req));
+    const signInUrl = new URL("/udaman", origin);
     signInUrl.searchParams.set("callbackUrl", callbackUrl);
     return Response.redirect(signInUrl.toString(), 302);
   }
 
-  try {
-    const { code, redirectTo } = await OAuthController.authorize({
-      clientId,
-      redirectUri,
-      codeChallenge: codeChallenge ?? "",
-      codeChallengeMethod: codeChallengeMethod ?? "",
-      scope,
-      userId: Number(session.user.id),
-    });
-    const target = new URL(redirectTo);
-    target.searchParams.set("code", code);
-    if (state) target.searchParams.set("state", state);
-    return Response.redirect(target.toString(), 302);
-  } catch (err) {
-    const oauthErr =
-      err &&
-      typeof err === "object" &&
-      "error" in (err as Record<string, unknown>)
-        ? (err as OAuthError)
-        : ({
-            error: "server_error",
-            error_description: "internal error",
-          } as OAuthError);
-    // For invalid_client / invalid_request that came from un-trusted inputs,
-    // don't redirect — return JSON instead.
-    if (
-      oauthErr.error === "invalid_client" ||
-      oauthErr.error === "invalid_request"
-    ) {
-      return Response.json(oauthErr, { status: 400 });
-    }
-    return errorRedirect(redirectUri, state, oauthErr);
-  }
+  // Signed in: hand off to the consent page with the same query string. The
+  // PKCE fields are validated there by OAuthController.authorize on Allow.
+  const consentUrl = new URL("/oauth/consent", origin);
+  consentUrl.search = url.search;
+  return Response.redirect(consentUrl.toString(), 302);
 }

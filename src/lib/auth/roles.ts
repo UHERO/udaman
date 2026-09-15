@@ -69,6 +69,21 @@ export function canInviteEmail(inviterRole: string, email: string): boolean {
 export const INVITE_EMAIL_DENIED =
   "Only an admin or dev can create an account for a non-hawaii.edu address";
 
+/**
+ * Roles allowed to read UHERO's restricted (non-public) dataset through the
+ * MCP's `unrestricted: true` option. UHERO staff only; fellows, forecast
+ * viewers, and DBEDT upload accounts get the public API alone.
+ */
+export const RESTRICTED_DATA_ROLES: readonly Role[] = [
+  "admin",
+  "dev",
+  "internal",
+];
+
+export function canAccessRestrictedData(role: string): boolean {
+  return RESTRICTED_DATA_ROLES.includes(role as Role);
+}
+
 /** One-line descriptions shown next to each role in role pickers. */
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   external: "For DBEDT data upload accounts",

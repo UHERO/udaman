@@ -5,7 +5,9 @@
  * Bearer header that points at the protected-resource metadata so Claude
  * can discover OAuth automatically. Spins up a fresh McpServer and
  * WebStandardStreamableHTTPServerTransport per request, registers tools
- * with the resolved user context, and cleans up the transport on completion.
+ * with the resolved user context (id, email, and current role — the role
+ * decides whether the restricted-data tools are usable), and cleans up the
+ * transport on completion.
  */
 
 import OAuthController from "@catalog/controllers/oauth";
@@ -14,12 +16,30 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 
 import { auth } from "@/lib/auth/index";
 import { registerUheroTools } from "@/lib/mcp-tools";
+import { mysql } from "@/lib/mysql/db";
 import { getPublicOrigin } from "@/lib/oauth/origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type AuthContext = { userId: string; userEmail: string | null | undefined };
+type AuthContext = {
+  userId: string;
+  userEmail: string | null | undefined;
+  /** UDAMAN role; gates the restricted-data tools. */
+  role: string;
+};
+
+/**
+ * Read the role live rather than from the token, so a demotion takes effect
+ * on the next call instead of when the 30-day token expires. A missing row
+ * (deleted user) gets the most limited role.
+ */
+async function fetchUserRole(userId: string): Promise<string> {
+  const rows = await mysql<{ role: string | null }>`
+    SELECT role FROM users WHERE id = ${Number(userId)} LIMIT 1
+  `;
+  return rows[0]?.role ?? "external";
+}
 
 async function resolveAuth(req: Request): Promise<AuthContext | null> {
   // Try OAuth Bearer first.
@@ -30,7 +50,10 @@ async function resolveAuth(req: Request): Promise<AuthContext | null> {
     if (match) {
       const token = match[1];
       const record = await OAuthController.validateBearer(token);
-      if (record) return record.toMcpContext();
+      if (record) {
+        const ctx = record.toMcpContext();
+        return { ...ctx, role: await fetchUserRole(ctx.userId) };
+      }
       // Bearer present but invalid → fall through to 401
       return null;
     }
@@ -38,7 +61,11 @@ async function resolveAuth(req: Request): Promise<AuthContext | null> {
   // Fallback: NextAuth cookie (original path).
   const session = await auth();
   if (session?.user?.id) {
-    return { userId: session.user.id, userEmail: session.user.email };
+    return {
+      userId: session.user.id,
+      userEmail: session.user.email,
+      role: session.user.role ?? "external",
+    };
   }
   return null;
 }
@@ -77,6 +104,7 @@ async function handle(req: Request): Promise<Response> {
   registerUheroTools(server, {
     userId: ctx.userId,
     userEmail: ctx.userEmail,
+    role: ctx.role,
   });
 
   const transport = new WebStandardStreamableHTTPServerTransport({

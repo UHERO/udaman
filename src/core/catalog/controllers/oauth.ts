@@ -186,10 +186,17 @@ class OAuthController {
     return { accessToken: token, expiresIn, scope: record.scope };
   }
 
+  /**
+   * Authenticate a Bearer token for /api/mcp. Beyond expiry and revocation,
+   * the owning user must still exist: deleting an account is how an admin
+   * ends someone's access, and a token must not outlive that.
+   */
   static async validateBearer(token: string): Promise<OAuthAccessToken | null> {
     if (!token) return null;
     const record = await OAuthAccessTokenCollection.findByToken(token);
     if (!record || !record.isUsable()) return null;
+    const userEmail = await fetchUserEmail(record.userId);
+    if (!userEmail) return null;
     return record;
   }
 }
