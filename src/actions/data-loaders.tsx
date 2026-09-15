@@ -108,22 +108,32 @@ export async function getLoaderJobStatus(jobId: string): Promise<{
   failedReason?: string;
 }> {
   await requireAuth();
-  const queue = new Queue("default", {
-    connection: redisConnection,
-    prefix: "udaman",
-  });
-  try {
-    const job = await queue.getJob(jobId);
-    if (!job) return { state: "unknown" };
-    const state = await job.getState();
-    return {
-      state: state as "active" | "waiting" | "completed" | "failed" | "unknown",
-      result: job.returnvalue ? String(job.returnvalue) : undefined,
-      failedReason: job.failedReason ?? undefined,
-    };
-  } finally {
-    await queue.close();
+  // reloadLoader enqueues onto `light` (since 2026-08-31); jobs queued
+  // before that deploy may still be on `default`.
+  for (const queueName of ["light", "default"]) {
+    const queue = new Queue(queueName, {
+      connection: redisConnection,
+      prefix: "udaman",
+    });
+    try {
+      const job = await queue.getJob(jobId);
+      if (!job) continue;
+      const state = await job.getState();
+      return {
+        state: state as
+          | "active"
+          | "waiting"
+          | "completed"
+          | "failed"
+          | "unknown",
+        result: job.returnvalue ? String(job.returnvalue) : undefined,
+        failedReason: job.failedReason ?? undefined,
+      };
+    } finally {
+      await queue.close();
+    }
   }
+  return { state: "unknown" };
 }
 
 export async function clearLoader(

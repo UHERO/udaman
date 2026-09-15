@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isFellow, normalizeUniverse } from "./roles";
+
 /**
  * Role+universe predicates ported from Rails User model.
  * These match the Rails app's authorization checks exactly.
@@ -15,25 +17,28 @@ export class PermissionDeniedError extends Error {
 /** UHERO internal, admin, or dev */
 export function isInternalUser(role: string, universe: string): boolean {
   return (
-    universe === "UHERO" &&
+    normalizeUniverse(universe) === "UHERO" &&
     (role === "internal" || role === "admin" || role === "dev")
   );
 }
 
 /** UHERO admin or dev */
 export function isAdminUser(role: string, universe: string): boolean {
-  return universe === "UHERO" && (role === "admin" || role === "dev");
+  return (
+    normalizeUniverse(universe) === "UHERO" &&
+    (role === "admin" || role === "dev")
+  );
 }
 
 /** DBEDT external user */
 export function isDbedt(role: string, universe: string): boolean {
-  return universe === "DBEDT" && role === "external";
+  return normalizeUniverse(universe) === "DBEDT" && role === "external";
 }
 
 /** HHF internal/admin/dev user (Hawaii Housing Factbook universe) */
 export function isHhf(role: string, universe: string): boolean {
   return (
-    universe === "HHF" &&
+    normalizeUniverse(universe) === "HHF" &&
     (role === "internal" || role === "admin" || role === "dev")
   );
 }
@@ -43,18 +48,11 @@ export function isFsonly(role: string): boolean {
   return role === "fsonly";
 }
 
-/**
- * Resolve the landing page path for a given role+universe after login.
- *
- * External users (e.g. DBEDT uploaders) don't have access to /series, so we
- * route them to the universe homepage which renders cards filtered by their
- * role. Internal/admin/dev users land directly on /series as before.
- */
-export function getLandingPath(role: string, universe: string): string {
-  const u = universe.toLowerCase();
-  if (role === "external") return `/udaman/${u}`;
-  return `/udaman/${u}/series`;
-}
+export { isFellow };
+
+// Landing path lives with the route manifest so it stays in sync with the
+// sidebar/middleware policy. Re-exported here for existing server callers.
+export { getLandingPath } from "./route-access";
 
 /**
  * Gate 1 — Coarse role+universe policy.
@@ -69,6 +67,12 @@ export function enforceAccessPolicy(
   resource: string,
   action: string,
 ): void {
+  // Fellows have no hardcoded policy: Gate 2 (the role_permissions rows a
+  // dev edits on the admin Permissions page) is the whole story for them.
+  // Per-record ownership (e.g. editing only your own pre-release form) is
+  // still enforced in the relevant controller.
+  if (isFellow(role)) return;
+
   // Upload resources: DBEDT external users allowed for any action
   if (resource === "upload") {
     if (isDbedt(role, universe)) return; // allowed

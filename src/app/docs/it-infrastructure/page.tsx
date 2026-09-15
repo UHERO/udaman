@@ -48,8 +48,8 @@ export default function ITInfrastructurePage() {
           >
             Publics <span className="text-black/50">| MacMini</span>
           </h3>
-          <div className="flex">
-            <div className="mr-4 flex flex-col">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex min-w-0 flex-col">
               <P className="inline-block">
                 Publics is a MacMini that uses a shared login and supports 1
                 user at a time. This is the quickest workstation to start using.
@@ -62,7 +62,7 @@ export default function ITInfrastructurePage() {
               </Callout>
             </div>
             <DetailBlock
-              className="inline-block"
+              className="shrink-0"
               items={[
                 { label: "Name", value: "Publics" },
                 { label: "User", value: "uhero" },
@@ -79,8 +79,8 @@ export default function ITInfrastructurePage() {
           >
             Canoes <span className="text-black/50">| Linux ThinkStation</span>
           </h3>
-          <div className="flex">
-            <div className="flex flex-col">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex min-w-0 flex-col">
               <P className="inline-block">
                 Device supports simultaneous users on different user accounts.
                 Can connect remotely using Windows App, Remote Positron or VS
@@ -88,7 +88,7 @@ export default function ITInfrastructurePage() {
                 executing R scripts, it should operate very much like you'd
                 expect on Mac.
               </P>
-              <Callout className="mr-4">
+              <Callout>
                 Must use the{" "}
                 <a
                   className="underline hover:text-black"
@@ -100,7 +100,7 @@ export default function ITInfrastructurePage() {
               </Callout>
             </div>
             <DetailBlock
-              className="inline-block"
+              className="shrink-0"
               items={[
                 { label: "Name", value: "Canoes" },
                 { label: "User", value: "uhero, ruser, uh-id" },
@@ -127,8 +127,8 @@ export default function ITInfrastructurePage() {
           >
             UHEROnas
           </h3>
-          <div className="flex">
-            <div className="mr-4 flex flex-col">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex min-w-0 flex-col">
               <P className="inline-block">
                 The "NAS" is a shared network drive. It is a computer, but think
                 about it more as an external file storage. Mount it to your file
@@ -139,7 +139,7 @@ export default function ITInfrastructurePage() {
               </P>
             </div>
             <DetailBlock
-              className="inline-block"
+              className="shrink-0"
               items={[
                 { label: "Name", value: "UHEROnas" },
                 { label: "IP", value: "128.171.200.230" },

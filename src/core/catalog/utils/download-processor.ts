@@ -8,7 +8,7 @@
  *        IntegerPatternProcessor + StringWithDatePatternProcessor
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import XLSX from "xlsx";
@@ -398,8 +398,9 @@ function parseCell(value: unknown): number | null | "BREAK" {
 
 /** Read a CSV file and return a 2D array of cells (always strings for CSV). */
 function readCsvFile(filePath: string): CellValue[][] {
-  assertNotHtmlFile(filePath, readFileSync(filePath));
-  const content = readFileSync(filePath, "utf-8");
+  const buf = readFileSync(filePath);
+  assertNotHtmlFile(filePath, buf);
+  const content = buf.toString("utf-8");
   const lines = content.split(/\r?\n/);
   const data: CellValue[][] = [];
 
@@ -663,8 +664,9 @@ class DownloadProcessor {
 
     // Download resolution cache: resolved handle → file path
     const downloadPathCache = new Map<string, string>();
-    // File data cache: file path + sheet → 2D array
-    const fileCache = new Map<string, CellValue[][]>();
+    // Sheets already validated against disk during this call (see
+    // getCachedSheet) — one stat per file per loader, not per date.
+    const localSheets = new Map<string, CellValue[][]>();
 
     const data = new Map<string, number>();
     let index = 0;
@@ -707,11 +709,11 @@ class DownloadProcessor {
       let sheet2d: CellValue[][];
       try {
         sheet2d = getCachedSheet(
-          fileCache,
           currentPath,
           fileType,
           currentSheet,
           date,
+          localSheets,
         );
       } catch (e) {
         if (handleProcessor.isDateSensitive) {
@@ -948,17 +950,74 @@ function adjustForFrequency(dateString: string, frequency: string): string {
 
 // ─── Helper: file caching ────────────────────────────────────────────
 
+/**
+ * Process-wide parsed-sheet cache. The nightly batch reload runs
+ * thousands of load_from loaders and the same agency workbook feeds
+ * hundreds of them; caching per loader (the original design) re-read and
+ * re-parsed each workbook for every loader — seconds of CPU per loader,
+ * hours per night (the 18-hour nightly of 2026-09-01). Entries are
+ * validated by file mtime+size so a re-downloaded file is picked up on
+ * the next read, and the cache is a bounded LRU because parsed sheets
+ * are large and the worker already fights RSS growth.
+ */
+const SHEET_CACHE_MAX_ENTRIES = 32;
+const sheetCache = new Map<
+  string,
+  { mtimeMs: number; size: number; sheet2d: CellValue[][] }
+>();
+
 function getCachedSheet(
-  cache: Map<string, CellValue[][]>,
+  filePath: string,
+  fileType: string,
+  sheetSpec: string | null,
+  date: string | null,
+  local?: Map<string, CellValue[][]>,
+): CellValue[][] {
+  // `sheet_name:M3` resolves to a different sheet per month (see
+  // resolveSheetName), so the month has to be part of the key — otherwise
+  // the first month parsed would be served for every later date. Every
+  // other spec resolves independently of `date`.
+  const monthKey =
+    date && /^sheet_name:m3$/i.test(sheetSpec ?? "") ? `|${date.slice(0, 7)}` : "";
+  const cacheKey = `${filePath}|${sheetSpec ?? ""}${monthKey}`;
+
+  // Per-call memo: getData asks for the same sheet once per date, and
+  // the mtime check below is a statSync on DATA_DIR, which in production
+  // is a network mount shared by the web and worker hosts. Validate
+  // against the file once per loader, not once per date.
+  const held = local?.get(cacheKey);
+  if (held) return held;
+  const sheet = getCachedSheetGlobal(cacheKey, filePath, fileType, sheetSpec, date);
+  local?.set(cacheKey, sheet);
+  return sheet;
+}
+
+function getCachedSheetGlobal(
+  cacheKey: string,
   filePath: string,
   fileType: string,
   sheetSpec: string | null,
   date: string | null,
 ): CellValue[][] {
-  const cacheKey = `${filePath}|${sheetSpec ?? ""}`;
+  // Missing file: skip the cache and let the reader throw its own
+  // descriptive error.
+  let mtimeMs = -1;
+  let size = -1;
+  try {
+    const st = statSync(filePath);
+    mtimeMs = st.mtimeMs;
+    size = st.size;
+  } catch {
+    // fall through to the reader below
+  }
 
-  const cached = cache.get(cacheKey);
-  if (cached) return cached;
+  const cached = sheetCache.get(cacheKey);
+  if (cached && cached.mtimeMs === mtimeMs && cached.size === size) {
+    // Refresh LRU recency (Map preserves insertion order).
+    sheetCache.delete(cacheKey);
+    sheetCache.set(cacheKey, cached);
+    return cached.sheet2d;
+  }
 
   let sheet2d: CellValue[][];
   if (fileType === "csv") {
@@ -967,7 +1026,11 @@ function getCachedSheet(
     sheet2d = readXlsFile(filePath, sheetSpec ?? "sheet_num:1", date);
   }
 
-  cache.set(cacheKey, sheet2d);
+  sheetCache.set(cacheKey, { mtimeMs, size, sheet2d });
+  if (sheetCache.size > SHEET_CACHE_MAX_ENTRIES) {
+    const oldest = sheetCache.keys().next().value;
+    if (oldest !== undefined) sheetCache.delete(oldest);
+  }
   return sheet2d;
 }
 

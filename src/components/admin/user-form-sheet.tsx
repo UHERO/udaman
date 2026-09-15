@@ -33,8 +33,18 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useUniverseNames } from "@/hooks/use-universe-names";
+import {
+  canUseGoogleLogin,
+  passwordRequirementHint,
+} from "@/lib/auth/google-login";
+import {
+  ALL_ROLES,
+  NEW_USER_ROLE,
+  NEW_USER_UNIVERSE,
+  ROLE_DESCRIPTIONS,
+} from "@/lib/auth/roles";
 
-const ROLES = ["external", "fsonly", "internal", "admin", "dev"] as const;
+const ROLES = ALL_ROLES;
 
 export type SerializedUser = {
   id: number;
@@ -54,8 +64,9 @@ export type SerializedUser = {
   updatedAt: string | null;
 };
 
-/** When editing, the password fields are optional — blank leaves the existing
- *  password alone. When creating, a password is always required. */
+/** When editing, a blank password leaves the existing one alone. When
+ *  creating, it may be blank only for addresses that can use UH Google login
+ *  (gmail.com, hawaii.edu); any other address needs a password to sign in. */
 function buildFormSchema(isEdit: boolean) {
   return z
     .object({
@@ -67,8 +78,16 @@ function buildFormSchema(isEdit: boolean) {
       passwordConfirmation: z.string(),
     })
     .superRefine((data, ctx) => {
-      const settingPassword = !isEdit || data.password.length > 0;
-      if (!settingPassword) return;
+      if (data.password.length === 0) {
+        if (!isEdit && !canUseGoogleLogin(data.email)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["password"],
+            message: "A password is required for this email address",
+          });
+        }
+        return;
+      }
 
       if (data.password.length < 8) {
         ctx.addIssue({
@@ -96,17 +115,30 @@ type FormValues = {
   passwordConfirmation: string;
 };
 
+/** The subset of a freshly created account a caller can act on right away. */
+export type CreatedUser = {
+  id: number;
+  email: string;
+  name: string | null;
+};
+
 interface UserFormSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Pass a user to edit it; omit to create a new one. */
   user?: SerializedUser | null;
+  /**
+   * Called after a successful create, so a host that opened the sheet from a
+   * picker can select the new account without a round trip to the server.
+   */
+  onCreated?: (created: CreatedUser) => void;
 }
 
 export function UserFormSheet({
   open,
   onOpenChange,
   user,
+  onCreated,
 }: UserFormSheetProps) {
   const router = useRouter();
   const universes = useUniverseNames();
@@ -118,8 +150,8 @@ export function UserFormSheet({
     () => ({
       email: user?.email ?? "",
       name: user?.name ?? "",
-      role: (user?.role as (typeof ROLES)[number]) ?? "external",
-      universe: user?.universe ?? "UHERO",
+      role: (user?.role as (typeof ROLES)[number]) ?? NEW_USER_ROLE,
+      universe: user?.universe ?? NEW_USER_UNIVERSE,
       password: "",
       passwordConfirmation: "",
     }),
@@ -137,26 +169,36 @@ export function UserFormSheet({
 
   async function onSubmit(values: FormValues) {
     try {
+      const fields = {
+        email: values.email.trim(),
+        name: values.name.trim() || null,
+        role: values.role,
+        universe: values.universe,
+        // Blank means "keep the current password" when editing and "UH Google
+        // login only" when creating.
+        ...(values.password ? { password: values.password } : {}),
+      };
       const result =
         user != null
-          ? await updateUserAction(user.id, {
-              email: values.email.trim(),
-              name: values.name.trim() || null,
-              role: values.role,
-              universe: values.universe,
-              // Blank means "keep the current password".
-              ...(values.password ? { password: values.password } : {}),
-            })
-          : await createUserAction({
-              email: values.email.trim(),
-              name: values.name.trim() || null,
-              role: values.role,
-              universe: values.universe,
-              password: values.password,
-            });
+          ? await updateUserAction(user.id, fields)
+          : await createUserAction(fields);
 
       if (result.success) {
         toast.success(result.message);
+        if (user == null) {
+          const created = result as Awaited<
+            ReturnType<typeof createUserAction>
+          >;
+          if (created.id != null) {
+            onCreated?.({
+              id: created.id,
+              // The collection stores the address lowercased; mirror that so
+              // the caller's copy matches what a later fetch would return.
+              email: fields.email.toLowerCase(),
+              name: fields.name,
+            });
+          }
+        }
         onOpenChange(false);
         router.refresh();
       } else {
@@ -179,12 +221,19 @@ export function UserFormSheet({
           <SheetDescription>
             {isEdit
               ? "Update this account. Leave the password fields blank to keep the current password."
-              : "Fill in the details to create a new user account."}
+              : "Create a new account. gmail.com and hawaii.edu addresses sign in with UH Login and need no password; other addresses require one."}
           </SheetDescription>
         </SheetHeader>
 
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={(e) => {
+            // The sheet portals to <body>, but React still bubbles the submit
+            // through the component tree. Stop it here so a host form (the
+            // pre-release form opens this sheet from its author picker) isn't
+            // submitted along with this one.
+            e.stopPropagation();
+            void form.handleSubmit(onSubmit)(e);
+          }}
           className="flex flex-col gap-0 overflow-y-auto px-4"
         >
           <FieldSet className="m-0 gap-1 p-0">
@@ -225,8 +274,11 @@ export function UserFormSheet({
                   </SelectTrigger>
                   <SelectContent>
                     {ROLES.map((r) => (
-                      <SelectItem key={r} value={r} className="capitalize">
-                        {r}
+                      <SelectItem key={r} value={r}>
+                        <span className="capitalize">{r}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {ROLE_DESCRIPTIONS[r]}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -256,7 +308,11 @@ export function UserFormSheet({
 
               <Field data-invalid={!!form.formState.errors.password}>
                 <FieldLabel htmlFor="password">
-                  {isEdit ? "New Password" : "Password"}
+                  {isEdit
+                    ? "New Password"
+                    : canUseGoogleLogin(form.watch("email"))
+                      ? "Password (optional)"
+                      : "Password"}
                 </FieldLabel>
                 <Input
                   id="password"
@@ -265,6 +321,11 @@ export function UserFormSheet({
                   placeholder={isEdit ? "Leave blank to keep current" : ""}
                   {...form.register("password")}
                 />
+                {!isEdit && (
+                  <p className="text-muted-foreground text-xs">
+                    {passwordRequirementHint(form.watch("email"))}
+                  </p>
+                )}
                 <FieldError errors={[form.formState.errors.password]} />
               </Field>
 

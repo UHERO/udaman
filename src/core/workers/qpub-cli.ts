@@ -3,6 +3,8 @@ import { createLogger } from "@/core/observability/logger";
 import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
 import { backfillCondoUnits } from "./processors/qpub-enqueue";
+import { runDumpCsv } from "./processors/qpub-dump-csv";
+import { runCrosswalk } from "./processors/qpub-crosswalk";
 import { runParcelList } from "./processors/qpub-parcel-list";
 import { runParseAudit } from "./processors/qpub-parse-audit";
 import { runRepair } from "./processors/qpub-repair";
@@ -37,6 +39,11 @@ Commands:
                                 parcel list still contains them. Deletes
                                 nothing. Dry run unless --execute.
 
+  crosswalk                     Load the parcel/ZCTA/census-tract crosswalk
+                                into parcel_crosswalk and stamp centroid,
+                                zcta20 and tract FIPS onto properties.
+                                Dry run unless --execute.
+
   condo-units                   Queue condo units listed on masters already
                                 scraped to the NAS. Dry run unless --execute.
 
@@ -50,6 +57,10 @@ Commands:
   load-table <table>            Phase 3: Load a single table into local DB
   sync                          Sync: Dump local DB to remote + update scrape_status
   sync-table <table>            Sync: Dump specific table to remote
+
+  dump-csv [table]              Export remote DB tables to CSV files on the NAS
+                                datashare. All pipeline tables by default, or a
+                                single named table (e.g. tg_transactions).
 
 Options:
   --island <code>               Filter by island (1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai)
@@ -65,12 +76,23 @@ Parse-audit options:
   --staging <dir>               Staging dir (default: the extract's own)
   --sample <n>                  Pages to sample for section coverage (0 skips)
 
+Dump-csv options:
+  --out <dir>                   Output directory (default:
+                                /Volumes/UHEROroot/datashare/qpub/<YYYY-MM-DD>)
+
 Parcel-list options:
   --execute                     Apply changes (dry run without it)
   --file <csv>                  Statewide parcel CSV (default: newest on the NAS)
   --properties-only             Skip the CSV; re-mirror scrape_status flags onto
                                 properties (run after a rebuild recreates it)
   --add-new                     Queue parcels the State lists that we don't have
+
+Crosswalk options:
+  --execute                     Apply changes (dry run without it)
+  --file <csv>                  Crosswalk CSV (default: the NAS copy beside
+                                the statewide parcel list)
+  --properties-only             Skip the CSV; re-mirror parcel_crosswalk onto
+                                properties (run after a rebuild recreates it)
 
 Valid tables:
   ${tables}
@@ -95,8 +117,9 @@ function parseArgs() {
   let addNew = false;
   let staging: string | undefined;
   let sample: number | undefined;
+  let out: string | undefined;
 
-  const tableCommands = ["rebuild-table", "load-table", "sync-table"];
+  const tableCommands = ["rebuild-table", "load-table", "sync-table", "dump-csv"];
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "--island" && args[i + 1]) {
@@ -121,6 +144,8 @@ function parseArgs() {
       staging = args[++i];
     } else if (args[i] === "--sample" && args[i + 1]) {
       sample = Number(args[++i]);
+    } else if (args[i] === "--out" && args[i + 1]) {
+      out = args[++i];
     } else if (!table && tableCommands.includes(command)) {
       table = args[i];
     }
@@ -140,6 +165,7 @@ function parseArgs() {
     addNew,
     staging,
     sample,
+    out,
   };
 }
 
@@ -158,6 +184,7 @@ async function run() {
     addNew,
     staging,
     sample,
+    out,
   } = parseArgs();
 
   switch (command) {
@@ -174,6 +201,12 @@ async function run() {
         propertiesOnly,
         addNew,
       });
+      log.info(result);
+      break;
+    }
+
+    case "crosswalk": {
+      const result = await runCrosswalk({ file, execute, propertiesOnly });
       log.info(result);
       break;
     }
@@ -251,6 +284,19 @@ async function run() {
       break;
     }
 
+    case "dump-csv": {
+      const result = await runDumpCsv({ table, out });
+      log.info(
+        {
+          outDir: result.outDir,
+          tables: result.tables.length,
+          totalRows: result.totalRows,
+        },
+        "dump-csv complete",
+      );
+      break;
+    }
+
     case "sync-table": {
       if (!table) {
         console.error("Error: sync-table requires a table name");
@@ -287,4 +333,13 @@ function reportFatal(label: string, err: unknown): never {
 process.on("uncaughtException", (err) => reportFatal("Uncaught exception", err));
 process.on("unhandledRejection", (err) => reportFatal("Unhandled rejection", err));
 
-run().catch((err) => reportFatal("qpub-cli crashed", err));
+// Awaited at top level on purpose: a fire-and-forget `run().catch(...)` leaves
+// nothing pending in module scope, and Bun has been seen to exit 0 mid-command
+// while a database query was still in flight (the crosswalk upsert never ran,
+// no error, no summary). A top-level await keeps the process alive until the
+// command has actually finished.
+try {
+  await run();
+} catch (err) {
+  reportFatal("qpub-cli crashed", err);
+}

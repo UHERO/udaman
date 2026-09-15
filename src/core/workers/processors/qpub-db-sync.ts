@@ -32,7 +32,7 @@ const REMOTE_DB_NAME = process.env.HH_DB_NAME ?? "hawaii_housing_database";
 
 // ─── Tables to dump (explicit list — never dump views) ──────────
 
-const ALL_DATA_TABLES: string[] = [
+export const ALL_DATA_TABLES: string[] = [
   "properties",
   "condominium_projects",
   "condominium_units",

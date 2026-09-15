@@ -57,6 +57,7 @@ const FLAG_OPTIONS = [
   { value: "nodata", label: "No data" },
   { value: "noclock", label: "No clock" },
   { value: "noclip", label: "Not on clipboard" },
+  { value: "deps", label: "Include dependents" },
 ];
 
 type FilterRow = {
@@ -142,27 +143,31 @@ export function NavSearchInput({ geoHandles = [] }: { geoHandles?: string[] }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full max-w-lg items-center justify-center self-end rounded-sm border"
+      className="flex max-w-lg min-w-0 flex-1 items-center rounded-sm border"
     >
-      {/* Info hover card */}
+      {/* Info hover card — hover-only, so it is no use on a touch screen */}
       <HoverCard openDelay={200}>
         <HoverCardTrigger asChild>
           <Button
             type="button"
             size="icon"
             variant="secondary"
-            className="rounded-r-none"
+            className="hidden rounded-r-none sm:inline-flex"
           >
             <Info className="h-4 w-4" />
           </Button>
         </HoverCardTrigger>
-        <HoverCardContent align="start" className="w-80 text-xs">
+        <HoverCardContent
+          align="start"
+          collisionPadding={8}
+          className="w-[min(20rem,calc(100vw-2rem))] text-xs"
+        >
           <SearchSyntaxHelp />
         </HoverCardContent>
       </HoverCard>
 
       <Input
-        className="border-none shadow-none"
+        className="min-w-0 border-none shadow-none"
         value={term}
         onChange={(e) => setTerm(e.target.value)}
         placeholder="Search series..."
@@ -175,12 +180,16 @@ export function NavSearchInput({ geoHandles = [] }: { geoHandles?: string[] }) {
             type="button"
             size="icon"
             variant="secondary"
-            className="rounded-l-none"
+            className="shrink-0 rounded-l-none"
           >
             <ListFilter className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-80">
+        <PopoverContent
+          align="end"
+          collisionPadding={8}
+          className="w-[min(20rem,calc(100vw-2rem))]"
+        >
           <div className="space-y-3">
             <p className="text-sm font-medium">Build a search query</p>
 
@@ -405,6 +414,10 @@ export function SearchSyntaxHelp() {
             <td>&amp;noclip</td>
             <td>Exclude clipboard</td>
           </tr>
+          <tr>
+            <td>&amp;deps</td>
+            <td>Include matched dependent series</td>
+          </tr>
         </tbody>
       </table>
       <p className="font-semibold">Examples</p>
@@ -429,6 +442,10 @@ export function SearchSyntaxHelp() {
           <tr>
             <td>145746</td>
             <td>Find by series ID</td>
+          </tr>
+          <tr>
+            <td>^cpi &amp;deps</td>
+            <td>CPI series plus everything built from them</td>
           </tr>
         </tbody>
       </table>

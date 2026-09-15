@@ -3,6 +3,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Short viewport — in practice a phone held in landscape (~390px tall).
+   Height-based, so it complements the width breakpoints instead of
+   duplicating them: `sm:` asks "is there room across?", `short:` asks
+   "is there room down?". Use it to trim vertical chrome. */
+@custom-variant short (@media (max-height: 600px));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

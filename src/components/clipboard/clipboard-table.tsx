@@ -33,6 +33,7 @@ import {
   removeSeriesFromClipboard,
   searchClipboardLoaders,
 } from "@/actions/clipboard-actions";
+import { SAIndicator } from "@/components/common";
 import { getColor } from "@/components/helpers";
 import {
   AlertDialog,
@@ -63,6 +64,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { ClipboardClearDataDialog } from "./clipboard-clear-data-dialog";
 import { ClipboardMetadataDialog } from "./clipboard-metadata-dialog";
 
 const CLIPBOARD_ACTIONS: {
@@ -102,6 +104,7 @@ export function ClipboardTable({
   const [count, setCount] = useState(initialCount);
   const [isPending, startTransition] = useTransition();
   const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+  const [clearDataDialogOpen, setClearDataDialogOpen] = useState(false);
 
   // Loader filter state
   const [loaderFilter, setLoaderFilter] = useState("");
@@ -201,6 +204,11 @@ export function ClipboardTable({
       setMetadataDialogOpen(true);
       return;
     }
+    // Clear data points opens a dialog to choose which points to clear
+    if (action === "clear_data") {
+      setClearDataDialogOpen(true);
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -216,7 +224,7 @@ export function ClipboardTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
           {isPending ? (
             <Loader2 className="inline size-4 animate-spin" />
@@ -225,14 +233,14 @@ export function ClipboardTable({
           )}
         </p>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {count > 0 && (
             <>
               <Input
                 placeholder="Filter loaders..."
                 value={loaderFilter}
                 onChange={(e) => setLoaderFilter(e.target.value)}
-                className="h-8 w-48"
+                className="h-8 w-full sm:w-48"
               />
 
               {isLoaderView ? (
@@ -386,7 +394,7 @@ export function ClipboardTable({
                     {row.frequency ?? "-"}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {row.seasonalAdjustment ?? "-"}
+                    <SAIndicator sa={row.seasonalAdjustment} />
                   </TableCell>
                   <TableCell className="text-sm">
                     {row.unitShortLabel ?? "-"}
@@ -423,6 +431,12 @@ export function ClipboardTable({
         open={metadataDialogOpen}
         onOpenChange={setMetadataDialogOpen}
         universe={universe}
+        clipboardCount={count}
+        onSuccess={fetchData}
+      />
+      <ClipboardClearDataDialog
+        open={clearDataDialogOpen}
+        onOpenChange={setClearDataDialogOpen}
         clipboardCount={count}
         onSuccess={fetchData}
       />

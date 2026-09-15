@@ -1,11 +1,12 @@
-import DataPointCollection from "@catalog/collections/data-point-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { Job } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
 import { mysql } from "@/lib/mysql/db";
+import type { HeavyDbLockContext } from "@/lib/mysql/db-lock";
 
+import { enqueueUpdatePublic } from "../enqueue";
 import type { TargetedReloadJobData } from "../queues";
 
 const log = createLogger("worker.targeted-reload");
@@ -22,10 +23,13 @@ const log = createLogger("worker.targeted-reload");
  * 1. Uses SeriesCollection.search() to find matching series
  * 2. Calls SeriesCollection.getAllDependencies() to expand to full dep tree
  * 3. Calls SeriesCollection.batchReload() with the full set
- * 4. Optionally calls DataPointCollection.updatePublicAllUniverses()
+ * 4. Optionally enqueues the deduplicated UPDATE_PUBLIC sweep job — never
+ *    inline: sweeping here would hold the heavy DB lock for the whole
+ *    all-universe pass, and back-to-back reloads would each repeat it.
  */
 export async function processTargetedReload(
   job: Job<TargetedReloadJobData>,
+  ctx?: HeavyDbLockContext,
 ): Promise<string> {
   const { name, search, nightly, updatePublic, groupSize } = job.data;
 
@@ -151,6 +155,7 @@ export async function processTargetedReload(
         nightly,
         groupSize,
         job,
+        yieldPoint: ctx?.yieldPoint,
       });
     }
   } else {
@@ -161,15 +166,15 @@ export async function processTargetedReload(
       nightly,
       groupSize,
       job,
+      yieldPoint: ctx?.yieldPoint,
     });
   }
 
   let publicMsg = "";
   if (updatePublic) {
-    job.log("Updating public data points...");
-    await DataPointCollection.updatePublicAllUniverses();
-    job.log("Public data points updated");
-    publicMsg = "; updated public data points";
+    await enqueueUpdatePublic();
+    job.log("Queued public data points update");
+    publicMsg = "; queued public data points update";
   }
 
   log.info({ name }, `Targeted reload "${name}" complete`);

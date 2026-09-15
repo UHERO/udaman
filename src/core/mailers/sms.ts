@@ -1,11 +1,13 @@
 import { createLogger } from "@/core/observability/logger";
 
+import type { SendResult } from "./transport";
+
 const log = createLogger("mailer.sms");
 
 export async function sendSms(opts: {
   to: string;
   body: string;
-}): Promise<void> {
+}): Promise<SendResult> {
   const disabled =
     process.env.SMS_DISABLED === "1" || process.env.SMS_DISABLED === "true";
   if (disabled) {
@@ -13,7 +15,7 @@ export async function sendSms(opts: {
       { to: opts.to, bodyLength: opts.body.length },
       "SMS_DISABLED — skipping send",
     );
-    return;
+    return { skipped: true };
   }
 
   const sid = process.env.TWILIO_SID;
@@ -51,4 +53,5 @@ export async function sendSms(opts: {
   const data = await res.json();
 
   log.info({ to: opts.to, from, sid: data.sid }, "SMS sent");
+  return { skipped: false };
 }

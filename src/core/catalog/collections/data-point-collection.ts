@@ -2,6 +2,7 @@ import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
 import type { DataPoint } from "../types/shared";
+import { AppLogCollection } from "./app-log-collection";
 
 const log = createLogger("catalog.data-point-collection");
 
@@ -31,6 +32,22 @@ const VINTAGE_CHART_LIMIT_PER_DATE = 100;
 export type PublicSyncOptions = {
   /** Force a full (non-watermarked) pass over every series. */
   full?: boolean;
+  /**
+   * Cooperative yield hook, called between chunks. The UPDATE_PUBLIC
+   * worker passes the heavy-DB-lock yieldPoint here so a waiting
+   * priority job (upload) can take the lock mid-sweep instead of timing
+   * out behind it. Each chunk is self-contained, so a gap between chunks
+   * is safe.
+   */
+  yieldPoint?: () => Promise<void>;
+  /**
+   * Progress hook for user-facing logs (the BullMQ job log). The pino
+   * logs keep the full detail; this gets the per-universe milestones —
+   * mode decision and totals — so the job UI explains itself (an
+   * incremental sweep that skips every quiet chunk can finish in
+   * seconds, which looks broken without the mode/skip counts).
+   */
+  logLine?: (msg: string) => void;
 };
 
 /** Series per chunk for the public sync statements. */
@@ -442,6 +459,9 @@ class DataPointCollection {
       { universe, mode: full ? "full" : "incremental", reason, since },
       `Public update: ${universe} running ${full ? "full" : "incremental"} sync (${reason})`,
     );
+    opts.logLine?.(
+      `${universe}: ${full ? "full" : "incremental"} sync (${reason})`,
+    );
 
     // All series in the universe, with their quarantine flag. Steps 1+2
     // apply only to non-quarantined series; step 3 applies to all (the
@@ -486,6 +506,8 @@ class DataPointCollection {
         totals.skipped++;
         continue;
       }
+
+      if (opts.yieldPoint) await opts.yieldPoint();
 
       const updated = await rawQueryAffected(
         `UPDATE public_data_points p
@@ -558,6 +580,8 @@ class DataPointCollection {
         continue;
       }
 
+      if (opts.yieldPoint) await opts.yieldPoint();
+
       const quarantineClause = removeQuarantine ? "OR xs.quarantined = 1" : "";
       const deleted = await rawQueryAffected(
         `DELETE p
@@ -590,6 +614,20 @@ class DataPointCollection {
       { universe, mode: full ? "full" : "incremental", elapsedSec, ...totals },
       `Public update: completed ${universe} in ${elapsedSec}s (${totals.updated} updated, ${totals.inserted} inserted, ${totals.deleted} deleted)`,
     );
+    opts.logLine?.(
+      `${universe}: done in ${elapsedSec}s — ${totals.updated} updated, ${totals.inserted} inserted, ${totals.deleted} deleted, ${totals.skipped} quiet chunks skipped`,
+    );
+    // Per-universe sweep record for /admin/perf (mode, duration, rows).
+    void AppLogCollection.log({
+      category: "loader",
+      name: "loader.public_sweep",
+      metadata: {
+        universe,
+        mode: full ? "full" : "incremental",
+        elapsedSec,
+        ...totals,
+      },
+    });
   }
 
   /** Update public data points for a single series. */
@@ -680,6 +718,9 @@ class DataPointCollection {
         { universe: universes[i], progress: `${i + 1}/${universes.length}` },
         `Public update: universe ${i + 1}/${universes.length} — ${universes[i]}`,
       );
+      opts.logLine?.(
+        `Universe ${i + 1}/${universes.length}: ${universes[i]}`,
+      );
       await this.updatePublicDataPoints(universes[i], opts);
     }
     const elapsedSec = Math.round((Date.now() - t0) / 1000);
@@ -687,6 +728,7 @@ class DataPointCollection {
       { universes, elapsedSec },
       `Public update: completed all universes in ${elapsedSec}s`,
     );
+    opts.logLine?.(`All ${universes.length} universes completed in ${elapsedSec}s`);
   }
 }
 

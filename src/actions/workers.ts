@@ -9,7 +9,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.workers");
 
-const QUEUE_NAMES = ["default", "critical"] as const;
+const QUEUE_NAMES = ["default", "heavy", "critical", "light"] as const;
 const PREFIX = "udaman";
 
 export type JobState =

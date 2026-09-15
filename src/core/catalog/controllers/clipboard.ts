@@ -4,7 +4,10 @@ import type {
   ClipboardSeriesRow,
 } from "@catalog/collections/clipboard-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
-import type { UpdateSeriesPayload } from "@catalog/collections/series-collection";
+import type {
+  DeleteByMode,
+  UpdateSeriesPayload,
+} from "@catalog/collections/series-collection";
 
 import { createLogger } from "@/core/observability/logger";
 import {
@@ -160,6 +163,32 @@ export type ClipboardAction =
   | "export_tsd"
   | "reload_loaders";
 
+/** Options for the `clear_data` action — mirrors the Series Data Loader "Clear" dialog. */
+export type ClipboardClearOptions = {
+  deleteBy: DeleteByMode;
+  date?: string;
+};
+
+const DATE_MODES = new Set<DeleteByMode>([
+  "observationDate",
+  "beforeObservationDate",
+  "vintageDate",
+]);
+
+/** Throws if the options are inconsistent (e.g. a date-based mode with no date). */
+export function validateClearOptions(
+  opts: ClipboardClearOptions,
+): ClipboardClearOptions {
+  const date = opts.date?.trim() || undefined;
+  if (DATE_MODES.has(opts.deleteBy)) {
+    if (!date) throw new Error(`Clear mode "${opts.deleteBy}" requires a date`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+      throw new Error(`Date must be YYYY-MM-DD, got "${date}"`);
+    return { deleteBy: opts.deleteBy, date };
+  }
+  return { deleteBy: opts.deleteBy };
+}
+
 // ─── Clipboard loader search & targeted reload ──────────────────────
 
 export async function searchClipboardLoaders({
@@ -243,11 +272,14 @@ const QUEUED_ACTIONS = new Set<ClipboardAction>([
 export async function doClipboardAction({
   userId,
   action,
+  clearOptions,
 }: {
   userId: number;
   action: ClipboardAction;
+  /** Only used by `clear_data`; defaults to clearing all points */
+  clearOptions?: ClipboardClearOptions;
 }): Promise<{ message: string }> {
-  log.info({ userId, action }, "executing clipboard action");
+  log.info({ userId, action, clearOptions }, "executing clipboard action");
 
   // Inline actions that don't need queueing
   if (!QUEUED_ACTIONS.has(action)) {
@@ -269,11 +301,22 @@ export async function doClipboardAction({
     return { message: "Clipboard is empty — no action taken" };
   }
 
+  const clear =
+    action === "clear_data"
+      ? validateClearOptions(clearOptions ?? { deleteBy: "none" })
+      : undefined;
+
+  // reload_jobs.params is a free-text label shown in the jobs list; for
+  // clear_data append the mode (and date) so the job is self-describing.
+  const params = clear
+    ? ["clear_data", clear.deleteBy, clear.date].filter(Boolean).join(":")
+    : action;
+
   // Insert reload_jobs record
   const insertId = await insertAndGetId(
     `INSERT INTO reload_jobs (user_id, params, status, created_at)
      VALUES (?, ?, 'processing', NOW())`,
-    [userId, action],
+    [userId, params],
   );
 
   // Insert reload_job_series join rows
@@ -292,6 +335,7 @@ export async function doClipboardAction({
       "meta_update" | "export_csv" | "export_tsd" | "reload_loaders"
     >,
     seriesIds,
+    ...(clear ? { clearOptions: clear } : {}),
   });
 
   log.info(
@@ -300,9 +344,18 @@ export async function doClipboardAction({
   );
 
   const label = action.replace(/_/g, " ");
-  const message =
-    action === "reload_with_deps"
-      ? `Reload with deps queued for ${seriesIds.length} series (dependents will be added)`
-      : `Clipboard ${label} queued for ${seriesIds.length} series`;
+  let message: string;
+  if (action === "reload_with_deps") {
+    message = `Reload with deps queued for ${seriesIds.length} series (dependents will be added)`;
+  } else if (clear) {
+    const detail = clear.date
+      ? `${clear.deleteBy} ${clear.date}`
+      : clear.deleteBy === "none"
+        ? "all points"
+        : clear.deleteBy;
+    message = `Clipboard clear data (${detail}) queued for ${seriesIds.length} series`;
+  } else {
+    message = `Clipboard ${label} queued for ${seriesIds.length} series`;
+  }
   return { message };
 }

@@ -1,15 +1,11 @@
 import { mysql } from "@database/mysql";
 
+import { AppHeader } from "@/components/app-header";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CommsLayout as CommsMain } from "@/components/comms/comms-layout";
-import { NavBreadcrumb } from "@/components/nav-breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { requireAuth } from "@/lib/auth/dal";
+import { getReadableResources } from "@/lib/auth/readable-resources";
 
 export default async function CommsLayout({
   children,
@@ -39,21 +35,18 @@ export default async function CommsLayout({
     universe: session.user.universe ?? "UHERO",
   };
 
+  const readableResources = await getReadableResources(user.role);
+
   return (
     <SidebarProvider>
-      <AppSidebar user={user} mode="comms" />
+      <AppSidebar
+        user={user}
+        readableResources={readableResources}
+        mode="comms"
+      />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex w-full items-center justify-start gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <NavBreadcrumb />
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <AppHeader />
+        <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
           <CommsMain>{children}</CommsMain>
         </div>
       </SidebarInset>

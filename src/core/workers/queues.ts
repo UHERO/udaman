@@ -115,6 +115,16 @@ export type ClipboardActionJobData = {
     | "destroy"
     | "update_public";
   seriesIds: number[];
+  /** Only for `clear_data`; absent (older jobs) means clear all points */
+  clearOptions?: {
+    deleteBy:
+      | "observationDate"
+      | "beforeObservationDate"
+      | "vintageDate"
+      | "currentOnly"
+      | "none";
+    date?: string;
+  };
 };
 
 export type ClipboardLoaderReloadJobData = {
@@ -155,6 +165,17 @@ const defaultOpts = {
 
 export const defaultQueue = new Queue("default", defaultOpts);
 export const criticalQueue = new Queue("critical", defaultOpts);
+/**
+ * Jobs that run under the cross-process heavy-DB lock (batch/targeted
+ * reloads, public sweeps, dependency reset, universe archive/purge).
+ * Consumed by a single-concurrency worker, so BullMQ serializes them in
+ * FIFO order and the MySQL lock is only ever contended by the upload
+ * jobs on `critical` (which take it with priority) or by the web process.
+ * Before this queue existed a heavy job *waiting* on the lock sat in one
+ * of the two default slots doing nothing, and two heavies (e.g. a reload
+ * plus the sweep it enqueues) blocked the default queue entirely.
+ */
+export const heavyQueue = new Queue("heavy", defaultOpts);
 /**
  * Interactive jobs (clipboard actions, single-series reloads from the UI).
  * Separate queue + worker so they can never starve behind heavy jobs: a

@@ -5,6 +5,7 @@ import {
 import { InvestigationsTabs } from "@/components/investigations/investigations-tabs";
 import { SeriesLayout } from "@/components/series/series-layout";
 import { getCurrentUserContext } from "@/lib/auth/dal";
+import { getReadableResources } from "@/lib/auth/readable-resources";
 
 export default async function Layout({
   children,
@@ -15,6 +16,7 @@ export default async function Layout({
 }) {
   const { universe } = await params;
   const { role, universe: userUniverse } = await getCurrentUserContext();
+  const readableResources = await getReadableResources(role);
 
   const [noSourceResult, quarantineResult] = await Promise.all([
     getSeriesWithNullField(universe, "source_id", 1, 1),
@@ -22,9 +24,10 @@ export default async function Layout({
   ]);
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
       <InvestigationsTabs
         role={role}
+        readableResources={readableResources}
         universe={userUniverse}
         badgeCounts={{
           noSource: noSourceResult.totalCount,

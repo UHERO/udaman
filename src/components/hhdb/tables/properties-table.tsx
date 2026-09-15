@@ -60,6 +60,10 @@ const columns: ColumnDef<HhdbPropertyJSON, unknown>[] = [
   },
   { accessorKey: "latitude", header: "Latitude", enableSorting: true },
   { accessorKey: "longitude", header: "Longitude", enableSorting: true },
+  { accessorKey: "zcta20", header: "ZCTA (2020)", enableSorting: true },
+  { accessorKey: "countyfp", header: "County FIPS", enableSorting: true },
+  { accessorKey: "tractce", header: "Census Tract", enableSorting: true },
+  { accessorKey: "tractGeoid", header: "Tract GEOID", enableSorting: true },
   { accessorKey: "mapUrl", header: "Map URL", enableSorting: false },
   { accessorKey: "sketchUrl", header: "Sketch URL", enableSorting: false },
   { accessorKey: "inParcelList", header: "In Parcel List", enableSorting: true },
@@ -82,6 +86,7 @@ const columns: ColumnDef<HhdbPropertyJSON, unknown>[] = [
 ];
 
 const DEFAULT_HIDDEN = [
+  "zip",
   "neighborhoodCode",
   "livingUnits",
   "parcelNumber",
@@ -95,6 +100,8 @@ const DEFAULT_HIDDEN = [
   "nonTaxableStatus",
   "latitude",
   "longitude",
+  "countyfp",
+  "tractce",
   "mapUrl",
   "sketchUrl",
   "parcelListCheckedAt",
@@ -124,7 +131,7 @@ export function PropertiesTable(props: PropertiesTableProps) {
       sort={props.sort}
       order={props.order}
       defaultHiddenColumns={DEFAULT_HIDDEN}
-      searchPlaceholder="Search by TMK, address, class, zoning..."
+      searchPlaceholder="Search by TMK, address, class, zoning, ZCTA, tract..."
     />
   );
 }

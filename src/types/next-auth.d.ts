@@ -27,5 +27,11 @@ declare module "next-auth/jwt" {
     role?: string;
     universe?: string;
     createdAt?: string;
+    /**
+     * Route resources this role may read, resolved from role_permissions at
+     * token issue/refresh. Lets the proxy gate routes on permissions without
+     * a DB round trip; stale until the token rotates.
+     */
+    readable?: string[];
   }
 }

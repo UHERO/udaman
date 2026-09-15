@@ -5,15 +5,11 @@
 
 import { mysql } from "@database/mysql";
 
+import { AppHeader } from "@/components/app-header";
 import { AppSidebar } from "@/components/app-sidebar";
-import { NavBreadcrumb } from "@/components/nav-breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { requireAuth } from "@/lib/auth/dal";
+import { getReadableResources } from "@/lib/auth/readable-resources";
 
 export default async function DataRegistryLayout({
   children,
@@ -43,20 +39,17 @@ export default async function DataRegistryLayout({
     universe: session.user.universe ?? "UHERO",
   };
 
+  const readableResources = await getReadableResources(user.role);
+
   return (
     <SidebarProvider defaultOpen={false}>
-      <AppSidebar user={user} mode="data-registry" />
+      <AppSidebar
+        user={user}
+        readableResources={readableResources}
+        mode="data-registry"
+      />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex w-full items-center justify-start gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <NavBreadcrumb />
-          </div>
-        </header>
+        <AppHeader />
         {children}
       </SidebarInset>
     </SidebarProvider>

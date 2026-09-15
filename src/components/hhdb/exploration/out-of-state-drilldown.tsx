@@ -45,12 +45,26 @@ export function OutOfStateDrilldown() {
   );
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [zipData, setZipData] = useState<OutOfStateByZipRow[] | null>(null);
+  const [stateError, setStateError] = useState<string | null>(null);
+  const [zipError, setZipError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setStateData(null);
+    setStateError(null);
     setSelectedState(null);
     setZipData(null);
-    getHhdbOutOfStateTopStates(startYear, endYear).then(setStateData);
+    getHhdbOutOfStateTopStates(startYear, endYear)
+      .then((rows) => {
+        if (!cancelled) setStateData(rows);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setStateError(err instanceof Error ? err.message : "Failed to load");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [startYear, endYear]);
 
   useEffect(() => {
@@ -58,10 +72,20 @@ export function OutOfStateDrilldown() {
       setZipData(null);
       return;
     }
+    let cancelled = false;
     setZipData(null);
-    getHhdbOutOfStateTopZips(selectedState, startYear, endYear).then(
-      setZipData,
-    );
+    setZipError(null);
+    getHhdbOutOfStateTopZips(selectedState, startYear, endYear)
+      .then((rows) => {
+        if (!cancelled) setZipData(rows);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setZipError(err instanceof Error ? err.message : "Failed to load");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedState, startYear, endYear]);
 
   return (
@@ -94,7 +118,11 @@ export function OutOfStateDrilldown() {
           </div>
         </CardHeader>
         <CardContent>
-          {!stateData ? (
+          {stateError ? (
+            <div className="text-destructive flex h-[400px] items-center justify-center text-sm">
+              Failed to load source states: {stateError}
+            </div>
+          ) : !stateData ? (
             <div className="flex h-[400px] items-center justify-center">
               <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
             </div>
@@ -142,7 +170,11 @@ export function OutOfStateDrilldown() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!zipData ? (
+            {zipError ? (
+              <div className="text-destructive flex h-[400px] items-center justify-center text-sm">
+                Failed to load zip codes: {zipError}
+              </div>
+            ) : !zipData ? (
               <div className="flex h-[400px] items-center justify-center">
                 <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
               </div>

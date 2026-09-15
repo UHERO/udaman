@@ -7,7 +7,7 @@ export function DataToolsLayout({ children }: { children: React.ReactNode }) {
   const { fullWidth } = useFullWidth();
 
   return (
-    <main className={cn("space-y-6", !fullWidth && "max-w-5xl")}>
+    <main className={cn("w-full min-w-0 space-y-6", !fullWidth && "max-w-5xl")}>
       {children}
     </main>
   );

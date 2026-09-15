@@ -1,6 +1,7 @@
 import {
   criticalQueue,
   defaultQueue,
+  heavyQueue,
   JobName,
   lightQueue,
   type AdminActionJobData,
@@ -25,7 +26,7 @@ export function enqueueSeriesReload(data: SeriesReloadJobData) {
 }
 
 export function enqueueReloadJob(data: ReloadJobData) {
-  return defaultQueue.add(JobName.RELOAD_JOB, data);
+  return heavyQueue.add(JobName.RELOAD_JOB, data);
 }
 
 export function enqueueTsdExport() {
@@ -33,22 +34,35 @@ export function enqueueTsdExport() {
 }
 
 /**
- * Enqueue a public data points sweep. Deterministic jobId so a sweep that
- * is already waiting/active is reused instead of stacking another full
- * pass behind it. A finished (completed/failed) job with the same id is
- * removed first so re-enqueueing after completion works.
+ * Enqueue a public data points sweep. Deterministic jobIds so repeated
+ * requests collapse instead of stacking full passes behind each other:
+ *  - a waiting/delayed sweep hasn't started, so it will see our writes —
+ *    reuse it;
+ *  - an *active* sweep takes its watermark at run start and may miss
+ *    writes made since, so queue one chaser behind it (the chaser slot
+ *    dedups the same way, so there is never more than active + 1);
+ *  - a finished (completed/failed) job is removed first so re-enqueueing
+ *    after completion works.
  */
 export async function enqueueUpdatePublic(data: UpdatePublicJobData = {}) {
-  const jobId = `update-public-${data.universe ?? "all"}`;
-  const existing = await defaultQueue.getJob(jobId);
-  if (existing) {
-    const state = await existing.getState();
-    if (state === "waiting" || state === "active" || state === "delayed") {
-      return existing;
+  const base = `update-public-${data.universe ?? "all"}`;
+  for (const jobId of [base, `${base}-chaser`]) {
+    const existing = await heavyQueue.getJob(jobId);
+    if (!existing) {
+      return heavyQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
     }
+    const state = await existing.getState();
+    if (state === "waiting" || state === "delayed") return existing;
+    if (state === "active") continue;
     await existing.remove();
+    return heavyQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
   }
-  return defaultQueue.add(JobName.UPDATE_PUBLIC, data, { jobId });
+  // Both slots in flight (the base sweep finishing while the chaser
+  // starts) — a raced add dedups against the existing chaser, and the
+  // scheduled sweeps are the backstop for anything it misses.
+  return heavyQueue.add(JobName.UPDATE_PUBLIC, data, {
+    jobId: `${base}-chaser`,
+  });
 }
 
 export function enqueueAdminAction(data: AdminActionJobData) {
@@ -68,14 +82,14 @@ export function enqueueDvwUpload(data: DvwUploadJobData) {
 }
 
 export function enqueueApiDvwReload(data: ApiDvwReloadJobData) {
-  return defaultQueue.add(JobName.API_DVW_RELOAD, data, {
+  return heavyQueue.add(JobName.API_DVW_RELOAD, data, {
     attempts: 3,
     backoff: { type: "exponential", delay: 5000 },
   });
 }
 
 export function enqueueDependencyReset() {
-  return defaultQueue.add(JobName.DEPENDENCY_RESET, {});
+  return heavyQueue.add(JobName.DEPENDENCY_RESET, {});
 }
 
 export function enqueuePurgeOld() {
@@ -83,11 +97,11 @@ export function enqueuePurgeOld() {
 }
 
 export function enqueueBatchReload(data: BatchReloadJobData) {
-  return defaultQueue.add(JobName.BATCH_RELOAD, data);
+  return heavyQueue.add(JobName.BATCH_RELOAD, data);
 }
 
 export function enqueueTargetedReload(data: TargetedReloadJobData) {
-  return defaultQueue.add(JobName.TARGETED_RELOAD, data);
+  return heavyQueue.add(JobName.TARGETED_RELOAD, data);
 }
 
 export function enqueueDownload(data: DownloadJobData) {
@@ -128,10 +142,10 @@ export async function enqueueUniverseArchive(
   scheduledAt: Date,
 ) {
   const jobId = `universe-archive-${data.universe}`;
-  const existing = await defaultQueue.getJob(jobId);
+  const existing = await heavyQueue.getJob(jobId);
   if (existing) await existing.remove();
   const delay = Math.max(0, scheduledAt.getTime() - Date.now());
-  return defaultQueue.add(JobName.UNIVERSE_ARCHIVE, data, { jobId, delay });
+  return heavyQueue.add(JobName.UNIVERSE_ARCHIVE, data, { jobId, delay });
 }
 
 /**
@@ -144,8 +158,8 @@ export async function enqueueUniversePurge(
   scheduledAt: Date,
 ) {
   const jobId = `universe-purge-${data.universe}`;
-  const existing = await defaultQueue.getJob(jobId);
+  const existing = await heavyQueue.getJob(jobId);
   if (existing) await existing.remove();
   const delay = Math.max(0, scheduledAt.getTime() - Date.now());
-  return defaultQueue.add(JobName.UNIVERSE_PURGE, data, { jobId, delay });
+  return heavyQueue.add(JobName.UNIVERSE_PURGE, data, { jobId, delay });
 }

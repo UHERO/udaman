@@ -156,7 +156,7 @@ export function MessagesPanel({
         <h2 className="mb-4 text-lg font-semibold">Send Message</h2>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FieldSet className="m-0 gap-1 p-0">
-            <FieldGroup className="gap-3">
+            <FieldGroup>
               <Field data-invalid={!!form.formState.errors.channel}>
                 <FieldLabel htmlFor="channel">Channel</FieldLabel>
                 <Select value={channel} onValueChange={handleChannelChange}>
@@ -314,6 +314,8 @@ export function MessagesPanel({
                           msg.status === "failed" && "bg-red-50 text-red-700",
                           msg.status === "pending" &&
                             "bg-yellow-50 text-yellow-700",
+                          msg.status === "skipped" &&
+                            "bg-gray-100 text-gray-600",
                         )}
                         title={msg.error ?? undefined}
                       >

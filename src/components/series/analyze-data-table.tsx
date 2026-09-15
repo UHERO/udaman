@@ -118,8 +118,22 @@ export function AnalyzeDataTable({
 
   const isCompareMode = seriesNames && seriesNames.length >= 1;
 
-  const columns = useMemo(() => {
-    const cols: ColumnDef<ChartRow>[] = [
+  const { columns, columnLabels } = useMemo(() => {
+    const cols: ColumnDef<ChartRow>[] = [];
+    /** Plain-text label per column id, kept in lockstep with `cols` for CSV export */
+    const labels: Record<string, string> = {};
+
+    const push = (col: ColumnDef<ChartRow>, label: string) => {
+      // Mirrors how TanStack resolves a column id
+      const id =
+        (col as { id?: string }).id ??
+        (col as { accessorKey?: string }).accessorKey ??
+        "";
+      labels[id] = label;
+      cols.push(col);
+    };
+
+    push(
       {
         accessorKey: "date",
         header: ({ column }) => (
@@ -135,7 +149,8 @@ export function AnalyzeDataTable({
         ),
         cell: ({ row }) => row.getValue<string>("date"),
       },
-    ];
+      "Date",
+    );
 
     // ── Compare mode: one column per series ──────────────────────────
     if (isCompareMode) {
@@ -143,22 +158,23 @@ export function AnalyzeDataTable({
         const key = `series_${i}`;
         const name = seriesNames[i];
         const color = SERIES_COLORS[i % SERIES_COLORS.length];
-        cols.push({
-          id: key,
-          accessorFn: (row) =>
-            (row as unknown as Record<string, unknown>)[key] as
-              | number
-              | null
-              | undefined,
-          header: () => (
-            <span className="text-end text-xs font-medium" style={{ color }}>
-              {name}
-            </span>
-          ),
-          cell: ({ cell }) => (
-            <FormattedCell n={cell.getValue<number | null>()} isLevel />
-          ),
-        });
+        push(
+          {
+            id: key,
+            accessorFn: (row) =>
+              (row as unknown as Record<string, unknown>)[key] as
+                number | null | undefined,
+            header: () => (
+              <span className="text-end text-xs font-medium" style={{ color }}>
+                {name}
+              </span>
+            ),
+            cell: ({ cell }) => (
+              <FormattedCell n={cell.getValue<number | null>()} isLevel />
+            ),
+          },
+          name,
+        );
       }
 
       // Add transform columns for each series (per-axis transforms)
@@ -171,33 +187,37 @@ export function AnalyzeDataTable({
           const tKey = `transformed_${i}`;
           const name = seriesNames[i];
           const color = SERIES_COLORS[i % SERIES_COLORS.length];
-          cols.push({
-            id: tKey,
-            accessorFn: (row) =>
-              (row as unknown as Record<string, unknown>)[tKey] as
-                | number
-                | null
-                | undefined,
-            header: () => (
-              <span className="text-end text-xs font-medium" style={{ color }}>
-                {transformLabel} ({name})
-              </span>
-            ),
-            cell: ({ cell }) => {
-              const v = cell.getValue<number | null>();
-              if (v == null || isNaN(v))
-                return <span className="text-muted-foreground">-</span>;
-              return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+          push(
+            {
+              id: tKey,
+              accessorFn: (row) =>
+                (row as unknown as Record<string, unknown>)[tKey] as
+                  number | null | undefined,
+              header: () => (
+                <span
+                  className="text-end text-xs font-medium"
+                  style={{ color }}
+                >
+                  {transformLabel} ({name})
+                </span>
+              ),
+              cell: ({ cell }) => {
+                const v = cell.getValue<number | null>();
+                if (v == null || isNaN(v))
+                  return <span className="text-muted-foreground">-</span>;
+                return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+              },
             },
-          });
+            `${transformLabel} (${name})`,
+          );
         }
       }
 
-      return cols;
+      return { columns: cols, columnLabels: labels };
     }
 
     // ── Standard columns ─────────────────────────────────────────────
-    cols.push(
+    push(
       {
         accessorKey: "level",
         header: () => <span className="text-end">Level</span>,
@@ -205,6 +225,9 @@ export function AnalyzeDataTable({
           <FormattedCell n={cell.getValue<number | null>()} isLevel />
         ),
       },
+      "Level",
+    );
+    push(
       {
         accessorKey: "levelChange",
         header: () => <span className="text-end">LVL Chg</span>,
@@ -212,6 +235,9 @@ export function AnalyzeDataTable({
           <FormattedCell n={cell.getValue<number | null>()} colored />
         ),
       },
+      "LVL Chg",
+    );
+    push(
       {
         accessorKey: "yoy",
         header: () => <span className="text-end">YOY %</span>,
@@ -223,6 +249,9 @@ export function AnalyzeDataTable({
           />
         ),
       },
+      "YOY %",
+    );
+    push(
       {
         accessorKey: "ytd",
         header: () => <span className="text-end">YTD %</span>,
@@ -234,6 +263,9 @@ export function AnalyzeDataTable({
           />
         ),
       },
+      "YTD %",
+    );
+    push(
       {
         accessorKey: "pop",
         header: () => <span className="text-end">PoP %</span>,
@@ -245,6 +277,9 @@ export function AnalyzeDataTable({
           />
         ),
       },
+      "PoP %",
+    );
+    push(
       {
         accessorKey: "cagr",
         header: () => <span className="text-end">CAGR %</span>,
@@ -256,73 +291,86 @@ export function AnalyzeDataTable({
           />
         ),
       },
+      "CAGR %",
     );
 
     // Add overlay columns
     for (const overlay of activeOverlays) {
       const info = OVERLAY_COLUMN_LABELS[overlay];
       if (info) {
-        cols.push({
-          accessorKey: info.key,
-          header: () => (
-            <span className="text-end text-blue-600">{info.label}</span>
-          ),
-          cell: ({ cell }) => (
-            <FormattedCell n={cell.getValue<number | null>()} isLevel />
-          ),
-        });
+        push(
+          {
+            accessorKey: info.key,
+            header: () => (
+              <span className="text-end text-blue-600">{info.label}</span>
+            ),
+            cell: ({ cell }) => (
+              <FormattedCell n={cell.getValue<number | null>()} isLevel />
+            ),
+          },
+          info.label,
+        );
       }
       const extra = OVERLAY_EXTRA_COLUMNS[overlay];
       if (extra) {
-        cols.push({
-          accessorKey: extra.key,
-          header: () => (
-            <span className="text-end text-blue-600">{extra.label}</span>
-          ),
-          cell: ({ cell }) => (
-            <FormattedCell n={cell.getValue<number | null>()} isLevel />
-          ),
-        });
+        push(
+          {
+            accessorKey: extra.key,
+            header: () => (
+              <span className="text-end text-blue-600">{extra.label}</span>
+            ),
+            cell: ({ cell }) => (
+              <FormattedCell n={cell.getValue<number | null>()} isLevel />
+            ),
+          },
+          extra.label,
+        );
       }
     }
 
     // Main transformation column (stored in mainTransformed, level stays original)
     if (activeTransformation) {
-      cols.push({
-        accessorKey: "mainTransformed",
-        header: () => (
-          <span className="text-end text-violet-600">
-            {TRANSFORMATION_LABELS[activeTransformation]}
-          </span>
-        ),
-        cell: ({ cell }) => {
-          const v = cell.getValue<number | null>();
-          if (v == null || isNaN(v))
-            return <span className="text-muted-foreground">-</span>;
-          return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+      push(
+        {
+          accessorKey: "mainTransformed",
+          header: () => (
+            <span className="text-end text-violet-600">
+              {TRANSFORMATION_LABELS[activeTransformation]}
+            </span>
+          ),
+          cell: ({ cell }) => {
+            const v = cell.getValue<number | null>();
+            if (v == null || isNaN(v))
+              return <span className="text-muted-foreground">-</span>;
+            return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+          },
         },
-      });
+        TRANSFORMATION_LABELS[activeTransformation],
+      );
     }
 
     // Second axis transformation column
     if (secondAxis && secondAxisTransformation) {
-      cols.push({
-        accessorKey: "transformedLevel",
-        header: () => (
-          <span className="text-end text-rose-600">
-            {TRANSFORMATION_LABELS[secondAxisTransformation]}
-          </span>
-        ),
-        cell: ({ cell }) => {
-          const v = cell.getValue<number | null>();
-          if (v == null || isNaN(v))
-            return <span className="text-muted-foreground">-</span>;
-          return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+      push(
+        {
+          accessorKey: "transformedLevel",
+          header: () => (
+            <span className="text-end text-rose-600">
+              {TRANSFORMATION_LABELS[secondAxisTransformation]}
+            </span>
+          ),
+          cell: ({ cell }) => {
+            const v = cell.getValue<number | null>();
+            if (v == null || isNaN(v))
+              return <span className="text-muted-foreground">-</span>;
+            return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+          },
         },
-      });
+        TRANSFORMATION_LABELS[secondAxisTransformation],
+      );
     }
 
-    return cols;
+    return { columns: cols, columnLabels: labels };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isCompareMode,
@@ -337,62 +385,6 @@ export function AnalyzeDataTable({
     unitShortLabel,
   ]);
 
-  const copyAsCsv = useCallback(() => {
-    const headerCols = columns.map((c) => {
-      const key =
-        (c as { accessorKey?: string }).accessorKey ??
-        (c as { id?: string }).id ??
-        "";
-      let label = key;
-      if (isCompareMode && seriesNames) {
-        const seriesMatch = key.match(/^series_(\d+)$/);
-        if (seriesMatch) {
-          label = seriesNames[Number(seriesMatch[1])] ?? key;
-        } else {
-          const transformMatch = key.match(/^transformed_(\d+)$/);
-          if (transformMatch) {
-            const idx = Number(transformMatch[1]);
-            const isRight = seriesAxisMap?.get(idx) === "right";
-            const tx = isRight ? rightTransformation : activeTransformation;
-            if (tx) {
-              const transformLabel = TRANSFORMATION_LABELS[tx];
-              const name = seriesNames[idx] ?? "";
-              label = `${transformLabel} (${name})`;
-            }
-          }
-        }
-      }
-      return { key, label };
-    });
-    const raw = (v: unknown) => {
-      if (v == null) return "";
-      if (typeof v === "number") return isNaN(v) ? "" : String(v);
-      if (typeof v === "string") return v;
-      return "";
-    };
-    const csvEscape = (s: string) =>
-      /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    const csvHeader = headerCols.map((h) => csvEscape(h.label)).join(",");
-    const csvRows = rows.map((r) =>
-      headerCols
-        .map((h) =>
-          csvEscape(raw((r as unknown as Record<string, unknown>)[h.key])),
-        )
-        .join(","),
-    );
-    navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [
-    rows,
-    columns,
-    isCompareMode,
-    seriesNames,
-    activeTransformation,
-    rightTransformation,
-    seriesAxisMap,
-  ]);
-
   const table = useReactTable({
     data: rows,
     columns,
@@ -401,6 +393,33 @@ export function AnalyzeDataTable({
     onSortingChange: setSorting,
     state: { sorting },
   });
+
+  // Read columns and rows off the table instance so the CSV can never drift
+  // from what is rendered: same column order, same accessors, same sort order.
+  const copyAsCsv = useCallback(() => {
+    const leafColumns = table.getVisibleLeafColumns();
+    const raw = (v: unknown) => {
+      if (v == null) return "";
+      if (typeof v === "number") return isNaN(v) ? "" : String(v);
+      if (typeof v === "string") return v;
+      return "";
+    };
+    const csvEscape = (s: string) =>
+      /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    const csvHeader = leafColumns
+      .map((col) => csvEscape(columnLabels[col.id] ?? col.id))
+      .join(",");
+    const csvRows = table
+      .getRowModel()
+      .rows.map((row) =>
+        leafColumns
+          .map((col) => csvEscape(raw(row.getValue(col.id))))
+          .join(","),
+      );
+    navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [table, columnLabels]);
 
   return (
     <div className="w-fit">

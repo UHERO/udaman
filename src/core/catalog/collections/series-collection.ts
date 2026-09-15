@@ -257,6 +257,44 @@ async function getFactbookCache() {
 
 // ─── Collection ──────────────────────────────────────────────────────
 
+/** Per-depth-level timing from a batch reload, for app_logs. */
+export type BatchReloadDepthStat = {
+  depth: number;
+  count: number;
+  failed: number;
+  seconds: number;
+};
+
+/**
+ * How many series a batch reload works on at once within a depth level.
+ * The gain is overlapping DB round trips and HTTP fetches; XLSX parsing
+ * is synchronous and gains nothing. Above ~6 the single event loop and
+ * InnoDB stop helping and memory grows linearly.
+ */
+const RELOAD_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.RELOAD_CONCURRENCY ?? 4) || 1,
+);
+
+/** Run `fn` over `items` with at most `limit` in flight. `fn` must not throw. */
+async function mapWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+  const lanes = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (next < items.length) {
+        const item = items[next++];
+        await fn(item);
+      }
+    },
+  );
+  await Promise.all(lanes);
+}
+
 class SeriesCollection {
   /**
    * Create a new series and its backing TimeSeries (xseries) record.
@@ -1181,6 +1219,8 @@ class SeriesCollection {
    *   !PATTERN      — data-source last_error regex
    *   ;res=IDS      — resource ID filter (unit, src, det)
    *   &FLAG         — boolean flags: pub, pct, nodpn, sa, ns, nodata, noclock, hasph
+   *   &deps         — expand results to include every series that (transitively)
+   *                   depends on a matched series; requires another term
    *   {PATTERN      — dataPortalName regex
    *   }PATTERN      — description regex
    *   firstOP DATE  — filter by MIN observation date (e.g. first>=2020-01-01)
@@ -1206,6 +1246,7 @@ class SeriesCollection {
     const conditions: string[] = [];
     const variables: (string | number | Date)[] = [];
     let univ: string | null = universe as string;
+    let includeDeps = false;
 
     const OPERATORS = "^+~@.#!:;&/={}";
     const terms = text.split(/\s+/).filter(Boolean);
@@ -1395,6 +1436,12 @@ class SeriesCollection {
               conditions.push("l4.pseudo_history IS TRUE");
               break;
             }
+            if (flag === "deps") {
+              if (negated) throw new Error("Cannot negate &deps");
+              // Post-pass: expand the matched set via getAllDependencies.
+              includeDeps = true;
+              break;
+            }
             throw new Error(`Unknown fixed term &${flag}`);
           }
           case "{":
@@ -1460,15 +1507,19 @@ class SeriesCollection {
       variables.push(convertCommas(term.replace(/^["']/, "")));
     }
 
+    // `&deps` on its own would expand "everything" to "everything" — refuse
+    // rather than silently return the whole universe.
+    if (includeDeps && conditions.length === 0) {
+      throw new Error("&deps requires at least one other search term");
+    }
+
     // Universe filter
     if (univ) {
       conditions.push("series.universe = ?");
       variables.push(univ);
     }
 
-    const whereClause =
-      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const sql = [
+    const SELECT_COLS = [
       `SELECT DISTINCT`,
       `  series.id, series.xseries_id, series.geography_id, series.unit_id,`,
       `  series.source_id, series.source_detail_id, series.universe, series.decimals,`,
@@ -1479,6 +1530,12 @@ class SeriesCollection {
       `  xseries.quarantined, xseries.seasonal_adjustment, xseries.seasonally_adjusted,`,
       `  xseries.aremos_missing, xseries.aremos_diff, xseries.percent, xseries.real`,
       `FROM series`,
+    ];
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const sql = [
+      ...SELECT_COLS,
       joins.join(" "),
       whereClause,
       `ORDER BY series.name`,
@@ -1487,7 +1544,35 @@ class SeriesCollection {
     variables.push(limit);
 
     const rows = await rawQuery<SeriesAttrs>(sql, variables);
-    return rows.map((row) => new Series(row));
+    if (!includeDeps || rows.length === 0) {
+      return rows.map((row) => new Series(row));
+    }
+
+    // ── &deps expansion ─────────────────────────────────────────────
+    // getAllDependencies matches by series *name* across universes (same
+    // logic as "reload with deps"), so re-apply the universe filter here to
+    // keep the result scoped like every other search.
+    const baseIds = rows
+      .map((r) => r.id)
+      .filter((id): id is number => typeof id === "number");
+    const allIds = await SeriesCollection.getAllDependencies(baseIds);
+    const depConditions = [`series.id IN (${allIds.map(() => "?").join(",")})`];
+    const depVariables: (string | number)[] = [...allIds];
+    if (univ) {
+      depConditions.push("series.universe = ?");
+      depVariables.push(univ);
+    }
+    const depSql = [
+      ...SELECT_COLS,
+      `INNER JOIN xseries ON xseries.id = series.xseries_id`,
+      `WHERE ${depConditions.join(" AND ")}`,
+      `ORDER BY series.name`,
+      `LIMIT ?`,
+    ].join("\n");
+    depVariables.push(limit);
+
+    const depRows = await rawQuery<SeriesAttrs>(depSql, depVariables);
+    return depRows.map((row) => new Series(row));
   }
 
   /** Resolve a list of series names to a name→id map. Unknown names are omitted.
@@ -1534,7 +1619,7 @@ class SeriesCollection {
     data: Map<string, number>;
     dataSourceId: number;
     pseudoHistory: boolean;
-  }): Promise<{ inserted: number }> {
+  }): Promise<{ inserted: number; changed: boolean }> {
     const { xseriesId, data, dataSourceId, pseudoHistory } = opts;
     const SENTINEL = 1.0e15;
 
@@ -1552,7 +1637,7 @@ class SeriesCollection {
         { xseriesId, dataSourceId },
         "updateData: cleanData empty, skipping (repairDataPoints will NOT run)",
       );
-      return { inserted: 0 };
+      return { inserted: 0, changed: false };
     }
 
     // Get this loader's priority
@@ -1686,6 +1771,20 @@ class SeriesCollection {
     // committed once.
     const CHUNK = 500;
     const pseudo = pseudoHistory ? 1 : 0;
+
+    // Nothing to write — the common nightly case, where the source hasn't
+    // changed. Skip the BEGIN/COMMIT and the pool checkout; keep the
+    // repair pass so orphaned dates left by a clear or a vintage delete are
+    // still healed on the next reload.
+    if (
+      demoteDates.length === 0 &&
+      promoteDates.length === 0 &&
+      insertRows.length === 0
+    ) {
+      await this.repairDataPoints({ id: xseriesId });
+      return { inserted: 0, changed: false };
+    }
+
     await transaction(async (tx) => {
       for (let i = 0; i < demoteDates.length; i += CHUNK) {
         const dates = demoteDates.slice(i, i + CHUNK);
@@ -1730,7 +1829,7 @@ class SeriesCollection {
       await this.repairDataPoints({ id: xseriesId, exec: tx });
     });
 
-    return { inserted: insertRows.length };
+    return { inserted: insertRows.length, changed: true };
   }
 
   // ─── Static loader stubs (eval-callable) ─────────────────────────
@@ -2039,19 +2138,23 @@ class SeriesCollection {
         CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
         SELECT id, name, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
       `);
+      // Edges for UHERO loaders, from series_dependencies (rebuilt by
+      // setAllDependencies, which always runs first in the dependency-reset
+      // job). Until 2026-09-03 this was a correlated leading-wildcard LIKE
+      // over every loader's dependencies JSON per depth level — no index
+      // possible, |series| × |loaders| comparisons per iteration. The edge
+      // table makes each level an indexed name lookup.
       await exec(`
-        CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-        SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+        CREATE TEMPORARY TABLE IF NOT EXISTS t_edges (INDEX idx_series_id (series_id), INDEX idx_dep_name (dep_name))
+        SELECT series_id, dep_name FROM series_dependencies WHERE universe = 'UHERO'
       `);
       await exec(`CREATE TEMPORARY TABLE t2_series LIKE t_series`);
       await exec(`INSERT INTO t2_series SELECT * FROM t_series`);
 
-      // First level: series whose name appears in any dependencies field
+      // First level: series that some loader depends on.
       await exec(`
         UPDATE t_series s SET dependency_depth = 1
-        WHERE EXISTS (
-          SELECT 1 FROM t_datasources WHERE dependencies LIKE CONCAT('% ', s.name, '%')
-        )
+        WHERE EXISTS (SELECT 1 FROM t_edges e WHERE e.dep_name = s.name)
       `);
 
       let previousDepth = 1;
@@ -2075,13 +2178,12 @@ class SeriesCollection {
           SET t2.dependency_depth = t.dependency_depth
         `);
 
-        // Next level
+        // Next level: series that a previous-level series' loader depends on
         await exec(
           `UPDATE t_series s SET dependency_depth = ?
            WHERE EXISTS (
-             SELECT 1 FROM t_datasources ds JOIN t2_series ON ds.series_id = t2_series.id
-             WHERE t2_series.dependency_depth = ?
-             AND ds.dependencies LIKE CONCAT('% ', REPLACE(s.name, '%', '\\\\%'), '%')
+             SELECT 1 FROM t_edges e JOIN t2_series ON e.series_id = t2_series.id
+             WHERE t2_series.dependency_depth = ? AND e.dep_name = s.name
            )`,
           [previousDepth + 1, previousDepth],
         );
@@ -2104,7 +2206,7 @@ class SeriesCollection {
       // Clean up temp tables
       await exec(`DROP TEMPORARY TABLE IF EXISTS t_series`);
       await exec(`DROP TEMPORARY TABLE IF EXISTS t2_series`);
-      await exec(`DROP TEMPORARY TABLE IF EXISTS t_datasources`);
+      await exec(`DROP TEMPORARY TABLE IF EXISTS t_edges`);
     });
 
     log.info("assignDependencyDepth: done");
@@ -2154,7 +2256,63 @@ class SeriesCollection {
    */
   static async getAllDependencies(baseList: number[]): Promise<number[]> {
     if (baseList.length === 0) return [];
+    if (!(await SeriesCollection.dependencyEdgesReady())) {
+      return SeriesCollection.getAllDependenciesLegacy(baseList);
+    }
 
+    const resultSet = new Set(baseList);
+    let nextSet = [...baseList];
+
+    while (nextSet.length > 0) {
+      const placeholders = nextSet.map(() => "?").join(",");
+      // By name across universes, as always (see series_dependencies).
+      const rows = await rawQuery<{ series_id: number }>(
+        `SELECT DISTINCT sd.series_id
+         FROM series_dependencies sd
+         JOIN series s ON s.name = sd.dep_name
+         WHERE s.id IN (${placeholders})`,
+        nextSet,
+      );
+
+      const newIds = rows
+        .map((r) => r.series_id)
+        .filter((id) => !resultSet.has(id));
+      for (const id of newIds) resultSet.add(id);
+      nextSet = newIds;
+    }
+
+    return Array.from(resultSet);
+  }
+
+  /** Once the edge table has rows it stays authoritative for this process. */
+  private static edgesReady = false;
+
+  /**
+   * Is series_dependencies populated? False until the first dependency
+   * reset after the table's migration (or if the migration hasn't run),
+   * in which case callers fall back to scanning the dependencies JSON.
+   */
+  private static async dependencyEdgesReady(): Promise<boolean> {
+    if (SeriesCollection.edgesReady) return true;
+    try {
+      const rows = await rawQuery<{ one: number }>(
+        `SELECT 1 AS one FROM series_dependencies LIMIT 1`,
+      );
+      if (rows.length > 0) SeriesCollection.edgesReady = true;
+      return rows.length > 0;
+    } catch (e) {
+      log.warn(
+        { err: e instanceof Error ? e.message : String(e) },
+        "series_dependencies unavailable — using legacy dependency scan",
+      );
+      return false;
+    }
+  }
+
+  /** Pre-edge-table implementation: scans every loader's dependencies JSON. */
+  private static async getAllDependenciesLegacy(
+    baseList: number[],
+  ): Promise<number[]> {
     const resultSet = new Set(baseList);
     let nextSet = [...baseList];
 
@@ -2388,7 +2546,13 @@ class SeriesCollection {
     clearFirst?: boolean;
     groupSize?: number;
     job?: { log: (msg: string) => void };
-  }): Promise<void> {
+    /**
+     * Heavy-lock cooperative yield (see db-lock.ts). Called between
+     * groups; a no-op unless a priority job (upload) is waiting, in which
+     * case the lock is handed over and re-acquired before we continue.
+     */
+    yieldPoint?: () => Promise<void>;
+  }): Promise<{ perDepth: BatchReloadDepthStat[] }> {
     const {
       seriesIds,
       suffix,
@@ -2396,6 +2560,7 @@ class SeriesCollection {
       clearFirst = false,
       groupSize = 25,
       job,
+      yieldPoint,
     } = opts;
 
     // Lazy-import to avoid circular dependency
@@ -2403,7 +2568,7 @@ class SeriesCollection {
 
     if (seriesIds.length === 0) {
       job?.log("No series to reload");
-      return;
+      return { perDepth: [] };
     }
 
     // Get max dependency_depth
@@ -2423,6 +2588,7 @@ class SeriesCollection {
       "Starting batch reload",
     );
 
+    const perDepth: BatchReloadDepthStat[] = [];
     for (let depth = maxDepth; depth >= 0; depth--) {
       const depthRows = await rawQuery<{ id: number }>(
         `SELECT id FROM series WHERE id IN (${placeholders}) AND dependency_depth = ?`,
@@ -2431,41 +2597,76 @@ class SeriesCollection {
       const depthIds = depthRows.map((r) => r.id);
       if (depthIds.length === 0) continue;
 
-      job?.log(`Depth ${depth}: ${depthIds.length} series`);
+      job?.log(
+        `Depth ${depth}: ${depthIds.length} series (concurrency ${RELOAD_CONCURRENCY})`,
+      );
       log.info(
         {
           batchId,
           depth,
           count: depthIds.length,
+          concurrency: RELOAD_CONCURRENCY,
           rssMB: Math.round(process.memoryUsage.rss() / 1048576),
         },
         "Processing depth level",
       );
 
       // Process in groups
+      const depthStart = Date.now();
+      let processed = 0;
+      let failed = 0;
       for (let i = 0; i < depthIds.length; i += groupSize) {
         const group = depthIds.slice(i, i + groupSize);
-        for (const seriesId of group) {
-          try {
-            const loaders = await LoaderCol.getEnabledBySeriesId(seriesId);
-            for (const loader of loaders) {
-              if (nightly && !loader.reloadNightly) continue;
-              await LoaderCol.reload({ loader, clearFirst });
+        // Series within one depth level are independent — every input
+        // they read lives at a higher depth and has already been reloaded
+        // — so run several at a time. A series' *own* loaders stay
+        // sequential: updateData depends on their priority order.
+        await mapWithConcurrency(
+          group,
+          RELOAD_CONCURRENCY,
+          async (seriesId) => {
+            try {
+              const loaders = await LoaderCol.getEnabledBySeriesId(seriesId);
+              for (const loader of loaders) {
+                if (nightly && !loader.reloadNightly) continue;
+                await LoaderCol.reload({ loader, clearFirst });
+              }
+            } catch (e) {
+              failed++;
+              const msg = e instanceof Error ? e.message : String(e);
+              log.warn(
+                { seriesId, err: msg },
+                "Series reload failed, continuing",
+              );
+              job?.log(`Series ${seriesId} failed: ${msg}`);
             }
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            log.warn(
-              { seriesId, err: msg },
-              "Series reload failed, continuing",
-            );
-            job?.log(`Series ${seriesId} failed: ${msg}`);
-          }
+          },
+        );
+        // Let a waiting upload take the heavy lock between groups instead
+        // of timing out behind a multi-hour reload.
+        if (yieldPoint) await yieldPoint();
+
+        // Progress heartbeat: without it a multi-hour depth level is
+        // indistinguishable from a hung one in the job log (2026-09-02).
+        processed += group.length;
+        if (processed % 500 === 0 || processed === depthIds.length) {
+          const elapsedMin = Math.round((Date.now() - depthStart) / 60000);
+          job?.log(
+            `Depth ${depth}: ${processed}/${depthIds.length} series reloaded (${elapsedMin}m elapsed)`,
+          );
         }
       }
+      perDepth.push({
+        depth,
+        count: depthIds.length,
+        failed,
+        seconds: Math.round((Date.now() - depthStart) / 1000),
+      });
     }
 
-    log.info({ batchId }, "Batch reload complete");
+    log.info({ batchId, perDepth }, "Batch reload complete");
     job?.log("Batch reload complete");
+    return { perDepth };
   }
 
   // Delegate to model for name/universe validation
@@ -2592,8 +2793,9 @@ class SeriesCollection {
        WHERE s.universe = ? AND x.quarantined = 1`,
       [universe],
     );
-    // rawQuery returns row array; for UPDATE, Bun SQL returns [{affectedRows}]
-    return (result as unknown as { count: number }).count ?? 0;
+    // Bun's MySQL driver reports UPDATE results on the (empty) array itself:
+    // `affectedRows` is the real number; `count` is always 0 for MySQL.
+    return (result as unknown as { affectedRows?: number }).affectedRows ?? 0;
   }
 
   // ─── Shared helpers ─────────────────────────────────────────────────

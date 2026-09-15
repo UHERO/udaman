@@ -120,7 +120,7 @@ export function ChangePasswordDialog({
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FieldSet className="gap-2">
-            <FieldGroup className="gap-3">
+            <FieldGroup>
               <Field data-invalid={!!form.formState.errors.currentPassword}>
                 <FieldLabel htmlFor="currentPassword">
                   Current Password

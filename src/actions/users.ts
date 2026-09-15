@@ -13,6 +13,7 @@ import {
 
 import { createLogger } from "@/core/observability/logger";
 import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
+import { hasFullAccess } from "@/lib/auth/roles";
 import { AuthorizationError } from "@/lib/errors";
 
 const log = createLogger("action.users");
@@ -155,16 +156,26 @@ export async function updateUserAction(
   }
 }
 
+/**
+ * Create an account. Admins and devs may do this (it is how anyone gets in,
+ * since sign-in never auto-creates). Omit `password` for UH-login-only
+ * accounts, which is the normal case.
+ */
 export async function createUserAction(payload: {
   email: string;
   name?: string | null;
   role: string;
   universe: string;
-  password: string;
+  password?: string;
 }): Promise<{ success: boolean; message: string; id?: number }> {
   const currentRole = await getCurrentUserRole();
-  if (currentRole !== "dev")
-    throw new AuthorizationError("Unauthorized: dev role required");
+  if (!hasFullAccess(currentRole))
+    throw new AuthorizationError("Unauthorized: admin role required");
+  // Admin and dev accounts are granted by a dev, never handed out on invite.
+  if (hasFullAccess(payload.role) && currentRole !== "dev")
+    throw new AuthorizationError(
+      "Unauthorized: only a dev can create admin or dev accounts",
+    );
 
   try {
     const currentUserId = await getCurrentUserId();

@@ -187,7 +187,13 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+          // `className` is forwarded here (not to the Sheet root) so layout
+          // classes that target the inner shell — e.g. the app rail's
+          // `*:data-[sidebar=sidebar]:flex-row` — apply on mobile too.
+          className={cn(
+            "bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden",
+            className,
+          )}
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -199,7 +205,15 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          {/* Mirrors the desktop `sidebar-inner` element so the same
+              child selectors work in both layouts. */}
+          <div
+            data-sidebar="sidebar"
+            data-slot="sidebar-inner"
+            className="flex h-full w-full min-w-0 flex-col"
+          >
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     );

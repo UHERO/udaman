@@ -316,6 +316,38 @@ const ON_DUPLICATE: Record<string, string> = {
   home_exemptions: "scraped_at=VALUES(scraped_at)",
 };
 
+// ─── Per-table load options ─────────────────────────────────────────
+
+/**
+ * Resolve the destination table and INSERT options for one LOAD_ORDER entry.
+ *
+ * condo_stub_properties rows are 2-column FK placeholders inserted into
+ * properties with INSERT IGNORE, and must NOT carry the properties
+ * ON DUPLICATE clause: when both IGNORE and ON DUPLICATE KEY UPDATE are
+ * present, ON DUPLICATE wins, and VALUES(col) for a column missing from
+ * the INSERT's column list is NULL — so each stub wiped the full row
+ * loaded moments earlier. This nulled out 180k condo-unit rows (every
+ * unit listed on an Oahu/BI/Kauai master roster) in the 2026-08-20
+ * rebuild.
+ */
+export function loadOptsFor(table: string): {
+  actualTable: string;
+  columns: string[] | undefined;
+  onDuplicate: string | undefined;
+  insertIgnore: boolean;
+} {
+  const isStubProperties = table === "condo_stub_properties";
+  const actualTable = isStubProperties ? "properties" : table;
+  return {
+    actualTable,
+    columns: isStubProperties
+      ? TABLE_COLUMNS.condo_stub_properties
+      : TABLE_COLUMNS[table],
+    onDuplicate: isStubProperties ? undefined : ON_DUPLICATE[actualTable],
+    insertIgnore: isStubProperties,
+  };
+}
+
 // ─── Main Load Function ─────────────────────────────────────────────
 
 /**
@@ -342,18 +374,14 @@ export async function loadFromFiles(
     if (writer.isBroken) break;
 
     const filePath = path.join(stagingDir, `${table}.jsonl`);
-    const isStubProperties = table === "condo_stub_properties";
-    const actualTable = isStubProperties ? "properties" : table;
-    const columns = isStubProperties
-      ? TABLE_COLUMNS.condo_stub_properties
-      : TABLE_COLUMNS[table];
+    const { actualTable, columns, onDuplicate, insertIgnore } =
+      loadOptsFor(table);
 
     if (!columns) {
       log.warn({ table }, `No column definition for table ${table}, skipping`);
       continue;
     }
 
-    const onDuplicate = ON_DUPLICATE[actualTable];
     const rows = await streamJsonlFile(
       filePath,
       actualTable,
@@ -362,7 +390,7 @@ export async function loadFromFiles(
       log,
       {
         onDuplicate,
-        insertIgnore: isStubProperties,
+        insertIgnore,
       },
     );
 
@@ -422,8 +450,11 @@ export async function loadTableFromFiles(
     await writer.write("COMMIT;\nSET autocommit=0;\n");
   }
 
-  // Load condo stub properties if doing condominium table
-  if (table === "condominium" && !writer.isBroken) {
+  // Load condo stub properties when rebuilding condominium tables or
+  // properties itself — the sync replaces the remote properties table, so
+  // roster-only units (no scraped page of their own) need their FK
+  // placeholder rows or condominium_units would be left dangling.
+  if ((table === "condominium" || table === "properties") && !writer.isBroken) {
     const stubFile = path.join(stagingDir, "condo_stub_properties.jsonl");
     const stubRows = await streamJsonlFile(
       stubFile,

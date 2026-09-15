@@ -16,6 +16,7 @@ import {
   Command,
   FunctionSquare,
   GalleryVerticalEnd,
+  Gauge,
   Globe,
   House,
   KeyRound,
@@ -28,12 +29,14 @@ import {
   Server,
   Shield,
   ToggleRight,
+  UserPlus,
   Users,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { CreateAccountDialog } from "@/components/create-account-dialog";
 import { NavHhdb } from "@/components/nav-hhdb";
 import { NavMain } from "@/components/nav-main";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,9 +52,18 @@ import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { UniverseSwitcher } from "@/components/universe-switcher";
-import { getVisibleChildren, getVisibleRoutes } from "@/lib/auth/route-access";
+import { hasFullAccess } from "@/lib/auth/roles";
+import {
+  canAccess,
+  getLandingPath,
+  getVisibleChildren,
+  getVisibleRoutes,
+  ROUTES,
+  toReadableSet,
+} from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
 
 /** Per-universe icon overrides. Anything missing falls back to GalleryVerticalEnd. */
@@ -88,49 +100,28 @@ const MODE_BRANDING: Record<
   },
 };
 
+/**
+ * App rail. Access for every entry except the UDAMAN home comes from the
+ * matching `ROUTES` rail entry (looked up by `href`), so there is a single
+ * place — route-access.ts — that decides who sees and can open what. The
+ * middleware enforces the same manifest, so a hidden item is also unreachable.
+ */
 const RAIL_ITEMS = [
   {
     label: "UDAMAN",
     icon: ChartNoAxesCombined,
     href: "/udaman",
     match: "/udaman",
-    roles: ["external", "internal", "admin", "dev"],
   },
-  {
-    label: "HHDB",
-    icon: House,
-    href: "/hhdb",
-    match: "/hhdb",
-    roles: ["internal", "admin", "dev"],
-    universes: ["UHERO"],
-  },
-  {
-    label: "Admin",
-    icon: Shield,
-    href: "/admin",
-    match: "/admin",
-    roles: ["admin", "dev"],
-  },
-  {
-    label: "Comms",
-    icon: Megaphone,
-    href: "/comms",
-    match: "/comms",
-    roles: ["internal", "admin", "dev"],
-  },
-  {
-    label: "Docs",
-    icon: BookOpen,
-    href: "/docs",
-    match: "/docs",
-    roles: ["internal", "admin", "dev"],
-  },
+  { label: "HHDB", icon: House, href: "/hhdb", match: "/hhdb" },
+  { label: "Admin", icon: Shield, href: "/admin", match: "/admin" },
+  { label: "Comms", icon: Megaphone, href: "/comms", match: "/comms" },
+  { label: "Docs", icon: BookOpen, href: "/docs", match: "/docs" },
   {
     label: "Registry",
     icon: Library,
     href: "/data-registry",
     match: "/data-registry",
-    roles: ["internal", "admin", "dev"],
   },
 ] as const;
 
@@ -150,6 +141,7 @@ const ADMIN_ICONS: Record<string, LucideIcon> = {
   "/admin/logs": ScrollText,
   "/admin/crawlers": Globe,
   "/admin/stats": BarChart3,
+  "/admin/perf": Gauge,
   "/admin/api-keys": KeyRound,
   "/admin/messages": Mail,
 };
@@ -172,6 +164,7 @@ export function AppSidebar({
   user,
   universes: allUniverses,
   mode = "udaman",
+  readableResources,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: {
@@ -185,17 +178,37 @@ export function AppSidebar({
   };
   universes?: { name: string; description: string | null }[];
   mode?: "udaman" | "admin" | "hhdb" | "docs" | "comms" | "data-registry";
+  /**
+   * Resources this user may read, resolved server-side from role_permissions
+   * and unioned with the manifest's hardcoded roles. Omit and access falls
+   * back to the manifest alone.
+   */
+  readableResources?: readonly string[];
 }) {
   const params = useParams();
   const pathname = usePathname();
   const universe = (params.universe as string) || "uhero";
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
+  const canCreateAccounts = hasFullAccess(user.role);
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  // On mobile the sidebar is a sheet overlaying the page — dismiss it once a
+  // rail or nav link has actually navigated, so the destination is visible.
+  React.useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
 
   // Filter by the URL universe (current context) so a UHERO user who has
   // switched to another universe sees routes scoped to that universe.
+  const readable = React.useMemo(
+    () => toReadableSet(readableResources),
+    [readableResources],
+  );
+
   const routes = React.useMemo(
-    () => getVisibleRoutes(user.role, universe.toUpperCase()),
-    [user.role, universe],
+    () => getVisibleRoutes(user.role, universe.toUpperCase(), readable),
+    [user.role, universe, readable],
   );
 
   // Only show sidebar-located routes (not rail routes)
@@ -206,7 +219,12 @@ export function AppSidebar({
 
   const navMain = React.useMemo(() => {
     if (mode === "admin") {
-      const children = getVisibleChildren(user.role, user.universe, "/admin");
+      const children = getVisibleChildren(
+        user.role,
+        user.universe,
+        "/admin",
+        readable,
+      );
       return children.map((child) => ({
         title: child.label,
         url: child.path,
@@ -224,7 +242,7 @@ export function AppSidebar({
       match: prefixUrl(entry.path, universe),
       icon: entry.icon,
     }));
-  }, [mode, sidebarRoutes, universe, user.role, user.universe]);
+  }, [mode, sidebarRoutes, universe, user.role, user.universe, readable]);
 
   // UHERO users can switch to any universe; others see only their own
   const universes = React.useMemo(() => {
@@ -239,19 +257,16 @@ export function AppSidebar({
 
   const branding = MODE_BRANDING[mode];
 
-  // Rail visibility
-  const defaultUniverse = user.universe.toLowerCase();
+  // Rail visibility — the UDAMAN home is always available (it lands on the
+  // universe homepage for limited roles); everything else defers to the
+  // manifest roles unioned with the user's read permissions.
+  const homeHref = getLandingPath(user.role, user.universe, readable);
   const visibleRailItems = RAIL_ITEMS.filter((item) => {
-    if (!(item.roles as readonly string[]).includes(user.role)) return false;
-    if (
-      "universes" in item &&
-      item.universes &&
-      !(item.universes as readonly string[]).includes(
-        user.universe.toUpperCase(),
-      )
-    )
-      return false;
-    return true;
+    if (item.href === "/udaman") return true;
+    const entry = ROUTES.find(
+      (r) => r.location === "rail" && r.path === item.href,
+    );
+    return entry ? canAccess(user.role, user.universe, entry, readable) : false;
   });
 
   const initials = user.name
@@ -272,13 +287,11 @@ export function AppSidebar({
         data-slot="sidebar"
         className="bg-ublue flex h-full w-16 shrink-0 flex-col border-r"
       >
-        {/* Nav items */}
-        <nav className="flex flex-1 flex-col items-center gap-1 px-1.5 pt-3">
+        {/* Nav items — scrollable (scrollbar hidden) so a short viewport, e.g.
+            a phone held in landscape, can still reach the last rail entry. */}
+        <nav className="flex min-h-0 flex-1 scrollbar-none flex-col items-center gap-1 overflow-y-auto overscroll-contain px-1.5 pt-3">
           {visibleRailItems.map((item) => {
-            const href =
-              item.href === "/udaman"
-                ? `/udaman/${defaultUniverse}/series`
-                : item.href;
+            const href = item.href === "/udaman" ? homeHref : item.href;
             const isActive = pathname.startsWith(item.match);
 
             return (
@@ -287,7 +300,7 @@ export function AppSidebar({
                 href={href}
                 title={item.label}
                 className={cn(
-                  "flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-md text-[10px] font-medium transition-colors",
+                  "flex h-12 w-full shrink-0 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] font-medium transition-colors",
                   isActive
                     ? "bg-white/20 text-white"
                     : "text-white/60 hover:bg-white/10 hover:text-white",
@@ -300,8 +313,8 @@ export function AppSidebar({
           })}
         </nav>
 
-        {/* User menu */}
-        <div className="flex items-center justify-center py-3">
+        {/* User menu — pinned below the scrolling nav so it is always reachable */}
+        <div className="flex shrink-0 items-center justify-center border-t border-white/10 py-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -316,7 +329,12 @@ export function AppSidebar({
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" className="w-56">
+            <DropdownMenuContent
+              side={isMobile ? "top" : "right"}
+              align={isMobile ? "start" : "end"}
+              collisionPadding={8}
+              className="w-56"
+            >
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8">
@@ -338,6 +356,12 @@ export function AppSidebar({
                 <KeyRound />
                 Change Password
               </DropdownMenuItem>
+              {canCreateAccounts && (
+                <DropdownMenuItem onClick={() => setCreateAccountOpen(true)}>
+                  <UserPlus />
+                  Create Account
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => signOut({ callbackUrl: "/udaman" })}
               >
@@ -349,8 +373,10 @@ export function AppSidebar({
         </div>
       </div>
 
-      {/* ── Main sidebar content ── */}
-      <Sidebar collapsible="none" className="hidden flex-1 md:flex">
+      {/* ── Main sidebar content ──
+          Sits beside the rail on desktop and inside the mobile sheet, where it
+          used to be `hidden` — leaving the tray showing only the rail. */}
+      <Sidebar collapsible="none" className="flex w-auto min-w-0 flex-1">
         <SidebarHeader>
           {mode === "udaman" ? (
             <UniverseSwitcher universes={universes} />
@@ -388,6 +414,12 @@ export function AppSidebar({
           createdAt: user.createdAt,
         }}
       />
+      {canCreateAccounts && (
+        <CreateAccountDialog
+          open={createAccountOpen}
+          onOpenChange={setCreateAccountOpen}
+        />
+      )}
     </Sidebar>
   );
 }

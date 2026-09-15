@@ -1,6 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 import { NotFoundError } from "@/lib/errors";
-import { insertAndGetId, mysql } from "@/lib/mysql/db";
+import { insertAndGetId, mysql, transaction } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Loader from "../models/loader";
@@ -12,6 +12,14 @@ import SeriesCollection from "./series-collection";
 import type { DeleteByMode } from "./series-collection";
 
 const log = createLogger("catalog.loader-collection");
+
+/** One row of series_dependencies: loader → series name it references. */
+type DependencyEdge = {
+  dataSourceId: number;
+  seriesId: number;
+  universe: string;
+  depName: string;
+};
 
 interface DependencyRow {
   name: string;
@@ -161,26 +169,54 @@ class LoaderCollection {
         JSON.stringify(dependencies),
       ],
     );
-    return this.getById(insertId);
+    const created = await this.getById(insertId);
+    await this.setDependencyEdges(created);
+    return created;
   }
 
-  /** Update a loader */
+  /** Update a loader and return the fresh row */
   static async update(
     id: number,
     updates: UpdateLoaderPayload,
   ): Promise<Loader> {
-    if (!Object.keys(updates).length) return this.getById(id);
+    await this.updateFields(id, updates);
+    return this.getById(id);
+  }
+
+  /**
+   * Write loader fields without re-reading the row.
+   *
+   * `touchUpdatedAt`: the incremental public sweep treats a bumped
+   * `data_sources.updated_at` as "this series' data may have changed"
+   * (chunkHasActivity). The reload path passes false when it wrote no
+   * data points, so a nightly that changes nothing doesn't turn the next
+   * sweep into a full pass.
+   */
+  static async updateFields(
+    id: number,
+    updates: UpdateLoaderPayload,
+    opts: { touchUpdatedAt?: boolean } = {},
+  ): Promise<void> {
+    const { touchUpdatedAt = true } = opts;
+    if (!Object.keys(updates).length) return;
 
     const updateObj = buildUpdateObject(updates);
     const cols = Object.keys(updateObj);
-    if (!cols.length) return this.getById(id);
+    if (!cols.length) return;
 
-    await mysql`
-      UPDATE data_sources
-      SET ${mysql(updateObj, ...cols)}, updated_at = NOW()
-      WHERE id = ${id}
-    `;
-    return this.getById(id);
+    if (touchUpdatedAt) {
+      await mysql`
+        UPDATE data_sources
+        SET ${mysql(updateObj, ...cols)}, updated_at = NOW()
+        WHERE id = ${id}
+      `;
+    } else {
+      await mysql`
+        UPDATE data_sources
+        SET ${mysql(updateObj, ...cols)}
+        WHERE id = ${id}
+      `;
+    }
   }
 
   /** Delete a loader and its associated data points */
@@ -198,6 +234,7 @@ class LoaderCollection {
         `;
       }
     }
+    await this.deleteDependencyEdges(id);
     await mysql`DELETE FROM data_sources WHERE id = ${id}`;
   }
 
@@ -374,10 +411,13 @@ class LoaderCollection {
       lastErrorAt: null,
       runtime: null,
     };
+    // Did this run touch data_points? Drives the updated_at stamp below.
+    let changed = false;
 
     try {
       if (clearFirst || loader.clearBeforeLoad) {
         await this.deleteDataPoints(loader);
+        changed = true;
       }
 
       const result = await EvalExecutor.run(loader.eval, loader.universe);
@@ -402,6 +442,7 @@ class LoaderCollection {
             pseudoHistory: loader.pseudoHistory,
           });
           inserted = updateResult.inserted;
+          if (updateResult.changed) changed = true;
 
           // After clear+reload, some dates may have lost their current
           // data point — repair to promote the next best vintage.
@@ -445,7 +486,11 @@ class LoaderCollection {
       updateProps.lastErrorAt = t;
       return { status: "error", message };
     } finally {
-      await this.update(loader.id, updateProps);
+      // No re-read (the caller never uses the row), and updated_at only
+      // when data points actually changed — see updateFields.
+      await this.updateFields(loader.id, updateProps, {
+        touchUpdatedAt: changed,
+      });
     }
   }
 
@@ -520,18 +565,114 @@ class LoaderCollection {
     );
   }
 
-  /** Update dependencies for all UHERO loaders */
+  /**
+   * Recompute `dependencies` for every UHERO loader and rebuild the
+   * series_dependencies edge table for all universes.
+   *
+   * Only UHERO loaders get their dependencies re-extracted (as before);
+   * other universes' edges come from their stored column, parsed the
+   * same way the model does. The column is rewritten only when it
+   * changed — the old per-loader UPDATE + re-SELECT stamped updated_at
+   * on ~20k loaders every evening, which the incremental public sweep
+   * read as "everything changed".
+   */
   static async setAllDependencies(): Promise<void> {
     log.info("setAllDependencies: start");
-    const loaders = await this.list({ universe: "UHERO" });
+    const loaders = await this.list();
+    let rewritten = 0;
+    const edges: DependencyEdge[] = [];
     for (const loader of loaders) {
-      log.debug(`setAllDependencies: for ${loader.description}`);
-      loader.refreshDependencies();
-      await this.update(loader.id, {
-        dependencies: JSON.stringify(loader.dependencies),
-      });
+      if (loader.universe === "UHERO") {
+        const before = JSON.stringify(loader.dependencies);
+        loader.refreshDependencies();
+        const after = JSON.stringify(loader.dependencies);
+        if (after !== before) {
+          await this.updateFields(
+            loader.id,
+            { dependencies: after },
+            { touchUpdatedAt: false },
+          );
+          rewritten++;
+        }
+      }
+      if (loader.seriesId == null) continue;
+      for (const depName of loader.dependencies) {
+        edges.push({
+          dataSourceId: loader.id,
+          seriesId: loader.seriesId,
+          universe: loader.universe,
+          depName,
+        });
+      }
     }
-    log.info("setAllDependencies: done");
+    await this.replaceDependencyEdges(edges);
+    log.info(
+      { loaders: loaders.length, rewritten, edges: edges.length },
+      "setAllDependencies: done",
+    );
+  }
+
+  /** Swap the whole edge table for `edges`, atomically. */
+  private static async replaceDependencyEdges(
+    edges: DependencyEdge[],
+  ): Promise<void> {
+    const CHUNK = 1000;
+    await transaction(async (tx) => {
+      await tx.unsafe(`DELETE FROM series_dependencies`);
+      for (let i = 0; i < edges.length; i += CHUNK) {
+        const rows = edges.slice(i, i + CHUNK);
+        await tx.unsafe(
+          `INSERT IGNORE INTO series_dependencies (data_source_id, series_id, universe, dep_name)
+           VALUES ${rows.map(() => "(?, ?, ?, ?)").join(",")}`,
+          rows.flatMap((e) => [e.dataSourceId, e.seriesId, e.universe, e.depName]),
+        );
+      }
+    });
+  }
+
+  /**
+   * Write one loader's edges (replacing any existing). Best-effort: the
+   * nightly rebuild makes the table consistent regardless, so a missing
+   * table (migration not yet applied) must not break loader creation.
+   */
+  static async setDependencyEdges(loader: Loader): Promise<void> {
+    if (loader.seriesId == null) return;
+    try {
+      await transaction(async (tx) => {
+        await tx.unsafe(
+          `DELETE FROM series_dependencies WHERE data_source_id = ?`,
+          [loader.id],
+        );
+        if (loader.dependencies.length === 0) return;
+        await tx.unsafe(
+          `INSERT IGNORE INTO series_dependencies (data_source_id, series_id, universe, dep_name)
+           VALUES ${loader.dependencies.map(() => "(?, ?, ?, ?)").join(",")}`,
+          loader.dependencies.flatMap((depName) => [
+            loader.id,
+            loader.seriesId!,
+            loader.universe,
+            depName,
+          ]),
+        );
+      });
+    } catch (e) {
+      log.warn(
+        { loaderId: loader.id, err: e instanceof Error ? e.message : String(e) },
+        "series_dependencies write failed (nightly rebuild will catch up)",
+      );
+    }
+  }
+
+  /** Remove a loader's edges. Best-effort, same reasoning as setDependencyEdges. */
+  private static async deleteDependencyEdges(id: number): Promise<void> {
+    try {
+      await mysql`DELETE FROM series_dependencies WHERE data_source_id = ${id}`;
+    } catch (e) {
+      log.warn(
+        { loaderId: id, err: e instanceof Error ? e.message : String(e) },
+        "series_dependencies delete failed (nightly rebuild will catch up)",
+      );
+    }
   }
 
   /** Get current (active) data points for a series */
@@ -580,6 +721,7 @@ class LoaderCollection {
   static async setDependencies(id: number): Promise<Loader> {
     const loader = await this.getById(id);
     loader.refreshDependencies();
+    await this.setDependencyEdges(loader);
     return this.update(id, {
       dependencies: JSON.stringify(loader.dependencies),
     });

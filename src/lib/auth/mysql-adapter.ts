@@ -7,6 +7,8 @@ import type {
 import { hstToInstant, toHstSql } from "@catalog/utils/time";
 import { mysql } from "@database/mysql";
 
+import { NEW_USER_ROLE, NEW_USER_UNIVERSE } from "./roles";
+
 // DATETIME columns hold Hawaii wall-clock (see the HST convention in
 // @catalog/utils/time). Auth.js works in true instants, so convert with
 // toHstSql on write and hstToInstant on read — otherwise expiry checks
@@ -62,11 +64,15 @@ export function MySqlAdapter(): Adapter {
   return {
     // ── User methods ───────────────────────────────────────────────
 
+    // Required by the Adapter interface, but not reached in practice: the
+    // signIn callback rejects any email without an existing account, so
+    // Auth.js never gets as far as creating one. Kept consistent with the
+    // NEW_USER_* defaults in case that policy ever changes.
     async createUser(user) {
       const { email, name, image, emailVerified } = user;
       await mysql`
         INSERT INTO users (email, name, image, email_verified, role, universe, created_at, updated_at)
-        VALUES (${email}, ${name ?? null}, ${image ?? null}, ${emailVerified ? toHstSql(emailVerified) : null}, 'internal', 'UHERO', NOW(), NOW())
+        VALUES (${email}, ${name ?? null}, ${image ?? null}, ${emailVerified ? toHstSql(emailVerified) : null}, ${NEW_USER_ROLE}, ${NEW_USER_UNIVERSE}, NOW(), NOW())
       `;
       const rows = await mysql`
         SELECT id, email, name, image, email_verified

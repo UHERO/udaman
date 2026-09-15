@@ -15,8 +15,8 @@ import { formatReviewTimestamp, ReviewTable } from "./review-table";
 
 /**
  * The review thread on a form's detail page plus, for eligible viewers, an
- * "Add review" form. Authors see the thread and the release toggle but
- * cannot review.
+ * "Add review" form. Authors may review their own form — forms are often
+ * filed on the author's behalf.
  */
 export function ReviewPanel({
   approval,
@@ -25,7 +25,6 @@ export function ReviewPanel({
   currentUserName,
   isAdmin,
   isDev,
-  canSelfReview = false,
 }: {
   approval: ApprovalJSON;
   reviews: ApprovalReviewJSON[];
@@ -33,15 +32,14 @@ export function ReviewPanel({
   currentUserName: string;
   isAdmin: boolean;
   isDev: boolean;
-  /** Author may review their own form (developer testing exemption). */
-  canSelfReview?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const mine = reviews.some((r) => r.reviewerUserId === currentUserId);
   const isAuthor = approval.authorUserId === currentUserId;
   const canRelease = isAuthor || isAdmin;
-  const canAdd = (canSelfReview || !isAuthor) && !mine;
+  // Authors may review their own form — many are filed on their behalf.
+  const canAdd = !mine;
   const canModify = isAuthor || isAdmin;
 
   function handleRelease(released: boolean) {
@@ -114,12 +112,6 @@ export function ReviewPanel({
         canAdd={canAdd}
       />
       */}
-
-      {isAuthor && !canSelfReview && (
-        <p className="text-muted-foreground text-sm">
-          As the lead author you can&rsquo;t review your own form.
-        </p>
-      )}
     </section>
   );
 }
