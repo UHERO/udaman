@@ -55,7 +55,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { UniverseSwitcher } from "@/components/universe-switcher";
-import { hasFullAccess } from "@/lib/auth/roles";
 import {
   canAccess,
   getLandingPath,
@@ -190,7 +189,6 @@ export function AppSidebar({
   const universe = (params.universe as string) || "uhero";
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [createAccountOpen, setCreateAccountOpen] = useState(false);
-  const canCreateAccounts = hasFullAccess(user.role);
   const { isMobile, setOpenMobile } = useSidebar();
 
   // On mobile the sidebar is a sheet overlaying the page — dismiss it once a
@@ -356,12 +354,10 @@ export function AppSidebar({
                 <KeyRound />
                 Change Password
               </DropdownMenuItem>
-              {canCreateAccounts && (
-                <DropdownMenuItem onClick={() => setCreateAccountOpen(true)}>
-                  <UserPlus />
-                  Create Account
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem onClick={() => setCreateAccountOpen(true)}>
+                <UserPlus />
+                Create Account
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => signOut({ callbackUrl: "/udaman" })}
               >
@@ -414,12 +410,11 @@ export function AppSidebar({
           createdAt: user.createdAt,
         }}
       />
-      {canCreateAccounts && (
-        <CreateAccountDialog
-          open={createAccountOpen}
-          onOpenChange={setCreateAccountOpen}
-        />
-      )}
+      <CreateAccountDialog
+        open={createAccountOpen}
+        onOpenChange={setCreateAccountOpen}
+        currentRole={user.role}
+      />
     </Sidebar>
   );
 }

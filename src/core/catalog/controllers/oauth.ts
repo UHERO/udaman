@@ -1,21 +1,21 @@
 /**
  * Orchestration layer between OAuth routes and collections. Four entry points:
  *   - registerClient(payload)  : wraps client registration
- *   - authorize(params)        : validates client/redirect/PKCE inputs, checks
- *                                the @hawaii.edu whitelist, issues a one-time
- *                                authorization code
+ *   - authorize(params)        : validates client/redirect/PKCE inputs and
+ *                                issues a one-time authorization code
  *   - exchangeCode(params)     : validates the code (existence, expiry,
  *                                single-use, client binding, redirect match),
  *                                verifies PKCE, atomically consumes the code,
  *                                issues the access token. Per RFC 6749 §10.5,
  *                                a reused code revokes all of that user's tokens.
- *   - validateBearer(token)    : used by /api/mcp to authenticate Bearer
- *                                tokens; re-checks the whitelist on every call.
+ *   - validateBearer(token)    : used by /api/mcp to authenticate Bearer tokens
+ *
+ * Any signed-in UDAMAN user may connect. Accounts are only ever created by an
+ * existing user (see createUserAction), so holding a session is the gate —
+ * there is no separate email whitelist here.
  *
  * All failures throw a typed OAuthError so routes can render RFC-compliant JSON.
  */
-
-import { isEmailAllowed } from "@/lib/auth/auth-whitelist";
 
 import OAuthAccessTokenCollection from "../collections/oauth-access-token-collection";
 import OAuthAuthorizationCodeCollection from "../collections/oauth-authorization-code-collection";
@@ -32,7 +32,6 @@ export type AuthorizeParams = {
   codeChallengeMethod: string;
   scope?: string;
   userId: number;
-  userEmail: string;
 };
 
 export type ExchangeCodeParams = {
@@ -63,8 +62,8 @@ class OAuthController {
   }
 
   /**
-   * Issue an authorization code for a signed-in, whitelisted user. Throws an
-   * OAuthError on failure so the route can render the right OAuth redirect/error.
+   * Issue an authorization code for a signed-in user. Throws an OAuthError on
+   * failure so the route can render the right OAuth redirect/error.
    */
   static async authorize(
     params: AuthorizeParams,
@@ -94,13 +93,6 @@ class OAuthController {
         error_description: "code_challenge is required",
       } satisfies OAuthError;
     }
-    if (!isEmailAllowed(params.userEmail)) {
-      throw {
-        error: "access_denied",
-        error_description: "user email is not on the access whitelist",
-      } satisfies OAuthError;
-    }
-
     const { code } = await OAuthAuthorizationCodeCollection.issue({
       clientId: params.clientId,
       userId: params.userId,
@@ -184,13 +176,6 @@ class OAuthController {
         error_description: "user no longer exists",
       } satisfies OAuthError;
     }
-    if (!isEmailAllowed(userEmail)) {
-      throw {
-        error: "access_denied",
-        error_description: "user email is not on the access whitelist",
-      } satisfies OAuthError;
-    }
-
     const { token, expiresIn } = await OAuthAccessTokenCollection.issue({
       clientId: record.clientId,
       userId: record.userId,
@@ -205,7 +190,6 @@ class OAuthController {
     if (!token) return null;
     const record = await OAuthAccessTokenCollection.findByToken(token);
     if (!record || !record.isUsable()) return null;
-    if (!isEmailAllowed(record.userEmail)) return null;
     return record;
   }
 }

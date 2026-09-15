@@ -4,7 +4,6 @@ import { getApproval } from "@/actions/approvals";
 import { PreReleaseForm } from "@/components/comms/pre-release-form";
 import { PRE_RELEASE_RECIPIENTS } from "@/core/mailers/recipients";
 import { getCurrentUserContext } from "@/lib/auth/dal";
-import { hasFullAccess } from "@/lib/auth/roles";
 import { NotFoundError } from "@/lib/errors";
 
 export default async function Page({
@@ -39,16 +38,15 @@ export default async function Page({
       <div>
         <h1 className="text-3xl font-bold">Edit pre-release form</h1>
         <p className="text-muted-foreground text-sm">
-          Saving re-certifies the form as of now. Edits don&apos;t notify
-          anyone unless you tick &ldquo;Resend notification&rdquo; before
-          saving.
+          Saving re-certifies the form as of now. Edits don&apos;t notify anyone
+          unless you tick &ldquo;Resend notification&rdquo; before saving.
         </p>
       </div>
       <PreReleaseForm
         mode="edit"
         approval={approval}
         authorName={approval.author}
-        canCreateUsers={hasFullAccess(role)}
+        currentRole={role}
         standardRecipients={[...PRE_RELEASE_RECIPIENTS]}
       />
     </div>

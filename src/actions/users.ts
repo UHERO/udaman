@@ -13,7 +13,11 @@ import {
 
 import { createLogger } from "@/core/observability/logger";
 import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
-import { hasFullAccess } from "@/lib/auth/roles";
+import {
+  canInviteEmail,
+  hasFullAccess,
+  INVITE_EMAIL_DENIED,
+} from "@/lib/auth/roles";
 import { AuthorizationError } from "@/lib/errors";
 
 const log = createLogger("action.users");
@@ -157,9 +161,10 @@ export async function updateUserAction(
 }
 
 /**
- * Create an account. Admins and devs may do this (it is how anyone gets in,
- * since sign-in never auto-creates). Omit `password` for UH-login-only
- * accounts, which is the normal case.
+ * Create an account. This is how anyone gets in, since sign-in never
+ * auto-creates. Any signed-in user may invite a hawaii.edu address; only an
+ * admin or dev may create an account on another domain. Omit `password` for
+ * UH-login-only accounts, which is the normal case.
  */
 export async function createUserAction(payload: {
   email: string;
@@ -169,8 +174,8 @@ export async function createUserAction(payload: {
   password?: string;
 }): Promise<{ success: boolean; message: string; id?: number }> {
   const currentRole = await getCurrentUserRole();
-  if (!hasFullAccess(currentRole))
-    throw new AuthorizationError("Unauthorized: admin role required");
+  if (!canInviteEmail(currentRole, payload.email))
+    throw new AuthorizationError(`Unauthorized: ${INVITE_EMAIL_DENIED}`);
   // Admin and dev accounts are granted by a dev, never handed out on invite.
   if (hasFullAccess(payload.role) && currentRole !== "dev")
     throw new AuthorizationError(

@@ -19,7 +19,9 @@
       "Bash(awk -F'-' 'NF!=6' html_tmks.txt)",
       "Bash(cd *)",
       "Bash(awk 'NR<=1073 && /^\\(export \\)?function /{l=NR\": \"$0} END{}' src/core/crawlers/qpub/parse-sections.ts)",
-      "Bash(awk -F: '$1<1073')"
+      "Bash(awk -F: '$1<1073')",
+      "Bash(git rm *)",
+      "Bash(echo \"grep exit=$?\")"
     ]
   }
 }

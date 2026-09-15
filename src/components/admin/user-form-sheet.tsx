@@ -39,6 +39,9 @@ import {
 } from "@/lib/auth/google-login";
 import {
   ALL_ROLES,
+  canInviteEmail,
+  hasFullAccess,
+  INVITE_EMAIL_DENIED,
   NEW_USER_ROLE,
   NEW_USER_UNIVERSE,
   ROLE_DESCRIPTIONS,
@@ -66,11 +69,17 @@ export type SerializedUser = {
 
 /** When editing, a blank password leaves the existing one alone. When
  *  creating, it may be blank only for addresses that can use UH Google login
- *  (gmail.com, hawaii.edu); any other address needs a password to sign in. */
-function buildFormSchema(isEdit: boolean) {
+ *  (gmail.com, hawaii.edu); any other address needs a password to sign in.
+ *  Non-admins may only create hawaii.edu accounts (see canInviteEmail). */
+function buildFormSchema(isEdit: boolean, currentRole: string) {
   return z
     .object({
-      email: z.string().email("Must be a valid email"),
+      email: z
+        .string()
+        .email("Must be a valid email")
+        .refine((email) => isEdit || canInviteEmail(currentRole, email), {
+          message: INVITE_EMAIL_DENIED,
+        }),
       name: z.string(),
       role: z.enum(ROLES),
       universe: z.string().min(1, "Universe is required"),
@@ -132,6 +141,12 @@ interface UserFormSheetProps {
    * picker can select the new account without a round trip to the server.
    */
   onCreated?: (created: CreatedUser) => void;
+  /**
+   * Role of the signed-in user. Decides which email domains they may create
+   * an account for; admins and devs may use any domain, everyone else only
+   * hawaii.edu. Defaults to full access for the dev-only admin Users page.
+   */
+  currentRole?: string;
 }
 
 export function UserFormSheet({
@@ -139,12 +154,16 @@ export function UserFormSheet({
   onOpenChange,
   user,
   onCreated,
+  currentRole = "dev",
 }: UserFormSheetProps) {
   const router = useRouter();
   const universes = useUniverseNames();
   const isEdit = !!user;
 
-  const schema = useMemo(() => buildFormSchema(isEdit), [isEdit]);
+  const schema = useMemo(
+    () => buildFormSchema(isEdit, currentRole),
+    [isEdit, currentRole],
+  );
 
   const defaults: FormValues = useMemo(
     () => ({
@@ -221,7 +240,9 @@ export function UserFormSheet({
           <SheetDescription>
             {isEdit
               ? "Update this account. Leave the password fields blank to keep the current password."
-              : "Create a new account. gmail.com and hawaii.edu addresses sign in with UH Login and need no password; other addresses require one."}
+              : hasFullAccess(currentRole)
+                ? "Create a new account. gmail.com and hawaii.edu addresses sign in with UH Login and need no password; other addresses require one."
+                : "Create a new account with a hawaii.edu address. They will sign in with UH Login. Ask an admin to add other addresses."}
           </SheetDescription>
         </SheetHeader>
 

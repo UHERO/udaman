@@ -10,8 +10,17 @@
 
 export const GOOGLE_LOGIN_DOMAINS = ["gmail.com", "hawaii.edu"] as const;
 
+/** The University of Hawaii domain (and subdomains like manoa.hawaii.edu). */
+export const UH_EMAIL_DOMAIN = "hawaii.edu";
+
 export function emailDomain(email: string): string {
   return email.trim().toLowerCase().split("@")[1] ?? "";
+}
+
+/** True for `@hawaii.edu` and any subdomain of it. */
+export function isUhEmail(email: string): boolean {
+  const domain = emailDomain(email);
+  return domain === UH_EMAIL_DOMAIN || domain.endsWith(`.${UH_EMAIL_DOMAIN}`);
 }
 
 export function canUseGoogleLogin(email: string): boolean {

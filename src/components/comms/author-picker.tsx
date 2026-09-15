@@ -42,13 +42,16 @@ export function AuthorPicker({
   id,
   value,
   onChange,
-  canCreateUsers,
+  currentRole,
 }: {
   id?: string;
   value: AuthorCandidate | null;
   onChange: (next: AuthorCandidate) => void;
-  /** Only admins may create accounts; everyone else sees a hint instead. */
-  canCreateUsers: boolean;
+  /**
+   * Role of the signed-in user, passed to the create-user sheet so it can
+   * limit non-admins to hawaii.edu addresses.
+   */
+  currentRole: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -163,44 +166,37 @@ export function AuthorPicker({
               )}
 
               <CommandSeparator />
-              {canCreateUsers ? (
-                <CommandGroup>
-                  <CommandItem
-                    value="__create__"
-                    onSelect={() => {
-                      setOpen(false);
-                      setSheetOpen(true);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Plus className="size-4" />
-                    Create user…
-                  </CommandItem>
-                </CommandGroup>
-              ) : (
-                <p className="text-muted-foreground px-3 py-2 text-xs">
-                  Not listed? Ask an admin to create their account.
-                </p>
-              )}
+              <CommandGroup>
+                <CommandItem
+                  value="__create__"
+                  onSelect={() => {
+                    setOpen(false);
+                    setSheetOpen(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Plus className="size-4" />
+                  Create user…
+                </CommandItem>
+              </CommandGroup>
             </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
 
-      {canCreateUsers ? (
-        <UserFormSheet
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          onCreated={(created) => {
-            setOptions((prev) =>
-              [...(prev ?? []), created].sort((a, b) =>
-                authorLabel(a).localeCompare(authorLabel(b)),
-              ),
-            );
-            onChange(created);
-          }}
-        />
-      ) : null}
+      <UserFormSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        currentRole={currentRole}
+        onCreated={(created) => {
+          setOptions((prev) =>
+            [...(prev ?? []), created].sort((a, b) =>
+              authorLabel(a).localeCompare(authorLabel(b)),
+            ),
+          );
+          onChange(created);
+        }}
+      />
     </>
   );
 }

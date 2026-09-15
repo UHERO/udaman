@@ -51,7 +51,7 @@ function unauthorized(req: Request): Response {
       jsonrpc: "2.0",
       error: {
         code: -32000,
-        message: `Unauthorized: connect via OAuth at ${origin} or sign in with your @hawaii.edu account.`,
+        message: `Unauthorized: connect via OAuth at ${origin} or sign in with your UDAMAN account.`,
       },
       id: null,
     }),

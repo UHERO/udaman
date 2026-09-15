@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -35,6 +36,9 @@ import {
   passwordRequirementHint,
 } from "@/lib/auth/google-login";
 import {
+  canInviteEmail,
+  hasFullAccess,
+  INVITE_EMAIL_DENIED,
   INVITE_ROLES,
   NEW_USER_UNIVERSE,
   ROLE_DESCRIPTIONS,
@@ -43,61 +47,73 @@ import {
 
 const DEFAULT_ROLE: Role = "fellow";
 
-const formSchema = z
-  .object({
-    name: z.string().trim().min(1, "Name is required"),
-    email: z.string().trim().email("Must be a valid email"),
-    role: z.custom<Role>((v) => INVITE_ROLES.includes(v as Role), {
-      message: "Choose a role",
-    }),
-    password: z.string(),
-    passwordConfirmation: z.string(),
-  })
-  .superRefine((data, ctx) => {
-    // Google-capable addresses may skip the password; everyone else can't
-    // sign in without one.
-    if (data.password.length === 0) {
-      if (!canUseGoogleLogin(data.email)) {
+const buildFormSchema = (currentRole: string) =>
+  z
+    .object({
+      name: z.string().trim().min(1, "Name is required"),
+      email: z
+        .string()
+        .trim()
+        .email("Must be a valid email")
+        .refine((email) => canInviteEmail(currentRole, email), {
+          message: INVITE_EMAIL_DENIED,
+        }),
+      role: z.custom<Role>((v) => INVITE_ROLES.includes(v as Role), {
+        message: "Choose a role",
+      }),
+      password: z.string(),
+      passwordConfirmation: z.string(),
+    })
+    .superRefine((data, ctx) => {
+      // Google-capable addresses may skip the password; everyone else can't
+      // sign in without one.
+      if (data.password.length === 0) {
+        if (!canUseGoogleLogin(data.email)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["password"],
+            message: "A password is required for this email address",
+          });
+        }
+        return;
+      }
+      if (data.password.length < 8) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["password"],
-          message: "A password is required for this email address",
+          message: "Password must be at least 8 characters",
         });
       }
-      return;
-    }
-    if (data.password.length < 8) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["password"],
-        message: "Password must be at least 8 characters",
-      });
-    }
-    if (data.password !== data.passwordConfirmation) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["passwordConfirmation"],
-        message: "Passwords do not match",
-      });
-    }
-  });
+      if (data.password !== data.passwordConfirmation) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["passwordConfirmation"],
+          message: "Passwords do not match",
+        });
+      }
+    });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof buildFormSchema>>;
 
 /**
- * Quick account creation from the rail user menu (admin/dev only). Accounts
- * are never created on first sign-in, so this — along with /admin/users and
- * the whitelist import script — is how someone gets access. gmail.com and
- * hawaii.edu addresses sign in with UH Login and need no password; any other
- * address must be given one here.
+ * Quick account creation from the rail user menu. Accounts are never created
+ * on first sign-in, so this — along with /admin/users and the whitelist
+ * import script — is how someone gets access. Any signed-in user may invite
+ * a hawaii.edu address; only an admin or dev may add another domain.
+ * gmail.com and hawaii.edu addresses sign in with UH Login and need no
+ * password; any other address must be given one here.
  */
 export function CreateAccountDialog({
   open,
   onOpenChange,
+  currentRole,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Role of the signed-in user; decides which email domains they may invite. */
+  currentRole: string;
 }) {
+  const formSchema = useMemo(() => buildFormSchema(currentRole), [currentRole]);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -143,8 +159,9 @@ export function CreateAccountDialog({
         <DialogHeader>
           <DialogTitle>Create Account</DialogTitle>
           <DialogDescription>
-            Invite someone to UDAMAN. gmail.com and hawaii.edu addresses sign in
-            with UH Login; other addresses need a password.
+            {hasFullAccess(currentRole)
+              ? "Invite someone to UDAMAN. gmail.com and hawaii.edu addresses sign in with UH Login; other addresses need a password."
+              : "Invite someone to UDAMAN with their hawaii.edu address. They will sign in with UH Login. Ask an admin to add other addresses."}
           </DialogDescription>
         </DialogHeader>
 

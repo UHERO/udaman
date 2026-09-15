@@ -9,6 +9,8 @@
  * description in the admin permissions panel.
  */
 
+import { isUhEmail } from "./google-login";
+
 export const ALL_ROLES = [
   "external",
   "fsonly",
@@ -52,6 +54,20 @@ export function hasFullAccess(role: string): boolean {
 export const INVITE_ROLES: readonly Role[] = ALL_ROLES.filter(
   (r) => !hasFullAccess(r),
 );
+
+/**
+ * Whether a signed-in user with `inviterRole` may create an account for
+ * `email`. Anyone can invite a hawaii.edu address; only an admin or dev can
+ * create an account on any other domain. This is the sole gate on who gets
+ * into UDAMAN, since sign-in never auto-creates accounts.
+ */
+export function canInviteEmail(inviterRole: string, email: string): boolean {
+  return hasFullAccess(inviterRole) || isUhEmail(email);
+}
+
+/** Error shown when `canInviteEmail` is false. */
+export const INVITE_EMAIL_DENIED =
+  "Only an admin or dev can create an account for a non-hawaii.edu address";
 
 /** One-line descriptions shown next to each role in role pickers. */
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {

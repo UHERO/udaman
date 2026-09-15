@@ -68,7 +68,7 @@ export async function GET(req: Request) {
   // Require sign-in. If not signed in, redirect to NextAuth sign-in with a
   // callbackUrl that brings us right back here.
   const session = await auth();
-  if (!session?.user?.id || !session.user.email) {
+  if (!session?.user?.id) {
     const callbackUrl = url.pathname + url.search;
     const signInUrl = new URL("/udaman", getPublicOrigin(req));
     signInUrl.searchParams.set("callbackUrl", callbackUrl);
@@ -83,7 +83,6 @@ export async function GET(req: Request) {
       codeChallengeMethod: codeChallengeMethod ?? "",
       scope,
       userId: Number(session.user.id),
-      userEmail: session.user.email,
     });
     const target = new URL(redirectTo);
     target.searchParams.set("code", code);

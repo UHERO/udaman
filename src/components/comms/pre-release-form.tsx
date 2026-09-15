@@ -584,7 +584,7 @@ export function PreReleaseForm({
   approval,
   authorName,
   authorEmail = null,
-  canCreateUsers,
+  currentRole,
   standardRecipients,
 }: {
   mode: "create" | "edit";
@@ -600,8 +600,11 @@ export function PreReleaseForm({
    * screen match what will be sent.
    */
   authorEmail?: string | null;
-  /** Whether the author picker may offer to create a new account (admins). */
-  canCreateUsers: boolean;
+  /**
+   * Role of the signed-in user, forwarded to the author picker's create-user
+   * sheet so non-admins are limited to hawaii.edu addresses.
+   */
+  currentRole: string;
   /**
    * The default notification list, passed down from the server page so the
    * mailer module stays server-only rather than being pulled into the
@@ -830,7 +833,7 @@ export function PreReleaseForm({
                   id="leadAuthor"
                   value={author}
                   onChange={setAuthor}
-                  canCreateUsers={canCreateUsers}
+                  currentRole={currentRole}
                 />
               ) : (
                 <Input id="leadAuthor" value={authorName} disabled readOnly />
