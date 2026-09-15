@@ -19,7 +19,7 @@ import type {
 } from "@catalog/controllers/clipboard";
 
 import { createLogger } from "@/core/observability/logger";
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/auth/dal";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.clipboard");
