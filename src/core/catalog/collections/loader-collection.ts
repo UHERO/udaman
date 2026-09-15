@@ -1,0 +1,816 @@
+import { createLogger } from "@/core/observability/logger";
+import { NotFoundError } from "@/lib/errors";
+import { insertAndGetId, mysql, transaction } from "@/lib/mysql/db";
+import { buildUpdateObject } from "@/lib/mysql/helpers";
+
+import Loader from "../models/loader";
+import type { LoaderAttrs } from "../models/loader";
+import type { SourceMapNode, Universe } from "../types/shared";
+import type { CreateLoaderPayload } from "../types/sources";
+import EvalExecutor from "../utils/eval-executor";
+import SeriesCollection from "./series-collection";
+import type { DeleteByMode } from "./series-collection";
+
+const log = createLogger("catalog.loader-collection");
+
+/** One row of series_dependencies: loader → series name it references. */
+type DependencyEdge = {
+  dataSourceId: number;
+  seriesId: number;
+  universe: string;
+  depName: string;
+};
+
+interface DependencyRow {
+  name: string;
+  id: number;
+  series_id: number;
+  disabled: boolean;
+  universe: string;
+  color: string;
+  last_run_at: Date | null;
+  last_run_in_seconds: number | null;
+  last_error: string | null;
+  last_error_at: Date | null;
+  dependencies: string | null;
+  description: string | null;
+  aremos_missing: number | null;
+  aremos_diff: number | null;
+}
+
+interface ColorUsageRow {
+  color: string;
+  usage_count: number;
+}
+
+export type UpdateLoaderPayload = {
+  eval?: string | null;
+  description?: string | null;
+  priority?: number;
+  scale?: string;
+  disabled?: boolean;
+  pseudoHistory?: boolean;
+  clearBeforeLoad?: boolean;
+  reloadNightly?: boolean;
+  presaveHook?: string | null;
+  color?: string | null;
+  dependencies?: string | null;
+  lastRunAt?: Date | null;
+  lastRunInSeconds?: number | null;
+  lastError?: string | null;
+  lastErrorAt?: Date | null;
+  runtime?: number | null;
+};
+
+export type ReloadResult = {
+  status: "success" | "skipped" | "error";
+  message: string;
+};
+
+class LoaderCollection {
+  /** List all loaders, optionally filtered by universe */
+  static async list(options: { universe?: Universe } = {}): Promise<Loader[]> {
+    const { universe } = options;
+    if (universe) {
+      const rows = await mysql<LoaderAttrs>`
+        SELECT * FROM data_sources WHERE universe = ${universe} ORDER BY priority ASC
+      `;
+      return rows.map((row) => new Loader(row));
+    }
+    const rows = await mysql<LoaderAttrs>`
+      SELECT * FROM data_sources ORDER BY priority ASC
+    `;
+    return rows.map((row) => new Loader(row));
+  }
+
+  /** Fetch a single loader by ID */
+  static async getById(id: number): Promise<Loader> {
+    const rows = await mysql<LoaderAttrs>`
+      SELECT * FROM data_sources WHERE id = ${id} LIMIT 1
+    `;
+    const row = rows[0];
+    if (!row) throw new NotFoundError("Loader", id);
+    return new Loader(row);
+  }
+
+  /** Fetch all loaders for a series */
+  static async getBySeriesId(seriesId: number): Promise<Loader[]> {
+    const rows = await mysql<LoaderAttrs>`
+      SELECT
+        id, series_id, disabled, universe, priority,
+        created_at, updated_at, reload_nightly, pseudo_history,
+        clear_before_load, eval, scale, presave_hook, color,
+        runtime, last_run_at, last_run_in_seconds, last_error,
+        last_error_at, dependencies, description
+      FROM data_sources
+      WHERE series_id = ${seriesId}
+    `;
+    return rows.map((row) => new Loader(row));
+  }
+
+  /** Fetch enabled loaders for a series, ordered by priority */
+  static async getEnabledBySeriesId(seriesId: number): Promise<Loader[]> {
+    const rows = await mysql<LoaderAttrs>`
+      SELECT
+        id, series_id, universe, eval, description, dependencies, color,
+        priority, scale, disabled, pseudo_history, clear_before_load,
+        reload_nightly, presave_hook, last_run_at, last_run_in_seconds,
+        last_error, last_error_at, runtime, created_at, updated_at
+      FROM data_sources
+      WHERE series_id = ${seriesId}
+        AND disabled = 0
+      ORDER BY priority ASC, last_run_in_seconds DESC
+    `;
+    return rows.map((row) => new Loader(row));
+  }
+
+  /** Create a new loader */
+  static async create(payload: CreateLoaderPayload): Promise<Loader> {
+    const {
+      seriesId,
+      scale,
+      code,
+      priority,
+      presaveHook,
+      clearBeforeLoad,
+      universe,
+      pseudoHistory,
+    } = payload;
+
+    const loaderType = Loader.getLoaderType(code, pseudoHistory);
+    const colorPalette = Loader.getColorPalette(loaderType);
+    const description = Loader.generateDescriptionFromEval(code);
+    const optimalColor = await this.calculateColor(
+      seriesId,
+      loaderType,
+      colorPalette,
+    );
+    const dependencies = Loader.extractDependencies(description || "", code);
+
+    const insertId = await insertAndGetId(
+      `INSERT INTO data_sources (
+        series_id, eval, priority, scale, presave_hook,
+        clear_before_load, pseudo_history, universe, disabled,
+        reload_nightly, color, dependencies,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        seriesId,
+        code,
+        priority || 50,
+        scale || "1.0",
+        presaveHook,
+        clearBeforeLoad ? 1 : 0,
+        pseudoHistory ? 1 : 0,
+        universe,
+        0,
+        1,
+        optimalColor,
+        JSON.stringify(dependencies),
+      ],
+    );
+    const created = await this.getById(insertId);
+    await this.setDependencyEdges(created);
+    return created;
+  }
+
+  /** Update a loader and return the fresh row */
+  static async update(
+    id: number,
+    updates: UpdateLoaderPayload,
+  ): Promise<Loader> {
+    await this.updateFields(id, updates);
+    return this.getById(id);
+  }
+
+  /**
+   * Write loader fields without re-reading the row.
+   *
+   * `touchUpdatedAt`: the incremental public sweep treats a bumped
+   * `data_sources.updated_at` as "this series' data may have changed"
+   * (chunkHasActivity). The reload path passes false when it wrote no
+   * data points, so a nightly that changes nothing doesn't turn the next
+   * sweep into a full pass.
+   */
+  static async updateFields(
+    id: number,
+    updates: UpdateLoaderPayload,
+    opts: { touchUpdatedAt?: boolean } = {},
+  ): Promise<void> {
+    const { touchUpdatedAt = true } = opts;
+    if (!Object.keys(updates).length) return;
+
+    const updateObj = buildUpdateObject(updates);
+    const cols = Object.keys(updateObj);
+    if (!cols.length) return;
+
+    if (touchUpdatedAt) {
+      await mysql`
+        UPDATE data_sources
+        SET ${mysql(updateObj, ...cols)}, updated_at = NOW()
+        WHERE id = ${id}
+      `;
+    } else {
+      await mysql`
+        UPDATE data_sources
+        SET ${mysql(updateObj, ...cols)}
+        WHERE id = ${id}
+      `;
+    }
+  }
+
+  /** Delete a loader and its associated data points */
+  static async delete(id: number): Promise<void> {
+    const loader = await this.getById(id);
+    if (loader.seriesId) {
+      const xsRows = await mysql<{ xseries_id: number }>`
+        SELECT xseries_id FROM series WHERE id = ${loader.seriesId} LIMIT 1
+      `;
+      const xseriesId = xsRows[0]?.xseries_id;
+      if (xseriesId) {
+        await mysql`
+          DELETE FROM data_points
+          WHERE xseries_id = ${xseriesId} AND data_source_id = ${id}
+        `;
+      }
+    }
+    await this.deleteDependencyEdges(id);
+    await mysql`DELETE FROM data_sources WHERE id = ${id}`;
+  }
+
+  /** Disable a loader: delete its data points and clear errors */
+  static async disable(id: number): Promise<Loader> {
+    const loader = await this.getById(id);
+    await this.deleteDataPoints(loader);
+    return this.update(id, {
+      disabled: true,
+      lastError: null,
+      lastErrorAt: null,
+    });
+  }
+
+  /** Toggle nightly reload flag */
+  static async toggleReloadNightly(id: number): Promise<Loader> {
+    const loader = await this.getById(id);
+    return this.update(id, { reloadNightly: !loader.reloadNightly });
+  }
+
+  /** Iteratively fetch sources for use in series source map.
+   * Note: recursive SQL was very slow for series with multiple dependents,
+   * so this is implemented as a series of queries.
+   */
+  static async getDependencyTree(
+    seriesName: string,
+    options: { directOnly?: boolean } = {},
+  ): Promise<SourceMapNode[]> {
+    const { directOnly = false } = options;
+    const seen = new Set<string>();
+
+    async function buildNodes(
+      name: string,
+      level: number,
+    ): Promise<SourceMapNode[]> {
+      if (seen.has(name)) return [];
+      seen.add(name);
+
+      const results = await mysql<DependencyRow>`
+        SELECT
+          s.name,
+          ds.id,
+          ds.series_id,
+          ds.disabled,
+          ds.universe,
+          ds.color,
+          ds.last_run_at,
+          ds.last_run_in_seconds,
+          ds.last_error,
+          ds.last_error_at,
+          ds.dependencies,
+          ds.description,
+          xs.aremos_missing,
+          xs.aremos_diff
+        FROM data_sources ds
+        JOIN series s ON s.id = ds.series_id
+        JOIN xseries xs ON xs.id = s.xseries_id
+        WHERE s.name = ${name}
+          AND ds.universe = 'UHERO'
+          AND ds.disabled = 0
+      `;
+
+      if (results.length === 0) return [];
+
+      const nodes: SourceMapNode[] = [];
+
+      for (const r of results) {
+        const children: SourceMapNode[] = [];
+        if (r.dependencies) {
+          const deps = Loader.parseDependencies(r.dependencies);
+          for (const dep of deps) {
+            if (!directOnly || level === 0) {
+              const childNodes = await buildNodes(dep, level + 1);
+              children.push(...childNodes);
+            }
+          }
+        }
+
+        nodes.push({
+          name,
+          children,
+          level,
+          dataSource: {
+            id: r.id,
+            series_id: r.series_id,
+            disabled: !!r.disabled,
+            universe: r.universe as Universe,
+            color: r.color,
+            last_run_at: r.last_run_at,
+            last_run_in_seconds: r.last_run_in_seconds,
+            last_error: r.last_error,
+            dependencies: r.dependencies,
+            description: r.description,
+            aremos_missing: r.aremos_missing,
+            aremos_diff: r.aremos_diff,
+          },
+        });
+      }
+
+      return nodes;
+    }
+
+    return buildNodes(seriesName, 0);
+  }
+
+  /** Calculate the optimal color for a new loader based on existing usage */
+  static async calculateColor(
+    seriesId: number,
+    loaderType: string,
+    palette: string[],
+  ): Promise<string> {
+    const existing = await mysql<ColorUsageRow>`
+      SELECT ds.color, COUNT(*) as usage_count
+      FROM data_sources ds
+      WHERE ds.series_id = ${seriesId}
+        AND ds.disabled = 0
+        AND (
+          (${loaderType} = 'pseudo_history' AND ds.pseudo_history = 1) OR
+          (${loaderType} != 'pseudo_history' AND ds.pseudo_history = 0 AND
+           CASE
+             WHEN ds.eval REGEXP 'load_api' THEN 'api'
+             WHEN ds.eval REGEXP 'forecast' THEN 'forecast'
+             WHEN ds.eval REGEXP 'load_from_download' THEN 'download'
+             WHEN ds.eval REGEXP 'load_[a-z_]*from.*history' THEN 'history'
+             WHEN ds.eval REGEXP 'load_[a-z_]*from' THEN 'manual'
+             ELSE 'other'
+           END = ${loaderType})
+        )
+      GROUP BY ds.color
+    `;
+
+    const usageMap: Record<string, number> = {};
+    existing.forEach((row) => {
+      if (palette.includes(row.color)) {
+        usageMap[row.color] = row.usage_count;
+      }
+    });
+
+    let optimalColor = palette[0];
+    let minUsage = (optimalColor && usageMap[optimalColor]) || 0;
+
+    for (const color of palette) {
+      const usage = usageMap[color] || 0;
+      if (usage < minUsage) {
+        optimalColor = color;
+        minUsage = usage;
+      }
+    }
+
+    return optimalColor;
+  }
+  /** Adapted from DataSource.reload_source */
+  static async reload({
+    loader,
+    clearFirst,
+  }: {
+    loader: Loader;
+    clearFirst: boolean;
+  }): Promise<ReloadResult> {
+    if (loader.disabled)
+      return { status: "skipped", message: "Loader is disabled" };
+    if (!loader.eval)
+      return { status: "skipped", message: "Loader has no eval expression" };
+
+    log.info(
+      { series: loader.seriesId },
+      `Begin reload of definition ${loader.id} for series ${loader.seriesId}. [${loader.description}]`,
+    );
+
+    const t = new Date();
+    const updateProps: UpdateLoaderPayload = {
+      lastRunAt: t,
+      lastError: null,
+      lastErrorAt: null,
+      runtime: null,
+    };
+    // Did this run touch data_points? Drives the updated_at stamp below.
+    let changed = false;
+
+    try {
+      if (clearFirst || loader.clearBeforeLoad) {
+        await this.deleteDataPoints(loader);
+        changed = true;
+      }
+
+      const result = await EvalExecutor.run(loader.eval, loader.universe);
+
+      // TODO: apply presave_hook if set (requires porting hook dispatch)
+
+      // Apply scale and write data points
+      let inserted = 0;
+      if (loader.seriesId) {
+        const scaledData = result.scaledData(parseFloat(loader.scale));
+
+        const xseriesRows = await mysql<{ xseries_id: number }>`
+          SELECT xseries_id FROM series WHERE id = ${loader.seriesId} LIMIT 1
+        `;
+        const xseriesId = xseriesRows[0]?.xseries_id;
+
+        if (xseriesId) {
+          const updateResult = await SeriesCollection.updateData({
+            xseriesId,
+            data: scaledData,
+            dataSourceId: loader.id,
+            pseudoHistory: loader.pseudoHistory,
+          });
+          inserted = updateResult.inserted;
+          if (updateResult.changed) changed = true;
+
+          // After clear+reload, some dates may have lost their current
+          // data point — repair to promote the next best vintage.
+          if (clearFirst || loader.clearBeforeLoad) {
+            await SeriesCollection.repairDataPoints({ id: xseriesId });
+          }
+
+          // Check for base_year change from rebase
+          const baseYear = loader.baseYearFromEval();
+          if (baseYear) {
+            await mysql`
+              UPDATE xseries
+              SET base_year = ${baseYear}
+              WHERE id = ${xseriesId}
+                AND (base_year IS NULL OR base_year != ${baseYear})
+            `;
+          }
+        }
+      }
+
+      const runtime = (Date.now() - t.getTime()) / 1000;
+      updateProps.description = result.name ?? loader.description;
+      updateProps.runtime = runtime;
+
+      log.info(
+        { series: loader.seriesId, runtime, inserted },
+        `Completed reload of definition ${loader.id}`,
+      );
+      const pointLabel = inserted === 1 ? "point" : "points";
+      return {
+        status: "success",
+        message: `Loaded ${inserted} new ${pointLabel} in ${runtime.toFixed(1)}s`,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log.error(
+        { series: loader.seriesId, err: message },
+        `Reload failed for definition ${loader.id}`,
+      );
+      updateProps.lastError = message.slice(0, 254);
+      updateProps.lastErrorAt = t;
+      return { status: "error", message };
+    } finally {
+      // No re-read (the caller never uses the row), and updated_at only
+      // when data points actually changed — see updateFields.
+      await this.updateFields(loader.id, updateProps, {
+        touchUpdatedAt: changed,
+      });
+    }
+  }
+
+  /** Delete data points for a loader, with optional date filters */
+  static async deleteDataPoints(
+    loader: Loader,
+    opts?: { dateFrom?: string; createFrom?: string },
+  ): Promise<void> {
+    if (opts?.dateFrom && opts?.createFrom) {
+      await mysql`
+        DELETE FROM data_points
+        WHERE data_source_id = ${loader.id}
+          AND date >= ${opts.dateFrom}
+          AND created_at >= ${opts.createFrom}
+      `;
+    } else if (opts?.dateFrom) {
+      await mysql`
+        DELETE FROM data_points
+        WHERE data_source_id = ${loader.id}
+          AND date >= ${opts.dateFrom}
+      `;
+    } else if (opts?.createFrom) {
+      await mysql`
+        DELETE FROM data_points
+        WHERE data_source_id = ${loader.id}
+          AND created_at >= ${opts.createFrom}
+      `;
+    } else {
+      await mysql`
+        DELETE FROM data_points
+        WHERE data_source_id = ${loader.id}
+      `;
+    }
+    log.info(
+      { loaderId: loader.id },
+      `Deleted data points for loader ${loader.id}`,
+    );
+  }
+
+  /** Delete data points for a loader using a DeleteByMode */
+  static async deleteDataPointsByMode(
+    loaderId: number,
+    deleteBy: DeleteByMode,
+    date?: string,
+  ): Promise<void> {
+    switch (deleteBy) {
+      case "observationDate":
+        if (date) {
+          await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND date >= ${date}`;
+        }
+        break;
+      case "beforeObservationDate":
+        if (date) {
+          await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND date <= ${date}`;
+        }
+        break;
+      case "vintageDate":
+        if (date) {
+          await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND created_at > ${date}`;
+        }
+        break;
+      case "currentOnly":
+        await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId} AND current = 1`;
+        break;
+      case "none":
+        await mysql`DELETE FROM data_points WHERE data_source_id = ${loaderId}`;
+        break;
+    }
+    log.info(
+      { loaderId, deleteBy },
+      `Deleted data points for loader ${loaderId}`,
+    );
+  }
+
+  /**
+   * Recompute `dependencies` for every UHERO loader and rebuild the
+   * series_dependencies edge table for all universes.
+   *
+   * Only UHERO loaders get their dependencies re-extracted (as before);
+   * other universes' edges come from their stored column, parsed the
+   * same way the model does. The column is rewritten only when it
+   * changed — the old per-loader UPDATE + re-SELECT stamped updated_at
+   * on ~20k loaders every evening, which the incremental public sweep
+   * read as "everything changed".
+   */
+  static async setAllDependencies(): Promise<void> {
+    log.info("setAllDependencies: start");
+    const loaders = await this.list();
+    let rewritten = 0;
+    const edges: DependencyEdge[] = [];
+    for (const loader of loaders) {
+      if (loader.universe === "UHERO") {
+        const before = JSON.stringify(loader.dependencies);
+        loader.refreshDependencies();
+        const after = JSON.stringify(loader.dependencies);
+        if (after !== before) {
+          await this.updateFields(
+            loader.id,
+            { dependencies: after },
+            { touchUpdatedAt: false },
+          );
+          rewritten++;
+        }
+      }
+      if (loader.seriesId == null) continue;
+      for (const depName of loader.dependencies) {
+        edges.push({
+          dataSourceId: loader.id,
+          seriesId: loader.seriesId,
+          universe: loader.universe,
+          depName,
+        });
+      }
+    }
+    await this.replaceDependencyEdges(edges);
+    log.info(
+      { loaders: loaders.length, rewritten, edges: edges.length },
+      "setAllDependencies: done",
+    );
+  }
+
+  /** Swap the whole edge table for `edges`, atomically. */
+  private static async replaceDependencyEdges(
+    edges: DependencyEdge[],
+  ): Promise<void> {
+    const CHUNK = 1000;
+    await transaction(async (tx) => {
+      await tx.unsafe(`DELETE FROM series_dependencies`);
+      for (let i = 0; i < edges.length; i += CHUNK) {
+        const rows = edges.slice(i, i + CHUNK);
+        await tx.unsafe(
+          `INSERT IGNORE INTO series_dependencies (data_source_id, series_id, universe, dep_name)
+           VALUES ${rows.map(() => "(?, ?, ?, ?)").join(",")}`,
+          rows.flatMap((e) => [e.dataSourceId, e.seriesId, e.universe, e.depName]),
+        );
+      }
+    });
+  }
+
+  /**
+   * Write one loader's edges (replacing any existing). Best-effort: the
+   * nightly rebuild makes the table consistent regardless, so a missing
+   * table (migration not yet applied) must not break loader creation.
+   */
+  static async setDependencyEdges(loader: Loader): Promise<void> {
+    if (loader.seriesId == null) return;
+    try {
+      await transaction(async (tx) => {
+        await tx.unsafe(
+          `DELETE FROM series_dependencies WHERE data_source_id = ?`,
+          [loader.id],
+        );
+        if (loader.dependencies.length === 0) return;
+        await tx.unsafe(
+          `INSERT IGNORE INTO series_dependencies (data_source_id, series_id, universe, dep_name)
+           VALUES ${loader.dependencies.map(() => "(?, ?, ?, ?)").join(",")}`,
+          loader.dependencies.flatMap((depName) => [
+            loader.id,
+            loader.seriesId!,
+            loader.universe,
+            depName,
+          ]),
+        );
+      });
+    } catch (e) {
+      log.warn(
+        { loaderId: loader.id, err: e instanceof Error ? e.message : String(e) },
+        "series_dependencies write failed (nightly rebuild will catch up)",
+      );
+    }
+  }
+
+  /** Remove a loader's edges. Best-effort, same reasoning as setDependencyEdges. */
+  private static async deleteDependencyEdges(id: number): Promise<void> {
+    try {
+      await mysql`DELETE FROM series_dependencies WHERE data_source_id = ${id}`;
+    } catch (e) {
+      log.warn(
+        { loaderId: id, err: e instanceof Error ? e.message : String(e) },
+        "series_dependencies delete failed (nightly rebuild will catch up)",
+      );
+    }
+  }
+
+  /** Get current (active) data points for a series */
+  static async getCurrentDataPoints(
+    xseriesId: number,
+  ): Promise<Array<{ date: Date; value: number; dataSourceId: number }>> {
+    const rows = await mysql<{
+      date: Date;
+      value: number;
+      data_source_id: number;
+    }>`
+      SELECT date, value, data_source_id
+      FROM data_points
+      WHERE xseries_id = ${xseriesId} AND current = 1
+      ORDER BY date
+    `;
+    return rows.map((r) => ({
+      date: r.date,
+      value: r.value,
+      dataSourceId: r.data_source_id,
+    }));
+  }
+
+  /** Get other enabled loaders for the same series (excluding the given one) */
+  static async getColleagues(loader: Loader): Promise<Loader[]> {
+    if (!loader.seriesId) return [];
+    const enabled = await this.getEnabledBySeriesId(loader.seriesId);
+    return enabled.filter((l) => l.id !== loader.id);
+  }
+
+  /** Persist color for a loader (computes optimal color if none provided) */
+  static async setColor(id: number, color?: string): Promise<Loader> {
+    if (!color) {
+      const loader = await this.getById(id);
+      const palette = Loader.getColorPalette(loader.loaderType);
+      color = await this.calculateColor(
+        loader.seriesId!,
+        loader.loaderType,
+        palette,
+      );
+    }
+    return this.update(id, { color });
+  }
+
+  /** Persist recomputed dependencies for a loader */
+  static async setDependencies(id: number): Promise<Loader> {
+    const loader = await this.getById(id);
+    loader.refreshDependencies();
+    await this.setDependencyEdges(loader);
+    return this.update(id, {
+      dependencies: JSON.stringify(loader.dependencies),
+    });
+  }
+
+  /** Run setup for a newly created loader (set color + dependencies) */
+  static async setup(id: number): Promise<Loader> {
+    await this.setColor(id);
+    return this.setDependencies(id);
+  }
+
+  /** Set reload_nightly to a specific value */
+  static async setReloadNightly(id: number, value: boolean): Promise<Loader> {
+    return this.update(id, { reloadNightly: value });
+  }
+
+  /** Reset a loader's error state */
+  static async reset(id: number): Promise<Loader> {
+    // TODO: reset data_source_downloads when that model is ported
+    return this.update(id, { lastError: null, lastErrorAt: null });
+  }
+
+  /** Mark all data points for a loader as pseudo_history */
+  static async markDataAsPseudoHistory(
+    id: number,
+    value = true,
+  ): Promise<void> {
+    await mysql`
+      UPDATE data_points
+      SET pseudo_history = ${value ? 1 : 0}
+      WHERE data_source_id = ${id}
+    `;
+  }
+
+  /** Check if a loader has any current data points */
+  static async isCurrent(id: number, seriesId: number): Promise<boolean> {
+    const rows = await mysql<{ found: number }>`
+      SELECT 1 as found
+      FROM data_points
+      WHERE data_source_id = ${id}
+        AND xseries_id = (SELECT xseries_id FROM series WHERE id = ${seriesId} LIMIT 1)
+        AND current = 1
+      LIMIT 1
+    `;
+    return rows.length > 0;
+  }
+
+  /**
+   * Parse a BLS eval string and extract the BLS series ID and frequency.
+   * Returns null for evals with method chaining or non-BLS evals.
+   *
+   * Matches patterns like:
+   *   Series.load_api_bls("CUSR0000SA0", "M")
+   *   Series.load_api_bls("CUSR0000SA0", "M", 2000, 2024)
+   *   Series.load_api_bls_NEW("LNS12000000", "M")
+   */
+  static parseBlsEval(
+    evalStr: string,
+  ): { blsSeriesId: string; frequency: string } | null {
+    const match = evalStr.match(
+      /^Series\.load_api_bls(?:_NEW)?\("([^"]+)",\s*"([^"]+)"(?:,\s*\d+,\s*\d+)?\)\s*$/,
+    );
+    if (!match) return null;
+    return { blsSeriesId: match[1], frequency: match[2] };
+  }
+
+  /** Get summary of load errors grouped by error message */
+  static async getLoadErrorSummary(
+    universe: Universe,
+  ): Promise<Array<{ lastError: string; seriesId: number; count: number }>> {
+    const rows = await mysql<{
+      last_error: string;
+      series_id: number;
+      error_count: number;
+    }>`
+      SELECT last_error, MIN(series_id) AS series_id, COUNT(*) as error_count
+      FROM data_sources
+      WHERE universe = ${universe}
+        AND disabled = 0
+        AND last_error IS NOT NULL
+      GROUP BY last_error
+      ORDER BY error_count DESC, last_error
+    `;
+    return rows.map((r) => ({
+      lastError: r.last_error,
+      seriesId: r.series_id,
+      count: r.error_count,
+    }));
+  }
+}
+
+export default LoaderCollection;

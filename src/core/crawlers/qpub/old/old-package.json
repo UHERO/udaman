@@ -1,0 +1,30 @@
+{
+  "name": "qpub-scraper-mysql",
+  "version": "2.0.0",
+  "description": "Distributed web scraper for Hawaii property data from QPub",
+  "type": "module",
+  "scripts": {
+    "scrape": "node scrape.js",
+    "parse": "node parse.js",
+    "parse-bulk": "node parse-bulk.js",
+    "reparse:condos": "node parse-bulk.js --reparse --parse-status success --condo-only",
+    "backfill:condo-units": "node backfill-condo-units.js",
+    "sort": "node reorganize-files.js",
+    "find-unparsed": "node find-unparsed.js",
+    "mark-small-failed": "node mark-small-files-failed.js"
+  },
+  "dependencies": {
+    "csv-parse": "^6.1.0",
+    "mysql2": "^3.11.5",
+    "node-html-parser": "^6.1.13",
+    "playwright": "^1.56.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

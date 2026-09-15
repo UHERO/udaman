@@ -1,2 +1,0 @@
-class PackagerOutput < ApplicationRecord
-end

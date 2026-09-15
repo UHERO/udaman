@@ -1,0 +1,433 @@
+# Delete after succes confirmed (2026-8-27)
+
+DRY RUN — 143 data sources matched, 143 to rewrite, 0 unchanged
+
+[210888] NBIR@HAW.Q
+  - ("NBIR@HAW.A".ts).interpolate(:quarter, :sum)
+  + ("NBIR@HAW.A".ts).disaggregate(:quarter, :sum)
+[210890] NBIR@HI.Q
+  - ("NBIR@HI.A".ts / 4).interpolate(:quarter)
+  + "NBIR@HI.A".ts.disaggregate(:quarter, :sum)
+[210895] NBIR@KAU.Q
+  - ("NBIR@KAU.A".ts / 4).census_interpolate(:quarter)
+  + "NBIR@KAU.A".ts.disaggregate(:quarter, :sum)
+[210893] NBIR@MAU.Q
+  - ("NBIR@MAU.A".ts / 4).census_interpolate(:quarter)
+  + "NBIR@MAU.A".ts.disaggregate(:quarter, :sum)
+[210898] NBIRCMD@HI.Q
+  - ("NBIRCMD@HI.A".ts / 4).census_interpolate(:quarter)
+  + "NBIRCMD@HI.A".ts.disaggregate(:quarter, :sum)
+[210923] NDEA@HAW.Q
+  - ("NDEA@HAW.A".ts / 4).census_interpolate(:quarter)
+  + "NDEA@HAW.A".ts.disaggregate(:quarter, :sum)
+[210931] NDEA@HI.Q
+  - ("NDEA@HI.A".ts / 4).census_interpolate(:quarter)
+  + "NDEA@HI.A".ts.disaggregate(:quarter, :sum)
+[210942] NDEA@KAU.Q
+  - ("NDEA@KAU.A".ts / 4).census_interpolate(:quarter)
+  + "NDEA@KAU.A".ts.disaggregate(:quarter, :sum)
+[210940] NDEA@MAU.Q
+  - ("NDEA@MAU.A".ts / 4).census_interpolate(:quarter)
+  + "NDEA@MAU.A".ts.disaggregate(:quarter, :sum)
+[210960] NDEACMD@HI.Q
+  - ("NDEACMD@HI.A".ts / 4).census_interpolate(:quarter)
+  + "NDEACMD@HI.A".ts.disaggregate(:quarter, :sum)
+[210963] NDEAM@HI.Q
+  - ("NDEAM@HI.A".ts / 4).census_interpolate(:quarter)
+  + "NDEAM@HI.A".ts.disaggregate(:quarter, :sum)
+[210982] NDF@HAW.Q
+  - "NDF@HAW.A".ts.census_interpolate(:quarter)
+  + "NDF@HAW.A".ts.disaggregate(:quarter)
+[210984] NDF@HI.Q
+  - "NDF@HI.A".ts.census_interpolate(:quarter)
+  + "NDF@HI.A".ts.disaggregate(:quarter)
+[210989] NDF@KAU.Q
+  - "NDF@KAU.A".ts.census_interpolate(:quarter)
+  + "NDF@KAU.A".ts.disaggregate(:quarter)
+[210987] NDF@MAU.Q
+  - "NDF@MAU.A".ts.census_interpolate(:quarter)
+  + "NDF@MAU.A".ts.disaggregate(:quarter)
+[210799] NR@HAW.Q
+  - "NR@HAW.A".ts.census_interpolate(:quarter)
+  + "NR@HAW.A".ts.disaggregate(:quarter)
+[210812] NR@KAU.Q
+  - "NR@KAU.A".ts.census_interpolate(:quarter)
+  + "NR@KAU.A".ts.disaggregate(:quarter)
+[210810] NR@MAU.Q
+  - "NR@MAU.A".ts.census_interpolate(:quarter)
+  + "NR@MAU.A".ts.disaggregate(:quarter)
+[211019] NRBEA@NBI.Q
+  - ("NRBEA@NBI.A".ts / 4).census_interpolate(:quarter)
+  + "NRBEA@NBI.A".ts.disaggregate(:quarter, :sum)
+[210913] NRCMD@HI.Q
+  - "NRCMD@HI.A".ts.census_interpolate(:quarter)
+  + "NRCMD@HI.A".ts.disaggregate(:quarter)
+[210804] NRM@HI.Q
+  - "NRM@HI.A".ts.census_interpolate(:quarter)
+  + "NRM@HI.A".ts.disaggregate(:quarter)
+[211033] NRM@KAU.Q
+  - "NRM@KAU.A".ts.census_interpolate(:quarter)
+  + "NRM@KAU.A".ts.disaggregate(:quarter)
+[696177] PC@HON.M
+  - "PC@HON.S".ts.interpolate(:month).trim(before: "1987-01-01", after: "2017-12-31")
+  + "PC@HON.S".ts.disaggregate(:month).trim(before: "1987-01-01", after: "2017-12-31")
+[205817] PC@HON.Q
+  - "PC@HON.S".ts.interpolate(:quarter).trim("1985-01-01")
+  + "PC@HON.S".ts.disaggregate(:quarter).trim("1985-01-01")
+[211151] PCAP@HON.Q
+  - "PCAP@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCAP@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211157] PCCM@HON.Q
+  - "PCCM@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCCM@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211163] PCCMDR@HON.Q
+  - "PCCMDR@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCCMDR@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211169] PCCMND@HON.Q
+  - "PCCMND@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCCMND@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211175] PCCMND_FB@HON.Q
+  - "PCCMND_FB@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCCMND_FB@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211181] PCCMND_FD@HON.Q
+  - "PCCMND_FD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCCMND_FD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211187] PCCM_FB@HON.Q
+  - "PCCM_FB@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCCM_FB@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211193] PCCM_FD@HON.Q
+  - "PCCM_FD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCCM_FD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534459] PCED@HAW.Q
+  - "PCED@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCED@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211224] PCED@HON.Q
+  - "PCED@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCED@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211230] PCEN@HON.Q
+  - "PCEN@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCEN@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534463] PCFB@HAW.Q
+  - "PCFB@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCFB@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211236] PCFB@HON.Q
+  - "PCFB@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCFB@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211242] PCFBFD@HON.Q
+  - "PCFBFD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCFBFD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211248] PCFBFDAW@HON.Q
+  - "PCFBFDAW@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCFBFDAW@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211254] PCFBFDBV@HON.Q
+  - "PCFBFDBV@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCFBFDBV@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211260] PCFBFDHM@HON.Q
+  - "PCFBFDHM@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCFBFDHM@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534467] PCHS@HAW.Q
+  - "PCHS@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHS@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211266] PCHS@HON.Q
+  - "PCHS@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHS@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534471] PCHSFU@HAW.Q
+  - "PCHSFU@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSFU@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211272] PCHSFU@HON.Q
+  - "PCHSFU@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSFU@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211278] PCHSFUEL@HON.Q
+  - "PCHSFUEL@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSFUEL@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211283] PCHSFUGS@HON.Q
+  - "PCHSFUGS@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSFUGS@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534473] PCHSFUGSE@HAW.Q
+  - "PCHSFUGSE@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSFUGSE@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211289] PCHSFUGSE@HON.Q
+  - "PCHSFUGSE@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSFUGSE@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211296] PCHSFUGSU@HON.Q
+  - "PCHSFUGSU@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSFUGSU@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534479] PCHSHF@HAW.Q
+  - "PCHSHF@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSHF@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211302] PCHSHF@HON.Q
+  - "PCHSHF@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSHF@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534483] PCHSSH@HAW.Q
+  - "PCHSSH@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSSH@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211308] PCHSSH@HON.Q
+  - "PCHSSH@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSSH@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534487] PCHSSHOW@HAW.Q
+  - "PCHSSHOW@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSSHOW@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211314] PCHSSHOW@HON.Q
+  - "PCHSSHOW@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSSHOW@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534491] PCHSSHRT@HAW.Q
+  - "PCHSSHRT@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSSHRT@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211320] PCHSSHRT@HON.Q
+  - "PCHSSHRT@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCHSSHRT@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534495] PCMD@HAW.Q
+  - "PCMD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCMD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211350] PCMD@HON.Q
+  - "PCMD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCMD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534499] PCOT@HAW.Q
+  - "PCOT@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCOT@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211356] PCOT@HON.Q
+  - "PCOT@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCOT@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534503] PCRE@HAW.Q
+  - "PCRE@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCRE@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211362] PCRE@HON.Q
+  - "PCRE@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCRE@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211368] PCSV@HON.Q
+  - "PCSV@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCSV@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534507] PCSV_MD@HAW.Q
+  - "PCSV_MD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCSV_MD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211374] PCSV_MD@HON.Q
+  - "PCSV_MD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCSV_MD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534511] PCSV_RN@HAW.Q
+  - "PCSV_RN@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCSV_RN@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211380] PCSV_RN@HON.Q
+  - "PCSV_RN@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCSV_RN@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534515] PCTR@HAW.Q
+  - "PCTR@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTR@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211386] PCTR@HON.Q
+  - "PCTR@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTR@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211392] PCTRGS@HON.Q
+  - "PCTRGS@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTRGS@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211397] PCTRGSMD@HON.Q
+  - "PCTRGSMD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTRGSMD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211403] PCTRGSPR@HON.Q
+  - "PCTRGSPR@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTRGSPR@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211409] PCTRGSRG@HON.Q
+  - "PCTRGSRG@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTRGSRG@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534519] PCTRMF@HAW.Q
+  - "PCTRMF@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTRMF@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211415] PCTRMF@HON.Q
+  - "PCTRMF@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTRMF@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211421] PCTRPR@HON.Q
+  - "PCTRPR@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PCTRPR@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534523] PC_EN@HAW.Q
+  - "PC_EN@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_EN@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211428] PC_EN@HON.Q
+  - "PC_EN@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_EN@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534527] PC_FDEN@HAW.Q
+  - "PC_FDEN@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_FDEN@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[210147] PC_FDEN@HON.Q
+  - "PC_FDEN@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_FDEN@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534531] PC_MD@HAW.Q
+  - "PC_MD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_MD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[211434] PC_MD@HON.Q
+  - "PC_MD@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_MD@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[534535] PC_SH@HAW.Q
+  - "PC_SH@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_SH@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[210166] PC_SH@HON.Q
+  - "PC_SH@HON.S".ts.interpolate(:quarter).trim("1987-01-01")
+  + "PC_SH@HON.S".ts.disaggregate(:quarter).trim("1987-01-01")
+[698635] POILEIALTB@US.Q
+  - "POILEIALTB@US.A".ts.interpolate(:quarter)
+  + "POILEIALTB@US.A".ts.disaggregate(:quarter)
+[701025] VISJPNS@HON.Q
+  - "VISJP@HON.A".ts.interpolate(:quarter, :sum).no_trim_past.trim(after: "1999-10-01")
+  + "VISJP@HON.A".ts.disaggregate(:quarter, :sum).no_trim_past.trim(after: "1999-10-01")
+[211439] WPCEN@HON.Q
+  - "WPCEN@HON.S".ts.interpolate(:quarter)
+  + "WPCEN@HON.S".ts.disaggregate(:quarter)
+[211442] WPCFD@HON.Q
+  - "WPCFD@HON.S".ts.interpolate(:quarter)
+  + "WPCFD@HON.S".ts.disaggregate(:quarter)
+[211437] WPCSH@HON.Q
+  - "WPCSH@HON.S".ts.interpolate(:quarter)
+  + "WPCSH@HON.S".ts.disaggregate(:quarter)
+[698211] Y@HAW.Q
+  - "Y@HAW.A".ts.interpolate(:quarter)
+  + "Y@HAW.A".ts.disaggregate(:quarter)
+[696772] Y@HON.Q
+  - "Y@HON.A".ts.interpolate(:quarter)
+  + "Y@HON.A".ts.disaggregate(:quarter)
+[698212] Y@KAU.Q
+  - "Y@KAU.A".ts.interpolate(:quarter)
+  + "Y@KAU.A".ts.disaggregate(:quarter)
+[698213] Y@MAU.Q
+  - "Y@MAU.A".ts.interpolate(:quarter)
+  + "Y@MAU.A".ts.disaggregate(:quarter)
+[698225] YDIV@HAW.Q
+  - "YDIV@HAW.A".ts.interpolate(:quarter)
+  + "YDIV@HAW.A".ts.disaggregate(:quarter)
+[696774] YDIV@HON.Q
+  - "YDIV@HON.A".ts.interpolate(:quarter)
+  + "YDIV@HON.A".ts.disaggregate(:quarter)
+[698223] YDIV@KAU.Q
+  - "YDIV@KAU.A".ts.interpolate(:quarter)
+  + "YDIV@KAU.A".ts.disaggregate(:quarter)
+[698224] YDIV@MAU.Q
+  - "YDIV@MAU.A".ts.interpolate(:quarter)
+  + "YDIV@MAU.A".ts.disaggregate(:quarter)
+[698216] YL@HAW.Q
+  - "YL@HAW.A".ts.interpolate(:quarter)
+  + "YL@HAW.A".ts.disaggregate(:quarter)
+[696776] YL@HON.Q
+  - "YL@HON.A".ts.interpolate(:quarter)
+  + "YL@HON.A".ts.disaggregate(:quarter)
+[698214] YL@KAU.Q
+  - "YL@KAU.A".ts.interpolate(:quarter)
+  + "YL@KAU.A".ts.disaggregate(:quarter)
+[698215] YL@MAU.Q
+  - "YL@MAU.A".ts.interpolate(:quarter)
+  + "YL@MAU.A".ts.disaggregate(:quarter)
+[696468] YLAF@HON.Q
+  - "YLAF@HON.A".ts.interpolate(:quarter)
+  + "YLAF@HON.A".ts.disaggregate(:quarter)
+[696259] YLAG@HON.Q
+  - "YLAG@HON.A".ts.interpolate(:quarter)
+  + "YLAG@HON.A".ts.disaggregate(:quarter)
+[701442] YLAGFA@HON.Q
+  - "YLAGFA@HON.A".ts.interpolate(:quarter)
+  + "YLAGFA@HON.A".ts.disaggregate(:quarter)
+[696460] YLCT@HON.Q
+  - "YLCT@HON.A".ts.interpolate(:quarter)
+  + "YLCT@HON.A".ts.disaggregate(:quarter)
+[696444] YLGV@HON.Q
+  - "YLGV@HON.A".ts.interpolate(:quarter)
+  + "YLGV@HON.A".ts.disaggregate(:quarter)
+[696492] YLGVFD@HON.Q
+  - "YLGVFD@HON.A".ts.interpolate(:quarter)
+  + "YLGVFD@HON.A".ts.disaggregate(:quarter)
+[696508] YLGVML@HON.Q
+  - "YLGVML@HON.A".ts.interpolate(:quarter)
+  + "YLGVML@HON.A".ts.disaggregate(:quarter)
+[696476] YLHC@HON.Q
+  - "YLHC@HON.A".ts.interpolate(:quarter)
+  + "YLHC@HON.A".ts.disaggregate(:quarter)
+[696404] YLMN@HON.Q
+  - "YLMN@HON.A".ts.interpolate(:quarter)
+  + "YLMN@HON.A".ts.disaggregate(:quarter)
+[696452] YL_CTMI@HON.Q
+  - "YL_CTMI@HON.A".ts.interpolate(:quarter)
+  + "YL_CTMI@HON.A".ts.disaggregate(:quarter)
+[696484] YL_ELSE@HON.Q
+  - "YL_ELSE@HON.A".ts.interpolate(:quarter)
+  + "YL_ELSE@HON.A".ts.disaggregate(:quarter)
+[696428] YL_FIR@HON.Q
+  - "YL_FIR@HON.A".ts.interpolate(:quarter)
+  + "YL_FIR@HON.A".ts.disaggregate(:quarter)
+[696500] YL_GVSL@HON.Q
+  - "YL_GVSL@HON.A".ts.interpolate(:quarter)
+  + "YL_GVSL@HON.A".ts.disaggregate(:quarter)
+[696436] YL_SV@HON.Q
+  - "YL_SV@HON.A".ts.interpolate(:quarter)
+  + "YL_SV@HON.A".ts.disaggregate(:quarter)
+[696412] YL_TRADE@HON.Q
+  - "YL_TRADE@HON.A".ts.interpolate(:quarter)
+  + "YL_TRADE@HON.A".ts.disaggregate(:quarter)
+[696420] YL_TU@HON.Q
+  - "YL_TU@HON.A".ts.interpolate(:quarter)
+  + "YL_TU@HON.A".ts.disaggregate(:quarter)
+[715101] YMEDC@HAW.Q
+  - "YMEDC@HAW.A".ts.interpolate(:quarter)
+  + "YMEDC@HAW.A".ts.disaggregate(:quarter)
+[698615] YMEDC@HI.Q
+  - "YMEDC@HI.A".ts.interpolate(:quarter)
+  + "YMEDC@HI.A".ts.disaggregate(:quarter)
+[698616] YMEDC@HON.Q
+  - "YMEDC@HON.A".ts.interpolate(:quarter)
+  + "YMEDC@HON.A".ts.disaggregate(:quarter)
+[715102] YMEDC@KAU.Q
+  - "YMEDC@KAU.A".ts.interpolate(:quarter)
+  + "YMEDC@KAU.A".ts.disaggregate(:quarter)
+[715103] YMEDC@MAU.Q
+  - "YMEDC@MAU.A".ts.interpolate(:quarter)
+  + "YMEDC@MAU.A".ts.disaggregate(:quarter)
+[698228] YPC@HAW.Q
+  - "YPC@HAW.A".ts.interpolate(:quarter)
+  + "YPC@HAW.A".ts.disaggregate(:quarter)
+[696778] YPC@HON.Q
+  - "YPC@HON.A".ts.interpolate(:quarter)
+  + "YPC@HON.A".ts.disaggregate(:quarter)
+[698226] YPC@KAU.Q
+  - "YPC@KAU.A".ts.interpolate(:quarter)
+  + "YPC@KAU.A".ts.disaggregate(:quarter)
+[698227] YPC@MAU.Q
+  - "YPC@MAU.A".ts.interpolate(:quarter)
+  + "YPC@MAU.A".ts.disaggregate(:quarter)
+[715104] YPJ@HAW.Q
+  - "YPJ@HAW.A".ts.interpolate(:quarter)
+  + "YPJ@HAW.A".ts.disaggregate(:quarter)
+[696780] YPJ@HON.Q
+  - "YPJ@HON.A".ts.interpolate(:quarter)
+  + "YPJ@HON.A".ts.disaggregate(:quarter)
+[715109] YPJ@KAU.Q
+  - "YPJ@KAU.A".ts.interpolate(:quarter)
+  + "YPJ@KAU.A".ts.disaggregate(:quarter)
+[715110] YPJ@MAU.Q
+  - "YPJ@MAU.A".ts.interpolate(:quarter)
+  + "YPJ@MAU.A".ts.disaggregate(:quarter)
+[698253] YS@HAW.Q
+  - "YS@HAW.A".ts.interpolate(:quarter)
+  + "YS@HAW.A".ts.disaggregate(:quarter)
+[696782] YS@HON.Q
+  - "YS@HON.A".ts.interpolate(:quarter)
+  + "YS@HON.A".ts.disaggregate(:quarter)
+[698254] YS@KAU.Q
+  - "YS@KAU.A".ts.interpolate(:quarter)
+  + "YS@KAU.A".ts.disaggregate(:quarter)
+[698219] YSOCSEC@HAW.Q
+  - "YSOCSEC@HAW.A".ts.interpolate(:quarter)
+  + "YSOCSEC@HAW.A".ts.disaggregate(:quarter)
+[696784] YSOCSEC@HON.Q
+  - "YSOCSEC@HON.A".ts.interpolate(:quarter)
+  + "YSOCSEC@HON.A".ts.disaggregate(:quarter)
+[698217] YSOCSEC@KAU.Q
+  - "YSOCSEC@KAU.A".ts.interpolate(:quarter)
+  + "YSOCSEC@KAU.A".ts.disaggregate(:quarter)
+[698218] YSOCSEC@MAU.Q
+  - "YSOCSEC@MAU.A".ts.interpolate(:quarter)
+  + "YSOCSEC@MAU.A".ts.disaggregate(:quarter)
+[698222] YTRNSF@HAW.Q
+  - "YTRNSF@HAW.A".ts.interpolate(:quarter)
+  + "YTRNSF@HAW.A".ts.disaggregate(:quarter)
+[696786] YTRNSF@HON.Q
+  - "YTRNSF@HON.A".ts.interpolate(:quarter)
+  + "YTRNSF@HON.A".ts.disaggregate(:quarter)
+[698220] YTRNSF@KAU.Q
+  - "YTRNSF@KAU.A".ts.interpolate(:quarter)
+  + "YTRNSF@KAU.A".ts.disaggregate(:quarter)
+[698221] YTRNSF@MAU.Q
+  - "YTRNSF@MAU.A".ts.interpolate(:quarter)
+  + "YTRNSF@MAU.A".ts.disaggregate(:quarter)
