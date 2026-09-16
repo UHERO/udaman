@@ -16,6 +16,7 @@ export const ALL_ROLES = [
   "fsonly",
   "internal",
   "fellow",
+  "mcp-only",
   "admin",
   "dev",
 ] as const;
@@ -90,6 +91,7 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   fsonly: "Accounts for viewing forecast snapshots",
   internal: "Default for new UHERO accounts",
   fellow: "Users needing limited access to comms forms",
+  "mcp-only": "Can only use the UHERO Data Claude MCP connector",
   admin: "Full access to every tool",
   dev: "Full access plus developer tools and permissions",
 };
@@ -102,6 +104,17 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
  */
 export function isFellow(role: string): boolean {
   return role === "fellow";
+}
+
+/**
+ * Accounts that exist only to authorize the UHERO Data MCP connector in
+ * Claude. They can sign in (that is how the OAuth consent step works) and
+ * use the public-data MCP tools, but the site itself shows them nothing
+ * except a welcome page with setup instructions. No manifest entry or
+ * role_permissions row grants them anything.
+ */
+export function isMcpOnly(role: string): boolean {
+  return role === "mcp-only";
 }
 
 /**

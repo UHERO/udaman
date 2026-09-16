@@ -78,6 +78,11 @@ describe("sidebar visibility", () => {
     expect(getVisibleRoutes("fsonly", "UHERO")).toEqual([]);
   });
 
+  test("mcp-only users see nothing in the sidebar and no rail app", () => {
+    expect(getVisibleRoutes("mcp-only", "UHERO")).toEqual([]);
+    expect(getVisibleChildren("mcp-only", "UHERO", "/admin")).toEqual([]);
+  });
+
   test("admin and dev see every non-universe-scoped entry", () => {
     const unscoped = ROUTES.filter((r) => !r.universes).map((r) => r.path);
     for (const role of FULL_ACCESS_ROLES) {
@@ -211,6 +216,23 @@ describe("getLandingPath", () => {
   test("admin/dev land on Time Series", () => {
     expect(getLandingPath("admin", "UHERO")).toBe("/udaman/uhero/series");
     expect(getLandingPath("dev", "HHF")).toBe("/udaman/hhf/series");
+  });
+
+  test("mcp-only users land on the universe homepage and can open nothing else", () => {
+    expect(getLandingPath("mcp-only", "UHERO")).toBe("/udaman/uhero");
+    expect(isRouteAllowed("mcp-only", "UHERO", "/udaman/uhero")).toBe(true);
+    for (const path of [
+      "/udaman/uhero/series",
+      "/udaman/uhero/uploads/econ",
+      "/comms",
+      "/comms/pub-form/new",
+      "/hhdb",
+      "/docs",
+      "/data-registry",
+      "/admin",
+    ]) {
+      expect(isRouteAllowed("mcp-only", "UHERO", path)).toBe(false);
+    }
   });
 
   test("limited roles land on the universe homepage, never a bounced page", () => {

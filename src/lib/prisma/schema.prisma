@@ -813,6 +813,7 @@ enum users_role {
   fsonly
   internal
   fellow
+  mcp_only @map("mcp-only")
   admin
   dev
 }

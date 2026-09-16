@@ -23,7 +23,11 @@
       "Bash(git rm *)",
       "Bash(echo \"grep exit=$?\")",
       "Bash(bun run *)",
-      "Bash(echo \"tsc exit=$?\")"
+      "Bash(echo \"tsc exit=$?\")",
+      "Bash(echo \"eslint exit=$?\")",
+      "Bash(echo \"schema prettier exit=$?\")",
+      "Bash(bunx prisma *)",
+      "Bash(echo \"validate exit=$?\")"
     ]
   }
 }

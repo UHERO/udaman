@@ -44,6 +44,7 @@ const ROLE_ORDER: readonly Role[] = [
   "internal",
   "fsonly",
   "external",
+  "mcp-only",
 ];
 
 const ROLE_DESCRIPTIONS: Record<Role, string> = {
@@ -58,6 +59,8 @@ const ROLE_DESCRIPTIONS: Record<Role, string> = {
     "Forecast-only users. Can read forecast snapshots and download exports.",
   external:
     "DBEDT uploaders. Can use the Econ and Tour upload pages and nothing else.",
+  "mcp-only":
+    "Claude MCP connector accounts. Can sign in to authorize the connector and see setup instructions; nothing on the site itself. These switches should stay off.",
 };
 
 /** One matrix row per top-level sidebar/rail item, in manifest order. */

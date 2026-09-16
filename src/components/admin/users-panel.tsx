@@ -43,6 +43,7 @@ const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   internal: "secondary",
   fsonly: "outline",
   external: "outline",
+  "mcp-only": "outline",
 };
 
 function formatDate(iso: string | null): string {

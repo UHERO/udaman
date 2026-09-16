@@ -1,7 +1,9 @@
 import Link from "next/link";
 
+import { McpOnlyWelcome } from "@/components/mcp-only-welcome";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 import { getReadableResources } from "@/lib/auth/readable-resources";
+import { isMcpOnly } from "@/lib/auth/roles";
 import { getVisibleRoutes, toReadableSet } from "@/lib/auth/route-access";
 
 /** Supplementary descriptions for homepage cards (route-access only has labels). */
@@ -51,6 +53,11 @@ export default async function UniversePage({
   const name = universeNames[key] ?? universe;
 
   const { role, universe: userUniverse } = await getCurrentUserContext();
+
+  // Connector-only accounts get setup instructions instead of tool cards;
+  // the manifest and permissions grant them nothing else anyway.
+  if (isMcpOnly(role)) return <McpOnlyWelcome />;
+
   const readable = toReadableSet(await getReadableResources(role));
   const routes = getVisibleRoutes(role, userUniverse, readable);
 
