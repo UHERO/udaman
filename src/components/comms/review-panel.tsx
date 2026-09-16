@@ -102,7 +102,6 @@ export function ReviewPanel({
         />
       )}
 
-      {/* Temporarily hidden while iterating on the kanban board.
       <ReviewTable
         approvalId={approval.id}
         reviews={reviews}
@@ -111,7 +110,6 @@ export function ReviewPanel({
         isDev={isDev}
         canAdd={canAdd}
       />
-      */}
     </section>
   );
 }

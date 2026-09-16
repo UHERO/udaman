@@ -274,7 +274,6 @@ export function PreReleaseList({
                             currentUserId={currentUserId}
                           />
                         )}
-                        {/* Temporarily hidden while iterating on the kanban board.
                         <ReviewTable
                           approvalId={a.id}
                           reviews={list}
@@ -283,7 +282,6 @@ export function PreReleaseList({
                           isDev={isDev}
                           canAdd={canReview(a)}
                         />
-                        */}
                       </div>
                     </TableCell>
                   </TableRow>
