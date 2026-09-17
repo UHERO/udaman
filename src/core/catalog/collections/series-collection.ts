@@ -19,6 +19,7 @@ import type {
   Universe,
 } from "../types/shared";
 import type { SeriesSummary } from "../types/udaman";
+import { parseFactors, serializeFactors } from "../utils/factors";
 import { isValidUniverse } from "../utils/validators";
 import TimeSeriesCollection from "./time-series-collection";
 
@@ -2775,6 +2776,48 @@ class SeriesCollection {
       rows: await SeriesCollection.attachLoaderEvals(seriesRows),
       totalCount,
     };
+  }
+
+  /**
+   * Persist the seasonal factors computed by `apply_seasonal_adjustment` back
+   * to the series' xseries row. Port of Rails `set_factors`
+   * (series_seasonal_adjustment.rb:44) — including its merge semantics: Rails
+   * does `self.factors ||= {}` and then assigns month by month, so months
+   * outside the current factor window keep whatever was stored before.
+   */
+  static async saveSeasonalFactors(
+    xseriesId: number,
+    opts: {
+      factorApplication: "additive" | "multiplicative";
+      lastDemetraDate: string;
+      factors: Record<string, number>;
+    },
+  ): Promise<void> {
+    const [existing] = await rawQuery<{ factors: string | null }>(
+      `SELECT factors FROM xseries WHERE id = ?`,
+      [xseriesId],
+    );
+    const merged = {
+      ...(parseFactors(existing?.factors) ?? {}),
+      ...opts.factors,
+    };
+
+    await rawQuery(
+      `UPDATE xseries
+          SET factor_application = ?, last_demetra_date = ?, factors = ?
+        WHERE id = ?`,
+      [
+        opts.factorApplication,
+        opts.lastDemetraDate,
+        serializeFactors(merged),
+        xseriesId,
+      ],
+    );
+
+    log.info(
+      { xseriesId, ...opts, factorMonths: Object.keys(merged).length },
+      "saved seasonal factors",
+    );
   }
 
   static async unquarantine(seriesId: number): Promise<void> {

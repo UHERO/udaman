@@ -101,6 +101,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "getLastCompleteDecember",
   "getLastComplete4thQuarter",
   // Seasonal adjustment
+  "applySeasonalAdjustment",
   "applyNsGrowthRateSa",
   // Daily census
   "dailyCensus",
@@ -804,6 +805,104 @@ class EvalExecutor {
             name: `Interpolation of alternate missing months from ${target}`,
           });
           result.data = newDp;
+          result.frequency = target.frequency;
+          return result;
+        }
+
+        // Demetra-factor seasonal adjustment: derives monthly factors from the
+        // SA values Demetra already produced (through last_demetra_date),
+        // persists them, then carries the series forward by applying those
+        // factors to the NS counterpart's newer observations.
+        // Port of Rails `apply_seasonal_adjustment` (series_seasonal_adjustment.rb:3).
+        if (methodName === "applySeasonalAdjustment") {
+          const args = await resolveArgs(node.args);
+          const application = String(args[0] ?? "").toLowerCase();
+          if (application !== "additive" && application !== "multiplicative") {
+            throw new EvalExecuteError(
+              "apply_seasonal_adjustment needs an argument of :additive or " +
+                ":multiplicative. Note that the parser does not accept Ruby " +
+                "paren-less symbol arguments — write " +
+                "`.apply_seasonal_adjustment(:multiplicative)`.",
+            );
+          }
+
+          const nsName = target.nsSeriesName;
+          let nsSeries: Series;
+          try {
+            nsSeries = await SeriesCollection.getByName(nsName);
+          } catch {
+            throw new EvalExecuteError(
+              `No NS series corresponds to ${target} (looked for ${nsName})`,
+            );
+          }
+          await SeriesCollection.loadCurrentData(nsSeries);
+
+          // Demetra's last complete period: Q4 for quarterly series, December
+          // for everything else.
+          const lastDemetraDate =
+            target.frequency === "quarter"
+              ? target.getLastComplete4thQuarter()
+              : target.getLastCompleteDecember();
+          if (!lastDemetraDate) {
+            throw new EvalExecuteError(
+              `${target} has no observations, so there is no Demetra period to derive seasonal factors from`,
+            );
+          }
+
+          // Factors come from the last full year of existing SA values,
+          // compared against NS at the same dates. Keyed by month number, so
+          // quarterly series key on 1/4/7/10.
+          const factorWindow = target.getValuesAfter(
+            addMonthsStr(lastDemetraDate, -12),
+            lastDemetraDate,
+          );
+          const factors: Record<string, number> = {};
+          for (const [dateStr, saValue] of factorWindow) {
+            const nsValue = nsSeries.data.get(dateStr);
+            if (nsValue == null) continue;
+            const month = String(Number(dateStr.slice(5, 7)));
+            factors[month] =
+              application === "additive"
+                ? nsValue - saValue
+                : nsValue / saValue;
+          }
+          if (Object.keys(factors).length === 0) {
+            throw new EvalExecuteError(
+              `Could not derive any seasonal factors for ${target}: no overlapping ${nsName} values in the year ending ${lastDemetraDate}`,
+            );
+          }
+
+          // Rails saves the factors even when the caller discards the result —
+          // setting them is half the point of running this.
+          if (target.xseriesId) {
+            await SeriesCollection.saveSeasonalFactors(target.xseriesId, {
+              factorApplication: application,
+              lastDemetraDate,
+              factors,
+            });
+          }
+
+          const adjustedData = new Map<string, number>();
+          for (const [dateStr, nsValue] of nsSeries.getValuesAfter(
+            lastDemetraDate,
+          )) {
+            const month = String(Number(dateStr.slice(5, 7)));
+            const factor = factors[month];
+            if (factor === undefined) {
+              throw new EvalExecuteError(
+                `No seasonal factor for month ${month} (needed at ${dateStr}); ${target} is missing that period in the year ending ${lastDemetraDate}`,
+              );
+            }
+            adjustedData.set(
+              dateStr,
+              application === "additive" ? nsValue - factor : nsValue / factor,
+            );
+          }
+
+          const result = new Series({
+            name: `Applied ${application} Seasonal Adjustment against ${nsSeries}`,
+          });
+          result.data = adjustedData;
           result.frequency = target.frequency;
           return result;
         }

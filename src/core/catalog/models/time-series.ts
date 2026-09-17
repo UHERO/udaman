@@ -1,4 +1,5 @@
 import type { SeasonalAdjustment } from "../types/shared";
+import { parseFactors } from "../utils/factors";
 
 // ─── Input type ──────────────────────────────────────────────────────
 // Matches the `xseries` DB table columns 1:1 (snake_case).
@@ -48,7 +49,7 @@ class TimeSeries {
   lastDemetraDate: Date | null;
   lastDemetraDatestring: string | null;
   factorApplication: string | null;
-  factors: Record<string, unknown> | null;
+  factors: Record<string, number> | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 
@@ -77,7 +78,7 @@ class TimeSeries {
       : null;
     this.lastDemetraDatestring = attrs.last_demetra_datestring ?? null;
     this.factorApplication = attrs.factor_application ?? null;
-    this.factors = TimeSeries.parseFactors(attrs.factors);
+    this.factors = parseFactors(attrs.factors);
     this.createdAt = attrs.created_at
       ? new Date(attrs.created_at as string | Date)
       : null;
@@ -87,18 +88,6 @@ class TimeSeries {
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────
-
-  /** Parse the serialized factors column (Rails `serialize :factors, Hash`). */
-  private static parseFactors(
-    raw: string | null | undefined,
-  ): Record<string, unknown> | null {
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
 
   /** Whether SA validation rules should be enforced for this frequency. */
   get isAnnual(): boolean {

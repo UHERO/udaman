@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     },
     proxyClientMaxBodySize: "50mb",
   },
+  allowedDevOrigins: ['128.171.199.228'],
 };
 
 export default nextConfig;

@@ -657,6 +657,25 @@ class Series {
     return dates.at(-1) ?? null;
   }
 
+  /**
+   * Non-null observations strictly after `start` and up to `end` inclusive.
+   * Port of Rails `get_values_after` (series_data_adjustment.rb:89) — note the
+   * exclusive lower bound and inclusive upper bound. `end` defaults to the
+   * series' last observation.
+   */
+  getValuesAfter(start: string, end?: string | null): Map<string, number> {
+    const upper = end ?? this.lastObservation;
+    const out = new Map<string, number>();
+    if (!upper) return out;
+    for (const date of [...this.data.keys()].sort()) {
+      if (date <= start || date > upper) continue;
+      const value = this.data.get(date);
+      if (value == null) continue;
+      out.set(date, value);
+    }
+    return out;
+  }
+
   /** Returns the last complete December date in the data. */
   getLastCompleteDecember(): string | null {
     const last = this.lastObservation;
