@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { ApprovalJSON } from "@catalog/models/approval";
+import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
+import {
+  REVIEW_BOARD_STATUS_LABELS,
+  REVIEW_BOARD_STATUSES,
+  type ReviewBoardStatus,
+} from "@catalog/models/approval-review";
+import type { ReviewMessageJSON } from "@catalog/models/review-message";
 import {
   DndContext,
   DragOverlay,
@@ -14,27 +22,23 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import type { ApprovalJSON } from "@catalog/models/approval";
-import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
-import {
-  REVIEW_BOARD_STATUSES,
-  REVIEW_BOARD_STATUS_LABELS,
-  type ReviewBoardStatus,
-} from "@catalog/models/approval-review";
-import type { ReviewMessageJSON } from "@catalog/models/review-message";
 import {
   CheckCircle2,
   GripVertical,
   Maximize2,
   Minimize2,
+  Pencil,
+  Plus,
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
+  deleteReview,
   getReviewMessages,
   sendReviewMessage,
   setReviewBoardStatus,
+  submitReview,
 } from "@/actions/approvals";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +65,8 @@ export function ReviewKanbanBoard({
   canDrag,
   currentUserId,
   showComm = false,
+  addReview,
+  notStartedExtra,
 }: {
   reviews: ApprovalReviewJSON[];
   /** Parent approval per review, keyed by approvalId — only needed when showComm. */
@@ -69,6 +75,17 @@ export function ReviewKanbanBoard({
   currentUserId: number;
   /** Show the parent comm's name/link on each card (cross-comm board). */
   showComm?: boolean;
+  /**
+   * Enables the "Add review" affordance in "Not Started" for one specific
+   * approval. On a cross-comm board (many approvals mixed together), pair
+   * this with `notStartedExtra` to let the caller pick which approval first.
+   */
+  addReview?: {
+    approvalId: number;
+    currentUserName: string;
+  };
+  /** Extra content rendered in "Not Started", above the add-review card — e.g. a form picker on a cross-comm board. */
+  notStartedExtra?: ReactNode;
 }) {
   const router = useRouter();
   const dndId = useId();
@@ -105,8 +122,28 @@ export function ReviewKanbanBoard({
   }
 
   const activeCard = activeId ? cards.find((r) => r.id === activeId) : null;
+  const alreadyReviewing = addReview
+    ? cards.some(
+        (r) =>
+          r.approvalId === addReview.approvalId &&
+          r.reviewerUserId === currentUserId,
+      )
+    : true;
+  const showAddReview = !!addReview && !alreadyReviewing;
 
-  if (!cards.length) {
+  function handleCardUpdate(updated: ApprovalReviewJSON) {
+    setCards((cs) => cs.map((r) => (r.id === updated.id ? updated : r)));
+  }
+
+  function handleCardDelete(id: number) {
+    setCards((cs) => cs.filter((r) => r.id !== id));
+  }
+
+  function handleReviewAdded(created: ApprovalReviewJSON) {
+    setCards((cs) => [...cs, created]);
+  }
+
+  if (!cards.length && !showAddReview && !notStartedExtra) {
     return (
       <p className="text-muted-foreground py-2 text-sm">No reviews yet.</p>
     );
@@ -129,6 +166,13 @@ export function ReviewKanbanBoard({
             canDrag={canDrag}
             currentUserId={currentUserId}
             showComm={showComm}
+            onCardUpdate={handleCardUpdate}
+            onCardDelete={handleCardDelete}
+            addReview={
+              showAddReview && status === "not_started" ? addReview : undefined
+            }
+            onReviewAdded={handleReviewAdded}
+            extra={status === "not_started" ? notStartedExtra : undefined}
           />
         ))}
       </div>
@@ -140,10 +184,225 @@ export function ReviewKanbanBoard({
             draggable={false}
             currentUserId={currentUserId}
             showComm={showComm}
+            onUpdate={handleCardUpdate}
+            onDelete={handleCardDelete}
           />
         ) : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+/**
+ * Standalone "Add review" affordance for the kanban board — same
+ * button-fading-to-form flow as ReviewTable's, but for the reviewer's own
+ * new card rather than a table row. Only shown to a viewer who doesn't
+ * already have a review on this board (see `alreadyReviewing`).
+ */
+function AddReviewCard({
+  approvalId,
+  currentUserName,
+  onAdded,
+}: {
+  approvalId: number;
+  currentUserName: string;
+  onAdded: (review: ApprovalReviewJSON) => void;
+}) {
+  const [phase, setPhase] = useState<"button" | "fading" | "form">("button");
+  useEffect(() => {
+    if (phase !== "fading") return;
+    const t = setTimeout(() => setPhase("form"), 150);
+    return () => clearTimeout(t);
+  }, [phase]);
+  const router = useRouter();
+  const [attested, setAttested] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const result = await submitReview(approvalId, { attested, notes });
+      onAdded(result.data);
+      setPhase("button");
+      setAttested(false);
+      setNotes("");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (phase !== "form") {
+    return (
+      <button
+        type="button"
+        onClick={() => setPhase("fading")}
+        disabled={phase === "fading"}
+        className={cn(
+          "text-muted-foreground hover:border-foreground/40 hover:text-foreground hover:bg-muted/40 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed p-2 text-sm transition-colors duration-150",
+          phase === "fading" && "opacity-0",
+        )}
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Add review
+      </button>
+    );
+  }
+
+  return (
+    <div className="animate-in fade-in bg-background space-y-2 rounded-md border p-3 text-sm duration-200">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">{currentUserName}</span>
+        <label className="text-muted-foreground flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={attested}
+            onChange={(e) => setAttested(e.target.checked)}
+            disabled={saving}
+          />
+          Reviewed
+        </label>
+      </div>
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Notes"
+        className="min-h-20 text-sm"
+        disabled={saving}
+        autoFocus
+      />
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="cursor-pointer"
+          disabled={saving}
+          onClick={() => setPhase("button")}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="cursor-pointer"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          Submit
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Create a new review for `approval`, in the same dialog layout as an
+ * existing card's details — just without a board-status badge, withdraw
+ * button, or message thread, since none of those exist until the review is
+ * actually saved. Used wherever "Add review" needs to open directly rather
+ * than via the inline "Not Started" card (e.g. from a table row's actions
+ * menu, or after picking a form on a cross-comm board).
+ */
+export function NewReviewDialog({
+  approval,
+  currentUserName,
+  onClose,
+}: {
+  approval: ApprovalJSON;
+  currentUserName: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [attested, setAttested] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const result = await submitReview(approval.id, { attested, notes });
+      toast.success(result.message);
+      router.refresh();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[calc(100%-2rem)] flex-col sm:max-w-xl md:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {currentUserName}
+            <span className="text-muted-foreground text-xs font-normal">
+              {" "}
+              (you)
+            </span>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto text-sm">
+          <span className="text-muted-foreground">{approval.name}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">Not Started</Badge>
+            {approval.targetReleaseDate && (
+              <Badge variant="outline">
+                Target {approval.targetReleaseDate}
+              </Badge>
+            )}
+          </div>
+          <div>
+            <div className="text-muted-foreground mb-1 flex items-center justify-between text-xs font-medium tracking-wide uppercase">
+              <span>Notes</span>
+              <label className="flex items-center gap-1.5 normal-case">
+                <input
+                  type="checkbox"
+                  checked={attested}
+                  onChange={(e) => setAttested(e.target.checked)}
+                  disabled={saving}
+                />
+                Reviewed
+              </label>
+            </div>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-24 text-sm"
+              disabled={saving}
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+              disabled={saving}
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="cursor-pointer"
+              disabled={saving}
+              onClick={() => void save()}
+            >
+              {attested && <CheckCircle2 className="h-3.5 w-3.5" />}
+              Submit
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -154,6 +413,11 @@ function BoardColumn({
   canDrag,
   currentUserId,
   showComm,
+  onCardUpdate,
+  onCardDelete,
+  addReview,
+  onReviewAdded,
+  extra,
 }: {
   status: ReviewBoardStatus;
   cards: ApprovalReviewJSON[];
@@ -161,6 +425,11 @@ function BoardColumn({
   canDrag: (review: ApprovalReviewJSON) => boolean;
   currentUserId: number;
   showComm: boolean;
+  onCardUpdate: (review: ApprovalReviewJSON) => void;
+  onCardDelete: (id: number) => void;
+  addReview?: { approvalId: number; currentUserName: string };
+  onReviewAdded?: (review: ApprovalReviewJSON) => void;
+  extra?: ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -184,8 +453,18 @@ function BoardColumn({
           draggable={canDrag(review)}
           currentUserId={currentUserId}
           showComm={showComm}
+          onUpdate={onCardUpdate}
+          onDelete={onCardDelete}
         />
       ))}
+      {addReview && onReviewAdded && (
+        <AddReviewCard
+          approvalId={addReview.approvalId}
+          currentUserName={addReview.currentUserName}
+          onAdded={onReviewAdded}
+        />
+      )}
+      {extra}
     </div>
   );
 }
@@ -196,12 +475,16 @@ function DraggableCard({
   draggable,
   currentUserId,
   showComm,
+  onUpdate,
+  onDelete,
 }: {
   review: ApprovalReviewJSON;
   approval?: ApprovalJSON;
   draggable: boolean;
   currentUserId: number;
   showComm: boolean;
+  onUpdate: (review: ApprovalReviewJSON) => void;
+  onDelete: (id: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: review.id,
@@ -218,19 +501,23 @@ function DraggableCard({
         showComm={showComm}
         dragAttributes={attributes}
         dragListeners={listeners}
+        onUpdate={onUpdate}
+        onDelete={onDelete}
       />
     </div>
   );
 }
 
 function ReviewCard({
-  review,
+  review: initialReview,
   approval,
   draggable,
   currentUserId,
   showComm,
   dragAttributes,
   dragListeners,
+  onUpdate,
+  onDelete,
 }: {
   review: ApprovalReviewJSON;
   approval?: ApprovalJSON;
@@ -239,18 +526,69 @@ function ReviewCard({
   showComm: boolean;
   dragAttributes?: ReturnType<typeof useDraggable>["attributes"];
   dragListeners?: ReturnType<typeof useDraggable>["listeners"];
+  onUpdate?: (review: ApprovalReviewJSON) => void;
+  onDelete?: (id: number) => void;
 }) {
+  const [review, setReview] = useState(initialReview);
+  useEffect(() => setReview(initialReview), [initialReview]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [maximized, setMaximized] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(review.notes ?? "");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const isOwn = review.reviewerUserId === currentUserId;
   const canMessage =
     isOwn || (!!approval && approval.authorUserId === currentUserId);
 
+  function startEditingNotes() {
+    setNotesDraft(review.notes ?? "");
+    setEditingNotes(true);
+  }
+
+  async function saveNotes() {
+    setSavingNotes(true);
+    try {
+      const result = await submitReview(review.approvalId, {
+        attested: review.attested,
+        notes: notesDraft,
+      });
+      setReview(result.data);
+      onUpdate?.(result.data);
+      setEditingNotes(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save notes");
+    } finally {
+      setSavingNotes(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const result = await deleteReview(review.id);
+      toast.success(result.message);
+      setDetailsOpen(false);
+      onDelete?.(review.id);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not withdraw review",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <>
       <div
-        className="bg-background hover:bg-muted/40 w-full max-w-full cursor-pointer space-y-1.5 overflow-hidden rounded-md border p-2 text-left text-sm shadow-sm"
+        className={cn(
+          "bg-background hover:bg-muted/40 w-full max-w-full cursor-pointer space-y-1.5 overflow-hidden rounded-md border p-2 text-left text-sm shadow-sm",
+          draggable && "touch-none active:cursor-grabbing",
+        )}
         onClick={() => setDetailsOpen(true)}
+        {...(draggable ? dragAttributes : undefined)}
+        {...(draggable ? dragListeners : undefined)}
       >
         <div className="flex items-start justify-between gap-2">
           <span className="min-w-0 truncate font-medium">
@@ -264,16 +602,7 @@ function ReviewCard({
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
             )}
             {draggable && (
-              <span
-                role="button"
-                aria-label="Drag to move"
-                className="text-muted-foreground cursor-grab touch-none active:cursor-grabbing"
-                onClick={(e) => e.stopPropagation()}
-                {...dragAttributes}
-                {...dragListeners}
-              >
-                <GripVertical className="h-3.5 w-3.5 shrink-0" />
-              </span>
+              <GripVertical className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
             )}
           </div>
         </div>
@@ -349,9 +678,23 @@ function ReviewCard({
               </Link>
             )}
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">
-                {REVIEW_BOARD_STATUS_LABELS[review.boardStatus]}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {REVIEW_BOARD_STATUS_LABELS[review.boardStatus]}
+                </Badge>
+                {isOwn && !editingNotes && (
+                  <Badge variant="outline" asChild>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete()}
+                      disabled={deleting}
+                      className="text-destructive hover:bg-destructive/10 cursor-pointer hover:border-none disabled:opacity-50"
+                    >
+                      Withdraw review
+                    </button>
+                  </Badge>
+                )}
+              </div>
               {review.attested && (
                 <Badge
                   variant="outline"
@@ -368,17 +711,59 @@ function ReviewCard({
               )}
             </div>
             <div>
-              <div className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
-                Notes
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                  Notes
+                </div>
+                {isOwn && !editingNotes && (
+                  <button
+                    type="button"
+                    onClick={startEditingNotes}
+                    className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
+                )}
               </div>
-              {review.notes ? (
+              {editingNotes ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={notesDraft}
+                    onChange={(e) => setNotesDraft(e.target.value)}
+                    className="min-h-24 text-sm"
+                    disabled={savingNotes}
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer"
+                      disabled={savingNotes}
+                      onClick={() => setEditingNotes(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="cursor-pointer"
+                      disabled={savingNotes}
+                      onClick={() => void saveNotes()}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : review.notes ? (
                 <p className="whitespace-pre-wrap">{review.notes}</p>
               ) : (
-                <p className="text-muted-foreground italic">
-                  No notes yet.
-                </p>
+                <p className="text-muted-foreground italic">No notes yet.</p>
               )}
             </div>
+
             {canMessage && (
               <ReviewMessageThread
                 reviewId={review.id}
@@ -444,7 +829,9 @@ function ReviewMessageThread({
       setMessages((prev) => [...(prev ?? []), result.data]);
       setDraft("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send message");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to send message",
+      );
     } finally {
       setSending(false);
     }
@@ -462,7 +849,7 @@ function ReviewMessageThread({
       </div>
       <div
         className={cn(
-          "scrollbar-thin bg-muted/20 flex flex-col gap-2.5 overflow-y-auto rounded-md p-3",
+          "bg-muted/20 flex scrollbar-thin flex-col gap-2.5 overflow-y-auto rounded-md p-3",
           maximized ? "min-h-0 flex-1" : "max-h-72",
         )}
       >
@@ -501,9 +888,7 @@ function ReviewMessageThread({
                     : "bg-upurple/15 rounded-bl-sm",
                 )}
               >
-                <p className="wrap-break-word whitespace-pre-wrap">
-                  {m.body}
-                </p>
+                <p className="wrap-break-word whitespace-pre-wrap">{m.body}</p>
                 {m.createdAt && (
                   <p
                     className={cn(

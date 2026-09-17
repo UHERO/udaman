@@ -18,6 +18,7 @@ import { CommsViewToggle } from "@/components/comms/comms-view-toggle";
 import type { CommsView } from "@/components/comms/comms-view-toggle";
 import { PreReleaseList } from "@/components/comms/pre-release-list";
 import { PreReleaseStatusTabs } from "@/components/comms/pre-release-status-tabs";
+import { ReviewerBoard } from "@/components/comms/reviewer-board";
 import { Button } from "@/components/ui/button";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 
@@ -37,7 +38,8 @@ export default async function Page({
   const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
     ? status
     : "all";
-  const activeView: CommsView = view === "board" ? "board" : "list";
+  const activeView: CommsView =
+    view === "board" ? "board" : view === "reviewing" ? "reviewing" : "list";
   const visible = approvals.filter((a) => matches(a, active));
 
   return (
@@ -66,6 +68,13 @@ export default async function Page({
           approvals={approvals}
           reviews={reviews}
           currentUserId={currentUserId}
+        />
+      ) : activeView === "reviewing" ? (
+        <ReviewerBoard
+          approvals={approvals}
+          reviews={reviews}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
         />
       ) : (
         <>

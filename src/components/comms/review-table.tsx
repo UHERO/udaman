@@ -154,6 +154,15 @@ function ReviewRow({
   const [editing, setEditing] = useState(isNew);
   const [attested, setAttested] = useState(review?.attested ?? false);
   const [notes, setNotes] = useState(review?.notes ?? "");
+  // Reflect changes made elsewhere (e.g. dragging the kanban card to/from
+  // "Review Complete") — but only while the row isn't mid-edit, so we never
+  // clobber a draft the user is actively typing.
+  useEffect(() => {
+    if (editing) return;
+    setAttested(review?.attested ?? false);
+    setNotes(review?.notes ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [review?.attested, review?.notes]);
   const enabled = editing && canEdit;
   const dirty =
     isNew ||

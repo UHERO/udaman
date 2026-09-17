@@ -22,7 +22,7 @@ export type ReviewBoardStatus = (typeof REVIEW_BOARD_STATUSES)[number];
 export const REVIEW_BOARD_STATUS_LABELS: Record<ReviewBoardStatus, string> = {
   not_started: "Not Started",
   in_progress: "In Progress",
-  needs_changes: "Needs Clarification",
+  needs_changes: "Edits Requested",
   reviewed: "Review Complete",
 };
 

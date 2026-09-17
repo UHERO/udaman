@@ -2,17 +2,23 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-export type CommsView = "list" | "board";
+export type CommsView = "list" | "board" | "reviewing";
 
 /**
- * Switches between the status-filtered list (all comms) and the author's
- * cross-comm review board ("Your Reviews"). A separate axis from the status
- * filter tabs — kept out of PreReleaseStatusTabs so the two don't conflate.
+ * Switches between the status-filtered list (all comms), the author's
+ * cross-comm review board ("Your Publications"), and the reviewer's
+ * cross-comm queue ("Your Reviews"). A separate axis from the status filter
+ * tabs — kept out of PreReleaseStatusTabs so the two don't conflate.
  */
 export function CommsViewToggle({ active }: { active: CommsView }) {
   const views: { key: CommsView; label: string; href: string }[] = [
     { key: "list", label: "All forms", href: "/comms" },
-    { key: "board", label: "Your Reviews", href: "/comms?view=board" },
+    { key: "board", label: "Your Publications", href: "/comms?view=board" },
+    {
+      key: "reviewing",
+      label: "Your Reviews",
+      href: "/comms?view=reviewing",
+    },
   ];
 
   return (

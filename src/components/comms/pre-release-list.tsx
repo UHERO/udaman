@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/table";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 
-import { ReviewKanbanBoard } from "./review-kanban-board";
+import { NewReviewDialog, ReviewKanbanBoard } from "./review-kanban-board";
 import { ReviewTable } from "./review-table";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
@@ -95,7 +95,11 @@ export function PreReleaseList({
     return next;
   }
   const toggleExpanded = (id: number) => setExpanded((s) => toggle(s, id));
-  const openAddReview = (id: number) => setExpanded((s) => toggle(s, id, true));
+  const [creatingFor, setCreatingFor] = useState<ApprovalJSON | null>(null);
+  function openAddReview(a: ApprovalJSON) {
+    setExpanded((s) => toggle(s, a.id, true));
+    setCreatingFor(a);
+  }
 
   // Authors may review their own forms — many are filed on their behalf.
   const canReview = (a: ApprovalJSON) => !a.reviewedByMe;
@@ -221,7 +225,7 @@ export function PreReleaseList({
                           {canReview(a) && (
                             <DropdownMenuItem
                               className="cursor-pointer"
-                              onSelect={() => openAddReview(a.id)}
+                              onSelect={() => openAddReview(a)}
                             >
                               <ClipboardCheck className="h-4 w-4" />
                               Add review
@@ -266,14 +270,18 @@ export function PreReleaseList({
                   <TableRow className="bg-muted/60 hover:bg-muted/60">
                     <TableCell colSpan={7} className="p-2 sm:pl-10">
                       <div className="border-muted-foreground/40 bg-background/40 space-y-4 rounded-md border border-dashed px-3 py-2">
-                        {list.length > 0 && (
-                          <ReviewKanbanBoard
-                            reviews={list}
-                            approvals={{ [a.id]: a }}
-                            canDrag={() => canModify(a)}
-                            currentUserId={currentUserId}
-                          />
-                        )}
+                        <ReviewKanbanBoard
+                          reviews={list}
+                          approvals={{ [a.id]: a }}
+                          canDrag={() => canModify(a)}
+                          currentUserId={currentUserId}
+                          addReview={
+                            canReview(a)
+                              ? { approvalId: a.id, currentUserName }
+                              : undefined
+                          }
+                        />
+                        {/* Temporarily hidden while iterating on the kanban board.
                         <ReviewTable
                           approvalId={a.id}
                           reviews={list}
@@ -282,6 +290,7 @@ export function PreReleaseList({
                           isDev={isDev}
                           canAdd={canReview(a)}
                         />
+                        */}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -355,6 +364,14 @@ export function PreReleaseList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {creatingFor && (
+        <NewReviewDialog
+          approval={creatingFor}
+          currentUserName={currentUserName}
+          onClose={() => setCreatingFor(null)}
+        />
+      )}
     </>
   );
 }

@@ -93,15 +93,19 @@ export function ReviewPanel({
         </div>
       </div>
 
-      {reviews.length > 0 && (
-        <ReviewKanbanBoard
-          reviews={reviews}
-          approvals={{ [approval.id]: approval }}
-          canDrag={() => canModify}
-          currentUserId={currentUserId}
-        />
-      )}
+      <ReviewKanbanBoard
+        reviews={reviews}
+        approvals={{ [approval.id]: approval }}
+        canDrag={() => canModify}
+        currentUserId={currentUserId}
+        addReview={
+          canAdd
+            ? { approvalId: approval.id, currentUserName }
+            : undefined
+        }
+      />
 
+      {/* Temporarily hidden while iterating on the kanban board.
       <ReviewTable
         approvalId={approval.id}
         reviews={reviews}
@@ -110,6 +114,7 @@ export function ReviewPanel({
         isDev={isDev}
         canAdd={canAdd}
       />
+      */}
     </section>
   );
 }
