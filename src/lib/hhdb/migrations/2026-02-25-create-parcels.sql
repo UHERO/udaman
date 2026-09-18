@@ -1,0 +1,26 @@
+-- Create parcels table for annual observations of parcel information
+CREATE TABLE parcels (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tmk VARCHAR(30) NOT NULL,
+    scraped_at DATETIME NOT NULL,
+    parcel_number VARCHAR(30),
+    location_address VARCHAR(255),
+    address_other TEXT,
+    project_name VARCHAR(255),
+    legal_information TEXT,
+    property_class VARCHAR(50),
+    land_area_sqft BIGINT UNSIGNED,
+    land_area_acres DECIMAL(12, 4),
+    neighborhood_code VARCHAR(20),
+    zoning VARCHAR(50),
+    parcel_note TEXT,
+    damage VARCHAR(50),
+    reentry_zone VARCHAR(50),
+    zone_color VARCHAR(50),
+    non_taxable_status VARCHAR(50),
+    living_units VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tmk) REFERENCES properties(tmk) ON DELETE CASCADE,
+    INDEX idx_tmk (tmk),
+    INDEX idx_scraped_at (scraped_at)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Annual parcel information observations';

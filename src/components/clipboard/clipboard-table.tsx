@@ -1,0 +1,445 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import type {
+  ClipboardLoaderRow,
+  ClipboardSeriesRow,
+} from "@catalog/collections/clipboard-collection";
+import type { ClipboardAction } from "@catalog/controllers/clipboard";
+import { formatHstTimestamp, isoDate } from "@catalog/utils/time";
+import {
+  ChevronDown,
+  Eraser,
+  FileSpreadsheet,
+  FileText,
+  Globe,
+  Loader2,
+  Lock,
+  Pencil,
+  RefreshCw,
+  RotateCw,
+  Trash2,
+  Unlock,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  clearClipboard,
+  executeClipboardAction,
+  getClipboardSeries,
+  reloadClipboardLoaders,
+  removeSeriesFromClipboard,
+  searchClipboardLoaders,
+} from "@/actions/clipboard-actions";
+import { SAIndicator } from "@/components/common";
+import { getColor } from "@/components/helpers";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import { ClipboardClearDataDialog } from "./clipboard-clear-data-dialog";
+import { ClipboardMetadataDialog } from "./clipboard-metadata-dialog";
+
+const CLIPBOARD_ACTIONS: {
+  action: ClipboardAction;
+  label: string;
+  icon: React.ElementType;
+  destructive?: boolean;
+}[] = [
+  { action: "reload", label: "Reload", icon: RotateCw },
+  { action: "reload_with_deps", label: "Reload with Deps.", icon: RotateCw },
+  { action: "reset", label: "Reset Loaders", icon: RefreshCw },
+  {
+    action: "clear_data",
+    label: "Clear Data Points",
+    icon: Eraser,
+    destructive: true,
+  },
+  { action: "restrict", label: "Restrict", icon: Lock },
+  { action: "unrestrict", label: "Unrestrict", icon: Unlock },
+  { action: "update_public", label: "Update Public Data Points", icon: Globe },
+  { action: "meta_update", label: "Bulk Metadata Update", icon: Pencil },
+  { action: "export_csv", label: "Export CSV", icon: FileSpreadsheet },
+  { action: "export_tsd", label: "Export TSD", icon: FileText },
+  { action: "destroy", label: "Destroy All", icon: Trash2, destructive: true },
+];
+
+export function ClipboardTable({
+  universe,
+  initialData,
+  initialCount,
+}: {
+  universe: string;
+  initialData: ClipboardSeriesRow[];
+  initialCount: number;
+}) {
+  const [rows, setRows] = useState<ClipboardSeriesRow[]>(initialData);
+  const [count, setCount] = useState(initialCount);
+  const [isPending, startTransition] = useTransition();
+  const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+  const [clearDataDialogOpen, setClearDataDialogOpen] = useState(false);
+
+  // Loader filter state
+  const [loaderFilter, setLoaderFilter] = useState("");
+  const [loaderRows, setLoaderRows] = useState<ClipboardLoaderRow[]>([]);
+  const isLoaderView = loaderFilter.length > 0;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchData = useCallback(() => {
+    startTransition(async () => {
+      const result = await getClipboardSeries();
+      setRows(result.data as ClipboardSeriesRow[]);
+      setCount(result.count);
+    });
+  }, []);
+
+  // Debounced loader search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!loaderFilter) {
+      setLoaderRows([]);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      startTransition(async () => {
+        try {
+          const result = await searchClipboardLoaders(loaderFilter);
+          setLoaderRows(result.data as ClipboardLoaderRow[]);
+        } catch {
+          setLoaderRows([]);
+        }
+      });
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [loaderFilter]);
+
+  const handleReloadLoaders = () => {
+    const ids = loaderRows.map((r) => r.loaderId);
+    startTransition(async () => {
+      try {
+        const result = await reloadClipboardLoaders(ids);
+        toast.info(result.message);
+      } catch (err) {
+        toast.error("Loader reload failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
+  };
+
+  const handleRemove = (seriesId: number) => {
+    const series = rows.find((r) => r.id === seriesId);
+    startTransition(async () => {
+      try {
+        await removeSeriesFromClipboard(seriesId);
+        toast.success("Removed from clipboard", {
+          description: series?.name ?? `Series ${seriesId}`,
+        });
+        fetchData();
+      } catch (err) {
+        toast.error("Failed to remove series", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
+  };
+
+  const handleClearAll = () => {
+    startTransition(async () => {
+      try {
+        const result = await clearClipboard();
+        toast.success("Clipboard cleared", {
+          description: result.message,
+        });
+        fetchData();
+      } catch (err) {
+        toast.error("Failed to clear clipboard", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
+  };
+
+  const handleAction = (action: ClipboardAction) => {
+    // File exports are downloads — open in new tab
+    if (action === "export_csv") {
+      window.open("/api/clipboard/csv", "_blank");
+      return;
+    }
+    if (action === "export_tsd") {
+      window.open("/api/clipboard/tsd", "_blank");
+      return;
+    }
+    // Metadata update opens a dialog
+    if (action === "meta_update") {
+      setMetadataDialogOpen(true);
+      return;
+    }
+    // Clear data points opens a dialog to choose which points to clear
+    if (action === "clear_data") {
+      setClearDataDialogOpen(true);
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await executeClipboardAction(action);
+        toast.info(result.message);
+      } catch (err) {
+        toast.error("Clipboard action failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-muted-foreground text-sm">
+          {isPending ? (
+            <Loader2 className="inline size-4 animate-spin" />
+          ) : (
+            <>{count} series on clipboard</>
+          )}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {count > 0 && (
+            <>
+              <Input
+                placeholder="Filter loaders..."
+                value={loaderFilter}
+                onChange={(e) => setLoaderFilter(e.target.value)}
+                className="h-8 w-full sm:w-48"
+              />
+
+              {isLoaderView ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending || loaderRows.length === 0}
+                  onClick={handleReloadLoaders}
+                >
+                  <RotateCw className="mr-1 size-4" />
+                  Reload Loaders
+                </Button>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={isPending}>
+                      Actions
+                      <ChevronDown className="ml-1 size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {CLIPBOARD_ACTIONS.map((item, i) => (
+                      <span key={item.action}>
+                        {item.destructive && i > 0 && <DropdownMenuSeparator />}
+                        <DropdownMenuItem
+                          onClick={() => handleAction(item.action)}
+                          className={
+                            item.destructive ? "text-destructive" : undefined
+                          }
+                        >
+                          <item.icon className="mr-2 size-4" />
+                          {item.label}
+                        </DropdownMenuItem>
+                      </span>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isPending}>
+                    Clear Clipboard
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear clipboard?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will remove all {count} series from your clipboard.
+                      The series themselves will not be affected.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearAll}>
+                      Clear Clipboard
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
+        </div>
+      </div>
+
+      {isLoaderView ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Series Name</TableHead>
+              <TableHead>Eval</TableHead>
+              <TableHead>Last Run</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loaderRows.length === 0 && !isPending ? (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className="text-muted-foreground h-24 text-center"
+                >
+                  No loaders match filter
+                </TableCell>
+              </TableRow>
+            ) : (
+              loaderRows.map((row) => (
+                <TableRow key={row.loaderId} className={getColor(row.color)}>
+                  <TableCell className="font-mono text-sm">
+                    <Link
+                      href={`/udaman/${universe}/series/${row.seriesId}`}
+                      className="text-primary hover:underline"
+                    >
+                      {row.seriesName}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-md truncate text-sm">
+                    {row.eval}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {formatHstTimestamp(row.lastRunAt)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Geo</TableHead>
+              <TableHead>Freq</TableHead>
+              <TableHead>SA</TableHead>
+              <TableHead>Units</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>First</TableHead>
+              <TableHead>Last</TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 && !isPending ? (
+              <TableRow>
+                <TableCell
+                  colSpan={9}
+                  className="text-muted-foreground h-24 text-center"
+                >
+                  No series on clipboard.
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row, i) => (
+                <TableRow
+                  key={row.id}
+                  className={i % 2 === 0 ? "bg-muted" : ""}
+                >
+                  <TableCell className="font-mono text-sm">
+                    <Link
+                      href={`/udaman/${universe}/series/${row.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {row.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.geography ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.frequency ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <SAIndicator sa={row.seasonalAdjustment} />
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.unitShortLabel ?? "-"}
+                  </TableCell>
+                  <TableCell className="max-w-48 truncate text-sm">
+                    {row.sourceDescription ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.minDate ? isoDate(row.minDate) : "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.maxDate ? isoDate(row.maxDate) : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      disabled={isPending}
+                      onClick={() => handleRemove(row.id)}
+                    >
+                      <X className="size-4" />
+                      <span className="sr-only">Remove</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
+
+      <ClipboardMetadataDialog
+        open={metadataDialogOpen}
+        onOpenChange={setMetadataDialogOpen}
+        universe={universe}
+        clipboardCount={count}
+        onSuccess={fetchData}
+      />
+      <ClipboardClearDataDialog
+        open={clearDataDialogOpen}
+        onOpenChange={setClearDataDialogOpen}
+        clipboardCount={count}
+        onSuccess={fetchData}
+      />
+    </div>
+  );
+}

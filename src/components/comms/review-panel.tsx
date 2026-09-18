@@ -1,0 +1,120 @@
+"use client";
+
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { ApprovalJSON } from "@catalog/models/approval";
+import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
+import { Rocket, Undo2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { setApprovalReleased } from "@/actions/approvals";
+import { Button } from "@/components/ui/button";
+
+import { ReviewKanbanBoard } from "./review-kanban-board";
+import { formatReviewTimestamp, ReviewTable } from "./review-table";
+
+/**
+ * The review thread on a form's detail page plus, for eligible viewers, an
+ * "Add review" form. Authors may review their own form — forms are often
+ * filed on the author's behalf.
+ */
+export function ReviewPanel({
+  approval,
+  reviews,
+  currentUserId,
+  currentUserName,
+  isAdmin,
+  isDev,
+}: {
+  approval: ApprovalJSON;
+  reviews: ApprovalReviewJSON[];
+  currentUserId: number;
+  currentUserName: string;
+  isAdmin: boolean;
+  isDev: boolean;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const mine = reviews.some((r) => r.reviewerUserId === currentUserId);
+  const isAuthor = approval.authorUserId === currentUserId;
+  const canRelease = isAuthor || isAdmin;
+  // Authors may review their own form — many are filed on their behalf.
+  const canAdd = !mine;
+  const canModify = isAuthor || isAdmin;
+
+  function handleRelease(released: boolean) {
+    startTransition(async () => {
+      try {
+        const result = await setApprovalReleased(approval.id, released);
+        toast.success(result.message);
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Update failed");
+      }
+    });
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Review</h2>
+          <p className="text-muted-foreground text-sm">
+            {approval.reviewCount} of {approval.requiredReviews} required
+            reviews
+            {approval.isReviewed ? " — reviewed" : ""}
+            {approval.releasedAt
+              ? ` · released ${formatReviewTimestamp(approval.releasedAt)}`
+              : ""}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {canRelease && (
+            <Button
+              type="button"
+              variant={approval.isReleased ? "outline" : "default"}
+              className="cursor-pointer"
+              disabled={isPending}
+              onClick={() => handleRelease(!approval.isReleased)}
+            >
+              {approval.isReleased ? (
+                <>
+                  <Undo2 className="h-4 w-4" />
+                  Undo release
+                </>
+              ) : (
+                <>
+                  <Rocket className="h-4 w-4" />
+                  Mark released
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <ReviewKanbanBoard
+        reviews={reviews}
+        approvals={{ [approval.id]: approval }}
+        canDrag={() => canModify}
+        currentUserId={currentUserId}
+        addReview={
+          canAdd
+            ? { approvalId: approval.id, currentUserName }
+            : undefined
+        }
+      />
+
+      {/* Temporarily hidden while iterating on the kanban board.
+      <ReviewTable
+        approvalId={approval.id}
+        reviews={reviews}
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
+        isDev={isDev}
+        canAdd={canAdd}
+      />
+      */}
+    </section>
+  );
+}

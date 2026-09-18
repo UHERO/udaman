@@ -1,0 +1,187 @@
+import { Queue } from "bullmq";
+
+import { redisConnection } from "./connection";
+
+// ─── Job name constants ──────────────────────────────────────────────
+
+export const JobName = {
+  SERIES_RELOAD: "series.reload",
+  RELOAD_JOB: "reload-job.process",
+  TSD_EXPORT: "tsd.export",
+  UPDATE_PUBLIC: "public.update",
+  ADMIN_ACTION: "admin.action",
+  DBEDT_UPLOAD: "upload.dbedt",
+  DVW_UPLOAD: "upload.dvw",
+  API_DVW_RELOAD: "reload.api-dvw",
+  DEPENDENCY_RESET: "admin.dependency-reset",
+  PURGE_OLD: "admin.purge-old",
+  BATCH_RELOAD: "reload.batch",
+  TARGETED_RELOAD: "reload.targeted",
+  RELOAD_BLS: "reload.bls",
+  RELOAD_BEA: "reload.bea",
+  RELOAD_TOUR_OCUP: "reload.tour_ocup",
+  RELOAD_SA: "reload.sa",
+  RELOAD_VAP_HI: "reload.vap_hi",
+  RELOAD_UIC: "reload.uic",
+  DOWNLOAD: "download.file",
+  KAUAI_EXPORT: "export.kauai",
+  QPUB_REPARSE: "qpub.reparse",
+  CLIPBOARD_ACTION: "clipboard.action",
+  CLIPBOARD_LOADER_RELOAD: "clipboard.loader-reload",
+  UNIVERSE_ARCHIVE: "universe.archive",
+  UNIVERSE_PURGE: "universe.purge",
+} as const;
+
+export type JobNameValue = (typeof JobName)[keyof typeof JobName];
+
+// ─── Job data types ──────────────────────────────────────────────────
+
+export type SeriesReloadJobData = {
+  seriesId: number;
+  loaderId: number;
+  clearFirst: boolean;
+  batchId?: string;
+};
+
+/**
+ * Upload jobs come in two flavours:
+ *  - legacy: `filePath` points at an XLSX to parse in the worker
+ *  - staged: `stagedDir` points at a directory of JSON chunk files written
+ *    by the streaming API route (client parsed the XLSX). `filePath` is
+ *    the same directory in that case, kept for log/compat.
+ */
+export type DbedtUploadJobData = {
+  uploadId: number;
+  filePath: string;
+  stagedDir?: string;
+};
+
+export type DvwUploadJobData = {
+  uploadId: number;
+  filePath: string;
+  stagedDir?: string;
+};
+
+export type ReloadJobData = {
+  reloadJobId: number;
+};
+
+export type TsdExportJobData = Record<string, never>;
+
+export type UpdatePublicJobData = {
+  universe?: string;
+};
+
+export type AdminActionJobData = {
+  action: "clear_cache" | "restart_rest" | "restart_dvw" | "sync_nas";
+};
+
+export type ApiDvwReloadJobData = {
+  dvwUploadId: number;
+};
+
+export type DependencyResetJobData = Record<string, never>;
+
+export type PurgeOldJobData = Record<string, never>;
+
+export type BatchReloadJobData = {
+  excludeSearches: string[];
+  updatePublic: boolean;
+};
+
+export type TargetedReloadJobData = {
+  name: string;
+  search: string;
+  nightly: boolean;
+  updatePublic: boolean;
+  groupSize?: number;
+};
+
+export type DownloadJobData = {
+  handle: string;
+};
+
+export type KauaiExportJobData = Record<string, never>;
+
+export type ClipboardActionJobData = {
+  reloadJobId: number;
+  action:
+    | "reload"
+    | "reload_with_deps"
+    | "reset"
+    | "clear_data"
+    | "restrict"
+    | "unrestrict"
+    | "destroy"
+    | "update_public";
+  seriesIds: number[];
+  /** Only for `clear_data`; absent (older jobs) means clear all points */
+  clearOptions?: {
+    deleteBy:
+      | "observationDate"
+      | "beforeObservationDate"
+      | "vintageDate"
+      | "currentOnly"
+      | "none";
+    date?: string;
+  };
+};
+
+export type ClipboardLoaderReloadJobData = {
+  reloadJobId: number;
+  loaderIds: number[];
+};
+
+export type QpubReparseJobData = {
+  /** Key from TABLE_LOADERS (e.g., 'residential_improvements', 'parcels') */
+  table: string;
+  /** Filter by island code ('1','2','3','4') */
+  island?: string;
+  /** NAS period dir (e.g., '2026-1'). Default: all available periods */
+  period?: string;
+  /** Progress report interval (default: 500) */
+  batchSize?: number;
+};
+
+export type UniverseArchiveJobData = {
+  universe: string;
+};
+
+export type UniversePurgeJobData = {
+  universe: string;
+};
+
+// ─── Queue instances ─────────────────────────────────────────────────
+
+const defaultOpts = {
+  connection: redisConnection,
+  prefix: "udaman",
+  defaultJobOptions: {
+    removeOnComplete: { age: 7 * 24 * 60 * 60 }, // 7 days
+    removeOnFail: { age: 30 * 24 * 60 * 60 }, // 30 days
+    attempts: 1,
+  },
+};
+
+export const defaultQueue = new Queue("default", defaultOpts);
+export const criticalQueue = new Queue("critical", defaultOpts);
+/**
+ * Jobs that run under the cross-process heavy-DB lock (batch/targeted
+ * reloads, public sweeps, dependency reset, universe archive/purge).
+ * Consumed by a single-concurrency worker, so BullMQ serializes them in
+ * FIFO order and the MySQL lock is only ever contended by the upload
+ * jobs on `critical` (which take it with priority) or by the web process.
+ * Before this queue existed a heavy job *waiting* on the lock sat in one
+ * of the two default slots doing nothing, and two heavies (e.g. a reload
+ * plus the sweep it enqueues) blocked the default queue entirely.
+ */
+export const heavyQueue = new Queue("heavy", defaultOpts);
+/**
+ * Interactive jobs (clipboard actions, single-series reloads from the UI).
+ * Separate queue + worker so they can never starve behind heavy jobs: a
+ * heavy job *waiting* on the cross-process DB lock still occupies one of
+ * the default worker's slots, and with two heavies lined up (e.g. the
+ * 10:00 SA and 10:20 BLS reloads) the default queue is fully blocked for
+ * up to the lock timeout.
+ */
+export const lightQueue = new Queue("light", defaultOpts);

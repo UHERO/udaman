@@ -1,0 +1,72 @@
+import { redirect } from "next/navigation";
+
+import { auth } from ".";
+
+/**
+ * Get the current session and user, or null if not authenticated.
+ * Use this in server components and server actions where auth is optional.
+ */
+export async function getSession() {
+  const session = await auth();
+  if (!session?.user) return null;
+  return session;
+}
+
+/**
+ * Require authentication. Redirects to /udaman if not authenticated.
+ * Use this in server components and server actions that need a logged-in user.
+ * Returns the session (never null).
+ */
+export async function requireAuth() {
+  const session = await getSession();
+  if (!session) redirect("/udaman");
+  return session;
+}
+
+/**
+ * Get the current authenticated user's numeric ID.
+ * Redirects to /udaman if not authenticated.
+ * Drop-in async replacement for the old getCurrentUserId() stub.
+ */
+export async function getCurrentUserId(): Promise<number> {
+  const session = await requireAuth();
+  return parseInt(session.user!.id!);
+}
+
+/**
+ * Get the current authenticated user's role.
+ * Redirects to /udaman if not authenticated.
+ * Defaults to "external" if role is not set in the session.
+ */
+export async function getCurrentUserRole(): Promise<string> {
+  const session = await requireAuth();
+  return session.user.role ?? "external";
+}
+
+/**
+ * Get the current authenticated user's universe.
+ * Redirects to /udaman if not authenticated.
+ * Defaults to "UHERO" if universe is not set in the session.
+ */
+export async function getCurrentUserUniverse(): Promise<string> {
+  const session = await requireAuth();
+  return session.user.universe ?? "UHERO";
+}
+
+/**
+ * Get the current authenticated user's role and universe together.
+ * Redirects to /udaman if not authenticated.
+ * Single session read — use this when you need both values.
+ */
+export async function getCurrentUserContext(): Promise<{
+  role: string;
+  universe: string;
+  userId: string;
+}> {
+  const session = await requireAuth();
+  return {
+    role: session.user.role ?? "external",
+    universe: session.user.universe ?? "UHERO",
+    userId: session.user.id ?? "user not found",
+  };
+}

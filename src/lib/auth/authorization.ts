@@ -1,0 +1,121 @@
+import "server-only";
+
+import { isFellow, normalizeUniverse } from "./roles";
+
+/**
+ * Role+universe predicates ported from Rails User model.
+ * These match the Rails app's authorization checks exactly.
+ */
+
+export class PermissionDeniedError extends Error {
+  constructor(resource: string, action: string, role: string) {
+    super(`Permission denied: role "${role}" cannot ${action} on ${resource}`);
+    this.name = "PermissionDeniedError";
+  }
+}
+
+/** UHERO internal, admin, or dev */
+export function isInternalUser(role: string, universe: string): boolean {
+  return (
+    normalizeUniverse(universe) === "UHERO" &&
+    (role === "internal" || role === "admin" || role === "dev")
+  );
+}
+
+/** UHERO admin or dev */
+export function isAdminUser(role: string, universe: string): boolean {
+  return (
+    normalizeUniverse(universe) === "UHERO" &&
+    (role === "admin" || role === "dev")
+  );
+}
+
+/** DBEDT external user */
+export function isDbedt(role: string, universe: string): boolean {
+  return normalizeUniverse(universe) === "DBEDT" && role === "external";
+}
+
+/** HHF internal/admin/dev user (Hawaii Housing Factbook universe) */
+export function isHhf(role: string, universe: string): boolean {
+  return (
+    normalizeUniverse(universe) === "HHF" &&
+    (role === "internal" || role === "admin" || role === "dev")
+  );
+}
+
+/** Forecast-only user (any universe) */
+export function isFsonly(role: string): boolean {
+  return role === "fsonly";
+}
+
+export { isFellow };
+
+// Landing path lives with the route manifest so it stays in sync with the
+// sidebar/middleware policy. Re-exported here for existing server callers.
+export { getLandingPath } from "./route-access";
+
+/**
+ * Gate 1 — Coarse role+universe policy.
+ *
+ * Checks hardcoded rules matching the Rails Authorization module.
+ * Throws PermissionDeniedError on denial.
+ * Returns void (passes) if the role+universe is allowed.
+ */
+export function enforceAccessPolicy(
+  role: string,
+  universe: string,
+  resource: string,
+  action: string,
+): void {
+  // Fellows have no hardcoded policy: Gate 2 (the role_permissions rows a
+  // dev edits on the admin Permissions page) is the whole story for them.
+  // Per-record ownership (e.g. editing only your own pre-release form) is
+  // still enforced in the relevant controller.
+  if (isFellow(role)) return;
+
+  // Upload resources: DBEDT external users allowed for any action
+  if (resource === "upload") {
+    if (isDbedt(role, universe)) return; // allowed
+    // Otherwise fall through to general check
+  }
+
+  // HHF internal+ users manage their own universe via the factbook upload
+  // pipeline, same as UHERO internal+ users do for UHERO.
+  if (isHhf(role, universe)) return;
+
+  // Forecast snapshots: fsonly can read; admin+ can delete
+  if (resource === "forecast-snapshot") {
+    if (isFsonly(role) && action === "read") return; // allowed
+    if (isAdminUser(role, universe)) return; // admin can do anything
+    // Otherwise fall through to general check
+  }
+
+  // Approvals: any internal+ user files their own sign-off form (e.g. the
+  // pre-release form), so writes here can't require admin+ like the general
+  // rule below does. Per-record ownership — you may only edit or delete an
+  // approval you authored — is enforced in the approvals controller, since
+  // this gate has no access to the record.
+  if (resource === "approval") {
+    if (isInternalUser(role, universe)) return; // allowed
+    // Otherwise fall through to general check
+  }
+
+  // Export CSV: fsonly can download CSVs
+  if (resource === "export") {
+    if (isFsonly(role) && action === "csv-download") return; // allowed
+    // Otherwise fall through to general check
+  }
+
+  // General check: reads require internal+, writes require admin+
+  const isRead = action === "read" || action === "csv-download";
+  if (isRead) {
+    if (!isInternalUser(role, universe)) {
+      throw new PermissionDeniedError(resource, action, role);
+    }
+  } else {
+    // write / create / update / delete / execute
+    if (!isAdminUser(role, universe)) {
+      throw new PermissionDeniedError(resource, action, role);
+    }
+  }
+}

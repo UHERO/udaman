@@ -1,0 +1,584 @@
+import DataPointCollection from "@catalog/collections/data-point-collection";
+import GeographyCollection from "@catalog/collections/geography-collection";
+import LoaderCollection from "@catalog/collections/loader-collection";
+import MeasurementCollection from "@catalog/collections/measurement-collection";
+import SeriesCollection from "@catalog/collections/series-collection";
+import type {
+  DeleteByMode,
+  SeriesListPreset,
+} from "@catalog/collections/series-collection";
+import Series from "@catalog/models/series";
+import EvalExecutor from "@catalog/utils/eval-executor";
+
+import { logControllerCall } from "@/core/observability/app-events";
+import { createLogger } from "@/core/observability/logger";
+
+import Measurements from "../models/measurements";
+import type { AnalyzeResult, CompareResult, Universe } from "../types/shared";
+
+const log = createLogger("catalog.series");
+
+/*************************************************************************
+ * SERIES Controller
+ *************************************************************************/
+
+export async function getSeries({
+  offset,
+  limit,
+  universe,
+  preset,
+}: {
+  offset?: number;
+  limit?: number;
+  universe: Universe;
+  preset?: SeriesListPreset;
+}) {
+  logControllerCall("series", "getSeries", { offset, limit, universe, preset });
+  log.info({ offset, limit, universe, preset }, "fetching series summary list");
+  const data = await SeriesCollection.getSummaryList({
+    offset,
+    limit,
+    universe,
+    preset,
+  });
+  log.info({ count: data.length, universe }, "series summary list fetched");
+  return { data, offset, limit };
+}
+
+export async function getSeriesById({ id }: { id: number }) {
+  logControllerCall("series", "getSeriesById", { id });
+  log.info({ id }, "fetching series by id");
+
+  // Fetch metadata first — we need xs_id for the data points query
+  const metadata = await SeriesCollection.getSeriesMetadata({ id });
+
+  const [measurement, dataPoints, loaders] = await Promise.all([
+    Measurements.getSeriesMeasurements({ seriesId: id }),
+    DataPointCollection.getBySeriesId({ xseriesId: metadata.xs_id }),
+    LoaderCollection.getBySeriesId(id),
+  ]);
+
+  const aliases = await SeriesCollection.getAliases({
+    sId: id,
+    xsId: metadata.xs_id,
+  });
+
+  log.info({ id, dataPointCount: dataPoints.length }, "series fetched");
+
+  return {
+    data: {
+      aliases: aliases.map((d) => d.toJSON()),
+      dataPoints: dataPoints,
+      loaders: loaders.map((d) => d.toJSON()),
+      measurement: measurement,
+      metadata: metadata,
+    },
+  };
+}
+
+export async function getSourceMap({ name }: { name: string }) {
+  log.info({ name }, "fetching source map");
+  const data = await LoaderCollection.getDependencyTree(name);
+  return { data };
+}
+
+/**
+ * First-order dependents of a series — the list rendered in the
+ * "Who depends on me" block on the series show page.
+ * Ports Rails SeriesController@show behavior around @dependencies.
+ */
+export async function getSeriesDependents({
+  name,
+  universe,
+}: {
+  name: string;
+  universe: Universe;
+}) {
+  logControllerCall("series", "getSeriesDependents", { name, universe });
+  log.info({ name, universe }, "fetching direct dependents for series");
+  const data = await SeriesCollection.getDirectDependents(name, universe);
+  log.info({ name, universe, count: data.length }, "direct dependents fetched");
+  return { data };
+}
+
+export async function deleteSeriesDataPoints({
+  id,
+  u,
+  date,
+  deleteBy,
+}: {
+  id: number;
+  u: Universe;
+  date?: string;
+  deleteBy: DeleteByMode;
+}) {
+  log.info({ id, universe: u, deleteBy, date }, "deleting series data points");
+  const data = await SeriesCollection.deleteDataPoints({
+    id,
+    u,
+    date,
+    deleteBy,
+  });
+  log.info({ id, deleteBy }, "series data points deleted");
+  return { data };
+}
+
+export async function getSeriesWithNullField({
+  universe,
+  field,
+  page,
+  perPage,
+}: {
+  universe: string;
+  field: string;
+  page?: number;
+  perPage?: number;
+}) {
+  log.info({ universe, field, page }, "fetching series with null field");
+  const result = await SeriesCollection.getWithNullField(
+    universe,
+    field,
+    page,
+    perPage,
+  );
+  log.info(
+    { universe, field, totalCount: result.totalCount },
+    "series with null field fetched",
+  );
+  return result;
+}
+
+export async function getQuarantinedSeries({
+  universe,
+  page,
+  perPage,
+}: {
+  universe: string;
+  page?: number;
+  perPage?: number;
+}) {
+  log.info({ universe, page }, "fetching quarantined series");
+  const result = await SeriesCollection.getQuarantined(universe, page, perPage);
+  log.info(
+    { universe, totalCount: result.totalCount },
+    "quarantined series fetched",
+  );
+  return result;
+}
+
+export async function unquarantineSeries({ seriesId }: { seriesId: number }) {
+  log.info({ seriesId }, "unquarantining series");
+  await SeriesCollection.unquarantine(seriesId);
+  log.info({ seriesId }, "series unquarantined");
+}
+
+export async function emptyQuarantine({ universe }: { universe: string }) {
+  log.info({ universe }, "emptying quarantine");
+  const count = await SeriesCollection.emptyQuarantine(universe);
+  log.info({ universe, count }, "quarantine emptied");
+  return count;
+}
+
+export async function updateSeries({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: import("@catalog/collections/series-collection").UpdateSeriesPayload;
+}) {
+  logControllerCall("series", "updateSeries", { id });
+  log.info({ id }, "updating series");
+  const result = await SeriesCollection.update(id, payload);
+  log.info({ id, name: result.name }, "series updated");
+  return { message: "Series updated", data: result };
+}
+
+export async function duplicateSeries({
+  sourceId,
+  payload,
+  copyLoaders,
+}: {
+  sourceId: number;
+  payload: import("@catalog/collections/series-collection").CreateSeriesPayload;
+  copyLoaders: boolean;
+}) {
+  log.info({ sourceId, name: payload.name, copyLoaders }, "duplicating series");
+  const newSeries = await SeriesCollection.create(payload);
+
+  if (copyLoaders) {
+    const loaders = await LoaderCollection.getEnabledBySeriesId(sourceId);
+    for (const loader of loaders) {
+      await LoaderCollection.create({
+        seriesId: newSeries.id!,
+        code: loader.eval ?? "",
+        universe: payload.universe ?? "UHERO",
+        priority: loader.priority,
+        scale: Number(loader.scale) || 1,
+        presaveHook: loader.presaveHook ?? "",
+        clearBeforeLoad: loader.clearBeforeLoad,
+        pseudoHistory: loader.pseudoHistory,
+      });
+    }
+    log.info(
+      { sourceId, newId: newSeries.id, loadersCopied: loaders.length },
+      "loaders copied",
+    );
+  }
+
+  log.info(
+    { sourceId, newId: newSeries.id, name: newSeries.name },
+    "series duplicated",
+  );
+  return { message: "Series duplicated", data: newSeries };
+}
+
+export async function deleteSeries({
+  id,
+  force,
+}: {
+  id: number;
+  force?: boolean;
+}) {
+  logControllerCall("series", "deleteSeries", { id, force });
+  log.info({ id, force }, "deleting series");
+  await SeriesCollection.delete(id, { force });
+  log.info({ id }, "series deleted");
+  return { message: "Series deleted" };
+}
+
+export async function searchSeries({
+  term,
+  universe = "uhero",
+  limit,
+}: {
+  term: string;
+  universe: string;
+  limit?: number;
+}) {
+  logControllerCall("series", "searchSeries", { term, universe, limit });
+  log.info({ term, universe, limit }, "search series");
+  const results = await SeriesCollection.search({
+    text: term,
+    universe,
+    limit,
+  });
+  const ids = results
+    .map((s) => s.id)
+    .filter((id): id is number => id !== null);
+  const summaries = await SeriesCollection.getSummaryByIds(ids);
+  log.info({ found: summaries.length }, "search series");
+  return summaries;
+}
+
+// ─── Analyze / Transform ─────────────────────────────────────────────
+
+/** Convert a Series' data Map to sorted [date, value] tuples. */
+function mapToTuples(data: Map<string, number>): [string, number][] {
+  return [...data.entries()]
+    .filter(([, v]) => v != null)
+    .sort(([a], [b]) => a.localeCompare(b));
+}
+
+export async function analyzeSeries({
+  id,
+}: {
+  id: number;
+}): Promise<AnalyzeResult> {
+  log.info({ id }, "analyzing series");
+
+  const series = await SeriesCollection.getById(id);
+  await SeriesCollection.loadCurrentData(series);
+
+  const yoySeries = series.yoy();
+  const diffSeries = series.diff();
+  const ytdSeries = series.ytd();
+  const popSeries = series.pop();
+
+  const siblings = await SeriesCollection.getFrequencySiblings(series);
+
+  log.info({ id, observations: series.observationCount }, "series analyzed");
+
+  return {
+    series: series.toAnalyzeJSON(),
+    yoy: mapToTuples(yoySeries.data),
+    levelChange: mapToTuples(diffSeries.data),
+    ytd: mapToTuples(ytdSeries.data),
+    pop: mapToTuples(popSeries.data),
+    stats: {
+      mean: series.mean(),
+      median: series.median(),
+      standardDeviation: series.standardDeviation(),
+    },
+    siblings,
+    unitLabel: series.unitLabel,
+    unitShortLabel: series.unitShortLabel,
+  };
+}
+
+export async function transformSeries({
+  evalStr,
+}: {
+  evalStr: string;
+}): Promise<AnalyzeResult> {
+  log.info({ evalStr }, "transforming series expression");
+
+  const result = await EvalExecutor.run(evalStr);
+
+  const yoySeries = result.yoy();
+  const diffSeries = result.diff();
+  const ytdSeries = result.ytd();
+  const popSeries = result.pop();
+
+  // Extract series names from the eval expression (quoted: "NAME".ts / "NAME".tsn)
+  const SERIES_NAME_RE =
+    /["']([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])["']\.tsn?/gi;
+  const seriesNames = [
+    ...new Set([...evalStr.matchAll(SERIES_NAME_RE)].map((m) => m[1])),
+  ];
+  const seriesLinks =
+    seriesNames.length > 0
+      ? await SeriesCollection.getIdsByNames(seriesNames)
+      : {};
+
+  // Load the most recent value for each referenced series
+  const seriesLastValues: Record<string, number> = {};
+  for (const name of seriesNames) {
+    try {
+      const s = await SeriesCollection.getByName(name);
+      await SeriesCollection.loadCurrentData(s);
+      const lastDate = s.lastObservation;
+      if (lastDate) {
+        const val = s.data.get(lastDate);
+        if (val != null) seriesLastValues[name] = val;
+      }
+    } catch {
+      // series not found — skip
+    }
+  }
+
+  // Get the last value of the computed result
+  const resultLastDate = result.lastObservation;
+  const resultValue = resultLastDate
+    ? (result.data.get(resultLastDate) ?? null)
+    : null;
+
+  log.info(
+    { evalStr, observations: result.observationCount },
+    "series transformed",
+  );
+
+  return {
+    series: {
+      ...result.toAnalyzeJSON(),
+      name: evalStr,
+    },
+    yoy: mapToTuples(yoySeries.data),
+    levelChange: mapToTuples(diffSeries.data),
+    ytd: mapToTuples(ytdSeries.data),
+    pop: mapToTuples(popSeries.data),
+    stats: {
+      mean: result.mean(),
+      median: result.median(),
+      standardDeviation: result.standardDeviation(),
+    },
+    seriesLinks,
+    seriesLastValues,
+    resultValue,
+    resultDate: resultLastDate ?? null,
+    unitLabel: result.unitLabel ?? null,
+    unitShortLabel: result.unitShortLabel ?? null,
+  };
+}
+
+// ─── Compare (multi-series) ─────────────────────────────────────────
+
+export async function compareSeries({
+  names,
+  universe,
+}: {
+  names: string[];
+  universe?: string;
+}): Promise<CompareResult> {
+  log.info({ names }, "comparing series");
+
+  const entries = await Promise.all(
+    names.map(async (name) => {
+      const s = await SeriesCollection.getByName(name);
+      await SeriesCollection.loadCurrentData(s);
+      const json = s.toAnalyzeJSON();
+      return {
+        name,
+        data: json.data,
+        decimals: json.decimals,
+        frequencyCode: json.frequencyCode,
+        unitShortLabel: s.unitShortLabel,
+      };
+    }),
+  );
+
+  const seriesLinks = await SeriesCollection.getIdsByNames(names, universe);
+
+  log.info({ count: entries.length, names }, "series compared");
+
+  return { series: entries, seriesLinks };
+}
+
+// ─── Compare suggestions ────────────────────────────────────────────
+
+/**
+ * Given a series name, find all geo variants that exist in the DB.
+ * Returns the list of existing names (preserving geo list_order), or null if ≤1.
+ */
+export async function getCompareAllGeos({
+  name,
+  universe,
+}: {
+  name: string;
+  universe: string;
+}): Promise<string[] | null> {
+  log.info({ name, universe }, "getCompareAllGeos");
+
+  const parsed = Series.parseName(name);
+  const geos = await GeographyCollection.list({
+    universe: universe as Universe,
+  });
+
+  const candidates = geos
+    .filter((g) => g.handle)
+    .map((g) => {
+      try {
+        return Series.buildName(parsed.prefix, g.handle!, parsed.freq);
+      } catch {
+        return null;
+      }
+    })
+    .filter((n): n is string => n !== null);
+
+  if (candidates.length === 0) return null;
+
+  const existing = await SeriesCollection.getIdsByNames(candidates, universe);
+  // Preserve geo list_order by filtering candidates (already ordered)
+  const result = candidates.filter((n) => n in existing);
+
+  return result.length > 1 ? result : null;
+}
+
+/**
+ * Given a series name, find its SA/NSA counterpart.
+ * Returns [name, counterpart] if counterpart exists, null otherwise.
+ */
+export async function getCompareSANS({
+  name,
+  universe,
+}: {
+  name: string;
+  universe?: string;
+}): Promise<string[] | null> {
+  log.info({ name }, "getCompareSANS");
+
+  const parsed = Series.parseName(name);
+  let counterpartPrefix: string;
+
+  if (/NS$/i.test(parsed.prefix)) {
+    counterpartPrefix = parsed.prefix.replace(/NS$/i, "");
+  } else {
+    counterpartPrefix = parsed.prefix + "NS";
+  }
+
+  let counterpartName: string;
+  try {
+    counterpartName = Series.buildName(
+      counterpartPrefix,
+      parsed.geo,
+      parsed.freq,
+    );
+  } catch {
+    return null;
+  }
+
+  const existing = await SeriesCollection.getIdsByNames(
+    [counterpartName],
+    universe,
+  );
+  if (!(counterpartName in existing)) return null;
+
+  return [name, counterpartName];
+}
+
+export type CompareMeasurementResult = {
+  names: string[] | null;
+  counterpartNames: string[] | null;
+  counterpartLabel: string | null; // "SA" or "NS"
+};
+
+/**
+ * Given a series name, find all series in the same measurement with matching
+ * frequency. For Q/M frequencies, also find the SA/NS counterpart measurement.
+ */
+export async function getCompareMeasurement({
+  name,
+  universe,
+}: {
+  name: string;
+  universe: string;
+}): Promise<CompareMeasurementResult> {
+  log.info({ name, universe }, "getCompareMeasurement");
+
+  const parsed = Series.parseName(name);
+  const result: CompareMeasurementResult = {
+    names: null,
+    counterpartNames: null,
+    counterpartLabel: null,
+  };
+
+  // Get series in same measurement at matching frequency
+  try {
+    const measurement = await MeasurementCollection.getByPrefix(
+      parsed.prefix,
+      universe as Universe,
+    );
+    const allNames = await MeasurementCollection.getSeriesNames(measurement.id);
+    const filtered = allNames.filter((n) => {
+      try {
+        return Series.parseName(n).freq === parsed.freq;
+      } catch {
+        return false;
+      }
+    });
+    result.names = filtered.length > 1 ? filtered : null;
+  } catch {
+    // No measurement for this prefix
+  }
+
+  // For Q and M, find the SA/NS counterpart measurement
+  if (parsed.freq === "Q" || parsed.freq === "M") {
+    const isNS = /NS$/i.test(parsed.prefix);
+    const counterpartPrefix = isNS
+      ? parsed.prefix.replace(/NS$/i, "")
+      : parsed.prefix + "NS";
+    result.counterpartLabel = isNS ? "SA" : "NS";
+
+    try {
+      const counterpartMeasurement = await MeasurementCollection.getByPrefix(
+        counterpartPrefix,
+        universe as Universe,
+      );
+      const counterpartAllNames = await MeasurementCollection.getSeriesNames(
+        counterpartMeasurement.id,
+      );
+      const counterpartFiltered = counterpartAllNames.filter((n) => {
+        try {
+          return Series.parseName(n).freq === parsed.freq;
+        } catch {
+          return false;
+        }
+      });
+      result.counterpartNames =
+        counterpartFiltered.length > 0 ? counterpartFiltered : null;
+    } catch {
+      // No counterpart measurement
+    }
+  }
+
+  return result;
+}

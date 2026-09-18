@@ -1,0 +1,162 @@
+import { NotFoundError } from "@/lib/errors";
+import { insertAndGetId, rawQuery } from "@/lib/mysql/db";
+
+import UniverseUpload from "../models/universe-upload";
+import type {
+  UniverseUploadAttrs,
+  UploadStatus,
+} from "../models/universe-upload";
+
+/** Base collection for universe upload tables (new_dbedt_uploads, etc.) */
+class UniverseUploadCollection {
+  protected static tableName = "new_dbedt_uploads";
+
+  static async list(): Promise<UniverseUpload[]> {
+    const rows = await rawQuery<UniverseUploadAttrs>(
+      `SELECT * FROM ${this.tableName} ORDER BY upload_at DESC`,
+    );
+    return rows.map((row) => new UniverseUpload(row));
+  }
+
+  static async getById(id: number): Promise<UniverseUpload> {
+    const rows = await rawQuery<UniverseUploadAttrs>(
+      `SELECT * FROM ${this.tableName} WHERE id = ? LIMIT 1`,
+      [id],
+    );
+    const row = rows[0];
+    if (!row) throw new NotFoundError("Upload", id);
+    return new UniverseUpload(row);
+  }
+
+  static async create(filename: string): Promise<UniverseUpload> {
+    const id = await insertAndGetId(
+      `INSERT INTO ${this.tableName} (upload_at, active, status, filename) VALUES (NOW(), 0, 'processing', ?)`,
+      [filename],
+    );
+    return this.getById(id);
+  }
+
+  static async updateStatus(
+    id: number,
+    status: UploadStatus,
+    error?: string | null,
+  ): Promise<void> {
+    if (error) {
+      await rawQuery(
+        `UPDATE ${this.tableName} SET status = ?, last_error = ?, last_error_at = NOW() WHERE id = ?`,
+        [status, error.slice(0, 254), id],
+      );
+    } else {
+      await rawQuery(
+        `UPDATE ${this.tableName} SET status = ?, last_error = NULL, last_error_at = NULL WHERE id = ?`,
+        [status, id],
+      );
+    }
+  }
+
+  static async updateFilename(id: number, filename: string): Promise<void> {
+    await rawQuery(`UPDATE ${this.tableName} SET filename = ? WHERE id = ?`, [
+      filename,
+      id,
+    ]);
+  }
+
+  /** Deactivate all uploads, then activate the specified one */
+  static async activate(id: number): Promise<void> {
+    await rawQuery(`UPDATE ${this.tableName} SET active = 0`);
+    await rawQuery(`UPDATE ${this.tableName} SET active = 1 WHERE id = ?`, [
+      id,
+    ]);
+  }
+
+  /** Ids of uploads still marked "processing" (for startup reconciliation). */
+  static async listProcessingIds(): Promise<number[]> {
+    const rows = await rawQuery<{ id: number }>(
+      `SELECT id FROM ${this.tableName} WHERE status = 'processing'`,
+    );
+    return rows.map((r) => r.id);
+  }
+
+  /** Mark uploads stuck in "processing" for over 30 MINUTEs as failed */
+  static async failStaleUploads(): Promise<number> {
+    const result = await rawQuery<{ affectedRows: number }>(
+      `UPDATE ${this.tableName} SET status = 'fail', last_error = 'Upload timed out', last_error_at = NOW()
+       WHERE status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 4 HOUR)`,
+    );
+    return (result as unknown as { affectedRows: number }).affectedRows ?? 0;
+  }
+}
+
+class DbedtUploadCollection extends UniverseUploadCollection {
+  protected static override tableName = "new_dbedt_uploads";
+}
+
+/**
+ * DVW uploads use `series_status` instead of `status`.
+ * Override queries to map accordingly.
+ */
+class DvwUploadCollection extends UniverseUploadCollection {
+  protected static override tableName = "dvw_uploads";
+
+  static override async list(): Promise<UniverseUpload[]> {
+    const rows = await rawQuery<UniverseUploadAttrs>(
+      `SELECT id, upload_at, active, series_status AS status, filename, last_error, last_error_at
+       FROM ${this.tableName} ORDER BY upload_at DESC`,
+    );
+    return rows.map((row) => new UniverseUpload(row));
+  }
+
+  static override async getById(id: number): Promise<UniverseUpload> {
+    const rows = await rawQuery<UniverseUploadAttrs>(
+      `SELECT id, upload_at, active, series_status AS status, filename, last_error, last_error_at
+       FROM ${this.tableName} WHERE id = ? LIMIT 1`,
+      [id],
+    );
+    const row = rows[0];
+    if (!row) throw new NotFoundError("Upload", id);
+    return new UniverseUpload(row);
+  }
+
+  static override async create(filename: string): Promise<UniverseUpload> {
+    const id = await insertAndGetId(
+      `INSERT INTO ${this.tableName} (upload_at, active, series_status, filename) VALUES (NOW(), 0, 'processing', ?)`,
+      [filename],
+    );
+    return this.getById(id);
+  }
+
+  static override async updateStatus(
+    id: number,
+    status: UploadStatus,
+    error?: string | null,
+  ): Promise<void> {
+    if (error) {
+      await rawQuery(
+        `UPDATE ${this.tableName} SET series_status = ?, last_error = ?, last_error_at = NOW() WHERE id = ?`,
+        [status, error.slice(0, 254), id],
+      );
+    } else {
+      await rawQuery(
+        `UPDATE ${this.tableName} SET series_status = ?, last_error = NULL, last_error_at = NULL WHERE id = ?`,
+        [status, id],
+      );
+    }
+  }
+
+  static override async listProcessingIds(): Promise<number[]> {
+    const rows = await rawQuery<{ id: number }>(
+      `SELECT id FROM ${this.tableName} WHERE series_status = 'processing'`,
+    );
+    return rows.map((r) => r.id);
+  }
+
+  static override async failStaleUploads(): Promise<number> {
+    const result = await rawQuery<{ affectedRows: number }>(
+      `UPDATE ${this.tableName} SET series_status = 'fail', last_error = 'Upload timed out', last_error_at = NOW()
+       WHERE series_status = 'processing' AND upload_at < DATE_SUB(NOW(), INTERVAL 4 HOUR)`,
+    );
+    return (result as unknown as { affectedRows: number }).affectedRows ?? 0;
+  }
+}
+
+export { UniverseUploadCollection, DbedtUploadCollection, DvwUploadCollection };
