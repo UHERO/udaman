@@ -10,6 +10,8 @@ export interface HhdbTableConfig {
   /** Key into HHDB_FIELDS for summary fields. null = no summaries. */
   fieldsTable: string | null;
   defaultSort: string;
+  /** Direction applied with defaultSort when the URL has no `order`. Default "asc". */
+  defaultOrder?: "asc" | "desc";
   warning?: string;
   /** Enable the Exploration tab with analytical visualizations. */
   exploration?: boolean;
@@ -143,6 +145,13 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     fieldsTable: null,
     defaultSort: "id",
     exploration: true,
+  },
+  "mls-listings": {
+    title: "MLS Listings",
+    fieldsTable: "mls_listings",
+    // Newest listings first.
+    defaultSort: "list_date",
+    defaultOrder: "desc",
   },
 };
 

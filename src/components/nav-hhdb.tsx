@@ -24,6 +24,7 @@ import {
   PlusSquare,
   Receipt,
   ScrollText,
+  Tag,
   TreePine,
   Users,
   Warehouse,
@@ -117,7 +118,11 @@ const SECTIONS: { label: string; entries: NavEntry[] }[] = [
         title: "Condo",
         icon: Building,
         items: [
-          { title: "Condo Projects", url: `${T}/condo-projects`, icon: Building },
+          {
+            title: "Condo Projects",
+            url: `${T}/condo-projects`,
+            icon: Building,
+          },
           { title: "Condo Units", url: `${T}/condo-units`, icon: Building },
         ],
       },
@@ -131,7 +136,11 @@ const SECTIONS: { label: string; entries: NavEntry[] }[] = [
           { title: "Tax Payments", url: `${T}/tax-payments`, icon: CreditCard },
           { title: "Tax Credits", url: `${T}/tax-credits`, icon: Coins },
           { title: "Appeals", url: `${T}/appeals`, icon: Gavel },
-          { title: "Home Exemptions", url: `${T}/home-exemptions`, icon: House },
+          {
+            title: "Home Exemptions",
+            url: `${T}/home-exemptions`,
+            icon: House,
+          },
         ],
       },
       {
@@ -143,7 +152,11 @@ const SECTIONS: { label: string; entries: NavEntry[] }[] = [
             url: `${T}/land-classifications`,
             icon: Layers,
           },
-          { title: "Agg. Assessments", url: `${T}/ag-assessments`, icon: Wheat },
+          {
+            title: "Agg. Assessments",
+            url: `${T}/ag-assessments`,
+            icon: Wheat,
+          },
           { title: "Dedications", url: `${T}/dedications`, icon: BookOpen },
         ],
       },
@@ -154,6 +167,10 @@ const SECTIONS: { label: string; entries: NavEntry[] }[] = [
     entries: [
       { title: "Transactions", url: `${T}/transactions`, icon: ScrollText },
     ],
+  },
+  {
+    label: "MLS",
+    entries: [{ title: "Listings", url: `${T}/mls-listings`, icon: Tag }],
   },
 ];
 

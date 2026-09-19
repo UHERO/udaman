@@ -1,3 +1,5 @@
+import { MLS_COLUMNS, type MlsColumnKind } from "@/core/crawlers/mls/columns";
+
 import type { FieldDef, SummaryViewType } from "./hhdb";
 
 const ALL_VIEWS: SummaryViewType[] = ["summary"];
@@ -14,6 +16,112 @@ export interface DictionaryField {
   /** Notes about county-specific deviations from the default (Honolulu) source. */
   source_notes?: string;
 }
+
+// ---------------------------------------------------------------------------
+// MLS Listings — generated from the scraper's column spec
+// ---------------------------------------------------------------------------
+
+const MLS_KIND_FORMAT: Record<MlsColumnKind, DictionaryField["format"]> = {
+  money: "dollar",
+  int: "number",
+  year: "year",
+  text: "text",
+  date: "text",
+};
+
+/**
+ * MLS data columns left out of the Summary tab: free text, comma-separated
+ * pick lists and "amount/year" lease strings, where nearly every value is
+ * unique and a frequency table is noise. They stay in the dictionary so the
+ * Profile tab still gets their labels.
+ */
+const MLS_NO_SUMMARY = new Set<string>([
+  "address",
+  "remarks",
+  "open_house",
+  "parking_stalls_desc",
+  "lease_rent",
+  "next_step_up",
+  "second_step_up",
+  "fee_purchase",
+  "reneg_date",
+  "lease_exp",
+  "frontage",
+  "view",
+  "pool",
+  "amenities",
+  "inclusions",
+  "security",
+  "assn_fee_inclusions",
+  "other_fee_inclusions",
+  "lot_description",
+  "topography",
+  "construction",
+  "roofing",
+  "floor_covering",
+  "disclosures",
+  "possession",
+  "terms_accept",
+  "exclusions",
+  "easements",
+  "set_backs",
+]);
+
+/**
+ * `mls_listings`: hand-written entries for the loader-owned columns worth
+ * showing, followed by one entry per MLS_COLUMNS spec (the single source of
+ * truth shared with the DDL, parsers and loader). Loader internals
+ * (source_priority, source_url, status_raw, extra, html_path, fetched_at,
+ * parsed_at) are deliberately not listed.
+ */
+const MLS_LISTINGS_FIELDS: DictionaryField[] = [
+  {
+    key: "mls_number",
+    label: "MLS #",
+    description:
+      "Listing number assigned by the MLS board. Unique together with mls_board; the same property relisted gets a new number.",
+  },
+  {
+    key: "mls_board",
+    label: "MLS Board",
+    description:
+      "MLS board that issued the listing number: HBR (Oahu), HIS (Hawaii Island, Kauai, Molokai) or RAM (Maui). Listing numbers are only unique within a board.",
+    summary: ALL_VIEWS,
+  },
+  {
+    key: "status",
+    label: "Status",
+    description:
+      "Normalized listing status: active, active_under_contract, pending, sold, off_market (the site no longer serves the listing — expired, withdrawn or cancelled) or unknown. Updated in place; prior values are kept in mls_listing_history.",
+    summary: ALL_VIEWS,
+  },
+  {
+    key: "source_site",
+    label: "Source Site",
+    description:
+      "Public site the current row was scraped from (e.g. hicentral). When several sites carry a listing, the highest-priority site wins.",
+    summary: ALL_VIEWS,
+  },
+  {
+    key: "first_seen_at",
+    label: "First Seen",
+    description:
+      "When our scraper first observed the listing (Hawaii time). An observation time, not an MLS date — backfilled listings were all first seen during the initial backfill; use list_date for time on market.",
+  },
+  {
+    key: "last_seen_at",
+    label: "Last Seen",
+    description:
+      "When our scraper most recently observed the listing on the source site (Hawaii time). An observation time, not an MLS date.",
+  },
+  ...MLS_COLUMNS.map((col): DictionaryField => ({
+    key: col.column,
+    label: col.label,
+    description: col.description,
+    format: MLS_KIND_FORMAT[col.kind],
+    ...(MLS_NO_SUMMARY.has(col.column) ? {} : { summary: ALL_VIEWS }),
+  })),
+];
 
 // ---------------------------------------------------------------------------
 // Single source of truth for every column in every HHDB table.
@@ -264,7 +372,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       summary: ALL_VIEWS,
       format: "dollar",
       source_notes:
-        "Published by Oahu, Maui, and Big Island. Kauai publishes totals only. Maui's column is headed simply \"Building Value\" (no qualifier); it is the assessed figure — Maui publishes no market building column (only Big Island has market_building_value).",
+        'Published by Oahu, Maui, and Big Island. Kauai publishes totals only. Maui\'s column is headed simply "Building Value" (no qualifier); it is the assessed figure — Maui publishes no market building column (only Big Island has market_building_value).',
     },
     {
       key: "dedicated_use_value",
@@ -416,14 +524,14 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "instrument_description",
       label: "Instrument Description",
       description:
-        "Descriptive text for the recorded document (e.g. Warranty Deed). Honolulu/Big Island head the column \"Instrument Description\"; Maui/Kauai head the same concept \"Document Type\" — one column. Big Island renders both headers; when both are filled they agree, and the first non-empty cell wins.",
+        'Descriptive text for the recorded document (e.g. Warranty Deed). Honolulu/Big Island head the column "Instrument Description"; Maui/Kauai head the same concept "Document Type" — one column. Big Island renders both headers; when both are filled they agree, and the first non-empty cell wins.',
       summary: ALL_VIEWS,
     },
     {
       key: "valid_sale",
       label: "Valid Sale",
       description:
-        "Flag indicating whether the sale is considered arm's-length and usable for valuation. Honolulu publishes a bare flag; Maui's column is \"Valid Sale or Other Reason\" and conflates the flag with a rejection reason (e.g. \"Leasehold unadj\"). Not published by Big Island or Kauai.",
+        'Flag indicating whether the sale is considered arm\'s-length and usable for valuation. Honolulu publishes a bare flag; Maui\'s column is "Valid Sale or Other Reason" and conflates the flag with a rejection reason (e.g. "Leasehold unadj"). Not published by Big Island or Kauai.',
       summary: ALL_VIEWS,
     },
     {
@@ -661,7 +769,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "improvement_name",
       label: "Improvement Name",
       description:
-        "Name of the commercial building (e.g. GRAND WAILEA, CENTURY SQUARE). Honolulu/Big Island label this \"Improvement Name\"; Maui/Kauai label the same concept \"Building Type\" and their values are copied here (building_type also keeps them verbatim).",
+        'Name of the commercial building (e.g. GRAND WAILEA, CENTURY SQUARE). Honolulu/Big Island label this "Improvement Name"; Maui/Kauai label the same concept "Building Type" and their values are copied here (building_type also keeps them verbatim).',
       summary: ALL_VIEWS,
     },
     {
@@ -674,7 +782,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "structure_type",
       label: "Structure Type",
       description:
-        "Structure class code (e.g. WAREHOUSE MET/MAS/AVG, 232-COMM C-2). Honolulu/Big Island label this \"Structure Type\"; Kauai labels the same code column \"Structure\". Not published by Maui.",
+        'Structure class code (e.g. WAREHOUSE MET/MAS/AVG, 232-COMM C-2). Honolulu/Big Island label this "Structure Type"; Kauai labels the same code column "Structure". Not published by Maui.',
       summary: ALL_VIEWS,
     },
     {
@@ -721,7 +829,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "structure",
       label: "Structure",
       description:
-        "Unused — written by nothing. Kauai's bare \"Structure\" header carries the same class-code vocabulary as Oahu's \"Structure Type\" and maps to structure_type. Retained pending confirmation nothing external reads it.",
+        'Unused — written by nothing. Kauai\'s bare "Structure" header carries the same class-code vocabulary as Oahu\'s "Structure Type" and maps to structure_type. Retained pending confirmation nothing external reads it.',
       summary: ALL_VIEWS,
       disabled: true,
       disabledReason:
@@ -1207,7 +1315,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
         "Homestead (owner-occupant) exemption claimant, as printed by the county. Multiple claimants on one parcel and year are co-owners each filing a claim.",
       summary: ALL_VIEWS,
       source_notes:
-        "Maui only. Scraped from the qPublic \"Home Exemption Information\" section, where each row is a packed \"CLAIMANT NAME YYYY\" string split at load.",
+        'Maui only. Scraped from the qPublic "Home Exemption Information" section, where each row is a packed "CLAIMANT NAME YYYY" string split at load.',
     },
     {
       key: "tax_year",
@@ -1240,7 +1348,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       summary: ALL_VIEWS,
       format: "number",
       source_notes:
-        "Scraped with thousands separators (e.g. \"5,000\"); commas stripped at load. Max observed 221,912,866.",
+        'Scraped with thousands separators (e.g. "5,000"); commas stripped at load. Max observed 221,912,866.',
     },
     {
       key: "acreage",
@@ -1604,14 +1712,14 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "use_description",
       label: "Use Description",
       description:
-        "Use-class taxonomy for the row (e.g. HOMESITE, GOOD PASTURE 10 YR. DED.). Big Island heads the column \"Use Description\"; Maui heads the same taxonomy \"Description\" (\"HOME SITE\", \"PASTUR B 10YR\") — both aliased here. Oahu publishes no equivalent (see agricultural_type).",
+        'Use-class taxonomy for the row (e.g. HOMESITE, GOOD PASTURE 10 YR. DED.). Big Island heads the column "Use Description"; Maui heads the same taxonomy "Description" ("HOME SITE", "PASTUR B 10YR") — both aliased here. Oahu publishes no equivalent (see agricultural_type).',
       summary: ALL_VIEWS,
     },
     {
       key: "acres_in_production",
       label: "Acres in Production",
       description:
-        "Acreage in the agricultural use class (one row per class). Oahu/Big Island head the column \"Acres in Production\"; Maui heads the same column bare \"Acres\" — both are aliased here. Includes non-producing classes (e.g. WASTE LAND) in all counties.",
+        'Acreage in the agricultural use class (one row per class). Oahu/Big Island head the column "Acres in Production"; Maui heads the same column bare "Acres" — both are aliased here. Includes non-producing classes (e.g. WASTE LAND) in all counties.',
       summary: ALL_VIEWS,
       format: "number",
     },
@@ -1619,7 +1727,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "agricultural_value",
       label: "Agricultural Value",
       description:
-        "Discounted agricultural-use value for the row in whole dollars. Oahu/Big Island head the column \"Agricultural Value\"; Maui heads the same figure \"Assessed Value\" — both aliased here.",
+        'Discounted agricultural-use value for the row in whole dollars. Oahu/Big Island head the column "Agricultural Value"; Maui heads the same figure "Assessed Value" — both aliased here.',
       summary: ALL_VIEWS,
       format: "dollar",
     },
@@ -1689,7 +1797,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "construction",
       label: "Construction",
       description:
-        "Construction type classification. Big Island/Kauai publish it under a \"Construction\" header (STEEL, WOOD FRAME, MASONRY, NONE, STEEL/MASONRY); Maui publishes the same concept under a \"Building Class\" header with a richer vocabulary (e.g. \"Wood/Steel Framing s1 p8\", \"Masonry Bearing Walls s1 p7\"); Oahu publishes neither.",
+        'Construction type classification. Big Island/Kauai publish it under a "Construction" header (STEEL, WOOD FRAME, MASONRY, NONE, STEEL/MASONRY); Maui publishes the same concept under a "Building Class" header with a richer vocabulary (e.g. "Wood/Steel Framing s1 p8", "Masonry Bearing Walls s1 p7"); Oahu publishes neither.',
       summary: ALL_VIEWS,
     },
     {
@@ -1821,7 +1929,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "description",
       label: "Description",
       description:
-        "Description of the accessory or yard structure (e.g. fence, retaining wall, shed, garage, carport, pool, canopy, loading dock). Sourced from three sections: Oahu/Big Island/Kauai \"Other Building and Yard Improvements\", Maui residential \"Accessory Information\", and Maui commercial \"Commercial Improvement Information > Other Features\" (Structure column; the Stops column is dropped).",
+        'Description of the accessory or yard structure (e.g. fence, retaining wall, shed, garage, carport, pool, canopy, loading dock). Sourced from three sections: Oahu/Big Island/Kauai "Other Building and Yard Improvements", Maui residential "Accessory Information", and Maui commercial "Commercial Improvement Information > Other Features" (Structure column; the Stops column is dropped).',
       summary: ALL_VIEWS,
     },
     {
@@ -1847,6 +1955,9 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       format: "text",
     },
   ],
+
+  // ── MLS Listings (generated above from MLS_COLUMNS) ─────────────────────
+  mls_listings: MLS_LISTINGS_FIELDS,
 };
 
 // ---------------------------------------------------------------------------
@@ -1869,11 +1980,11 @@ export const HHDB_TABLE_DOCS: Record<string, string> = {
   assessments:
     "Assessed valuations by tax year, combining the current and historical valuation grids. The counties publish very different detail: Oahu is the only county with land/building splits of exemptions and net-taxable; Maui adds market land and agricultural land values; Big Island is the only county splitting market value by component; Kauai publishes parcel-level totals only. Per-column county coverage is noted on each field.",
   sales:
-    "Sales/conveyance records, accumulated across scrapes (new documents insert; re-scraped old sales are skipped on a document-identity match). Distinct documents can record on the same date with consecutive document numbers. valid_sale exists on Oahu/Maui only; book_page is unpublished by Maui; conveyance_tax is Big Island/Kauai only. Maui/Kauai's \"Document Type\" lands in instrument_description.",
+    'Sales/conveyance records, accumulated across scrapes (new documents insert; re-scraped old sales are skipped on a document-identity match). Distinct documents can record on the same date with consecutive document numbers. valid_sale exists on Oahu/Maui only; book_page is unpublished by Maui; conveyance_tax is Big Island/Kauai only. Maui/Kauai\'s "Document Type" lands in instrument_description.',
   residential_improvements:
-    "Residential building records from \"Residential Improvement Information\" (Honolulu/Big Island) and \"Improvement Information\" (Maui/Kauai), one row per building, versioned by change detection. Field coverage varies sharply: Oahu publishes 9 labels (incl. occupancy), Kauai only 8 basics, Maui/Big Island add materials/quality fields. Condo-unit attributes: condo_style is Oahu's building form, condo_type is Maui's unit position — distinct variables; Big Island units carry only a condo name.",
+    'Residential building records from "Residential Improvement Information" (Honolulu/Big Island) and "Improvement Information" (Maui/Kauai), one row per building, versioned by change detection. Field coverage varies sharply: Oahu publishes 9 labels (incl. occupancy), Kauai only 8 basics, Maui/Big Island add materials/quality fields. Condo-unit attributes: condo_style is Oahu\'s building form, condo_type is Maui\'s unit position — distinct variables; Big Island units carry only a condo name.',
   commercial_improvements:
-    "Commercial building summaries from \"Commercial Improvement Information\". Two report templates exist: Oahu/Big Island (card, improvement name, class, structure type, units, gross building description) and Maui/Kauai (building type, square footage, percent complete; value on Maui only). Maui/Kauai's \"Building Type\" holds the building's proper name and is copied into improvement_name; Kauai's \"Structure\" label maps to structure_type.",
+    'Commercial building summaries from "Commercial Improvement Information". Two report templates exist: Oahu/Big Island (card, improvement name, class, structure type, units, gross building description) and Maui/Kauai (building type, square footage, percent complete; value on Maui only). Maui/Kauai\'s "Building Type" holds the building\'s proper name and is copied into improvement_name; Kauai\'s "Structure" label maps to structure_type.',
   commercial_improvement_details:
     "Per-building detail rows, replaced wholesale with their parent on each load. Two row kinds share the table: floor-detail rows (card/section/floor/area/perimeter/usage/wall height/exterior wall, plus construction and Maui's rank) and Condominium Information rows (project/condo unit/floor level/condo type/view/condo style) from commercial condo pages. Maui has no Card column; Oahu's exterior_wall is almost always the constant \"DEFAULT WALLS\"; construction vocabularies differ by county.",
   permits:
@@ -1883,9 +1994,9 @@ export const HHDB_TABLE_DOCS: Record<string, string> = {
   land_classifications:
     "Land-use classification rows, several per parcel — one per (classification, square footage, acreage) segment, versioned by change detection. A parcel routinely carries multiple segments of the same classification differing only in size.",
   current_tax_bills:
-    "Current-year tax bills, one row per (parcel, tax period), upserted in place. qPublic's blank-period rollup line (\"Tax Bill with Interest computed through <date>\") is filtered out on the way in — every stored row is a real per-period bill.",
+    'Current-year tax bills, one row per (parcel, tax period), upserted in place. qPublic\'s blank-period rollup line ("Tax Bill with Interest computed through <date>") is filtered out on the way in — every stored row is a real per-period bill.',
   historical_tax_summary:
-    "Historical tax summary, one row per (parcel, year), with totals from the nested detail/payment/credit tables denormalized on. Kauai publishes this under \"Historical Payment Information\" and has no Amount Due column; Big Island issues no tax-credit lines (relief is via exemptions).",
+    'Historical tax summary, one row per (parcel, year), with totals from the nested detail/payment/credit tables denormalized on. Kauai publishes this under "Historical Payment Information" and has no Amount Due column; Big Island issues no tax-credit lines (relief is via exemptions).',
   historical_tax_details:
     "Per-period tax detail lines nested under each year (Beginning Tax, Payment, Adjustment…), replaced wholesale per parcel on each load.",
   historical_tax_payments:
@@ -1895,15 +2006,17 @@ export const HHDB_TABLE_DOCS: Record<string, string> = {
   appeals:
     "Assessment appeals (Oahu, Maui, Kauai — Big Island publishes no appeals section). Matched in place on (year, appeal type/value): status, hearing date, settlement and value fields update as the appeal progresses, keeping one current row per appeal. The five settlement/taxpayer-opinion columns are Maui-only; the taxpayer-opinion property class is a Maui code (0=Time Share … 12=Long-Term Rental).",
   agricultural_assessments:
-    "Agricultural-use assessment rows, one per land-use class per parcel (Oahu, Maui, Big Island — Kauai's template has no ag module). County labels are merged: acreage (\"Acres in Production\"/\"Acres\"), value (\"Agricultural Value\"/\"Assessed Value\") and use class (\"Use Description\"/\"Description\") each land in one column. agricultural_type is an Oahu-only dedication/ratio code kept separate.",
+    'Agricultural-use assessment rows, one per land-use class per parcel (Oahu, Maui, Big Island — Kauai\'s template has no ag module). County labels are merged: acreage ("Acres in Production"/"Acres"), value ("Agricultural Value"/"Assessed Value") and use class ("Use Description"/"Description") each land in one column. agricultural_type is an Oahu-only dedication/ratio code kept separate.',
   accessory_improvements:
-    "Accessory structures and yard improvements (sheds, garages, pools, fences, sprinklers, elevators…). Three source sections land here: \"Other Building and Yard Improvements\" (Oahu/Big Island/Kauai), Maui's residential \"Accessory Information\", and the Other Features grid inside Maui's Commercial Improvement Information (Stops column dropped). qPublic's GROSS BUILDING VALUE summary rows have their dollar amount repositioned from area into value on the way in.",
+    'Accessory structures and yard improvements (sheds, garages, pools, fences, sprinklers, elevators…). Three source sections land here: "Other Building and Yard Improvements" (Oahu/Big Island/Kauai), Maui\'s residential "Accessory Information", and the Other Features grid inside Maui\'s Commercial Improvement Information (Stops column dropped). qPublic\'s GROSS BUILDING VALUE summary rows have their dollar amount repositioned from area into value on the way in.',
   dedications:
-    "Land-use dedications by tax year (Oahu only), e.g. \"RESIDENTIAL USE(1)\", \"AG DEDI - 10 YEARS(2)\" — one row per parcel per tax year, updated in place.",
+    'Land-use dedications by tax year (Oahu only), e.g. "RESIDENTIAL USE(1)", "AG DEDI - 10 YEARS(2)" — one row per parcel per tax year, updated in place.',
   home_exemptions:
-    "Homestead (owner-occupant) exemption claims (Maui only, ~1/3 of Maui parcels): claimant name and tax year, split from qPublic's packed \"NAME YYYY\" rows. Claim years run one ahead of assessment years, and co-owners filing jointly appear as separate claimant rows.",
+    'Homestead (owner-occupant) exemption claims (Maui only, ~1/3 of Maui parcels): claimant name and tax year, split from qPublic\'s packed "NAME YYYY" rows. Claim years run one ahead of assessment years, and co-owners filing jointly appear as separate claimant rows.',
   residential_additions:
     "Residential additions/features by card and line (decks, lanais, garages attached to the main improvement), versioned by change detection.",
+  mls_listings:
+    "Residential MLS listings scraped daily from HiCentral, the Honolulu Board of REALTORS public property search — not a qPublic table. One row per listing, keyed by (mls_board, mls_number) and updated in place as status and price change; each change is recorded in mls_listing_history. Coverage is strongest for Oahu and thin for the neighbor islands. The initial backfill reaches back only to roughly 2024, because the site caps any one search at about 9,980 results. tmk uses the same format as the qPublic tables, so listings join to properties/parcels. first_seen_at / last_seen_at are our observation times, not MLS dates — use list_date and date_sold for market timing. County columns here are derived from the TMK's leading digit, so listings without a TMK count toward the State total only.",
 };
 
 /** Get the table-level documentation paragraph, or null. */

@@ -1,8 +1,8 @@
 import { createLogger } from "@/core/observability/logger";
 
+import HhdbAccessoryImprovementCollection from "../collections/hhdb-accessory-improvement-collection";
 import HhdbAgriculturalAssessmentCollection from "../collections/hhdb-agricultural-assessment-collection";
 import HhdbAppealCollection from "../collections/hhdb-appeal-collection";
-import HhdbAccessoryImprovementCollection from "../collections/hhdb-accessory-improvement-collection";
 import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
 import HhdbCommercialDetailCollection from "../collections/hhdb-commercial-detail-collection";
 import HhdbCondoCollection from "../collections/hhdb-condo-collection";
@@ -10,12 +10,13 @@ import HhdbCurrentTaxBillCollection from "../collections/hhdb-current-tax-bill-c
 import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
 import HhdbDedicationCollection from "../collections/hhdb-dedication-collection";
 import HhdbHistoricalTaxCreditCollection from "../collections/hhdb-historical-tax-credit-collection";
-import HhdbHomeExemptionCollection from "../collections/hhdb-home-exemption-collection";
 import HhdbHistoricalTaxDetailCollection from "../collections/hhdb-historical-tax-detail-collection";
 import HhdbHistoricalTaxPaymentCollection from "../collections/hhdb-historical-tax-payment-collection";
 import HhdbHistoricalTaxSummaryCollection from "../collections/hhdb-historical-tax-summary-collection";
+import HhdbHomeExemptionCollection from "../collections/hhdb-home-exemption-collection";
 import HhdbImprovementCollection from "../collections/hhdb-improvement-collection";
 import HhdbLandClassificationCollection from "../collections/hhdb-land-classification-collection";
+import HhdbMlsListingCollection from "../collections/hhdb-mls-listing-collection";
 import HhdbOwnerCollection from "../collections/hhdb-owner-collection";
 import HhdbParcelCollection from "../collections/hhdb-parcel-collection";
 import HhdbPermitCollection from "../collections/hhdb-permit-collection";
@@ -356,6 +357,13 @@ export async function getAccessoryImprovementsJSON(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb accessory improvements");
   const result = await HhdbAccessoryImprovementCollection.listJSON(params);
   log.info({ total: result.total }, "hhdb accessory improvements fetched");
+  return result;
+}
+
+export async function getMlsListingsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb mls listings");
+  const result = await HhdbMlsListingCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb mls listings fetched");
   return result;
 }
 

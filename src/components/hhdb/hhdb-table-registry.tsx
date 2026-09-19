@@ -3,6 +3,7 @@
 import type { HhdbListParams } from "@catalog/types/hhdb";
 
 import {
+  getHhdbAccessoryImprovements,
   getHhdbAgriculturalAssessments,
   getHhdbAppeals,
   getHhdbAssessments,
@@ -18,6 +19,7 @@ import {
   getHhdbHistoricalTaxSummary,
   getHhdbHomeExemptions,
   getHhdbLandClassifications,
+  getHhdbMlsListings,
   getHhdbOwners,
   getHhdbParcels,
   getHhdbPermits,
@@ -25,8 +27,8 @@ import {
   getHhdbResidentialAdditions,
   getHhdbResidentialImprovements,
   getHhdbSales,
-  getHhdbAccessoryImprovements,
 } from "@/actions/hhdb";
+import { AccessoryImprovementsTable } from "@/components/hhdb/tables/accessory-improvements-table";
 import { AgriculturalAssessmentsTable } from "@/components/hhdb/tables/agricultural-assessments-table";
 import { AppealsTable } from "@/components/hhdb/tables/appeals-table";
 import { AssessmentsTable } from "@/components/hhdb/tables/assessments-table";
@@ -44,15 +46,14 @@ import { HistoricalTaxSummaryTable } from "@/components/hhdb/tables/historical-t
 import { HomeExemptionsTable } from "@/components/hhdb/tables/home-exemptions-table";
 import { ImprovementsTable } from "@/components/hhdb/tables/improvements-table";
 import { LandClassificationsTable } from "@/components/hhdb/tables/land-classifications-table";
+import { MlsListingsTable } from "@/components/hhdb/tables/mls-listings-table";
 import { OwnersTable } from "@/components/hhdb/tables/owners-table";
 import { ParcelsTable } from "@/components/hhdb/tables/parcels-table";
 import { PermitsTable } from "@/components/hhdb/tables/permits-table";
 import { PropertiesTable } from "@/components/hhdb/tables/properties-table";
 import { ResidentialAdditionsTable } from "@/components/hhdb/tables/residential-additions-table";
 import { SalesTable } from "@/components/hhdb/tables/sales-table";
-import { AccessoryImprovementsTable } from "@/components/hhdb/tables/accessory-improvements-table";
 
- 
 type ActionFn = (
   params: HhdbListParams,
 ) => Promise<{ rows: Record<string, unknown>[]; total: number }>;
@@ -165,6 +166,10 @@ const REGISTRY: Record<string, TableEntry> = {
   "accessory-improvements": {
     action: getHhdbAccessoryImprovements,
     render: (p) => <AccessoryImprovementsTable {...p} />,
+  },
+  "mls-listings": {
+    action: getHhdbMlsListings,
+    render: (p) => <MlsListingsTable {...p} />,
   },
 };
 

@@ -16,7 +16,8 @@
     "console": "bun run src/core/scripts/console.ts",
     "worker": "bun run src/core/workers/worker.ts",
     "scraper": "bun run src/core/workers/scrape-runner.ts",
-    "qpub": "bun run src/core/workers/qpub-cli.ts"
+    "qpub": "bun run src/core/workers/qpub-cli.ts",
+    "mls": "bun run src/core/workers/mls-cli.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

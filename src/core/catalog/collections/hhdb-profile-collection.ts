@@ -45,7 +45,9 @@ async function getColumnInfoCached(table: string): Promise<ColumnInfo[]> {
   const cached = columnInfoCache.get(table);
   if (cached) return cached;
   const cols = await getColumnInfo(table);
-  columnInfoCache.set(table, cols);
+  // No columns = the table does not exist yet (hand-applied migration
+  // pending). Don't cache that, or the profile stays empty until a restart.
+  if (cols.length > 0) columnInfoCache.set(table, cols);
   return cols;
 }
 
@@ -105,6 +107,11 @@ async function getOverview(table: string): Promise<OverviewData> {
   resolveTable(table);
   const columns = await getColumnInfoCached(table);
   const hasTmk = columns.some((c) => c.columnName === "tmk");
+
+  // Table registered in the UI but not created yet — same as an empty table.
+  if (columns.length === 0) {
+    return { rows: [], totalRows: 0 };
+  }
 
   // Get total row count
   const [countRow] = await rawQuery<{ cnt: number }>(
@@ -676,8 +683,7 @@ async function getTextDrilldown(
 
   // TMK format conformance for identifier fields
   let formatConformance:
-    | { pattern: string; matchCount: number; totalCount: number }
-    | undefined;
+    { pattern: string; matchCount: number; totalCount: number } | undefined;
   if (
     fieldCategory === "identifier" &&
     (column === "tmk" || column === "parent_tmk")

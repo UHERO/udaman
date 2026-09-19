@@ -90,7 +90,10 @@ async function main() {
   let updated = 0;
   let unreachable = 0;
   let failed = 0;
+  let serving = 0;
   const skipped: string[] = [];
+  /** Rewritten, but https still 4xx — the URL is stale, not just the scheme. */
+  const stillBroken: string[] = [];
 
   const process1 = async (row: Row) => {
     const httpsUrl = row.url.trim().replace(/^http:\/\//i, "https://");
@@ -102,7 +105,16 @@ async function main() {
         skipped.push(`${row.handle} (id ${row.id}) — https: ${probe.error}`);
         return;
       }
-      console.log(`  ok ${probe.status}  ${row.handle}`);
+      if (probe.status >= 400) {
+        // Safe to rewrite (https answers, so the row stops hanging on port 80)
+        // but the download itself is still broken — the URL is wrong, not the
+        // scheme. Call that out rather than filing it under "ok".
+        stillBroken.push(`${row.handle} (id ${row.id}) — https: HTTP ${probe.status}`);
+        console.log(`  WRITABLE, STILL ${probe.status}  ${row.handle}`);
+      } else {
+        serving++;
+        console.log(`  serving ${probe.status}  ${row.handle}`);
+      }
     }
 
     if (DRY_RUN) {
@@ -127,11 +139,22 @@ async function main() {
 
   console.log(
     `\n${DRY_RUN ? "Would update" : "Updated"}: ${updated}` +
-      (VERIFY ? `\nSkipped (https unreachable): ${unreachable}` : "") +
+      (VERIFY
+        ? `\n  of which actually serving a file (https 2xx/3xx): ${serving}` +
+          `\n  of which still 4xx over https (scheme fixed, URL stale): ${stillBroken.length}` +
+          `\nSkipped (https unreachable): ${unreachable}`
+        : "") +
       (failed ? `\nUPDATE errors: ${failed}` : ""),
   );
+  if (stillBroken.length) {
+    console.log(
+      "\nRewritten but NOT fixed — https answers, so these no longer hang," +
+        "\nbut the URL itself is stale and the download will still fail:",
+    );
+    for (const s of stillBroken) console.log(`  ${s}`);
+  }
   if (skipped.length) {
-    console.log("\nLeft on http:// — these need a real URL fix, not a scheme swap:");
+    console.log("\nLeft on http:// — https did not answer at all:");
     for (const s of skipped) console.log(`  ${s}`);
   }
 }

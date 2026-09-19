@@ -26,7 +26,8 @@ export function HhdbTablePage({ slug, config }: HhdbTablePageProps) {
     : 50;
   const search = searchParams.get("search") ?? "";
   const sort = searchParams.get("sort") ?? config.defaultSort;
-  const order = (searchParams.get("order") ?? "asc") as "asc" | "desc";
+  const order = (searchParams.get("order") ?? config.defaultOrder ?? "asc") as
+    "asc" | "desc";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any[]>([]);

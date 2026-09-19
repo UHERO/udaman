@@ -22,6 +22,7 @@ import {
   getLandClassificationsJSON as getLandClassificationsCtrl,
   getMedianAssessedByClass as getMedianAssessedCtrl,
   getMedianSalePriceByIsland as getMedianSalePriceCtrl,
+  getMlsListingsJSON as getMlsListingsCtrl,
   getOutOfStateRatioByQuarter as getOutOfStateRatioCtrl,
   getOutOfStateTopStates as getOutOfStateTopStatesCtrl,
   getOutOfStateTopZips as getOutOfStateTopZipsCtrl,
@@ -225,6 +226,11 @@ export async function getHhdbResidentialAdditions(params: HhdbListParams) {
 export async function getHhdbAccessoryImprovements(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
   return getAccessoryImprovementsCtrl(params);
+}
+
+export async function getHhdbMlsListings(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getMlsListingsCtrl(params);
 }
 
 export async function getHhdbFreqSummary(

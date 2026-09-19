@@ -1,0 +1,1166 @@
+
+<!doctype html>
+<html>
+<head><title>
+	Neighborhood Search For Sale | Property Search | Hawaii Real Estate | Honolulu Board of REALTORS®
+</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	
+       
+	
+    
+    <script type="text/javascript" src="//use.typekit.net/owp5pyk.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script type="text/javascript">window.jQuery || document.write('<script src="//hicentral.com/js/jquery-1.8.3.min.js"><\/script>')</script>
+<script type="text/javascript" src="//ajax.aspnetcdn.com/ajax/jquery.validate/1.14.0/jquery.validate.min.js"></script>
+<script type="text/javascript" src="//ajax.aspnetcdn.com/ajax/mvc/5.2.3/jquery.validate.unobtrusive.min.js"></script>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-1758527-1', 'auto');
+  ga('send', 'pageview');
+</script>
+    <link rel="stylesheet" type="text/css" href="//www.hicentral.com/css/P21RE.css?v=20200608" />
+    
+	<script type="text/javascript">window.jQuery || document.write('<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js"><\/script>')</script>
+	<script src="/HBR/P21RE-propertysearch-1.3.js?1.0.9748.32246" type="text/javascript"></script>
+	
+	
+
+    
+    <!-- Copy over for Accordion -->
+    <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script>
+  $(function() {
+    $( "#accordion" ).accordion({
+      active: false,
+	  heightStyle: "content",
+	  collapsible: true,
+	  alwaysOpen: false
+    });
+  });
+  </script>
+  <!-- end Accordion -->
+    
+    
+<link rel="stylesheet" type="text/css" href="//www.hicentral.com/css/all.css?20230520-1" media="all" />
+<link rel="stylesheet" type="text/css" href="//www.hicentral.com/css/main.css?20230221" media="all" />
+<script type="text/javascript" src="//www.hicentral.com/js/jquery.main.js"></script>
+<!--[if IE]><script type="text/javascript" src="//www.hicentral.com/js/ie.js"></script><![endif]-->
+<!--[if IE]><link href="//www.hicentral.com/css/ie.css" rel="stylesheet" type="text/css" media="all" /><![endif]-->
+<script type="text/javascript" src="//www.hicentral.com/js/easyResponsiveTabs.js"></script></head>
+<body class="page">
+	
+	<? $activepage = "forsale" ?>
+	<div id="wrapper">
+		<div class="w1">
+			
+<header id="header">
+	<div class="right-area">
+
+
+
+		<ul class="login-area" style="top: -15px;">
+			<li><a href="http://members.hicentral.com">Member Site</a></li>
+			<li><a href="https://hicmls.clareityiam.net/idp/login">Matrix Login</a></li>
+		</ul>
+
+
+        <ul class="socialicons">
+    <li> <a class="facebook" href="https://www.facebook.com/hicentral" target="_blank" title="HBR Facebook page"></a></li>
+    <li> <a class="twitter" href="https://twitter.com/hicentral" target="_blank" title="HBR Twitter page"></a></li>
+  <!--  <li> <a class="youtube" href="https://www.youtube.com/user/hicentral" target="_blank"></a></li> -->
+    <!--<li> <a class="flickr" href="https://www.flickr.com/photos/hicentral" target="_blank"></a></li>-->
+    </ul>
+
+
+	</div>
+	<strong class="logo"><a href="//hicentral.com/">Honolulu Board Of Realtors</a></strong>
+</header>
+<nav id="nav">
+	<ul class="sale-nav">
+		<li><a class="open" href="//hicentral.com/forsale.php">FOR SALE</a>
+            <div class="panel"><div class="no-small-display">
+				<div id="featuredForSale" class="featured-box">
+                    <strong class="title">Featured Property</strong>
+                    <a><img src="" width="179" height="134" alt="" border="0"></a>
+					<div class="info"></div>
+				</div></div>
+				<div class="nav-holder">
+					<nav class="sub-nav"> <strong class="title">Property Searches</strong>
+						<ul>
+							<li><a href="//hicentral.com/forsale.php">By Island</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForSale/?/Results/HotSheet////">New Listings</a></li>
+							<li><a href="//propertysearch.hicentral.com/HBR/ForSale/?/Neighborhood">By Neighborhood</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForSale/?/Address">By Street Address</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForSale/?/Condominium">By Condo/Townhome</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForSale/?/MLSNUM">By MLS Number</a></li>
+                            <li><a href="//hicentral.com/openhouses.php">Open Houses</a></li>
+						</ul>
+					</nav>
+					<nav class="sub-nav"> <strong class="title">Buyer Resources</strong>
+						<ul>
+							<li><a href="//hicentral.com/directory/affiliate-search">Home Services Directory</a></li>
+							<li><a href="//hicentral.com/hawaii-mortgage-rates.php">Current Mortgage Rates</a></li>
+							<li><a href="//hicentral.com/first-time-homebuyers.php">First-Time Homebuyers</a></li>
+						</ul>
+					</nav>
+				</div>
+			</div>
+		</li>
+		<li><a class="open" href="//hicentral.com/forrent.php">FOR RENT</a>
+			<div class="panel"><div class="no-small-display">
+				<div id="featuredForRent" class="featured-box">
+                    <strong class="title">Featured Rental</strong>
+                    <a><img src="" width="179" height="134" alt=""></a>
+					<div class="info"></div>
+				</div></div>
+				<div class="nav-holder">
+					<nav class="sub-nav"> <strong class="title">Rental Searches</strong>
+						<ul>
+                            <li><a href="//hicentral.com/forrent.php">General Search</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForRent/?/Results/HotSheet////">New Rentals</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForRent/?/Neighborhood">By Neighborhood</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForRent/?/Address">By Street Address</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForRent/?/Condominium">By Condo/Townhome</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/ForRent/?/MLSNUM">By MLS Number</a></li>
+						</ul>
+					</nav>
+					<nav class="sub-nav"> <strong class="title">Rental Resources</strong>
+						<ul>
+							<li><a href="#">Coming Soon</a></li>
+						</ul>
+					</nav>
+				</div>
+			</div>
+		</li>
+		<li><a class="open" href="//hicentral.com/openhouses.php">OPEN HOUSES</a>
+            <div class="panel"><div class="no-small-display">
+				<div id="featuredOpenHouses" class="featured-box">
+                    <strong class="title">Featured Open House</strong>
+                    <a><img src="" width="179" height="134" alt=""></a>
+					<div class="info"></div>
+				</div></div>
+				<div class="nav-holder">
+					<div class="sub-nav">
+						<strong class="title">Open House Search</strong>
+						<ul>
+                            <li><a href="//hicentral.com/openhouses.php">General Search</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/OpenHouses/?/Results/HotSheet////">New Opens</a></li>
+							<li><a href="//propertysearch.hicentral.com/HBR/OpenHouses/?/Neighborhood">By Neighborhood</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/OpenHouses/?/Address">By Street Address</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/OpenHouses/?/Condominium">By Condo/Townhome</a></li>
+                            <li><a href="//propertysearch.hicentral.com/HBR/OpenHouses/?/MLSNUM">By MLS Number</a></li>
+						</ul>
+					</div>
+					<div class="sub-nav">
+						<strong class="title">Open House Resources</strong>
+						<ul>
+							<li><a href="#">Coming Soon</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</li>
+	</ul>
+	<ul class="info-nav">
+		<li><a href="#">Market Info</a>
+			<ul class="drop-box">
+				<li><a href="//hicentral.com/market-press-releases.php">Market Reports</a></li>
+                <li><a href="//hicentral.com/hawaii-mortgage-rates.php">Current Mortgage Rates</a></li>
+                <li><a href="//hicentral.com/oahu-historical-data.php">Oahu Historical Sales Data</a></li>
+			</ul>
+		</li>
+        <li><a href="#">REALTOR&reg; Info</a>
+			<ul class="drop-box">
+                <li><a href="//hicentral.com/directory/search">REALTOR&reg; &amp; Office Directory</a></li>
+                <li><a href="//hicentral.com/what-is-a-realtor.php">What is a REALTOR&reg;?</a></li>
+                <li><a href="//hicentral.com/why-use-a-realtor.php">Why use a REALTOR&reg;?</a></li>
+								<li><a href="//hicentral.com/value-of-a-realtor.php">The Value of a REALTOR&reg;</a></li>
+			</ul>
+		</li>
+		<li><a href="#">Consumer Info</a>
+			<ul class="drop-box">
+				<li><a href="//hicentral.com/directory/affiliate-search">Home Services Directory</a></li>
+                <!-- <li><a href="//hicentral.com/first-time-homebuyers.php">First-time Homebuyers</a></li> -->
+				<li><a href="//hicentral.com/hope.php">First-time Homebuyers</a></li>
+                <li><a href="//hicentral.com/consumer-info-financial.php">Financial</a></li>
+                <li><a href="//hicentral.com/consumer-info-rental-properties.php">Rental Properties</a></li>
+                <li><a href="//hicentral.com/consumer-info-title-insurance.php">Title Insurance</a></li>
+                <li><a href="//hicentral.com/consumer-info-property-type.php">Property Type</a></li>
+                <li><a href="//hicentral.com/consumer-info-permits.php">Permits</a></li>
+                <li><a href="//hicentral.com/consumer-info-appraisal-inspection.php">Appraisal &amp; Inspection</a></li>
+                <li><a href="//hicentral.com/consumer-info-moving-logistics.php">Moving Logistics</a></li>
+                <li><a href="//hicentral.com/consumer-info-protect-yourself.php">Protect Yourself</a></li>
+                <li><a href="//hicentral.com/consumer-info-pets-in-housing.php">Pets In Housing</a></li>
+                <li><a href="//hicentral.com/consumer-info-resources.php">Resources</a></li>
+			</ul>
+		</li>
+
+		<li><a href="//hicentral.com/about-overview.php">About HBR</a>
+			<ul class="drop-box last">
+				<li><a href="//hicentral.com/about-overview.php">Overview</a></li>
+                <li><a href="//hicentral.com/become-a-member.php">Become a Member</a></li>
+                <li><a href="//hicentral.com/board-of-directors.php">Board of Directors</a></li>
+                <li><a href="//hicentral.com/staff.php">Our Staff</a></li>
+                <li><a href="//hicentral.com/awards-programs.php">Awards Programs</a></li>
+                <li><a href="//hicentral.com/contact-us.php">Contact &amp; Directions</a></li>
+			</ul>
+		</li>
+	</ul>
+
+
+
+    <!-- Mobile -->
+
+
+
+	<div class="open-close">
+		<a class="opener" href="#">Menu</a>
+		<div class="slide">
+			<div class="add-nav open-close1">
+				<strong class="title opener1"><span>Market Info</span></strong>
+				<ul class="slide1">
+					<li><a href="//hicentral.com/market-press-releases.php">Market Press Releases</a></li>
+                <li><a href="//hicentral.com/hawaii-mortgage-rates.php">Current Mortgage Rates</a></li>
+                <li><a href="//hicentral.com/oahu-historical-data.php">Oahu Historical Sales Data</a></li>
+				</ul>
+			</div>
+
+			<div class="add-nav open-close1">
+				<strong class="title opener1"><span>Realtor&reg; Info</span></strong>
+				<ul class="slide1">
+                <li><a href="//hicentral.com/directory/search">REALTOR&reg; &amp; Office Directory</a></li>
+                <li><a href="//hicentral.com/what-is-a-realtor.php">What is a REALTOR&reg;?</a></li>
+                <li><a href="//hicentral.com/why-use-a-realtor.php">Why use a REALTOR&reg;?</a></li>
+				</ul>
+			</div>
+
+            <div class="add-nav open-close1">
+				<strong class="title opener1"><span>Consumer Info</span></strong>
+				<ul class="slide1">
+				<li><a href="//hicentral.com/directory/affiliate-search">Home Services Directory</a></li>
+                <!-- <li><a href="//hicentral.com/first-time-homebuyers.php">First-time Homebuyers</a></li> -->
+				<li><a href="//hicentral.com/hope.php">First-time Homebuyers</a></li>
+                <li><a href="//hicentral.com/consumer-info-financial.php">Financial</a></li>
+                <li><a href="//hicentral.com/consumer-info-rental-properties.php">Rental Properties</a></li>
+                <li><a href="//hicentral.com/consumer-info-title-insurance.php">Title Insurance</a></li>
+                <li><a href="//hicentral.com/consumer-info-property-type.php">Property Type</a></li>
+                <li><a href="//hicentral.com/consumer-info-permits.php">Permits</a></li>
+                <li><a href="//hicentral.com/consumer-info-appraisal-inspection.php">Appraisal &amp; Inspection</a></li>
+                <li><a href="//hicentral.com/consumer-info-moving-logistics.php">Moving Logistics</a></li>
+                <li><a href="//hicentral.com/consumer-info-protect-yourself.php">Protect Yourself</a></li>
+                <li><a href="//hicentral.com/consumer-info-pets-in-housing.php">Pets In Housing</a></li>
+                <li><a href="//hicentral.com/consumer-info-resources.php">Resources</a></li>
+				</ul>
+			</div>
+
+			<div class="add-nav open-close1">
+				<strong class="title opener1"><span class="last">About HBR</span></strong>
+				<div class="outer">
+					<ul class="slide1">
+					<li><a href="//hicentral.com/about-overview.php">Overview</a></li>
+                       <li><a href="//hicentral.com/become-a-member.php">Become a Member</a></li>
+                <li><a href="//hicentral.com/board-of-directors.php">Board of Directors</a></li>
+                <li><a href="//hicentral.com/staff.php">Our Staff</a></li>
+                <li><a href="//hicentral.com/awards-programs.php">Awards Programs</a></li>
+                <li><a href="//hicentral.com/contact-us.php">Contact &amp; Directions</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</nav>
+			<section id="main">
+				<div class="nav-bar">
+					<h1><span class="for">For <br /> Sale</span><h1>By Neighborhood</h1></h1>
+					<nav>
+						<ul class="breadcrumbs">
+							<li><a href="//hicentral.com/">Home</a></li>
+<li><a href="//www.hicentral.com/forsale.php">For Sale</a></li><li><a href="/HBR/ForSale/?/Neighborhood/7//256////////1////////////////////////////">Neighborhood</a></li>
+						</ul>
+					</nav>
+				</div>
+				<div class="main-holder">
+
+<form name="aspnetForm" method="post" action="./?%2fResults%2fNeighborhood%2fd%2f%2f7%2f%2f256%2f%2f%2f%2f%2f%2f%2f%2f1%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f" id="aspnetForm">
+<div>
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKLTUxNDA5ODA3Mw8WAh4TVmFsaWRhdGVSZXF1ZXN0TW9kZQIBFgJmD2QWAgIFD2QWAgIBD2QWAgIBD2QWAmYPZBYCAg0PFgIeB1Zpc2libGVnFgICAQ8WAh8BZxYCAgEPEA8WBh4NRGF0YVRleHRGaWVsZAUDa2V5Hg5EYXRhVmFsdWVGaWVsZAUFdmFsdWUeC18hRGF0YUJvdW5kZ2QQFQUMQW55ICgyMCw2MjkpDkFjdGl2ZSAoMyw2MzApG0FjdGl2ZSBVbmRlciBDb250cmFjdCAoODY3KQ1QZW5kaW5nICgxNzApDVNvbGQgKDE1LDk2MikVBQM0MDEDMTI4AjE2ATEDMjU2FCsDBWdnZ2dnFgECBGRk/RiCD9d7rp5ntOz1bwu/xF+dbO5sdrYDjySVgl/fa+Q=" />
+</div>
+<!--[if lte IE 7]><div id="P21RE" class="P21RE-IE"><![endif]--><!--[if gte IE 8]><!--><div id="P21RE"><!--<![endif]-->
+
+	
+<!--<h2 class="hdr-sub">Neighborhood Search Results</h2>-->
+
+<fieldset>
+	<legend>Search Options</legend>
+	<div class="P-SearchOptions">
+		<div class="P-SearchEdit"><a href="/HBR/ForSale/?/Neighborhood/7//256////////1////////////////////////////" id="ctl00_main_ctl00_haNeighborhoodEditSearch" class="button-sm right">Edit Options</a></div>
+
+		
+		<div class="P-FloatL P-SearchOptionTitle">Island:</div>
+		<div class="P-FloatL"><b>Oahu</b></div>
+		<div class="P-ClearB"><!-- --></div>
+		
+		
+		<div class="P-FloatL P-SearchOptionTitle">Region:</div>
+		<div class="P-FloatL"><b>All Regions</b></div>
+		<div class="P-ClearB"><!-- --></div>
+		
+		
+		<div class="P-FloatL">Neighborhood(s):</div>
+		<div class="P-ClearB"><!-- --></div>
+		
+        
+		<div class="P-FloatL P-SearchOptionMulti">
+			<b>All</b></div>
+		<div class="P-ClearB"><!-- --></div>
+		
+		<div class="P-FloatL">Property Type(s):</div>
+		<div class="P-ClearB"><!-- --></div>
+		<div class="P-FloatL P-SearchOptionMulti">
+			<b>Condo/Townhouse, Multi-Family, Single Family Home</b></div>
+		<div class="P-ClearB"><!-- --></div>
+		
+		<div class="P-FloatL P-SearchOptionTitle">List Status:</div>
+		<div class="P-FloatL"><span id="ctl00_main_ctl00_hgcNeighborhoodListStatus" class="P-Sold">Sold</span></div>
+	
+		<div class="P-ClearB"><!-- --></div>
+	</div>
+</fieldset>
+
+
+
+
+<div class="P-ResultsHeader">
+	<div class="P-FloatL P-480-ResultsHeader P-480-FloatNone"><b>Results:</b> &nbsp;Showing <b>1 - 20</b> of <b>15962</b></div>
+	<div class="P-FloatR P-480-FloatL P-480-FloatNone"><b>Show First:&nbsp;</b> 
+		<a id="ctl00_main_ctl00_hlSortPriceHigh" href="/HBR/ForSale/?/Results/Neighborhood///7//256////////1/////////////////////////////">Price (High)</a>&nbsp; |&nbsp; 
+		<a id="ctl00_main_ctl00_hlSortPriceLow" href="/HBR/ForSale/?/Results/Neighborhood/pl//7//256////////1/////////////////////////////">Price (Low)</a>&nbsp; |&nbsp; 
+		<span id="ctl00_main_ctl00_labSortDate" class="P-Bold">Date (Newest)</span>
+	</div>
+	<div class="P-ClearB"><!-- --></div>
+</div>
+
+<div class="P-ResultsHeader">
+	<div class="P-FloatR P-480-FloatNone P-480-ResultsHeader" style="line-height:2.5em;text-align:left;">
+		<div class="P-FloatL" style="margin-right:1em;">Status: </div><select name="ctl00$main$ctl00$ddlStatus" id="ctl00_main_ctl00_ddlStatus">
+	<option value="401">Any (20,629)</option>
+	<option value="128">Active (3,630)</option>
+	<option value="16">Active Under Contract (867)</option>
+	<option value="1">Pending (170)</option>
+	<option selected="selected" value="256">Sold (15,962)</option>
+
+</select>
+        <div class="P-ClearB"><!-- --></div>
+	</div>
+	<div class="P-FloatL P-480-FloatNone" style="line-height:2.5em;"><span>Page: </span>&nbsp; 
+		<span><b>1</b></span> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/2/7//256////////1/////////////////////////////"
+			>2</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/3/7//256////////1/////////////////////////////"
+			>3</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/4/7//256////////1/////////////////////////////"
+			>4</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/5/7//256////////1/////////////////////////////"
+			>5</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/6/7//256////////1/////////////////////////////"
+			>6</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/7/7//256////////1/////////////////////////////"
+			>7</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/8/7//256////////1/////////////////////////////"
+			>8</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/9/7//256////////1/////////////////////////////"
+			>9</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/10/7//256////////1/////////////////////////////"
+			>10</a>
+		
+		 | <a href="/HBR/ForSale/?/Results/Neighborhood/d/2/7//256////////1/////////////////////////////" id="ctl00_main_ctl00_haNextTop">Next</a>
+	</div>
+	<div class="P-ClearB"><!-- --></div>
+</div>
+
+
+<div class="box">
+	<ul class="P-Results">
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202615741">
+                <script type="text/javascript" src="Data/?/Image/202615741/"></script></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202615741">202615741</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				47-166 <a href="?/Results/Address///1///Wailehua//"> Wailehua Rd</a>
+				
+				<br />
+				<b><nobr>KANEOHE</nobr>, <nobr>KAALAEA</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,075,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>5</b> Bed<span class="P-480-DisplayNone">room</span>, <b>3</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>8,196</b> sqft Land<br />
+			    <b>1,920</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>08/15/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202614650">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/50/202614650_00.jpg" border="0" alt="202614650 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202614650">202614650</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				1878-A <a href="?/Results/Address///1///Mahana//"> Mahana St</a>
+				
+				<br />
+				<b><nobr>DIAMOND HEAD</nobr>, <nobr>PALOLO</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,120,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>3</b> Bed<span class="P-480-DisplayNone">room</span>, <b>2</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>5,765</b> sqft Land<br />
+			    <b>1,445</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>08/07/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202614634">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/34/202614634_00.jpg" border="0" alt="202614634 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202614634">202614634</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				45-593 <a href="?/Results/Address///1///Weleweka//"> Weleweka Pl</a>
+				
+				<br />
+				<b><nobr>KANEOHE</nobr>, <nobr>HALE KOU</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$2,198,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>6</b> Bed<span class="P-480-DisplayNone">room</span>, <b>5</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>6,000</b> sqft Land<br />
+			    <b>3,502</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>08/05/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202614500">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/00/202614500_00.jpg" border="0" alt="202614500 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202614500">202614500</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				1176 <a href="?/Results/Address///1///Lunaai//"> Lunaai St</a>
+				
+				<br />
+				<b><nobr>KAILUA</nobr>, <nobr>MAUNAWILI</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,600,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>4</b> Bed<span class="P-480-DisplayNone">room</span>, <b>2</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>8,076</b> sqft Land<br />
+			    <b>1,472</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/28/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202614272">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/72/202614272_00.jpg" border="0" alt="202614272 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202614272">202614272</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///801_South_St////">801 South St</a><br />
+				801 <a href="?/Results/Address///1///South//"> South St</a> #3207
+				
+				<br />
+				<b><nobr>METRO OAHU</nobr>, <nobr>KAKAAKO</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$700,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>2</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1/1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>776</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/27/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202614188">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/88/202614188_00.jpg" border="0" alt="202614188 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202614188">202614188</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				435 <a href="?/Results/Address///1///Kihapai//"> Kihapai St</a>
+				
+				<br />
+				<b><nobr>KAILUA</nobr>, <nobr>COCONUT GROVE</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$950,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>3</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>5,023</b> sqft Land<br />
+			    <b>1,440</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>08/07/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202614098">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/98/202614098_00.jpg" border="0" alt="202614098 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202614098">202614098</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				3012 <a href="?/Results/Address///1///Lakimau//"> Lakimau St</a>
+				
+				<br />
+				<b><nobr>DIAMOND HEAD</nobr>, <nobr>KAPAHULU</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,400,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>3</b> Bed<span class="P-480-DisplayNone">room</span>, <b>2</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>3,773</b> sqft Land<br />
+			    <b>1,281</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/24/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202613907">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/07/202613907_00.jpg" border="0" alt="202613907 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202613907">202613907</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Kokea_Gardens////">Kokea Gardens</a><br />
+				1119 <a href="?/Results/Address///1///Kokea//"> Kokea St</a> #C301
+				
+				<br />
+				<b><nobr>METRO OAHU</nobr>, <nobr>KAPALAMA</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$460,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>3</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>763</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/13/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202613785">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/85/202613785_00.jpg" border="0" alt="202613785 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202613785">202613785</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				91-1950 <a href="?/Results/Address///1///Makahehi//"> Makahehi Loop</a>
+				
+				<br />
+				<b><nobr>EWA PLAIN</nobr>, <nobr>EWA GEN MAKAMAE</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,332,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>3</b> Bed<span class="P-480-DisplayNone">room</span>, <b>3</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>5,720</b> sqft Land<br />
+			    <b>1,854</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/17/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202613552">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/52/202613552_00.jpg" border="0" alt="202613552 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202613552">202613552</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				1436 <a href="?/Results/Address///1///Hele//"> Hele St</a>
+				
+				<br />
+				<b><nobr>KAILUA</nobr>, <nobr>KEOLU HILLS</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,110,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>2</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>6,710</b> sqft Land<br />
+			    <b>798</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/15/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202613178">
+                <script type="text/javascript" src="Data/?/Image/202613178/"></script></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202613178">202613178</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Kokea_Gardens////">Kokea Gardens</a><br />
+				1229 <a href="?/Results/Address///1///Kokea//"> Kokea St</a> #A203
+				
+				<br />
+				<b><nobr>METRO OAHU</nobr>, <nobr>KAPALAMA</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$245,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>1</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>485</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/10/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202613023">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/23/202613023_00.jpg" border="0" alt="202613023 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202613023">202613023</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Monte_Vista////">Monte Vista</a><br />
+				320 <a href="?/Results/Address///1///Liliuokalani//"> Liliuokalani Ave</a> #2405
+				
+				<br />
+				<b><nobr>METRO OAHU</nobr>, <nobr>WAIKIKI</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$390,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>2</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>684</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/06/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202613009">
+                <script type="text/javascript" src="Data/?/Image/202613009/"></script></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202613009">202613009</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				94-781 <a href="?/Results/Address///1///Lumiauau//"> Lumiauau St</a>
+				
+				<br />
+				<b><nobr>WAIPAHU</nobr>, <nobr>WAIKELE</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,380,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>4</b> Bed<span class="P-480-DisplayNone">room</span>, <b>3</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>5,640</b> sqft Land<br />
+			    <b>1,773</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/13/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202612634">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/34/202612634_00.jpg" border="0" alt="202612634 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202612634">202612634</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				71 <a href="?/Results/Address///1///Namala//"> Namala Pl</a>
+				
+				<br />
+				<b><nobr>KAILUA</nobr>, <nobr>BEACHSIDE</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$3,960,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>4</b> Bed<span class="P-480-DisplayNone">room</span>, <b>3</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>10,140</b> sqft Land<br />
+			    <b>2,597</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>07/14/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202611552">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/52/202611552_00.jpg" border="0" alt="202611552 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202611552">202611552</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Tropic_Gardens_1////">Tropic Gardens 1</a><br />
+				4210 <a href="?/Results/Address///1///Keanu//"> Keanu St</a> #4
+				
+				<br />
+				<b><nobr>DIAMOND HEAD</nobr>, <nobr>WAIALAE NUI VLY</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$625,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>2</b> Bed<span class="P-480-DisplayNone">room</span>, <b>2</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>1,032</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>06/15/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202611251">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/51/202611251_00.jpg" border="0" alt="202611251 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202611251">202611251</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Waikiki_Banyan////">Waikiki Banyan</a><br />
+				201 <a href="?/Results/Address///1///Ohua//"> Ohua Ave</a> #3205
+				
+				<br />
+				<b><nobr>METRO OAHU</nobr>, <nobr>WAIKIKI</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$665,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>1</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>557</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>06/12/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202611222">
+                <script type="text/javascript" src="Data/?/Image/202611222/"></script></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202611222">202611222</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Island_Colony////">Island Colony</a><br />
+				445 <a href="?/Results/Address///1///Seaside//"> Seaside Ave</a> #3718
+				
+				<br />
+				<b><nobr>METRO OAHU</nobr>, <nobr>WAIKIKI</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$300,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>0</b> Bed<span class="P-480-DisplayNone">room</span>, <b>1</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>313</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>06/10/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202611194">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/94/202611194_00.jpg" border="0" alt="202611194 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202611194">202611194</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Moana_Pacific////">Moana Pacific</a><br />
+				1288 <a href="?/Results/Address///1///Kapiolani//"> Kapiolani Blvd</a> #I-3206
+				
+				<br />
+				<b><nobr>METRO OAHU</nobr>, <nobr>KAKAAKO</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$840,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>2</b> Bed<span class="P-480-DisplayNone">room</span>, <b>2</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>1,105</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>06/09/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202610846">
+                <img data-src="//s3.amazonaws.com/photos.re.parallel21.com/46/202610846_00.jpg" border="0" alt="202610846 : 1" class="P-PhotoList" loading="lazy" /></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202610846">202610846</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Single Family Home<br />
+				<br />
+				<br />
+				91-1555 <a href="?/Results/Address///1///Wahane//"> Wahane St</a>
+				
+				<br />
+				<b><nobr>EWA PLAIN</nobr>, <nobr>KAPOLEI KNOLLS</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$1,399,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>5</b> Bed<span class="P-480-DisplayNone">room</span>, <b>3</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>5,022</b> sqft Land<br />
+			    <b>2,327</b> sqft Living<br />
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>06/25/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+
+		<li class="P-Sold">
+			<a class="P-FloatL P-PhotoList P-480-FloatNone" href="?/202610191">
+                <script type="text/javascript" src="Data/?/Image/202610191/"></script></a>
+			<div class="P-FloatL P-Results1" style="position:relative;">
+				<span><a href="?/202610191">202610191</a></span><span class="P-480-DisplayNone"> - </span><br class="P-Hide P-480-DisplayInline"/>Condo/Townhouse<br />
+				<br />
+				<a 
+					href="?/Results/Condominium///Terraces_At_Launani_Valley////">Terraces At Launani Valley</a><br />
+				95-944 <a href="?/Results/Address///1///Wikao//"> Wikao St</a> #D302
+				
+				<br />
+				<b><nobr>CENTRAL OAHU</nobr>, <nobr>LAUNANI VALLEY</nobr></b><br />
+				
+            </div>
+            <div class="P-FloatL P-Results2">
+			    <div style="font-size:1.5em;font-weight:bold;" class="P-FloatL P-767-FloatR P-Sold">$588,000 (FS)</div>
+				
+				<div class="P-ClearB"></div>
+				<b>3</b> Bed<span class="P-480-DisplayNone">room</span>, <b>2</b> Bath<span class="P-480-DisplayNone">room</span><br />
+			    <b>1,309</b> sqft Living<br />
+			    
+            </div>
+									
+			<div class="P-FloatR P-Results3 P-Sold"><span style="font-size:1.2em;">Sold</span><br />
+				List Date: <b>05/27/2026</b><br />
+				Sold Date: <b>09/18/2026</b><br />
+				<div class="P-SaleConditions"></div>
+                
+                <div class="P-OpenHouse-"></div>
+			</div>
+			<div class="P-ClearB"><!-- --></div>
+		</li>						
+
+		<li class="P-Separator"><div style="height:1px;"></div></li>
+	</ul>
+</div>
+
+
+
+<div class="P-ResultsHeader">
+	<div class="P-FloatL P-480-FloatNone" style="line-height:2.5em;"><span>Page: </span>&nbsp; <span><b>1</b></span> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/2/7//256////////1/////////////////////////////"
+			>2</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/3/7//256////////1/////////////////////////////"
+			>3</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/4/7//256////////1/////////////////////////////"
+			>4</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/5/7//256////////1/////////////////////////////"
+			>5</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/6/7//256////////1/////////////////////////////"
+			>6</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/7/7//256////////1/////////////////////////////"
+			>7</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/8/7//256////////1/////////////////////////////"
+			>8</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/9/7//256////////1/////////////////////////////"
+			>9</a> | <a
+			href="/HBR/ForSale/?/Results/Neighborhood/d/10/7//256////////1/////////////////////////////"
+			>10</a> | <a href="/HBR/ForSale/?/Results/Neighborhood/d/2/7//256////////1/////////////////////////////" id="ctl00_main_ctl00_haNextBottom">Next</a>
+	</div>
+	<div class="clear"><!-- --></div>
+</div>
+
+
+
+</div>
+<div>
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="30303780" />
+</div></form>
+	
+				</div>
+			</section>
+			<div class="container">
+				<ul class="services">
+	<li> <a href="//hicentral.com/pdf/HBROpenHouseReport.pdf?a" target="_blank" id="DlOpenHouseReport"><strong class="title">OPEN HOUSE <br>REPORT</strong>Updated every Friday at 3pm!<br>Download the report.</a> </li>
+	<li> <a href="//hicentral.com/directory/search"><strong class="title">FIND A <br>REALTOR&reg;</strong>Find peace of mind when <br>buying or selling a home.</a></li>
+    <li class="even"> <a href="//hicentral.com/awards-programs.php"><strong class="title">HBR AWARDS <br>PROGRAMS</strong>Aloha ‘Aina &amp; REALTOR&reg; <br>of the Year Awards.</a></li>
+	<li class="last"> <a href="//hicentral.com/about-overview.php"><strong class="title">BECOME AN <br>HBR MEMBER</strong>Don't miss out on HBR<br> resources &amp; benefits!</a> </li>
+</ul>
+
+				<section class="col map-col">
+	<div class="inner">
+		<address>
+			<div class="sup-box">
+				<strong class="title">Honolulu Board of REALTORS<sup>®</sup></strong>
+				<span class="location">1136 12th Avenue, Suite 200 Honolulu, Hawaii 96816</span>
+			</div>
+			<div class="box">
+				<strong>Phone:</strong> (808) 732-3000
+			</div>
+			<div class="box">
+				<strong>Email:</strong> <a class="email" href="/cdn-cgi/l/email-protection#c6e0e5f7f6f2fde0e5fffefde0e5f7f7f2fde0e5fff1fde0e5f7f6f6fde0e5f7f6fffde0e5f7f6f3fde0e5f7f7f6fde0e5f6f0f2fde0e5f7f6f2fde0e5f7f6f3fde0e5f6fffffde0e5f7f6f7fde0e5f7f7f6fde0e5f7f7f0fde0e5f7f7f2fde0e5f6fff1fde0e5f7f6fefde0e5f6f2f0fde0e5f6fffffde0e5f7f7f7fde0e5f7f6fffd">&#104;&#98;&#114;&#97;&#100;&#109;&#105;&#110;&#064;&#104;&#105;&#099;&#101;&#110;&#116;&#114;&#097;&#108;&#046;&#099;&#111;&#109;</a>
+			</div>
+			<span class="meta"><strong>Hours: </strong>
+				<time datetime="2013-03-10T22:06:17">Monday - Friday, 8:00 am - 4:00 pm</time>
+			</span>
+		</address>
+	</div>
+</section>			</div>
+            
+		</div>
+
+<footer id="footer">
+	<a href="#header" class="scroll">SCROLL TO TOP</a>
+	<div class="copyright-area">
+		<p>&copy;          1995 - 2026    <a href="//hicentral.com/">Honolulu Board of REALTORS&reg;</a>. <a href="http://www.hicentral.com/DMCA.php" title="HBR DMCA Notice">DMCA Notice</a>. <a href="http://www.hicentral.com/privacy-policy.php">Privacy Policy</a>. If you require a reasonable accommodation to access our services, please contact us at (808) 732-3000 or email <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0d656f7f6c696064634d65646e6863797f6c61236e6260">[email&#160;protected]</a> so we may better assist you. All rights reserved. Information herein deemed reliable but not guaranteed. <br>
+		  Note: Honolulu Board of REALTORS&reg; receives inquiries seeking professional advice; however the Honolulu Board of REALTORS&reg; staff is not qualified, nor licensed, by the state of Hawaii to properly address real estate or legal issues. For questions concerning these issues, consult with either the Hawaii Real Estate Commission, your Principal Broker, or an Attorney.</p>
+
+  </div>
+</footer>
+
+
+
+
+</div>
+
+
+	
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

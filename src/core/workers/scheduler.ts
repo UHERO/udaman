@@ -278,5 +278,20 @@ export async function registerSchedules(): Promise<void> {
   );
   log.info("Registered schedule: download-pvhon (daily 9:15 AM HST)");
 
+  // ─── Scrapers ──────────────────────────────────────────────────────
+
+  // MLS listings (HiCentral) — 4:30 AM HST daily. Open listings only;
+  // ~250 list pages plus the day's new/changed/departed detail pages at one
+  // request every ~2s. Needs the NAS mounted on the worker host.
+  await defaultQueue.upsertJobScheduler(
+    "scheduled:mls-daily-hicentral",
+    { pattern: "30 4 * * *", tz },
+    {
+      name: JobName.MLS_DAILY,
+      data: { site: "hicentral" },
+    },
+  );
+  log.info("Registered schedule: mls-daily-hicentral (daily 4:30 AM HST)");
+
   log.info("All schedules registered");
 }

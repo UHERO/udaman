@@ -110,6 +110,8 @@ For a complete rebuild (e.g. after schema changes):
 | Worker  | `bun run worker`  | worker         | BullMQ jobs (time series reloads, exports) |
 | Scraper | `bun run scraper` | scraper-worker | QPub scraping + nightly parse/load         |
 
+MLS listings (`bun run mls backfill|daily|reparse`) run as the `mls.daily` worker job at 4:30 AM HST; see `docs/2026-09-18-mls-scraper-plan.md`.
+
 # ToDo Notes For Later
 
 1. Implement a standard, response shape from controllers. Something like:

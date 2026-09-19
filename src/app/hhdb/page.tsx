@@ -98,6 +98,27 @@ export default function Page() {
             For those, you&apos;ll want to query the database directly.
           </p>
 
+          <h2 className="mt-4 text-lg font-bold">MLS Listings</h2>
+          <p>
+            The <strong>MLS &rarr; Listings</strong> table (
+            <code>mls_listings</code>) is not county tax data. It is scraped
+            daily from HiCentral, the Honolulu Board of REALTORS public property
+            search. There is one row per listing, keyed by{" "}
+            <code>(mls_board, mls_number)</code> and updated in place as status
+            and price change; each change is recorded in{" "}
+            <code>mls_listing_history</code>.
+          </p>
+          <p>
+            Coverage is strongest for Oahu and thin for the neighbor islands.
+            The initial backfill reaches back only to roughly 2024, because the
+            site caps any one search at about 9,980 results. <code>tmk</code>{" "}
+            uses the same format as the qPublic tables, so listings can be
+            joined to <code>properties</code> and <code>parcels</code>.{" "}
+            <code>first_seen_at</code> and <code>last_seen_at</code> are our
+            observation times, not MLS dates &mdash; use <code>list_date</code>{" "}
+            and <code>date_sold</code> for market timing.
+          </p>
+
           <h2 className="mt-4 text-lg font-bold">Connecting to the database</h2>
           <p>
             The housing database is a MariaDB instance. You can connect with any

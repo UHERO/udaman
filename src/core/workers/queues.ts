@@ -26,6 +26,7 @@ export const JobName = {
   DOWNLOAD: "download.file",
   KAUAI_EXPORT: "export.kauai",
   QPUB_REPARSE: "qpub.reparse",
+  MLS_DAILY: "mls.daily",
   CLIPBOARD_ACTION: "clipboard.action",
   CLIPBOARD_LOADER_RELOAD: "clipboard.loader-reload",
   UNIVERSE_ARCHIVE: "universe.archive",
@@ -141,6 +142,11 @@ export type QpubReparseJobData = {
   period?: string;
   /** Progress report interval (default: 500) */
   batchSize?: number;
+};
+
+export type MlsDailyJobData = {
+  /** Key of MLS_SITES in src/core/crawlers/mls/registry.ts */
+  site: string;
 };
 
 export type UniverseArchiveJobData = {

@@ -1,49 +1,16 @@
-import { existsSync, readdirSync, statSync } from "fs";
+import { readdirSync, statSync } from "fs";
 import path from "path";
 
+import { findScrapesRoot } from "../nas-path";
+
 /**
- * Auto-detect NAS mount point (mac / linux / windows).
+ * NAS scrapes root (mac / linux / windows autodetect lives in ../nas-path).
  *
  * QPUB_NAS_PATH overrides the search — for a machine that mounts the share
  * somewhere unusual, and for dry-running the repair pass against a copy.
  */
 function findNASPath(): string {
-  const override = process.env.QPUB_NAS_PATH?.trim();
-  if (override) return override;
-
-  const platform = process.platform;
-
-  if (platform === "darwin") {
-    const defaultPath = "/Volumes/UHEROroot/work/scrapes";
-    if (existsSync(defaultPath)) return defaultPath;
-
-    try {
-      for (const volume of readdirSync("/Volumes")) {
-        const testPath = `/Volumes/${volume}/work/scrapes`;
-        if (existsSync(testPath)) return testPath;
-      }
-    } catch {
-      // can't read /Volumes — fall through
-    }
-
-    return defaultPath;
-  }
-
-  if (platform === "win32") {
-    const letters = "ZYXWVUTSRQPONM".split("");
-    for (const l of letters) {
-      const testPath = `${l}:\\work\\scrapes`;
-      if (existsSync(testPath)) return testPath;
-    }
-
-    const uncPath = "\\\\UHEROroot\\work\\scrapes";
-    if (existsSync(uncPath)) return uncPath;
-
-    return "Z:\\work\\scrapes";
-  }
-
-  // Linux / other
-  return "/Volumes/UHEROroot/work/scrapes";
+  return findScrapesRoot(process.env.QPUB_NAS_PATH);
 }
 
 // ─── Island lookup ────────────────────────────────────────────────────

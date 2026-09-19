@@ -20,6 +20,7 @@ import { processDependencyReset } from "./dependency-reset";
 import { processDownload } from "./download";
 import { processDvwUpload } from "./dvw-upload";
 import { processKauaiExport } from "./kauai-export";
+import { processMlsDaily } from "./mls-daily";
 import { processPurgeOldStuff } from "./purge-old";
 import { processQpubReparse } from "./qpub-reparse";
 import { processReloadJob } from "./reload-job";
@@ -36,10 +37,7 @@ import { processUpdatePublic } from "./update-public";
  * into their chunk loops so a waiting upload can take the lock between
  * chunks instead of timing out behind them.
  */
-export type Processor = (
-  job: Job,
-  ctx?: HeavyDbLockContext,
-) => Promise<string>;
+export type Processor = (job: Job, ctx?: HeavyDbLockContext) => Promise<string>;
 
 /**
  * Wrap a processor so it runs under the cross-process heavy-DB advisory
@@ -99,7 +97,8 @@ const uploadGuard =
  * SERIES_RELOAD (single loader, one short tx), CLIPBOARD_* (interactive,
  * single series), DOWNLOAD (network + small writes), TSD/KAUAI exports
  * (reads only), ADMIN_ACTION (shell commands), PURGE_OLD (small log
- * tables), QPUB_REPARSE (housing DB, not the UHERO server workload).
+ * tables), QPUB_REPARSE and MLS_DAILY (housing DB, not the UHERO server
+ * workload).
  */
 export const processors: Record<string, Processor> = {
   [JobName.SERIES_RELOAD]: processSeriesReload,
@@ -135,4 +134,5 @@ export const processors: Record<string, Processor> = {
   [JobName.UNIVERSE_ARCHIVE]: heavy(processUniverseArchive),
   [JobName.UNIVERSE_PURGE]: heavy(processUniversePurge),
   [JobName.QPUB_REPARSE]: processQpubReparse,
+  [JobName.MLS_DAILY]: processMlsDaily,
 };
