@@ -62,7 +62,7 @@ export function parseList(html: string): ListPageResult {
       null;
     const listPrice = status === "sold" ? null : parseMoney(priceText);
 
-    rows.push({ mlsNumber, status, listPrice });
+    rows.push({ mlsNumber, mlsBoard: "HBR", status, listPrice });
   }
 
   if (totalCount === null && rows.length === 0) {

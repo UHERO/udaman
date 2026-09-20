@@ -38,11 +38,13 @@ describe("hicentral parseList", () => {
     ]);
     expect(r.rows[0]).toEqual({
       mlsNumber: "202617816",
+      mlsBoard: "HBR",
       status: "active",
       listPrice: 775000,
     });
     expect(r.rows[1]).toEqual({
       mlsNumber: "202617803",
+      mlsBoard: "HBR",
       status: "active",
       listPrice: 402730,
     });
@@ -56,6 +58,7 @@ describe("hicentral parseList", () => {
     expect(r.rows).toHaveLength(20);
     expect(r.rows[0]).toEqual({
       mlsNumber: "202615741",
+      mlsBoard: "HBR",
       status: "sold",
       listPrice: null,
     });
@@ -68,12 +71,42 @@ describe("hicentral parseList", () => {
     expect(r.totalCount).toBe(20629);
     expect(r.rows).toHaveLength(20);
     expect(r.rows.filter((x) => x.status !== "sold")).toEqual([
-      { mlsNumber: "202528488", status: "active", listPrice: 320000 },
-      { mlsNumber: "202528459", status: "active", listPrice: 137500 },
-      { mlsNumber: "202528454", status: "active", listPrice: 174900 },
-      { mlsNumber: "202528439", status: "active", listPrice: 699000 },
-      { mlsNumber: "202528345", status: "pending", listPrice: 21000000 },
-      { mlsNumber: "202528027", status: "active", listPrice: 7300000 },
+      {
+        mlsNumber: "202528488",
+        mlsBoard: "HBR",
+        status: "active",
+        listPrice: 320000,
+      },
+      {
+        mlsNumber: "202528459",
+        mlsBoard: "HBR",
+        status: "active",
+        listPrice: 137500,
+      },
+      {
+        mlsNumber: "202528454",
+        mlsBoard: "HBR",
+        status: "active",
+        listPrice: 174900,
+      },
+      {
+        mlsNumber: "202528439",
+        mlsBoard: "HBR",
+        status: "active",
+        listPrice: 699000,
+      },
+      {
+        mlsNumber: "202528345",
+        mlsBoard: "HBR",
+        status: "pending",
+        listPrice: 21000000,
+      },
+      {
+        mlsNumber: "202528027",
+        mlsBoard: "HBR",
+        status: "active",
+        listPrice: 7300000,
+      },
     ]);
     expect(r.rows.filter((x) => x.status === "sold")).toHaveLength(14);
   });
@@ -83,11 +116,36 @@ describe("hicentral parseList", () => {
     expect(r).toEqual({
       totalCount: 5,
       rows: [
-        { mlsNumber: "202506288", status: "sold", listPrice: null },
-        { mlsNumber: "202613156", status: "active", listPrice: 1450000 },
-        { mlsNumber: "202506279", status: "sold", listPrice: null },
-        { mlsNumber: "202526426", status: "sold", listPrice: null },
-        { mlsNumber: "202506307", status: "sold", listPrice: null },
+        {
+          mlsNumber: "202506288",
+          mlsBoard: "HBR",
+          status: "sold",
+          listPrice: null,
+        },
+        {
+          mlsNumber: "202613156",
+          mlsBoard: "HBR",
+          status: "active",
+          listPrice: 1450000,
+        },
+        {
+          mlsNumber: "202506279",
+          mlsBoard: "HBR",
+          status: "sold",
+          listPrice: null,
+        },
+        {
+          mlsNumber: "202526426",
+          mlsBoard: "HBR",
+          status: "sold",
+          listPrice: null,
+        },
+        {
+          mlsNumber: "202506307",
+          mlsBoard: "HBR",
+          status: "sold",
+          listPrice: null,
+        },
       ],
     });
   });
@@ -120,6 +178,7 @@ describe("hicentral parseList", () => {
       rows: [
         {
           mlsNumber: "202600001",
+          mlsBoard: "HBR",
           status: "active_under_contract",
           listPrice: 1234567,
         },

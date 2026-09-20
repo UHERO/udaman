@@ -46,9 +46,20 @@ export interface NormalizedListing {
 /** What a list page tells us about a listing without fetching its detail page. */
 export interface ListRow {
   mlsNumber: string;
+  /**
+   * Board that issued the number, when the list row reveals it. Null means
+   * "only the detail page can say" — the pipeline then always fetches it.
+   */
+  mlsBoard: MlsBoard | null;
+  /** "unknown" when the list row does not show a status. */
   status: ListingStatus;
   /** Whole dollars, null when the row shows no parseable price. */
   listPrice: number | null;
+  /**
+   * The site's own link to the detail page, when it cannot be rebuilt from
+   * the number alone (slugged URLs). Falls back to adapter.detailUrl().
+   */
+  detailUrl?: string;
 }
 
 export interface ListPageResult {
@@ -77,16 +88,26 @@ export interface SiteAdapter {
    * priority site never overwrites field values written by a higher one.
    */
   priority: number;
-  /**
-   * Board whose numbers this site lists. A site spanning several boards
-   * would need a per-row board on ListRow instead; none does yet.
-   */
-  board: MlsBoard;
+  /** Every board whose numbers this site lists. */
+  boards: MlsBoard[];
   islands: IslandKey[];
   /** Last list page the site will serve (hicentral: 499). */
   maxPage: number;
   /** Minimum pause between requests to this site, before jitter. */
   minDelayMs: number;
+  /**
+   * Follow same-origin 3xx responses (each hop is a full, delayed request).
+   * Off for sites where a redirect means "past the last page".
+   */
+  followRedirects?: boolean;
+  /** HTTP statuses on a detail URL that mean "listing removed", not failure. */
+  goneStatuses?: number[];
+  /**
+   * Which of this adapter's list walks would contain a listing whose stored
+   * `island` is the given text — e.g. a site with no Molokai page lists
+   * Molokai under "maui". Default: the lower-cased island name itself.
+   */
+  walkFor?(storedIsland: string | null): IslandKey | null;
   listUrl(q: ListQuery): string;
   detailUrl(mlsNumber: string): string;
   /** Pure: no network, no fs. Throws MlsParseError on an unrecognizable page. */

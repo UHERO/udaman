@@ -89,6 +89,20 @@ describe("date", () => {
     expect(parseDate("February 29, 2024")).toBe("2024-02-29");
   });
 
+  test("ordinal day suffixes (hres: 'September 19th, 2026')", () => {
+    expect(parseDate("September 19th, 2026")).toBe("2026-09-19");
+    expect(parseDate("March 1st, 2057")).toBe("2057-03-01");
+    expect(parseDate("June 2nd, 2026")).toBe("2026-06-02");
+    expect(parseDate("September 3rd, 2026")).toBe("2026-09-03");
+    expect(parseDate("December 10th, 2025")).toBe("2025-12-10");
+    expect(parseDate("Friday, September 18th 2026")).toBe("2026-09-18");
+    expect(parseDate("february 29TH, 2024")).toBe("2024-02-29");
+    // A suffix does not rescue an impossible date, and needs a day to hang on.
+    expect(parseDate("February 30th, 2026")).toBeNull();
+    expect(parseDate("September th, 2026")).toBeNull();
+    expect(parseDate("19th September 2026")).toBeNull();
+  });
+
   test("dates at the edges of a day do not drift with the timezone", () => {
     expect(parseDate("January 1, 2026")).toBe("2026-01-01");
     expect(parseDate("12/31/2026")).toBe("2026-12-31");

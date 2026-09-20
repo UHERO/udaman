@@ -806,11 +806,31 @@ export async function getOpenListings(site: string): Promise<KnownListing[]> {
   }));
 }
 
-/** Every mls_number already in the table for a board (any status, any site). */
-export async function getKnownNumbers(board: MlsBoard): Promise<Set<string>> {
-  const rows = await rawQuery<{ mls_number: string }>(
-    `SELECT ${q("mls_number")} FROM ${q(LISTINGS_TABLE)} WHERE ${q("mls_board")} = ?`,
-    [board],
+export type ListingOwner = { site: string; priority: number };
+
+/** `${board}:${number}` — how the pipeline keys listings across boards. */
+export function listingKey(board: MlsBoard, mlsNumber: string): string {
+  return `${board}:${mlsNumber}`;
+}
+
+/**
+ * Who owns every listing already in the table for these boards (any status,
+ * any site), keyed by listingKey(). A site uses this to skip the detail
+ * fetch for a listing a higher-priority site already maintains.
+ */
+export async function getKnownListings(
+  boards: MlsBoard[],
+): Promise<Map<string, ListingOwner>> {
+  if (boards.length === 0) return new Map();
+  const rows = await rawQuery<Record<string, unknown>>(
+    `SELECT ${q("mls_board")}, ${q("mls_number")}, ${q("source_site")}, ${q("source_priority")} ` +
+      `FROM ${q(LISTINGS_TABLE)} WHERE ${q("mls_board")} IN (${boards.map(() => "?").join(", ")})`,
+    boards,
   );
-  return new Set(rows.map((r) => String(r.mls_number)));
+  return new Map(
+    rows.map((r) => [
+      listingKey(String(r.mls_board) as MlsBoard, String(r.mls_number)),
+      { site: String(r.source_site), priority: Number(r.source_priority) },
+    ]),
+  );
 }

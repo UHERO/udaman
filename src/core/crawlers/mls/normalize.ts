@@ -105,9 +105,10 @@ function isoFromParts(y: number, m: number, d: number): string | null {
 }
 
 /**
- * date: "December 31, 2024", "Friday, September 18, 2026", "09/18/2026" or
- * "2024-12-31" → "2024-12-31". Built from the parsed parts — never through a
- * JS Date, which would drag the local timezone in. Invalid → null.
+ * date: "December 31, 2024", "Friday, September 18, 2026", "September 19th,
+ * 2026", "09/18/2026" or "2024-12-31" → "2024-12-31". Built from the parsed
+ * parts — never through a JS Date, which would drag the local timezone in.
+ * Invalid → null.
  */
 export function parseDate(raw: string | null | undefined): string | null {
   const s = cleanText(raw);
@@ -119,7 +120,11 @@ export function parseDate(raw: string | null | undefined): string | null {
   m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
   if (m) return isoFromParts(Number(m[1]), Number(m[2]), Number(m[3]));
 
-  m = /^(?:[A-Za-z]+,\s*)?([A-Za-z]{3,})\.?\s+(\d{1,2}),?\s+(\d{4})$/.exec(s);
+  // Optional ordinal suffix on the day: "September 19th, 2026", "March 1st, 2057".
+  m =
+    /^(?:[A-Za-z]+,\s*)?([A-Za-z]{3,})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i.exec(
+      s,
+    );
   if (m) {
     const month = MONTHS[m[1].slice(0, 3).toLowerCase()];
     if (!month) return null;

@@ -280,6 +280,67 @@ describe("cache-through", () => {
   });
 });
 
+describe("followRedirects / goneStatuses (opt-in, per site)", () => {
+  test("follows a same-origin 301 as a second, delayed request and caches under the asked-for key", async () => {
+    const h = harness(
+      [status(301, { Location: "/listing/123-new-slug/" }), ok()],
+      { followRedirects: true },
+    );
+    const r = await h.fetcher.fetchDetail(url(1), mls(1), DATE);
+    expect(r.kind).toBe("ok");
+    expect(h.calls.map((c) => c.url)).toEqual([
+      url(1),
+      "https://example.test/listing/123-new-slug/",
+    ]);
+    // The hop waited out the politeness delay like any other request.
+    expect(h.sleeps).toEqual([1_500]);
+    const again = await h.fetcher.fetchDetail(url(1), mls(1), DATE);
+    expect(again).toMatchObject({ kind: "ok", fromCache: true });
+    expect(h.calls).toHaveLength(2);
+  });
+
+  test("does not follow a redirect off the origin", async () => {
+    const h = harness([status(302, { Location: "https://elsewhere.test/x" })], {
+      followRedirects: true,
+    });
+    const r = await h.fetcher.fetchDetail(url(1), mls(1), DATE);
+    expect(r).toEqual({
+      kind: "redirect",
+      location: "https://elsewhere.test/x",
+    });
+    expect(h.calls).toHaveLength(1);
+  });
+
+  test("gives up after three hops", async () => {
+    let n = 0;
+    const h = harness(() => status(301, { Location: `/hop-${++n}/` }), {
+      followRedirects: true,
+    });
+    const r = await h.fetcher.fetchDetail(url(1), mls(1), DATE);
+    expect(r.kind).toBe("redirect");
+    expect(h.calls).toHaveLength(4);
+  });
+
+  test("a gone status is an answer: not retried, not cached, no breaker strike", async () => {
+    const h = harness(() => status(404), { goneStatuses: [404] });
+    for (let i = 1; i <= 7; i++) {
+      expect(await h.fetcher.fetchDetail(url(i), mls(i), DATE)).toEqual({
+        kind: "gone",
+        status: 404,
+      });
+    }
+    expect(h.calls).toHaveLength(7);
+    expect(h.fetcher.stats().retries).toBe(0);
+  });
+
+  test("without goneStatuses a 404 is still a failure", async () => {
+    const h = harness(() => status(404));
+    await expect(h.fetcher.fetchDetail(url(1), mls(1), DATE)).rejects.toThrow(
+      MlsFetchError,
+    );
+  });
+});
+
 describe("redirects", () => {
   test("302 → redirect result, not cached, not retried", async () => {
     const h = harness([

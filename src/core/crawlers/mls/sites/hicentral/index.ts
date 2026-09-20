@@ -11,7 +11,7 @@ import { detailUrl, HICENTRAL_MAX_PAGE, listUrl } from "./urls";
 export const hicentralAdapter: SiteAdapter = {
   site: "hicentral",
   priority: 100,
-  board: "HBR",
+  boards: ["HBR"],
   islands: ["oahu", "maui", "hawaii", "kauai", "molokai", "lanai"],
   maxPage: HICENTRAL_MAX_PAGE,
   // The site tolerated 8 concurrent requests in testing; we take one at a

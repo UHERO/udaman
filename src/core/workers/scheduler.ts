@@ -293,5 +293,19 @@ export async function registerSchedules(): Promise<void> {
   );
   log.info("Registered schedule: mls-daily-hicentral (daily 4:30 AM HST)");
 
+  // MLS listings (hawaiirealestatesearch.com) — 5:15 AM HST daily, after
+  // hicentral so listings both sites carry are already owned by the richer
+  // source and cost this run no detail fetch. robots.txt asks for a 5s crawl
+  // delay: ~240 list pages ≈ 25 min, plus the day's new/changed/departed.
+  await defaultQueue.upsertJobScheduler(
+    "scheduled:mls-daily-hres",
+    { pattern: "15 5 * * *", tz },
+    {
+      name: JobName.MLS_DAILY,
+      data: { site: "hres" },
+    },
+  );
+  log.info("Registered schedule: mls-daily-hres (daily 5:15 AM HST)");
+
   log.info("All schedules registered");
 }

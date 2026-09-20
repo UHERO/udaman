@@ -22,7 +22,9 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 export type FetchResult =
   | { kind: "ok"; html: string; path: string; fromCache: boolean }
-  | { kind: "redirect"; location: string | null };
+  | { kind: "redirect"; location: string | null }
+  /** The site answered with one of `goneStatuses` — the page no longer exists. */
+  | { kind: "gone"; status: number };
 
 export interface FetcherOptions {
   /** NAS cache directory name, e.g. "hicentral". */
@@ -32,6 +34,14 @@ export interface FetcherOptions {
   userAgent?: string;
   /** Ignore cached copies and fetch again (still writes through). */
   refetch?: boolean;
+  /**
+   * Follow same-origin 3xx responses, up to MAX_REDIRECT_HOPS. Each hop is a
+   * full request that waits out the politeness delay. Off by default: on
+   * hicentral a redirect IS the answer ("past the last page").
+   */
+  followRedirects?: boolean;
+  /** Statuses that mean "this page is gone" rather than a failure, e.g. [404]. */
+  goneStatuses?: number[];
   fetchImpl?: typeof fetch;
   sleepImpl?: (ms: number) => Promise<void>;
   /** Test seams; default Date.now / Math.random. */
@@ -132,12 +142,32 @@ async function discardBody(res: Response): Promise<void> {
   }
 }
 
+const MAX_REDIRECT_HOPS = 3;
+
+/** Absolute URL of a redirect target, or null if it leaves the origin (or is unusable). */
+function sameOriginTarget(
+  from: string,
+  location: string | null,
+): string | null {
+  if (!location) return null;
+  try {
+    const base = new URL(from);
+    const next = new URL(location, base);
+    if (next.origin !== base.origin || next.href === base.href) return null;
+    return next.href;
+  } catch {
+    return null;
+  }
+}
+
 export function createFetcher(opts: FetcherOptions): Fetcher {
   const {
     site,
     minDelayMs,
     userAgent = DEFAULT_USER_AGENT,
     refetch = false,
+    followRedirects = false,
+    goneStatuses = [],
     fetchImpl = fetch,
     sleepImpl = defaultSleep,
     nowImpl = Date.now,
@@ -208,6 +238,12 @@ export function createFetcher(opts: FetcherOptions): Fetcher {
       // The site's answer to a malformed or past-the-last-page URL. A real
       // response, not an outage: never cached, never retried.
       return { kind: "redirect", location: res.headers.get("location") };
+    }
+
+    if (goneStatuses.includes(res.status)) {
+      // A real answer from a healthy site: never cached, never retried, and
+      // not a strike against the circuit breaker.
+      return { kind: "gone", status: res.status };
     }
 
     if (res.status === 429 || res.status >= 500) {
@@ -310,7 +346,22 @@ export function createFetcher(opts: FetcherOptions): Fetcher {
     if (tripped) throw new MlsFetchAbort(consecutiveFailures);
 
     try {
-      const result = await fetchWithRetries(url, cachePath);
+      let result = await fetchWithRetries(url, cachePath);
+      // Slugged detail URLs drift; the site 301s the old slug to the new one.
+      // The page is cached under the key the caller asked for either way.
+      let from = url;
+      for (
+        let hop = 0;
+        followRedirects &&
+        result.kind === "redirect" &&
+        hop < MAX_REDIRECT_HOPS;
+        hop++
+      ) {
+        const next = sameOriginTarget(from, result.location);
+        if (next === null) break;
+        from = next;
+        result = await fetchWithRetries(next, cachePath);
+      }
       // A redirect says nothing either way about whether the site is healthy
       // for real pages, so only a served page clears the failure streak.
       if (result.kind === "ok") consecutiveFailures = 0;
