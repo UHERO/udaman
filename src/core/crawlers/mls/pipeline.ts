@@ -4,16 +4,10 @@ import nodePath from "path";
 import { hstToday } from "@/core/catalog/utils/time";
 import { createLogger } from "@/core/observability/logger";
 
+import { resilient } from "./db-retry";
 import { createFetcher, MlsFetchAbort } from "./fetcher";
-import {
-  applyListChange,
-  getKnownListings,
-  getOpenListings,
-  listingKey,
-  loadListing,
-  markOffMarket,
-  touchSeen,
-} from "./load";
+import * as db from "./load";
+import { listingKey } from "./load";
 import type { ListingOwner, LoadOutcome } from "./load";
 import {
   iterateCachedDetails,
@@ -28,6 +22,15 @@ import { walkList } from "./walk";
 import type { WalkResult } from "./walk";
 
 const log = createLogger("mls-pipeline");
+
+// Every DB call goes through resilient(): a run lasts hours and must sit out
+// the nightly backup rather than die in it.
+const applyListChange = resilient("applyListChange", db.applyListChange);
+const getKnownListings = resilient("getKnownListings", db.getKnownListings);
+const getOpenListings = resilient("getOpenListings", db.getOpenListings);
+const loadListing = resilient("loadListing", db.loadListing);
+const markOffMarket = resilient("markOffMarket", db.markOffMarket);
+const touchSeen = resilient("touchSeen", db.touchSeen);
 
 type Fetcher = ReturnType<typeof createFetcher>;
 

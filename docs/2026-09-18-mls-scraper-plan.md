@@ -82,6 +82,12 @@ page". Now a redirect / empty / unparseable page before the expected last page i
 pages in a row abort the walk. The summary's `walks` shows listings read vs the site's count per island
 (`oahu 9980/20610 (page cap)`) and `incompleteWalks` names any skipped pages — check `walks` after a run.
 
+**A database outage pauses a run; it doesn't kill it** (`db-retry.ts`). The first hres backfill died at
+02:14 HST, 4,200 listings in, when the nightly backup took hhdb offline. Every pipeline DB call now
+waits out a lost connection (1, 5, 15, 30, 45 min) before giving up. **Restarting a backfill resumes:**
+listings already in the table are skipped (no request); only the list pages are re-walked, since their
+cache is per day.
+
 A run exits non-zero / fails its job when any list page had to be skipped (everything that was listed
 is still loaded — rerun to fill the gap), when parse failures exceed max(5, 2 %) or when an island's open
 walk is incomplete or under half of what we hold as open (the departed check is skipped for that
