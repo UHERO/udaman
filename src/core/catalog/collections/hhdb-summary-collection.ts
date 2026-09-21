@@ -8,13 +8,6 @@ import {
 import { getSummaryFieldDefs } from "../types/hhdb-data-dictionary";
 import { isMissingTableError } from "../utils/hhdb-missing-table";
 
-/**
- * Tables with no pre-computed `freq_<table>` (those are rebuilt weekly by the
- * qPublic stored procedure). They are small and change daily, so their
- * frequencies are computed live from the base table instead.
- */
-const LIVE_FREQ_TABLES: ReadonlySet<string> = new Set(["mls_listings"]);
-
 const EMPTY_FREQ_RESULT: FreqSummaryResult = {
   rows: [],
   total: 0,
@@ -22,38 +15,6 @@ const EMPTY_FREQ_RESULT: FreqSummaryResult = {
   totalCounts: {},
   generatedAt: null,
 };
-
-/**
- * Derived table with the same shape as a `freq_<table>` filtered to one
- * column, so every query in getFreqSummary runs against it unchanged. Mirrors
- * the INSERTs in hhdb-freq-tables.sql: per-county rows keyed by the TMK's
- * leading digit, plus county_code '0' for the statewide total. Rows without a
- * TMK therefore count toward the State column only.
- *
- * `table` and `column` are interpolated — callers must have validated both
- * against the data dictionary. Identifiers are backtick-quoted (mls_listings
- * has columns named `view`, `security`, `pool`).
- */
-function liveFreqSource(table: string, column: string): string {
-  const t = `\`${table}\``;
-  const c = `\`${column}\``;
-  const value = `LEFT(COALESCE(CAST(${c} AS CHAR), '[NULL]'), 500)`;
-  // generated_at as a zone-less ISO string: the browser reads it as local
-  // time, so the HST wall-clock displays unchanged.
-  const now = `REPLACE(CAST(NOW() AS CHAR), ' ', 'T')`;
-  return `(
-    SELECT LEFT(\`tmk\`, 1) AS county_code, '${column}' AS column_name,
-           ${value} AS column_value, COUNT(*) AS frequency,
-           ${now} AS generated_at
-    FROM ${t}
-    WHERE \`tmk\` IS NOT NULL AND LEFT(\`tmk\`, 1) IN ('1', '2', '3', '4')
-    GROUP BY LEFT(\`tmk\`, 1), ${value}
-    UNION ALL
-    SELECT '0', '${column}', ${value} AS column_value, COUNT(*), ${now}
-    FROM ${t}
-    GROUP BY ${value}
-  ) AS live_freq`;
-}
 
 export default class HhdbSummaryCollection {
   /** Total row count for a table. Table name validated against dictionary. */
@@ -107,15 +68,7 @@ export default class HhdbSummaryCollection {
     const sortDir = params.sortDir === "asc" ? "ASC" : "DESC";
     const offset = (params.page - 1) * params.limit;
 
-    let freqTable = `freq_${table}`;
-    if (LIVE_FREQ_TABLES.has(table)) {
-      // The column is interpolated into the live query, so it must be a
-      // dictionary summary field (the freq_ path only ever binds it).
-      if (!fields.some((f) => f.column === column)) {
-        throw new Error(`Invalid column "${column}" for table "${table}"`);
-      }
-      freqTable = liveFreqSource(table, column);
-    }
+    const freqTable = `freq_${table}`;
 
     // Fetch generated_at + null row (always needed regardless of page)
     const metaRows = await rawQuery<{

@@ -45,9 +45,17 @@ the reasoning; **where they disagree with "As built" below, "As built" wins.** C
 - **Politeness:** one request in flight, 1.5 s + 0–1 s jitter after the previous one *finishes*,
   30 s timeout, 5 s → 20 s → 60 s backoff on 429/5xx (honours `Retry-After`), and a circuit breaker
   that aborts the run after 5 consecutive failed URLs. Cache hits cost nothing.
-- **Summary tab** computes frequencies live from `mls_listings` (`LIVE_FREQ_TABLES` in
-  `hhdb-summary-collection.ts`) instead of a weekly `freq_` table. County columns come from
-  `LEFT(tmk,1)`, so Molokai/Lanai count under Maui County.
+- **Summary tab** reads `freq_mls_listings`, the same pre-computed EAV table every other hhdb table
+  has (changed 2026-09-21 — it was briefly computed live; one pattern is easier to reason about). It
+  is a block inside `sp_regenerate_freq_tables` in `hhdb-freq-tables.sql`, so the weekly event
+  refreshes it with the rest. To add it to a live server use
+  `migrations/2026-09-21-freq-mls-listings.sql` (creates + fills that one table; re-runnable to
+  refresh MLS counts on their own) — never source all of `hhdb-freq-tables.sql`, which drops every
+  freq table. Then re-create the procedure from the main file (the `DROP PROCEDURE … END //` section
+  only) so the weekly event includes MLS. County columns come from `LEFT(tmk,1)`, so Molokai/Lanai
+  count under Maui County, and listings with no TMK count toward State only. A test
+  (`freq-mls-listings.test.ts`) fails if the Summary fields in the data dictionary and the INSERTs
+  drift apart.
 - List-page cache dirs are named by status set (`active` / `any`), not `s128`.
 - Sold rows on list pages show the *sold* price, so `ListRow.listPrice` is null for them.
 - Agent phone/email and open-house access notes are deliberately not captured.
