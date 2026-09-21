@@ -135,8 +135,8 @@ const syn = (o: PageOpts = {}) => must(parseDetail(page(o)));
 // ── Fixtures ────────────────────────────────────────────────────────────
 
 describe("hres parseDetail — fixtures", () => {
-  test("there are 9 detail fixtures", () => {
-    expect(DETAIL_FIXTURES).toHaveLength(9);
+  test("there are 11 detail fixtures", () => {
+    expect(DETAIL_FIXTURES).toHaveLength(11);
   });
 
   test("HTTP-404 'Listing Not Found' page → null", () => {
@@ -554,16 +554,48 @@ describe("hres parseDetail — invariants over every fixture", () => {
 
   test("columns this site cannot fill stay absent", () => {
     for (const name of DETAIL_FIXTURES) {
-      const { fields } = parsed(name);
-      for (const column of [
-        "remarks",
-        "listing_agent",
-        "sold_price",
-        "date_sold",
-      ]) {
+      const { fields, status } = parsed(name);
+      // No page on this site carries a sale DATE, remarks or an agent name.
+      for (const column of ["remarks", "listing_agent", "date_sold"]) {
         expect(column in fields).toBe(false);
       }
+      // A price is a sold price on a Closed page and a list price otherwise —
+      // never both, never the wrong one.
+      expect("sold_price" in fields).toBe(status === "sold");
+      expect("list_price" in fields).toBe(status !== "sold");
     }
+  });
+
+  test("closed listings from the *_sold feeds: Closed → sold, Price → sold_price, Land → Vacant Land", () => {
+    const r = parsed("detail-his-sold-land-731101.html");
+    expect(r).toMatchObject({
+      mlsBoard: "HIS",
+      mlsNumber: "731101",
+      status: "sold",
+      statusRaw: "Closed",
+    });
+    expect(r.fields).toMatchObject({
+      sold_price: 685000,
+      property_type: "Vacant Land",
+      land_area_sf: 46174,
+      list_date: "2026-07-23",
+      island: "Kauai", // from coordinates: sold pages have no county tax link
+      zoning: "A",
+    });
+    expect(r.fields.tmk ?? null).toBeNull();
+    // "Days on Market" is dropped here too. It looks like a way to date the
+    // sale (list date + DOM) but is not: two unrelated old listings both land
+    // on 2026-08-11, the day the feed last touched them.
+    expect(Object.keys(r.extra)).not.toContain("Days on Market");
+
+    const old = parsed("detail-his-sold-705350.html");
+    expect(old.status).toBe("sold");
+    expect(old.fields).toMatchObject({
+      sold_price: 160000,
+      list_date: "2023-10-29",
+      island: "Hawaii",
+      association_fees: 38,
+    });
   });
 
   test("every distinct extra key is on the allow-list (and the list has no dead entries)", () => {

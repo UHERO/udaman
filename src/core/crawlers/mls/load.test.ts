@@ -11,6 +11,7 @@ import {
   columnValues,
   decideAction,
   diffListing,
+  keepListPriceOnSale,
   MlsLoadError,
   normalizeValue,
   preserveListTracked,
@@ -499,5 +500,54 @@ describe("preserveListTracked (reparse must not undo list-row updates)", () => {
     const r = preserveListTracked(snapshot("sold"), existing);
     expect(r.status).toBe("sold");
     expect(r.fields.list_price).toBe(699000);
+  });
+});
+
+describe("keepListPriceOnSale", () => {
+  const held = (listPrice: number | null) =>
+    ({
+      id: 1,
+      sourcePriority: 50,
+      status: "active",
+      statusRaw: "Active",
+      extra: null,
+      fields: { list_price: listPrice },
+    }) as unknown as ExistingListing;
+  const page = (
+    status: NormalizedListing["status"],
+    fields: NormalizedListing["fields"],
+  ): NormalizedListing => ({
+    mlsBoard: "HIS",
+    mlsNumber: "731101",
+    status,
+    statusRaw: status,
+    fields,
+    extra: {},
+  });
+
+  test("a sold page with no list price keeps the asking price we already hold", () => {
+    const r = keepListPriceOnSale(
+      page("sold", { sold_price: 685000 }),
+      held(699000),
+    );
+    expect(r.fields).toEqual({ sold_price: 685000, list_price: 699000 });
+  });
+
+  test("a sold page that has its own list price wins (hicentral)", () => {
+    const r = keepListPriceOnSale(
+      page("sold", { sold_price: 305600, list_price: 300000 }),
+      held(310000),
+    );
+    expect(r.fields.list_price).toBe(300000);
+  });
+
+  test("an open page with no price is left alone — absent still means NULL", () => {
+    const l = page("active", { bedrooms: 2 });
+    expect(keepListPriceOnSale(l, held(500000))).toBe(l);
+  });
+
+  test("nothing to keep when we never had a list price", () => {
+    const l = page("sold", { sold_price: 160000 });
+    expect(keepListPriceOnSale(l, held(null))).toBe(l);
   });
 });

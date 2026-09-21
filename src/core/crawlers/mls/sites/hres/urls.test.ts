@@ -32,7 +32,22 @@ describe("hres listUrl", () => {
     });
   });
 
-  test("statusSet is ignored — the site only lists open listings", () => {
+  test("sold lists exist for hawaii and kauai only", () => {
+    expect(listUrl({ island: "kauai", statusSet: "sold", page: 1 })).toBe(
+      "https://www.hawaiirealestatesearch.com/mls/kauai_sold/",
+    );
+    expect(listUrl({ island: "hawaii", statusSet: "sold", page: 328 })).toBe(
+      "https://www.hawaiirealestatesearch.com/mls/big-island-sold/?p=328",
+    );
+    for (const island of ["oahu", "maui", "molokai"] as IslandKey[]) {
+      expect(() => listUrl({ island, statusSet: "sold", page: 1 })).toThrow(
+        /no sold list/,
+      );
+    }
+    expect(hresAdapter.soldWalkIslands).toEqual(["hawaii", "kauai"]);
+  });
+
+  test("'active' and 'any' are the same walk — the island pages only list open listings", () => {
     for (const page of [1, 7]) {
       expect(listUrl({ island: "oahu", statusSet: "any", page })).toBe(
         listUrl({ island: "oahu", statusSet: "active", page }),

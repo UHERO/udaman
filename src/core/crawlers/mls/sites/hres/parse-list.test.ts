@@ -268,3 +268,19 @@ describe("hres parseList — edge cases", () => {
     );
   });
 });
+
+describe("hres parseList — sold feed", () => {
+  test("same cards, 12 per page, board from the photo path", () => {
+    const r = parseList(fixture("list-kauai-sold-p1.html"));
+    expect(r.totalCount).toBe(694);
+    expect(r.rows).toHaveLength(12);
+    expect(r.rows[0]).toEqual({
+      mlsNumber: "731101",
+      mlsBoard: "HIS",
+      status: "unknown",
+      listPrice: 685000,
+      detailUrl:
+        "https://www.hawaiirealestatesearch.com/listing/731101-kawaihau-rd-kawaihau-hi-96746/",
+    });
+  });
+});

@@ -29,6 +29,9 @@ Options:
   --max-pages <n>      Stop each list walk after n pages (smoke test;
                        disables the departed check)
   --max-details <n>    Stop after n detail pages
+  --sold-only          backfill: walk only the closed-sales lists (hres: Kauai
+                       and Big Island) — for adding sold history after the
+                       open listings have already been backfilled
   --dry-run            Fetch, cache and parse, but write nothing to the database
   --refetch            Ignore same-day cached HTML
 
@@ -58,6 +61,7 @@ function parseArgs(argv: string[]): { command: string; opts: MlsRunOptions } {
       opts.islands = (rest[++i] ?? usage()).split(",") as IslandKey[];
     } else if (arg === "--max-pages") opts.maxPages = intArg(arg, rest[++i]);
     else if (arg === "--max-details") opts.maxDetails = intArg(arg, rest[++i]);
+    else if (arg === "--sold-only") opts.soldOnly = true;
     else if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--refetch") opts.refetch = true;
     else {

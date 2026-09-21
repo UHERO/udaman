@@ -191,7 +191,9 @@ export function normalizeStatus(raw: string | null | undefined): ListingStatus {
       return "active_under_contract";
     case "pending":
       return "pending";
+    // hres (and the RESO vocabulary generally) says "Closed".
     case "sold":
+    case "closed":
       return "sold";
     default:
       return "unknown";

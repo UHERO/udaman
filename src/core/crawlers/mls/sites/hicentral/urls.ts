@@ -39,6 +39,8 @@ const STATUS_FOR_SET: Record<StatusSet, number> = {
     HICENTRAL_STATUS.activeUnderContract |
     HICENTRAL_STATUS.pending,
   any: HICENTRAL_STATUS.any,
+  // Not walked on its own — "any" already includes sold here.
+  sold: HICENTRAL_STATUS.sold,
 };
 
 /**

@@ -39,6 +39,7 @@ export const hresAdapter: SiteAdapter = {
     return WALK_FOR.get(key) ?? null;
   },
   reportsSold: false,
+  soldWalkIslands: ["hawaii", "kauai"],
   listUrl,
   detailUrl,
   parseList,

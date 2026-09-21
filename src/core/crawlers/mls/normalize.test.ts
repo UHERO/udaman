@@ -208,6 +208,7 @@ describe("normalizeStatus", () => {
       "active_under_contract",
     );
     expect(normalizeStatus("Pending")).toBe("pending");
+    expect(normalizeStatus("Closed")).toBe("sold"); // hres / RESO wording
     expect(normalizeStatus("SOLD")).toBe("sold");
   });
 

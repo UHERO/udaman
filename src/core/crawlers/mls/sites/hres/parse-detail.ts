@@ -328,7 +328,8 @@ export function normalizePropertyType(
 ): string | null {
   const t = (type ?? "").toLowerCase();
   const s = (subType ?? "").toLowerCase();
-  if (t === "vacant land") return "Vacant Land";
+  // The sold feeds say "Land" where the open feed says "Vacant Land".
+  if (t === "vacant land" || t === "land") return "Vacant Land";
   if (t === "commercial") return "Commercial";
   if (s === "condominium" || s === "townhouse") return "Condo/Townhouse";
   if (s === "single family residence" || s === "sf w/det ohana or cottage") {
@@ -651,6 +652,16 @@ export function parseDetail(html: string): NormalizedListing | null {
   // unit). That is not the unit's lot; the raw figure stays in extra.Acres.
   if (mlsBoard === "RAM" && fields.property_type === "Condo/Townhouse") {
     fields.land_area_sf = null;
+  }
+
+  // A closed listing shows a single "Price". In the *_sold feeds that is taken
+  // to be the closing price (unlabelled on the page — see the 2026-09-19 doc
+  // for the query that checks it against list prices we captured while the
+  // listing was open). It is not a list price, so it must not sit in
+  // list_price; the loader keeps whatever list price we already hold.
+  if (status === "sold") {
+    fields.sold_price = fields.list_price ?? null;
+    delete fields.list_price;
   }
 
   return { mlsBoard, mlsNumber, status, statusRaw, fields, extra };

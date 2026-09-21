@@ -446,6 +446,28 @@ export function preserveListTracked(
   };
 }
 
+/**
+ * A sold page that carries no list price (hres shows one "Price": the closing
+ * price) must not erase the asking price we recorded while the listing was
+ * open — having both is the point of the two columns.
+ */
+export function keepListPriceOnSale(
+  listing: NormalizedListing,
+  existing: ExistingListing,
+): NormalizedListing {
+  if (
+    listing.status !== "sold" ||
+    (listing.fields.list_price ?? null) !== null ||
+    existing.fields.list_price === null
+  ) {
+    return listing;
+  }
+  return {
+    ...listing,
+    fields: { ...listing.fields, list_price: existing.fields.list_price },
+  };
+}
+
 /** Which branch of loadListing applies. */
 export function decideAction(
   existing: Pick<ExistingListing, "sourcePriority"> | null,
@@ -666,6 +688,8 @@ async function loadListingOnce(
     if (!opts.reparse) await touchOne(board, mlsNumber);
     return "skipped_lower_priority";
   }
+
+  listing = keepListPriceOnSale(listing, existing as ExistingListing);
 
   if (opts.reparse) {
     // The daily run keeps status and list price current from list rows
@@ -897,7 +921,11 @@ export async function getOpenListings(site: string): Promise<KnownListing[]> {
   }));
 }
 
-export type ListingOwner = { site: string; priority: number };
+export type ListingOwner = {
+  site: string;
+  priority: number;
+  status: ListingStatus;
+};
 
 /** `${board}:${number}` — how the pipeline keys listings across boards. */
 export function listingKey(board: MlsBoard, mlsNumber: string): string {
@@ -914,14 +942,18 @@ export async function getKnownListings(
 ): Promise<Map<string, ListingOwner>> {
   if (boards.length === 0) return new Map();
   const rows = await rawQuery<Record<string, unknown>>(
-    `SELECT ${q("mls_board")}, ${q("mls_number")}, ${q("source_site")}, ${q("source_priority")} ` +
+    `SELECT ${q("mls_board")}, ${q("mls_number")}, ${q("source_site")}, ${q("source_priority")}, ${q("status")} ` +
       `FROM ${q(LISTINGS_TABLE)} WHERE ${q("mls_board")} IN (${boards.map(() => "?").join(", ")})`,
     boards,
   );
   return new Map(
     rows.map((r) => [
       listingKey(String(r.mls_board) as MlsBoard, String(r.mls_number)),
-      { site: String(r.source_site), priority: Number(r.source_priority) },
+      {
+        site: String(r.source_site),
+        priority: Number(r.source_priority),
+        status: String(r.status) as ListingStatus,
+      },
     ]),
   );
 }

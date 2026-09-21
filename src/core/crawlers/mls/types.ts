@@ -22,9 +22,10 @@ export type ListingStatus =
 
 /**
  * Which slice of a site's inventory a list walk covers. "active" means every
- * still-open status (active, under contract, pending); "any" adds sold.
+ * still-open status (active, under contract, pending); "any" adds sold where the site mixes them into one list; "sold" is a
+ * separate closed-sales list (see SiteAdapter.soldWalkIslands).
  */
-export type StatusSet = "active" | "any";
+export type StatusSet = "active" | "any" | "sold";
 
 export type ColumnValue = string | number | null;
 
@@ -91,6 +92,13 @@ export interface SiteAdapter {
   /** Every board whose numbers this site lists. */
   boards: MlsBoard[];
   islands: IslandKey[];
+  /**
+   * Islands with a separate closed-sales list that "any" does not include
+   * (hres: /mls/kauai_sold/, /mls/big-island-sold/). Backfill walks these
+   * with statusSet "sold" after the island's main walk. Sites whose "any"
+   * already contains sold listings (hicentral) leave this unset.
+   */
+  soldWalkIslands?: IslandKey[];
   /** Last list page the site will serve (hicentral: 499). */
   maxPage: number;
   /** Minimum pause between requests to this site, before jitter. */

@@ -15,6 +15,16 @@ export const HRES_ISLAND_SLUGS: Partial<Record<IslandKey, string>> = {
 };
 
 /**
+ * Closed-sales lists, which the island pages above do not include. Only these
+ * two exist (both HIS); there is no Maui or Oahu equivalent on the site, and
+ * /mls/hicentral_sold/ is disallowed by robots.txt. 12 cards per page.
+ */
+export const HRES_SOLD_SLUGS: Partial<Record<IslandKey, string>> = {
+  hawaii: "big-island-sold",
+  kauai: "kauai_sold",
+};
+
+/**
  * Safety stop only — the walk ends on an empty page / the total count long
  * before this (largest island 2026-09-19: Oahu, 120 pages of 48).
  */
@@ -28,10 +38,15 @@ export const HRES_MAX_PAGE = 400;
  * Under Contract), so "active" and "any" are the same walk.
  */
 export function listUrl(q: ListQuery): string {
-  const slug = HRES_ISLAND_SLUGS[q.island];
+  const slug =
+    q.statusSet === "sold"
+      ? HRES_SOLD_SLUGS[q.island]
+      : HRES_ISLAND_SLUGS[q.island];
   if (slug === undefined) {
     throw new Error(
-      `hres: no list page for island "${q.island}" (molokai/lanai are listed under maui)`,
+      q.statusSet === "sold"
+        ? `hres: no sold list for island "${q.island}" (only hawaii and kauai have one)`
+        : `hres: no list page for island "${q.island}" (molokai/lanai are listed under maui)`,
     );
   }
   if (!Number.isInteger(q.page) || q.page < 1 || q.page > HRES_MAX_PAGE) {

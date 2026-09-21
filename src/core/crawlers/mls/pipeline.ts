@@ -17,7 +17,13 @@ import {
   readHtml,
 } from "./nas-cache";
 import { getSiteAdapter } from "./registry";
-import type { IslandKey, ListRow, MlsBoard, SiteAdapter } from "./types";
+import type {
+  IslandKey,
+  ListRow,
+  MlsBoard,
+  SiteAdapter,
+  StatusSet,
+} from "./types";
 import { walkList } from "./walk";
 import type { WalkResult } from "./walk";
 
@@ -42,6 +48,8 @@ export interface MlsRunOptions {
   maxPages?: number;
   /** Stop after this many detail fetches+loads (smoke tests). */
   maxDetails?: number;
+  /** Backfill: walk only the closed-sales lists (adapter.soldWalkIslands). */
+  soldOnly?: boolean;
   /** Fetch, cache and parse as normal but write nothing to the database. */
   dryRun?: boolean;
   /** Ignore same-day cached HTML. */
@@ -180,7 +188,7 @@ function makeFetcher(
 
 function recordWalk(
   summary: MlsRunSummary,
-  island: IslandKey,
+  island: string,
   walk: WalkResult,
 ): void {
   summary.walks.push(
@@ -261,6 +269,7 @@ async function fetchAndLoad(
     known?.set(listingKey(listing.mlsBoard, listing.mlsNumber), {
       site: adapter.site,
       priority: adapter.priority,
+      status: listing.status,
     });
   }
   return outcome;
@@ -333,22 +342,39 @@ export async function backfill(opts: MlsRunOptions): Promise<MlsRunSummary> {
   const known = await getKnownListings(adapter.boards);
   let details = 0;
 
+  // Each island's main list, then its separate closed-sales list if the site
+  // has one. --sold-only skips the main lists (they were walked already).
+  const walks: { island: IslandKey; statusSet: StatusSet }[] = [];
+  for (const island of opts.islands ?? adapter.islands) {
+    if (!opts.soldOnly) walks.push({ island, statusSet: "any" });
+    if (adapter.soldWalkIslands?.includes(island)) {
+      walks.push({ island, statusSet: "sold" });
+    }
+  }
+  if (walks.length === 0) {
+    throw new Error(
+      `MLS backfill: nothing to walk — ${adapter.site} has no sold list for ${(opts.islands ?? adapter.islands).join(", ")}`,
+    );
+  }
+
   try {
-    for (const island of opts.islands ?? adapter.islands) {
+    for (const { island, statusSet } of walks) {
       const walk = await walkList(
         adapter,
         fetcher,
         island,
-        "any",
+        statusSet,
         runDate,
         summary,
         { maxPages: opts.maxPages },
       );
-      recordWalk(summary, island, walk);
+      const label = statusSet === "sold" ? `${island} (sold)` : island;
+      recordWalk(summary, label, walk);
       summary.listed += walk.rows.size;
       log.info(
         {
           island,
+          statusSet,
           listings: walk.rows.size,
           totalCount: walk.totalCount,
           capped: walk.capped,
@@ -358,7 +384,7 @@ export async function backfill(opts: MlsRunOptions): Promise<MlsRunSummary> {
       );
       for (const row of walk.rows.values()) {
         const { owner } = findOwner(known, adapter, row);
-        if (owner && owner.priority >= adapter.priority) {
+        if (owner && !shouldRefetch(owner, adapter, statusSet)) {
           if (owner.site !== adapter.site) summary.deferredToOtherSite++;
           continue;
         }
@@ -375,7 +401,7 @@ export async function backfill(opts: MlsRunOptions): Promise<MlsRunSummary> {
           known,
         );
         if (details % 100 === 0) {
-          log.info({ island, details }, "Backfill detail progress");
+          log.info({ island, statusSet, details }, "Backfill detail progress");
         }
       }
     }
@@ -389,6 +415,26 @@ export async function backfill(opts: MlsRunOptions): Promise<MlsRunSummary> {
     throw err;
   }
   return finish(summary, fetcher);
+}
+
+/**
+ * Whether backfill should fetch a listing that is already in the table.
+ * Normally no — that is what makes a rerun cheap. Two exceptions: a lower-
+ * priority site holds it (take it over), or it turned up in a closed-sales
+ * list while our own row still says otherwise (open, or off_market because it
+ * vanished from the open list) — one fetch records the sale.
+ */
+export function shouldRefetch(
+  owner: ListingOwner,
+  adapter: SiteAdapter,
+  statusSet: StatusSet,
+): boolean {
+  if (owner.priority < adapter.priority) return true;
+  return (
+    statusSet === "sold" &&
+    owner.site === adapter.site &&
+    owner.status !== "sold"
+  );
 }
 
 // ─── Phase 2: daily ────────────────────────────────────────────────────

@@ -33,7 +33,46 @@ owned, one row each); HiCentral then took over an `hres`-inserted HBR row in pla
 it; live `daily --island kauai` listed 599 = the site's own count over 13 pages, 15 requests in 86 s.
 Not yet seen live: a followed 301, a 404 → `off_market`, a past-the-end list page (all unit-tested).
 
+### Sold listings (added 2026-09-21)
+
+The island pages list open listings only. Closed sales are in two separate feeds, both HIS, walked by
+`mls backfill` after each island's main list (statusSet `sold`; `--sold-only` to walk just these):
+
+| | listings | pages (12/page) | at 5 s/request |
+|---|---|---|---|
+| `/mls/kauai_sold/` | 694 | 58 | ~1 h |
+| `/mls/big-island-sold/` | 3,930 | 328 | ~6.5 h |
+
+Roughly the last year of closings (Kauai closes ~60/month, the Big Island ~330), with list dates back
+to 2022. **There is no Maui or Oahu equivalent**: `/mls/hicentral_sold/` is disallowed by robots.txt,
+and RAM closings are only reachable through `/mls/maui/search.html?…search_status[]=Closed` (6,604
+results incl. ~4,700 closed) — a search path the site's robots.txt disallows under `/idx/` though not
+literally under `/mls/`. Not crawled; that is a policy call, not a technical one.
+
+What a sold page gives, and doesn't:
+
+- `Status: Closed` → `sold`. Same characteristics as an open page; `Type` says `Land` (→ `Vacant Land`).
+- One unlabelled **`Price` → `sold_price`**, on the reading that a sold feed shows the closing price.
+  `list_price` is left alone, so a listing we captured while open keeps its asking price and ends up
+  with both. **Verify the reading once the sold backfill has run** — if the two never differ, `Price`
+  is just the last list price and the mapping should be reverted:
+  ```sql
+  SELECT COUNT(*) AS both_known, SUM(list_price <> sold_price) AS differ,
+         ROUND(AVG(sold_price / list_price), 3) AS avg_ratio
+  FROM mls_listings
+  WHERE source_site = 'hres' AND status = 'sold' AND list_price IS NOT NULL AND sold_price IS NOT NULL;
+  ```
+- **No sale date.** `date_sold` stays NULL. `Date Listed + Days on Market` looks like one and isn't:
+  two unrelated listings from 2022 and 2023 both compute to 2026-08-11 — the day the feed last
+  touched them. `tg_transactions` remains the source for sale dates.
+- **No county tax link, so no `tmk`.** Island comes from the coordinates (kept in `extra`); joining
+  these rows to qPublic needs the coordinates or the address, not the TMK.
+- A listing already on file as open — or `off_market`, because it vanished from the open list — that
+  turns up in a sold feed gets one fetch and becomes `sold` (history row `status+price`). Rerunning
+  `--sold-only` every so often therefore upgrades `off_market` rows on Kauai / the Big Island to `sold`.
+
 ```bash
+bun run mls backfill --site hres --sold-only   # just the two sold feeds, ~7.5 h
 bun run mls backfill --site hres     # after the hicentral backfill; ~9 h at the 5 s crawl delay
 bun run mls daily --site hres        # what the 5:15 AM worker job runs (~25 min of list pages + new listings); keeps no HTML
 bun run mls reparse --site hres
