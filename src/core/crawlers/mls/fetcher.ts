@@ -32,6 +32,11 @@ export interface FetcherOptions {
   /** Minimum pause between network requests, before jitter. */
   minDelayMs: number;
   userAgent?: string;
+  /**
+   * Where pages are written and looked up. Default: the permanent NAS cache
+   * (backfill). The daily run passes a per-day temp dir — it keeps no HTML.
+   */
+  cacheRoot?: string;
   /** Ignore cached copies and fetch again (still writes through). */
   refetch?: boolean;
   /**
@@ -59,13 +64,21 @@ export interface FetcherStats {
 }
 
 export interface Fetcher {
-  fetchList(url: string, q: ListQuery, runDate: string): Promise<FetchResult>;
+  fetchList(
+    url: string,
+    q: ListQuery,
+    runDate: string,
+    /** `refetch` bypasses the cache for this one call (a retry of a page that came back empty). */
+    opts?: { refetch?: boolean },
+  ): Promise<FetchResult>;
   fetchDetail(
     url: string,
     mlsNumber: string,
     date: string,
   ): Promise<FetchResult>;
   stats(): FetcherStats;
+  /** True when pages land in the permanent (NAS) cache rather than a temp dir. */
+  readonly persistent: boolean;
 }
 
 /** One URL failed for good: retries exhausted, or a status we never retry. */
@@ -165,6 +178,7 @@ export function createFetcher(opts: FetcherOptions): Fetcher {
     site,
     minDelayMs,
     userAgent = DEFAULT_USER_AGENT,
+    cacheRoot,
     refetch = false,
     followRedirects = false,
     goneStatuses = [],
@@ -329,8 +343,9 @@ export function createFetcher(opts: FetcherOptions): Fetcher {
   async function cacheThrough(
     url: string,
     cachePath: string,
+    forceRefetch = false,
   ): Promise<FetchResult> {
-    if (!refetch) {
+    if (!refetch && !forceRefetch) {
       const cached = await readHtml(cachePath);
       // An undersized file cannot have come from writeHtml via this fetcher;
       // treat it as absent rather than serve it forever.
@@ -390,14 +405,15 @@ export function createFetcher(opts: FetcherOptions): Fetcher {
   return {
     // async so a bad path argument rejects instead of throwing synchronously;
     // the task is still enqueued in call order (nothing awaits before it).
-    fetchList: async (url, q, runDate) => {
-      const cachePath = listPagePath(site, runDate, q);
-      return serialize(() => cacheThrough(url, cachePath));
+    fetchList: async (url, q, runDate, callOpts) => {
+      const cachePath = listPagePath(site, runDate, q, cacheRoot);
+      return serialize(() => cacheThrough(url, cachePath, callOpts?.refetch));
     },
     fetchDetail: async (url, mlsNumber, date) => {
-      const cachePath = detailPath(site, mlsNumber, date);
+      const cachePath = detailPath(site, mlsNumber, date, cacheRoot);
       return serialize(() => cacheThrough(url, cachePath));
     },
     stats: () => ({ ...counters }),
+    persistent: cacheRoot === undefined,
   };
 }

@@ -1,8 +1,12 @@
+import { existsSync } from "fs";
+import nodePath from "path";
+
 import { hstToday } from "@/core/catalog/utils/time";
 import { createLogger } from "@/core/observability/logger";
 
 import { createFetcher, MlsFetchAbort } from "./fetcher";
 import {
+  applyListChange,
   getKnownListings,
   getOpenListings,
   listingKey,
@@ -10,16 +14,18 @@ import {
   markOffMarket,
   touchSeen,
 } from "./load";
-import type { KnownListing, ListingOwner, LoadOutcome } from "./load";
-import { iterateCachedDetails, readHtml } from "./nas-cache";
+import type { ListingOwner, LoadOutcome } from "./load";
+import {
+  iterateCachedDetails,
+  mlsCacheRoot,
+  mlsTempRoot,
+  pruneTemp,
+  readHtml,
+} from "./nas-cache";
 import { getSiteAdapter } from "./registry";
-import type {
-  IslandKey,
-  ListRow,
-  MlsBoard,
-  SiteAdapter,
-  StatusSet,
-} from "./types";
+import type { IslandKey, ListRow, MlsBoard, SiteAdapter } from "./types";
+import { walkList } from "./walk";
+import type { WalkResult } from "./walk";
 
 const log = createLogger("mls-pipeline");
 
@@ -37,6 +43,19 @@ export interface MlsRunOptions {
   dryRun?: boolean;
   /** Ignore same-day cached HTML. */
   refetch?: boolean;
+  /**
+   * Polled between requests; returning true ends the run early with
+   * MlsRunInterrupted (the host process is shutting down).
+   */
+  shouldStop?: () => boolean;
+}
+
+/** The run was asked to stop. Whatever it had loaded stays loaded. */
+export class MlsRunInterrupted extends Error {
+  constructor() {
+    super("MLS run interrupted by shutdown");
+    this.name = "MlsRunInterrupted";
+  }
 }
 
 export interface MlsRunSummary {
@@ -49,6 +68,8 @@ export interface MlsRunSummary {
   unchanged: number;
   skippedLowerPriority: number;
   touched: number;
+  /** Status / list-price changes recorded straight from list rows (no page fetch). */
+  listChanges: number;
   /** Listed here but maintained by a higher-priority site: seen, not fetched. */
   deferredToOtherSite: number;
   departedChecked: number;
@@ -58,20 +79,12 @@ export interface MlsRunSummary {
   cacheHits: number;
   /** Islands whose departed check was skipped because the walk looked wrong. */
   guardrailTripped: IslandKey[];
+  /** Per island: listings read vs the site's own count, e.g. "oahu 9980/20610 (page cap)". */
+  walks: string[];
+  /** List pages that stayed bad through every retry, e.g. "oahu: p28, p29". Rerun to fill them in. */
+  incompleteWalks: string[];
 }
 
-/**
- * A known, still-open listing whose list row is unchanged is re-fetched
- * anyway once its detail page is this old — list rows only expose price and
- * status, so edits to anything else would otherwise never be picked up.
- */
-const REFRESH_AFTER_DAYS = 14;
-/**
- * …but at most this many per run, oldest first. After the backfill every
- * listing shares one fetch date; without a cap they would all come due on
- * the same morning.
- */
-const MAX_REFRESH_PER_RUN = 300;
 /** Departed check is skipped for an island whose walk found under half of what we hold as open. */
 const GUARDRAIL_MIN_RATIO = 0.5;
 const PARSE_FAILURE_FLOOR = 5;
@@ -91,6 +104,7 @@ function emptySummary(
     unchanged: 0,
     skippedLowerPriority: 0,
     touched: 0,
+    listChanges: 0,
     deferredToOtherSite: 0,
     departedChecked: 0,
     offMarket: 0,
@@ -98,6 +112,8 @@ function emptySummary(
     requests: 0,
     cacheHits: 0,
     guardrailTripped: [],
+    walks: [],
+    incompleteWalks: [],
   };
 }
 
@@ -140,9 +156,18 @@ function walkFor(
   return key && adapter.islands.includes(key) ? key : null;
 }
 
-function makeFetcher(adapter: SiteAdapter, refetch?: boolean): Fetcher {
+/**
+ * `cacheRoot` undefined = the permanent NAS cache (backfill); the daily run
+ * passes its per-day temp dir.
+ */
+function makeFetcher(
+  adapter: SiteAdapter,
+  refetch?: boolean,
+  cacheRoot?: string,
+): Fetcher {
   return createFetcher({
     site: adapter.site,
+    cacheRoot,
     minDelayMs: adapter.minDelayMs,
     followRedirects: adapter.followRedirects,
     goneStatuses: adapter.goneStatuses,
@@ -150,67 +175,19 @@ function makeFetcher(adapter: SiteAdapter, refetch?: boolean): Fetcher {
   });
 }
 
-interface WalkResult {
-  rows: Map<string, ListRow>;
-  totalCount: number | null;
-  /** False when the walk was cut short (page cap, maxPages, parse failure). */
-  complete: boolean;
-}
-
-/**
- * Walk one island's list pages, newest first, until the site runs out.
- * Rows are deduped by MLS number: the result set shifts under a long walk,
- * so the same listing can show up on two pages.
- */
-async function walkList(
-  adapter: SiteAdapter,
-  fetcher: Fetcher,
-  island: IslandKey,
-  statusSet: StatusSet,
-  runDate: string,
+function recordWalk(
   summary: MlsRunSummary,
-  maxPages?: number,
-): Promise<WalkResult> {
-  const rows = new Map<string, ListRow>();
-  let totalCount: number | null = null;
-  let seen = 0;
-  const lastPage = Math.min(adapter.maxPage, maxPages ?? adapter.maxPage);
-
-  for (let page = 1; page <= lastPage; page++) {
-    const q = { island, statusSet, page };
-    const res = await fetcher.fetchList(adapter.listUrl(q), q, runDate);
-    // hicentral redirects to an error page past its last page; a site that
-    // 404s there says the same thing.
-    if (res.kind !== "ok") return { rows, totalCount, complete: true };
-    summary.listPages++;
-
-    let parsed;
-    try {
-      parsed = adapter.parseList(res.html);
-    } catch (err) {
-      summary.parseFailures++;
-      log.error(
-        { island, page, path: res.path, err },
-        "List page failed to parse",
-      );
-      return { rows, totalCount, complete: false };
-    }
-    totalCount = parsed.totalCount ?? totalCount;
-    if (parsed.rows.length === 0) return { rows, totalCount, complete: true };
-    for (const row of parsed.rows) rows.set(row.mlsNumber, row);
-    seen += parsed.rows.length;
-    if (totalCount !== null && seen >= totalCount) {
-      return { rows, totalCount, complete: true };
-    }
-    if (page % 25 === 0) {
-      log.info(
-        { island, page, listings: rows.size, totalCount },
-        "List walk progress",
-      );
-    }
-  }
-  // Ran into the page cap with results still to come.
-  return { rows, totalCount, complete: false };
+  island: IslandKey,
+  walk: WalkResult,
+): void {
+  summary.walks.push(
+    `${island} ${walk.rows.size}/${walk.totalCount ?? "?"}${walk.capped ? " (page cap)" : ""}`,
+  );
+  if (walk.skippedPages.length === 0 && !walk.aborted) return;
+  const pages = walk.skippedPages.map((p) => `p${p}`).join(", ");
+  summary.incompleteWalks.push(
+    `${island}: ${pages}${walk.aborted ? " — walk aborted" : ""}`,
+  );
 }
 
 type DetailResult = LoadOutcome | "gone" | "failed" | "dry";
@@ -272,7 +249,9 @@ async function fetchAndLoad(
     site: adapter.site,
     priority: adapter.priority,
     sourceUrl: url,
-    htmlPath: res.path,
+    // Only a page in the permanent cache is worth pointing at; the daily run's
+    // temp copy is gone tomorrow.
+    htmlPath: fetcher.persistent ? res.path : null,
   });
   countOutcome(summary, outcome);
   if (outcome !== "skipped_lower_priority") {
@@ -306,12 +285,32 @@ function finish(
       `MLS ${summary.mode}: ${summary.parseFailures} parse failures (limit ${Math.floor(limit)}) — site markup may have changed. ${JSON.stringify(summary)}`,
     );
   }
+  if (summary.incompleteWalks.length > 0) {
+    throw new Error(
+      `MLS ${summary.mode}: list pages could not be read (${summary.incompleteWalks.join("; ")}). Everything that was listed has been loaded — rerun to pick up the rest. ${JSON.stringify(summary)}`,
+    );
+  }
   if (summary.guardrailTripped.length > 0) {
     throw new Error(
       `MLS ${summary.mode}: list walk looked wrong for ${summary.guardrailTripped.join(", ")}; departed check skipped. ${JSON.stringify(summary)}`,
     );
   }
   return summary;
+}
+
+/**
+ * Backfill exists to build the permanent HTML corpus, so it must not quietly
+ * write somewhere else. Without this, a host with no NAS would mkdir -p the
+ * mount path on its own disk (or fail one page at a time).
+ */
+function assertPermanentCacheAvailable(): void {
+  if (process.env.MLS_NAS_PATH?.trim()) return; // explicit override (dev)
+  const scrapesRoot = nodePath.dirname(mlsCacheRoot());
+  if (!existsSync(scrapesRoot)) {
+    throw new Error(
+      `MLS backfill saves its HTML to the NAS, but ${scrapesRoot} is not there — mount the NAS, or set MLS_NAS_PATH to save elsewhere.`,
+    );
+  }
 }
 
 // ─── Phase 1: backfill ─────────────────────────────────────────────────
@@ -324,6 +323,7 @@ function finish(
  */
 export async function backfill(opts: MlsRunOptions): Promise<MlsRunSummary> {
   const adapter = getSiteAdapter(opts.site);
+  assertPermanentCacheAvailable();
   const fetcher = makeFetcher(adapter, opts.refetch);
   const summary = emptySummary("backfill", adapter.site);
   const runDate = hstToday();
@@ -339,15 +339,17 @@ export async function backfill(opts: MlsRunOptions): Promise<MlsRunSummary> {
         "any",
         runDate,
         summary,
-        opts.maxPages,
+        { maxPages: opts.maxPages },
       );
+      recordWalk(summary, island, walk);
       summary.listed += walk.rows.size;
       log.info(
         {
           island,
           listings: walk.rows.size,
           totalCount: walk.totalCount,
-          complete: walk.complete,
+          capped: walk.capped,
+          skippedPages: walk.skippedPages,
         },
         "Backfill list walk done",
       );
@@ -389,25 +391,35 @@ export async function backfill(opts: MlsRunOptions): Promise<MlsRunSummary> {
 // ─── Phase 2: daily ────────────────────────────────────────────────────
 
 /**
- * Daily pass over the listings that are still open on the site.
+ * Daily pass over the listings that are still open on the site. Its job is
+ * to catch every listing at least once — some are only up for days — while
+ * fetching as little as possible: what we keep the detail page for is the
+ * property's characteristics, and those don't change once we have them.
  *
- *  1. Walk the open-status list pages.
- *  2. New numbers → fetch + insert.
- *  3. Known numbers → bump last_seen_at; re-fetch only when the list row's
- *     price or status disagrees with the table (or the detail page is stale).
- *     A listing maintained by a higher-priority site is only ever touched.
- *  4. Departed — open in our table, absent from today's walk → re-fetch by
- *     number. This is how a sale gets recorded: a sold listing simply stops
- *     appearing in the open list, and its detail page now says Sold. A
- *     listing the site no longer serves at all is marked off_market.
+ *  1. Walk the open-status list pages (cheap: 20–48 listings per request).
+ *  2. New numbers → fetch the detail page once, insert.
+ *  3. Already on file → no fetch. Bump last_seen_at; a status or list-price
+ *     change visible on the list row is recorded from the row itself.
+ *  4. Departed — open in our table, absent from today's walk. A site that
+ *     keeps serving sold listings (hicentral) gets one final fetch, which is
+ *     where the sold price and date come from; otherwise the listing is
+ *     simply marked off_market.
+ *
+ * So a listing costs one detail request when it appears and, on hicentral,
+ * one more when it leaves.
  */
 export async function daily(opts: MlsRunOptions): Promise<MlsRunSummary> {
   const adapter = getSiteAdapter(opts.site);
-  const fetcher = makeFetcher(adapter, opts.refetch);
+  const fetcher = makeFetcher(adapter, opts.refetch, mlsTempRoot(hstToday()));
   const summary = emptySummary("daily", adapter.site);
   const runDate = hstToday();
   const dryRun = !!opts.dryRun;
   const islands = opts.islands ?? adapter.islands;
+  const checkStop = () => {
+    if (opts.shouldStop?.()) throw new MlsRunInterrupted();
+  };
+
+  await pruneTemp(runDate);
 
   const open = await getOpenListings(adapter.site);
   const openByKey = new Map(
@@ -417,17 +429,19 @@ export async function daily(opts: MlsRunOptions): Promise<MlsRunSummary> {
 
   const todays = new Set<string>();
   const toFetch = new Map<string, string | undefined>();
-  const stale: KnownListing[] = [];
+  const changed: { key: string; row: ListRow }[] = [];
   const touched = new Map<MlsBoard, string[]>();
   const trustedIslands = new Set<IslandKey>();
   let brandNew = 0;
 
+  const split = (key: string) => key.split(":") as [MlsBoard, string];
   const touch = (key: string) => {
-    const [board, number] = key.split(":") as [MlsBoard, string];
+    const [board, number] = split(key);
     touched.set(board, [...(touched.get(board) ?? []), number]);
   };
 
   for (const island of islands) {
+    checkStop();
     const walk = await walkList(
       adapter,
       fetcher,
@@ -435,8 +449,10 @@ export async function daily(opts: MlsRunOptions): Promise<MlsRunSummary> {
       "active",
       runDate,
       summary,
-      opts.maxPages,
+      { maxPages: opts.maxPages, shouldStop: opts.shouldStop },
     );
+    if (walk.interrupted) throw new MlsRunInterrupted();
+    recordWalk(summary, island, walk);
     summary.listed += walk.rows.size;
     const heldOpen = open.filter(
       (k) => walkFor(adapter, k.island) === island,
@@ -469,28 +485,19 @@ export async function daily(opts: MlsRunOptions): Promise<MlsRunSummary> {
         toFetch.set(row.mlsNumber, row.detailUrl);
       } else {
         const held = openByKey.get(key);
-        const statusChanged =
-          row.status !== "unknown" && held?.status !== row.status;
-        const priceChanged =
-          row.listPrice !== null && held?.listPrice !== row.listPrice;
-        if (!held || statusChanged || priceChanged) {
-          // Changed — or closed in our table and back on the market.
+        if (!held) {
+          // Closed in our table and listed again: back on the market.
           toFetch.set(row.mlsNumber, row.detailUrl);
-        } else {
-          touch(key);
-          if ((held.daysSinceFetch ?? Infinity) >= REFRESH_AFTER_DAYS) {
-            stale.push(held);
-          }
+          continue;
         }
+        const statusChanged =
+          row.status !== "unknown" && held.status !== row.status;
+        const priceChanged =
+          row.listPrice !== null && held.listPrice !== row.listPrice;
+        if (statusChanged || priceChanged) changed.push({ key, row });
+        else touch(key);
       }
     }
-  }
-
-  stale.sort(
-    (a, b) => (b.daysSinceFetch ?? Infinity) - (a.daysSinceFetch ?? Infinity),
-  );
-  for (const k of stale.slice(0, MAX_REFRESH_PER_RUN)) {
-    if (!toFetch.has(k.mlsNumber)) toFetch.set(k.mlsNumber, undefined);
   }
 
   const departed = open.filter((k) => {
@@ -503,6 +510,7 @@ export async function daily(opts: MlsRunOptions): Promise<MlsRunSummary> {
       listed: summary.listed,
       new: brandNew,
       toFetch: toFetch.size,
+      listChanges: changed.length,
       deferred: summary.deferredToOtherSite,
       departed: departed.length,
     },
@@ -515,6 +523,7 @@ export async function daily(opts: MlsRunOptions): Promise<MlsRunSummary> {
       opts.maxDetails === undefined || details < opts.maxDetails;
 
     for (const [mlsNumber, fetchUrl] of toFetch) {
+      checkStop();
       if (!budget()) break;
       details++;
       await fetchAndLoad(
@@ -532,12 +541,30 @@ export async function daily(opts: MlsRunOptions): Promise<MlsRunSummary> {
       for (const [board, numbers] of touched) {
         summary.touched += await touchSeen(board, numbers);
       }
+      for (const { key, row } of changed) {
+        const [board, number] = split(key);
+        const applied = await applyListChange(board, number, adapter.site, {
+          status: row.status,
+          listPrice: row.listPrice,
+        });
+        if (applied) summary.listChanges++;
+      }
     }
 
     for (const k of departed) {
+      checkStop();
+      summary.departedChecked++;
+      if (!adapter.reportsSold) {
+        if (
+          !dryRun &&
+          (await markOffMarket(k.mlsBoard, k.mlsNumber, adapter.site))
+        ) {
+          summary.offMarket++;
+        }
+        continue;
+      }
       if (!budget()) break;
       details++;
-      summary.departedChecked++;
       const result = await fetchAndLoad(
         adapter,
         fetcher,

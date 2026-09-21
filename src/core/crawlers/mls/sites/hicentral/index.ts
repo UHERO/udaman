@@ -17,6 +17,7 @@ export const hicentralAdapter: SiteAdapter = {
   // The site tolerated 8 concurrent requests in testing; we take one at a
   // time with 1.5–2.5s between them anyway.
   minDelayMs: 1500,
+  reportsSold: true,
   listUrl,
   detailUrl,
   parseList,

@@ -103,6 +103,13 @@ export interface SiteAdapter {
   /** HTTP statuses on a detail URL that mean "listing removed", not failure. */
   goneStatuses?: number[];
   /**
+   * Whether a listing's page keeps being served after it sells, with the sold
+   * price and date on it. If so, a listing that drops off the open list gets
+   * one last fetch to record the sale; if not, that fetch could only ever say
+   * "gone", so the listing is marked off_market without asking.
+   */
+  reportsSold: boolean;
+  /**
    * Which of this adapter's list walks would contain a listing whose stored
    * `island` is the given text — e.g. a site with no Molokai page lists
    * Molokai under "maui". Default: the lower-cased island name itself.

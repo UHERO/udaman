@@ -3,9 +3,11 @@ import {
   readdir,
   readFile,
   rename,
+  rm,
   unlink,
   writeFile,
 } from "fs/promises";
+import os from "os";
 import path from "path";
 
 import { findScrapesRoot } from "../nas-path";
@@ -42,6 +44,38 @@ export function mlsCacheRoot(): string {
   return path.join(findScrapesRoot(), "mls");
 }
 
+/**
+ * Scratch space for the DAILY run, which keeps no HTML: pages live here only
+ * so a run interrupted mid-way can resume without re-requesting, and so a page
+ * that failed to parse can be looked at that day. One directory per run date;
+ * pruneTemp() removes the others. Local disk — the daily job runs on the
+ * BullMQ worker, which cannot see the NAS and does not need to.
+ *
+ * The permanent cache (mlsCacheRoot, on the NAS) is written by `mls backfill`
+ * only; that corpus is what the parsers are tuned against (`mls reparse`).
+ */
+export function mlsTempBase(): string {
+  const override = process.env.MLS_TMP_PATH?.trim();
+  return override || path.join(os.tmpdir(), "udaman-mls");
+}
+
+export function mlsTempRoot(runDate: string): string {
+  return path.join(mlsTempBase(), checkDate(runDate));
+}
+
+/** Delete every run-date directory under the temp base except `keepDate`. */
+export async function pruneTemp(keepDate: string): Promise<number> {
+  checkDate(keepDate);
+  const base = mlsTempBase();
+  let removed = 0;
+  for (const name of await safeReaddir(base)) {
+    if (!DATE_RE.test(name) || name === keepDate) continue;
+    await rm(path.join(base, name), { recursive: true, force: true });
+    removed++;
+  }
+  return removed;
+}
+
 function checkName(kind: string, value: string): string {
   if (typeof value !== "string" || !NAME_RE.test(value)) {
     throw new Error(`mls cache: invalid ${kind} "${value}"`);
@@ -56,22 +90,22 @@ function checkDate(date: string): string {
   return date;
 }
 
-function detailDir(site: string, mlsNumber: string): string {
+function detailDir(
+  site: string,
+  mlsNumber: string,
+  root: string = mlsCacheRoot(),
+): string {
   checkName("site", site);
   checkName("MLS number", mlsNumber);
-  return path.join(
-    mlsCacheRoot(),
-    site,
-    "detail",
-    mlsNumber.slice(0, 6),
-    mlsNumber,
-  );
+  return path.join(root, site, "detail", mlsNumber.slice(0, 6), mlsNumber);
 }
 
 export function listPagePath(
   site: string,
   runDate: string,
   q: ListQuery,
+  /** Cache root; default the permanent NAS cache. */
+  root: string = mlsCacheRoot(),
 ): string {
   if (!Number.isInteger(q.page) || q.page < 1) {
     throw new Error(
@@ -79,7 +113,7 @@ export function listPagePath(
     );
   }
   return path.join(
-    mlsCacheRoot(),
+    root,
     checkName("site", site),
     "list",
     checkDate(runDate),
@@ -93,8 +127,10 @@ export function detailPath(
   site: string,
   mlsNumber: string,
   date: string,
+  /** Cache root; default the permanent NAS cache. */
+  root: string = mlsCacheRoot(),
 ): string {
-  return path.join(detailDir(site, mlsNumber), `${checkDate(date)}.html`);
+  return path.join(detailDir(site, mlsNumber, root), `${checkDate(date)}.html`);
 }
 
 /** readdir that treats a missing directory as empty. */

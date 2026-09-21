@@ -280,6 +280,27 @@ describe("cache-through", () => {
   });
 });
 
+describe("cacheRoot (the daily run keeps no HTML)", () => {
+  test("pages go under cacheRoot, never the permanent cache, and resume from there", async () => {
+    const tmp = path.join(process.env.MLS_NAS_PATH!, "_daily-tmp");
+    const h = harness([ok()], { cacheRoot: tmp });
+    expect(h.fetcher.persistent).toBe(false);
+    const r = await h.fetcher.fetchDetail(url(1), mls(1), DATE);
+    expect(r).toMatchObject({ kind: "ok", fromCache: false });
+    if (r.kind === "ok") expect(r.path.startsWith(tmp)).toBe(true);
+    // Nothing in the permanent cache…
+    expect(await readHtml(detailPath(SITE, mls(1), DATE))).toBeNull();
+    // …but a same-day rerun resumes from the temp copy without a request.
+    const again = await h.fetcher.fetchDetail(url(1), mls(1), DATE);
+    expect(again).toMatchObject({ kind: "ok", fromCache: true });
+    expect(h.calls).toHaveLength(1);
+  });
+
+  test("without cacheRoot the fetcher is persistent (backfill)", () => {
+    expect(harness([]).fetcher.persistent).toBe(true);
+  });
+});
+
 describe("followRedirects / goneStatuses (opt-in, per site)", () => {
   test("follows a same-origin 301 as a second, delayed request and caches under the asked-for key", async () => {
     const h = harness(

@@ -282,7 +282,8 @@ export async function registerSchedules(): Promise<void> {
 
   // MLS listings (HiCentral) — 4:30 AM HST daily. Open listings only;
   // ~250 list pages plus the day's new/changed/departed detail pages at one
-  // request every ~2s. Needs the NAS mounted on the worker host.
+  // request every ~2s. Keeps no HTML (per-day temp dir only), so it needs no
+  // NAS — `mls backfill`, run by hand on a NAS host, is what saves pages.
   await defaultQueue.upsertJobScheduler(
     "scheduled:mls-daily-hicentral",
     { pattern: "30 4 * * *", tz },

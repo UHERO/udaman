@@ -429,6 +429,23 @@ export function buildHistoryInsert(h: {
   };
 }
 
+/**
+ * A copy of `listing` whose status and list price are the stored row's.
+ * Sold listings keep the snapshot's values: their final page is the truth.
+ */
+export function preserveListTracked(
+  listing: NormalizedListing,
+  existing: ExistingListing,
+): NormalizedListing {
+  if (listing.status === "sold") return listing;
+  return {
+    ...listing,
+    status: existing.status as ListingStatus,
+    statusRaw: existing.statusRaw,
+    fields: { ...listing.fields, list_price: existing.fields.list_price },
+  };
+}
+
 /** Which branch of loadListing applies. */
 export function decideAction(
   existing: Pick<ExistingListing, "sourcePriority"> | null,
@@ -650,6 +667,13 @@ async function loadListingOnce(
     return "skipped_lower_priority";
   }
 
+  if (opts.reparse) {
+    // The daily run keeps status and list price current from list rows
+    // (applyListChange) without re-fetching the page, so the stored values can
+    // be newer than the snapshot being reparsed. Keep them.
+    listing = preserveListTracked(listing, existing as ExistingListing);
+  }
+
   const diff = diffListing(existing as ExistingListing, listing);
   if (diff.changeType && !opts.reparse) {
     await insertHistory({
@@ -765,6 +789,73 @@ export async function markOffMarket(
   if (affected !== 1) {
     throw new MlsLoadError(
       `${board} ${mlsNumber}: off_market update affected ${affected} rows, expected 1 (history row already written)`,
+    );
+  }
+  return true;
+}
+
+/**
+ * Record a status and/or list-price change seen on a LIST row, without
+ * fetching the detail page: one history row + an in-place update. The daily
+ * run uses this for listings already on file — the property characteristics
+ * we keep the page for don't change, so there is nothing to re-fetch.
+ * No-op (false) when nothing differs, the row is closed, or another site owns it.
+ */
+export async function applyListChange(
+  board: MlsBoard,
+  mlsNumber: string,
+  site: string,
+  seen: { status?: ListingStatus; listPrice?: number | null },
+): Promise<boolean> {
+  const rows = await rawQuery<Record<string, unknown>>(
+    `SELECT ${q("status")}, ${q("source_site")}, ${q("list_price")}, ${q("sold_price")} ` +
+      `FROM ${q(LISTINGS_TABLE)} WHERE ${q("mls_board")} = ? AND ${q("mls_number")} = ? LIMIT 1`,
+    [board, mlsNumber],
+  );
+  const row = rows[0];
+  if (!row || String(row.source_site) !== site) return false;
+  const oldStatus = String(row.status) as ListingStatus;
+  if ((TERMINAL_STATUSES as string[]).includes(oldStatus)) return false;
+
+  const num = (v: unknown): number | null =>
+    v === null || v === undefined || !Number.isFinite(Number(v))
+      ? null
+      : Number(v);
+  const oldPrice = num(row.list_price);
+  const status =
+    seen.status && seen.status !== "unknown" ? seen.status : oldStatus;
+  const listPrice =
+    seen.listPrice === undefined || seen.listPrice === null
+      ? oldPrice
+      : seen.listPrice;
+  const statusChanged = status !== oldStatus;
+  const priceChanged = listPrice !== oldPrice;
+  if (!statusChanged && !priceChanged) return false;
+
+  // History first — see loadListing for why.
+  await insertHistory({
+    board,
+    mlsNumber,
+    status,
+    listPrice,
+    soldPrice: num(row.sold_price),
+    site,
+    changeType:
+      statusChanged && priceChanged
+        ? "status+price"
+        : statusChanged
+          ? "status"
+          : "price",
+  });
+  const affected = await execWrite({
+    sql:
+      `UPDATE ${q(LISTINGS_TABLE)} SET ${q("status")} = ?, ${q("list_price")} = ?, ${q("last_seen_at")} = NOW() ` +
+      `WHERE ${q("mls_board")} = ? AND ${q("mls_number")} = ? AND ${q("source_site")} = ?`,
+    params: [status, listPrice, board, mlsNumber, site],
+  });
+  if (affected !== 1) {
+    throw new MlsLoadError(
+      `${board} ${mlsNumber}: list-row update affected ${affected} rows, expected 1 (history row already written)`,
     );
   }
   return true;

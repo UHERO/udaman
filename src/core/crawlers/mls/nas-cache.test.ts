@@ -10,6 +10,8 @@ import {
   latestDetailPath,
   listPagePath,
   mlsCacheRoot,
+  mlsTempRoot,
+  pruneTemp,
   readHtml,
   writeHtml,
 } from "./nas-cache";
@@ -39,6 +41,75 @@ describe("cache root", () => {
     const fallback = mlsCacheRoot();
     expect(path.basename(fallback)).toBe("mls");
     expect(path.basename(path.dirname(fallback))).toBe("scrapes");
+  });
+});
+
+describe("temp root (daily run keeps no HTML)", () => {
+  const q = { island: "oahu", statusSet: "active", page: 1 } as const;
+
+  test("defaults to the OS temp dir, one directory per run date — never the NAS root", () => {
+    delete process.env.MLS_TMP_PATH;
+    expect(mlsTempRoot("2026-09-18")).toBe(
+      path.join(tmpdir(), "udaman-mls", "2026-09-18"),
+    );
+    expect(mlsTempRoot("2026-09-18").startsWith(mlsCacheRoot())).toBe(false);
+  });
+
+  test("path builders honour an explicit root; the default root is the permanent cache", () => {
+    const tmp = mlsTempRoot("2026-09-18");
+    expect(listPagePath("hres", "2026-09-18", q, tmp)).toBe(
+      path.join(tmp, "hres/list/2026-09-18/oahu/active/p0001.html"),
+    );
+    expect(detailPath("hres", "732468", "2026-09-18", tmp)).toBe(
+      path.join(tmp, "hres/detail/732468/732468/2026-09-18.html"),
+    );
+    expect(detailPath("hres", "732468", "2026-09-18")).toBe(
+      path.join(root, "hres/detail/732468/732468/2026-09-18.html"),
+    );
+  });
+
+  test("pruneTemp removes other run dates only, and never touches the permanent cache", async () => {
+    process.env.MLS_TMP_PATH = path.join(root, "_tmp");
+    try {
+      for (const d of ["2026-09-16", "2026-09-17", "2026-09-18"]) {
+        await writeHtml(
+          detailPath("hicentral", "202612345", d, mlsTempRoot(d)),
+          "<html/>",
+        );
+      }
+      await writeHtml(
+        detailPath("hicentral", "202612345", "2026-09-16"),
+        "<html>kept</html>",
+      );
+
+      expect(await pruneTemp("2026-09-18")).toBe(2);
+      expect(
+        await readHtml(
+          detailPath(
+            "hicentral",
+            "202612345",
+            "2026-09-18",
+            mlsTempRoot("2026-09-18"),
+          ),
+        ),
+      ).not.toBeNull();
+      expect(
+        await readHtml(
+          detailPath(
+            "hicentral",
+            "202612345",
+            "2026-09-17",
+            mlsTempRoot("2026-09-17"),
+          ),
+        ),
+      ).toBeNull();
+      expect(
+        await readHtml(detailPath("hicentral", "202612345", "2026-09-16")),
+      ).toBe("<html>kept</html>");
+      expect(await pruneTemp("2026-09-18")).toBe(0);
+    } finally {
+      delete process.env.MLS_TMP_PATH;
+    }
   });
 });
 

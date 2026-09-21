@@ -38,6 +38,7 @@ export const hresAdapter: SiteAdapter = {
     const key = (storedIsland ?? "").replace(/\s+/g, " ").trim().toLowerCase();
     return WALK_FOR.get(key) ?? null;
   },
+  reportsSold: false,
   listUrl,
   detailUrl,
   parseList,

@@ -13,6 +13,7 @@ import {
   diffListing,
   MlsLoadError,
   normalizeValue,
+  preserveListTracked,
   rowToExisting,
   serializeExtra,
   TOUCH_CHUNK_SIZE,
@@ -463,5 +464,40 @@ describe("diffListing", () => {
     expect(
       diffListing(e, listing({ statusRaw: "ACTIVE" })).changedColumns,
     ).toEqual(["status_raw"]);
+  });
+});
+
+describe("preserveListTracked (reparse must not undo list-row updates)", () => {
+  const existing = {
+    id: 1,
+    sourcePriority: 100,
+    status: "active_under_contract",
+    statusRaw: "Active Under Contract",
+    extra: null,
+    fields: { list_price: 650000 },
+  } as unknown as ExistingListing;
+  const snapshot = (
+    status: NormalizedListing["status"],
+  ): NormalizedListing => ({
+    mlsBoard: "HBR",
+    mlsNumber: "202600001",
+    status,
+    statusRaw: status,
+    fields: { list_price: 699000, bedrooms: 3 },
+    extra: {},
+  });
+
+  test("an open snapshot keeps the stored status and list price, takes everything else", () => {
+    const r = preserveListTracked(snapshot("active"), existing);
+    expect(r.status).toBe("active_under_contract");
+    expect(r.statusRaw).toBe("Active Under Contract");
+    expect(r.fields.list_price).toBe(650000);
+    expect(r.fields.bedrooms).toBe(3);
+  });
+
+  test("a sold snapshot is final and wins", () => {
+    const r = preserveListTracked(snapshot("sold"), existing);
+    expect(r.status).toBe("sold");
+    expect(r.fields.list_price).toBe(699000);
   });
 });

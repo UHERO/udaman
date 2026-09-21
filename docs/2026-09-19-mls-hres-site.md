@@ -3,7 +3,7 @@
 Second MLS site for the pipeline in `docs/2026-09-18-mls-scraper-plan.md`. Site key: **`hres`**.
 
 **Status:** implemented 2026-09-19 (uncommitted) in `src/core/crawlers/mls/sites/hres/`; registered,
-scheduled 5:15 AM HST (after HiCentral). `HRES_KEY_MAP` in `parse-detail.ts` is the executable form of
+scheduled on the worker at 5:15 AM HST, after HiCentral. `HRES_KEY_MAP` in `parse-detail.ts` is the executable form of
 the §4 table. 499 tests pass.
 
 ## 0. As built — where real pages overruled this doc
@@ -35,7 +35,7 @@ Not yet seen live: a followed 301, a 404 → `off_market`, a past-the-end list p
 
 ```bash
 bun run mls backfill --site hres     # after the hicentral backfill; ~9 h at the 5 s crawl delay
-bun run mls daily --site hres        # what the 5:15 AM job runs (~25 min of list pages + changes)
+bun run mls daily --site hres        # what the 5:15 AM worker job runs (~25 min of list pages + new listings); keeps no HTML
 bun run mls reparse --site hres
 ```
 

@@ -24,13 +24,27 @@ the reasoning; **where they disagree with "As built" below, "As built" wins.** C
   available" page; `parseDetail` returns `null` for it and the daily run marks the row `off_market`.
 - **Page cap is 499**, and the site 302s to an error page past it (the handoff's "498 / empty page
   at 499" did not reproduce with newest-first sort). The walk stops on a redirect *or* an empty page.
-- **Scheduling:** BullMQ job `mls.daily` on the `default` queue, 4:30 AM HST (`scheduler.ts`),
-  unlocked like `QPUB_REPARSE`. The worker host needs the NAS mounted (or `MLS_NAS_PATH`).
+- **Backfill keeps HTML; daily doesn't (2026-09-20).** `mls backfill` saves every list and detail
+  page to the NAS (`<NAS>/work/scrapes/mls/<site>/…`) — that corpus is what the parsers are tuned
+  against, replayed with `mls reparse`, and it refuses to start if the NAS isn't mounted rather than
+  write somewhere else. `mls daily` parses and inserts only: its pages go to a per-day local temp dir
+  (`$TMPDIR/udaman-mls/<date>/`, override `MLS_TMP_PATH`) so an interrupted run can resume and a page
+  that failed to parse can be looked at that day; the next run deletes it. Daily-loaded rows have
+  `html_path` NULL. So the daily job needs the DB and the internet, **not the NAS**.
+- **Scheduling:** BullMQ job `mls.daily` on the worker's `default` queue, alongside the other jobs —
+  hicentral 4:30 AM HST, hres 5:15 AM HST (after, so shared listings are already owned by the richer
+  source). Unlocked like `QPUB_REPARSE` (housing DB, not the UHERO workload). Backfills are run by
+  hand from a machine that mounts the NAS.
+- **What the daily run fetches:** a detail page **once, when a listing first appears** — property
+  characteristics don't change — and, on HiCentral only, once more when it leaves the open list (that
+  page carries the sold price/date). A listing already on file costs no request: `last_seen_at` is
+  bumped and any status / list-price change is recorded from the list row, with a history row. No
+  periodic refresh. `hres` never reports sales, so a departed listing there is marked `off_market`
+  without a request. `mls reparse` keeps the stored status and list price for open listings, since
+  those can be newer than the saved page.
 - **Politeness:** one request in flight, 1.5 s + 0–1 s jitter after the previous one *finishes*,
   30 s timeout, 5 s → 20 s → 60 s backoff on 429/5xx (honours `Retry-After`), and a circuit breaker
   that aborts the run after 5 consecutive failed URLs. Cache hits cost nothing.
-- **Known-open listings are refreshed** when the list row's price or status differs, else every 14
-  days, capped at 300/run oldest-first so the post-backfill cohort doesn't all come due together.
 - **Summary tab** computes frequencies live from `mls_listings` (`LIVE_FREQ_TABLES` in
   `hhdb-summary-collection.ts`) instead of a weekly `freq_` table. County columns come from
   `LEFT(tmk,1)`, so Molokai/Lanai count under Maui County.
@@ -53,14 +67,23 @@ MLS_NAS_PATH=/tmp/mls bun run mls daily --island lanai --dry-run
 bun run mls backfill                 # all islands
 bun run mls backfill --island oahu   # or one at a time
 
-# 3. Phase 2 — nothing to do; the worker runs `mls.daily` at 4:30 AM HST once deployed.
-#    By hand: bun run mls daily
+# 3. Phase 2 — nothing to do; the worker runs `mls.daily` for each site every morning once deployed.
+#    No NAS needed. By hand: bun run mls daily [--site hres]
 
 # After a parser fix or promoting a key to a column (ALTER + columns.ts): no refetch needed
 bun run mls reparse
 ```
 
-A run exits non-zero / fails its job when parse failures exceed max(5, 2 %) or when an island's open
+**List walks end on the site's own result count, never on one empty-looking page** (`walk.ts`). The
+first production backfill (2026-09-20) stopped at 46 of ~520 list pages and reported success: HiCentral
+302'd one list request to its error page mid-walk, and a redirect was being read as "past the last
+page". Now a redirect / empty / unparseable page before the expected last page is retried after 30 s,
+2 min and 5 min (bypassing the cache), then skipped and recorded while the walk carries on; three bad
+pages in a row abort the walk. The summary's `walks` shows listings read vs the site's count per island
+(`oahu 9980/20610 (page cap)`) and `incompleteWalks` names any skipped pages — check `walks` after a run.
+
+A run exits non-zero / fails its job when any list page had to be skipped (everything that was listed
+is still loaded — rerun to fill the gap), when parse failures exceed max(5, 2 %) or when an island's open
 walk is incomplete or under half of what we hold as open (the departed check is skipped for that
 island, so one bad page load can't mark thousands as gone).
 
