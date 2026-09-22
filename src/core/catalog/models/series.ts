@@ -1,0 +1,2765 @@
+import {
+  disaggregate as disaggregateArray,
+  type DisaggregateOptions,
+  type DisaggregateResult,
+} from "../../timeseries";
+import type {
+  AnalyzeSeriesData,
+  SeasonalAdjustment,
+  Universe,
+} from "../types/shared";
+import {
+  addDaysStr,
+  addMonthsStr,
+  daysBetweenStr,
+  hstToday,
+} from "../utils/time";
+
+// ─── Name parsing ────────────────────────────────────────────────────
+// Series names follow the pattern: PREFIX@GEO.FREQ
+// e.g. "E_NF@HI.M" → prefix=E_NF, geo=HI, freq=M
+
+const NAME_REGEX =
+  /^(([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)(\.([ASQMWD]))?$/i;
+
+export type FrequencyCode = "A" | "S" | "Q" | "M" | "W" | "D";
+
+export type FrequencyLong =
+  "year" | "semi" | "quarter" | "month" | "week" | "day";
+
+const FREQ_CODE_TO_LONG: Record<FrequencyCode, FrequencyLong> = {
+  A: "year",
+  S: "semi",
+  Q: "quarter",
+  M: "month",
+  W: "week",
+  D: "day",
+};
+
+const FREQ_LONG_TO_CODE = Object.fromEntries(
+  Object.entries(FREQ_CODE_TO_LONG).map(([k, v]) => [v, k]),
+) as Record<FrequencyLong, FrequencyCode>;
+
+// ─── Frequency helpers ──────────────────────────────────────────────
+
+/** Numeric ordering of frequencies (higher number = higher frequency). */
+const FREQ_ORDER: Record<string, number> = {
+  year: 1,
+  semi: 2,
+  quarter: 4,
+  month: 12,
+  week: 52,
+  day: 365,
+};
+
+/** Return the numeric ordering for a frequency string or code. */
+function freqn(freq: string | null | undefined): number {
+  if (!freq) return 0;
+  const normalized = freq.toLowerCase().replace(/ly$/, "");
+  return (
+    FREQ_ORDER[normalized] ??
+    FREQ_ORDER[FREQ_CODE_TO_LONG[freq.toUpperCase() as FrequencyCode]] ??
+    0
+  );
+}
+
+/**
+ * Return how many higher-frequency units fit in one lower-frequency unit.
+ * e.g. freqPerFreq("month", "year") → 12, freqPerFreq("quarter", "year") → 4
+ */
+function freqPerFreq(higher: string, lower: string): number | null {
+  const h = normalizeFreq(higher);
+  const l = normalizeFreq(lower);
+  if (l === h) return 1;
+  const table: Record<string, Record<string, number>> = {
+    year: { semi: 2, quarter: 4, month: 12 },
+    semi: { quarter: 2, month: 6 },
+    quarter: { month: 3 },
+    week: { day: 7 },
+  };
+  return table[l]?.[h] ?? null;
+}
+
+function normalizeFreq(freq: string): string {
+  const lower = freq.toLowerCase().replace(/ly$/, "");
+  return FREQ_CODE_TO_LONG[freq.toUpperCase() as FrequencyCode] ?? lower;
+}
+
+// ─── Date helpers ───────────────────────────────────────────────────
+
+/** Return the start-of-period date string for a given frequency. */
+function periodStart(dateStr: string, freq: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const y = d.getFullYear();
+  const m = d.getMonth(); // 0-based
+  switch (normalizeFreq(freq)) {
+    case "year":
+      return `${y}-01-01`;
+    case "semi":
+      return m < 6 ? `${y}-01-01` : `${y}-07-01`;
+    case "quarter": {
+      const qMonth = Math.floor(m / 3) * 3 + 1;
+      return `${y}-${String(qMonth).padStart(2, "0")}-01`;
+    }
+    case "month":
+      return `${y}-${String(m + 1).padStart(2, "0")}-01`;
+    case "week": {
+      // ISO week start (Monday)
+      const day = d.getDay();
+      const diff = (day + 6) % 7;
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - diff);
+      return monday.toISOString().slice(0, 10);
+    }
+    default:
+      return dateStr;
+  }
+}
+
+/** Format YYYY-MM-DD from components. */
+function fmtDate(y: number, m: number, d = 1): string {
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** Parse a date string into {year, month}. */
+function parseYM(dateStr: string): { year: number; month: number } {
+  const d = new Date(dateStr + "T00:00:00");
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+/** Number of days in the given (0-indexed) month of the given year. */
+function daysInMonth(y: number, m0: number): number {
+  // Day 0 of month m0+1 is the last day of month m0.
+  return new Date(y, m0 + 1, 0).getDate();
+}
+
+/**
+ * Last calendar day (YYYY-MM-DD) of the period identified by `periodStartStr`
+ * at the given target frequency. `periodStartStr` is expected to be the start
+ * date produced by `periodStart()` for that frequency.
+ */
+function lastDayOfPeriod(periodStartStr: string, freq: string): string {
+  const f = normalizeFreq(freq);
+  const [yStr, mStr, dStr] = periodStartStr.split("-");
+  const y = Number(yStr);
+  const m = Number(mStr); // 1-indexed
+
+  switch (f) {
+    case "year":
+      return fmtDate(y, 12, 31);
+    case "semi":
+      return m === 1 ? fmtDate(y, 6, 30) : fmtDate(y, 12, 31);
+    case "quarter": {
+      const lastMonth = m + 2;
+      return fmtDate(y, lastMonth, daysInMonth(y, lastMonth - 1));
+    }
+    case "month":
+      return fmtDate(y, m, daysInMonth(y, m - 1));
+    case "week": {
+      // Period starts Monday; last day is Sunday (Monday + 6).
+      const d = Number(dStr);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      dt.setUTCDate(dt.getUTCDate() + 6);
+      return dt.toISOString().slice(0, 10);
+    }
+    default:
+      return periodStartStr;
+  }
+}
+
+// ─── Aggregation helpers ────────────────────────────────────────────
+
+type AggOp = "sum" | "average" | "min" | "max" | "first" | "last";
+
+function applyAggOp(values: number[], op: AggOp): number {
+  switch (op) {
+    case "sum":
+      return values.reduce((a, b) => a + b, 0);
+    case "average":
+      return values.reduce((a, b) => a + b, 0) / values.length;
+    case "min":
+      return Math.min(...values);
+    case "max":
+      return Math.max(...values);
+    case "first":
+      return values[0];
+    case "last":
+      return values[values.length - 1];
+  }
+}
+
+/** Apply a single arithmetic operation. Returns null for NaN/Infinity. */
+export function doArithmetic(a: number, op: string, b: number): number | null {
+  let result: number;
+  switch (op) {
+    case "+":
+      result = a + b;
+      break;
+    case "-":
+      result = a - b;
+      break;
+    case "*":
+      result = a * b;
+      break;
+    case "/":
+      result = a / b;
+      break;
+    case "**":
+      result = a ** b;
+      break;
+    default:
+      return null;
+  }
+  if (!isFinite(result) || isNaN(result)) return null;
+  return result;
+}
+
+/**
+ * Compute percentage change: ((current - prior) / prior) * 100.
+ * Returns null when prior is null, zero, or near-zero (|prior| < 1e-10)
+ * to avoid astronomical values from floating-point noise.
+ */
+function pctChange(
+  current: number,
+  prior: number | undefined | null,
+): number | null {
+  if (prior == null) return null;
+  if (Math.abs(prior) < 1e-10) {
+    // Near-zero denominator: treat same as zero
+    return current === 0 ? 0 : null;
+  }
+  return ((current - prior) / prior) * 100;
+}
+
+export interface ParsedName {
+  prefixFull: string;
+  prefix: string;
+  forecast: string | null;
+  version: string | null;
+  history: string | null;
+  geo: string;
+  freq: FrequencyCode | null;
+  freqLong: FrequencyLong | null;
+}
+
+// ─── Input type ──────────────────────────────────────────────────────
+// What you pass to `new Series(...)` — typically a row from the DB
+// or a merged series+xseries object. Uses snake_case to match DB columns.
+
+export type SeriesAttrs = {
+  id?: number | null;
+  xseries_id?: number | null;
+  universe?: string | null;
+  name: string;
+  dataPortalName?: string | null;
+  description?: string | null;
+  decimals?: number | null;
+  geography_id?: number | null;
+  unit_id?: number | null;
+  source_id?: number | null;
+  source_detail_id?: number | null;
+  source_link?: string | null;
+  investigation_notes?: string | null;
+  dependency_depth?: number | null;
+  scratch?: number | null;
+  created_at?: Date | string | null;
+  updated_at?: Date | string | null;
+  // xseries fields
+  primary_series_id?: number | null;
+  frequency?: string | null;
+  restricted?: boolean | number | null;
+  quarantined?: boolean | number | null;
+  seasonal_adjustment?: string | null;
+  seasonally_adjusted?: boolean | number | null;
+  aremos_missing?: number | null;
+  aremos_diff?: number | null;
+  percent?: boolean | number | null;
+  real?: boolean | number | null;
+  // joined from units table (optional)
+  unit_short_label?: string | null;
+  unit_long_label?: string | null;
+};
+
+// ─── Model ───────────────────────────────────────────────────────────
+
+/** Months per period for the month-based frequencies disaggregation supports. */
+const MONTHS_PER_FREQ: Record<string, number> = {
+  year: 12,
+  semi: 6,
+  quarter: 3,
+  month: 1,
+};
+
+/**
+ * Sorted non-null observations of a series, split into contiguous runs:
+ * consecutive observations within a run are exactly `months` apart. A gap
+ * (or a duplicate/misaligned date) starts a new run.
+ */
+function contiguousRuns(
+  series: Series,
+  months: number,
+): Array<{ dates: string[]; values: number[] }> {
+  const entries = [...series.data.entries()]
+    .filter(([, v]) => v != null)
+    .sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) throw new Error(`${series} has no data`);
+  const runs: Array<{ dates: string[]; values: number[] }> = [];
+  let run = { dates: [entries[0][0]], values: [entries[0][1]] };
+  for (let i = 1; i < entries.length; i++) {
+    const [date, value] = entries[i];
+    if (date !== addMonthsStr(run.dates[run.dates.length - 1], months)) {
+      runs.push(run);
+      run = { dates: [], values: [] };
+    }
+    run.dates.push(date);
+    run.values.push(value);
+  }
+  runs.push(run);
+  return runs;
+}
+
+/** Single contiguous run, or throw naming the first gap. */
+function contiguousValues(
+  series: Series,
+  months: number,
+): [string[], number[]] {
+  const runs = contiguousRuns(series, months);
+  if (runs.length > 1) {
+    const last = runs[0].dates[runs[0].dates.length - 1];
+    throw new Error(
+      `${series} is not contiguous: expected ${addMonthsStr(last, months)} after ${last}, found ${runs[1].dates[0]}`,
+    );
+  }
+  return [runs[0].dates, runs[0].values];
+}
+
+/** Options for `Series.disaggregate()`; `ratio` is derived from the frequencies. */
+export type SeriesDisaggregateOptions = Omit<
+  DisaggregateOptions,
+  "ratio" | "indicator"
+> & {
+  /** High-frequency indicator series at the target frequency. */
+  indicator?: Series;
+  /**
+   * What to do when the source series has missing periods.
+   * - `"split"` (default): disaggregate each contiguous run separately and
+   *   leave the gap in the output — nothing is filled in. Matches the
+   *   behaviour of `interpolate`.
+   * - `"error"`: throw naming the gap.
+   * Gaps always throw when an `indicator` is given.
+   */
+  gaps?: "split" | "error";
+};
+
+class Series {
+  // series table fields
+  readonly id: number | null;
+  readonly xseriesId: number | null;
+  readonly universe: Universe;
+  name: string;
+  dataPortalName: string | null;
+  description: string | null;
+  decimals: number;
+  geographyId: number | null;
+  unitId: number | null;
+  sourceId: number | null;
+  sourceDetailId: number | null;
+  sourceLink: string | null;
+  investigationNotes: string | null;
+  dependencyDepth: number;
+  scratch: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+
+  // xseries fields (delegated, mirrors Rails `delegate_missing_to :xseries`)
+  readonly primarySeriesId: number | null;
+  frequency: string | null;
+  restricted: boolean;
+  quarantined: boolean;
+  seasonalAdjustment: SeasonalAdjustment | null;
+  seasonallyAdjusted: boolean | null;
+  aremossMissing: number | null;
+  aremosDiff: number | null;
+  percent: boolean | null;
+  real: boolean | null;
+
+  // joined from units table (may be null if not joined)
+  unitLabel: string | null;
+  unitShortLabel: string | null;
+
+  // in-memory state (not persisted)
+  #data: Map<string, number> | null = null;
+  #trimStart: Date | null = null;
+  #trimEnd: Date | null = null;
+
+  /**
+   * True when this Series is a stand-in for a bare number in eval arithmetic
+   * (a numeric literal, or the result of `.average`). Its data holds a single
+   * entry under the "scalar" key rather than real dates. Never persisted, and
+   * never inherited by the result of an operation — arithmetic on a wrapper
+   * produces an ordinary dated Series.
+   */
+  isScalarWrapper = false;
+
+  constructor(attrs: SeriesAttrs) {
+    // series
+    this.id = attrs.id ?? null;
+    this.xseriesId = attrs.xseries_id ?? null;
+    this.universe = (attrs.universe as Universe) ?? "UHERO";
+    this.name = attrs.name;
+    this.dataPortalName = attrs.dataPortalName ?? null;
+    this.description = attrs.description ?? null;
+    this.decimals = attrs.decimals ?? 1;
+    this.geographyId = attrs.geography_id ?? null;
+    this.unitId = attrs.unit_id ?? null;
+    this.sourceId = attrs.source_id ?? null;
+    this.sourceDetailId = attrs.source_detail_id ?? null;
+    this.sourceLink = attrs.source_link ?? null;
+    this.investigationNotes = attrs.investigation_notes ?? null;
+    this.dependencyDepth = attrs.dependency_depth ?? 0;
+    this.scratch = attrs.scratch ?? 0;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
+
+    // xseries
+    this.primarySeriesId = attrs.primary_series_id ?? null;
+    this.frequency = attrs.frequency ?? null;
+    this.restricted = Boolean(attrs.restricted);
+    this.quarantined = Boolean(attrs.quarantined);
+    this.seasonalAdjustment =
+      (attrs.seasonal_adjustment as SeasonalAdjustment) ?? null;
+    this.seasonallyAdjusted =
+      attrs.seasonally_adjusted != null
+        ? Boolean(attrs.seasonally_adjusted)
+        : null;
+    this.aremossMissing = attrs.aremos_missing ?? null;
+    this.aremosDiff = attrs.aremos_diff ?? null;
+    this.percent = attrs.percent != null ? Boolean(attrs.percent) : null;
+    this.real = attrs.real != null ? Boolean(attrs.real) : null;
+
+    // joined unit label
+    this.unitLabel = attrs.unit_long_label || attrs.unit_short_label || null;
+    this.unitShortLabel = attrs.unit_short_label ?? null;
+  }
+
+  // ─── Display ─────────────────────────────────────────────────────
+
+  toString(): string {
+    return this.name ?? "UNNAMED_SERIES";
+  }
+
+  // ─── Name parsing & building ─────────────────────────────────────
+
+  static parseName(name: string): ParsedName {
+    const m = name.match(NAME_REGEX);
+    if (!m) throw new SeriesNameError(`Invalid series name format: ${name}`);
+
+    const freqCode = m[9]?.toUpperCase() as FrequencyCode | undefined;
+    return {
+      prefixFull: m[1],
+      prefix: m[2],
+      forecast: m[4]?.toUpperCase() ?? null,
+      version:
+        m[5]?.toUpperCase() === "F" ? (m[6]?.toUpperCase() ?? null) : null,
+      history:
+        m[5]?.toUpperCase() === "H" ? (m[6]?.toUpperCase() ?? null) : null,
+      geo: m[7].toUpperCase(),
+      freq: freqCode ?? null,
+      freqLong: freqCode ? (FREQ_CODE_TO_LONG[freqCode] ?? null) : null,
+    };
+  }
+
+  parseName(): ParsedName {
+    return Series.parseName(this.name);
+  }
+
+  static buildName(prefix: string, geo: string, freq?: string | null): string {
+    if (!prefix?.trim() || !geo?.trim()) {
+      throw new Error(
+        `Empty prefix ("${prefix}") and/or geography ("${geo}") not allowed`,
+      );
+    }
+    let name = `${prefix.trim().toUpperCase()}@${geo.trim().toUpperCase()}`;
+    if (freq) name += `.${freq.trim().toUpperCase()}`;
+    Series.parseName(name); // validate
+    return name;
+  }
+
+  buildName(overrides: Partial<ParsedName> = {}): string {
+    const parts = { ...this.parseName(), ...overrides };
+    return Series.buildName(parts.prefix, parts.geo, parts.freq);
+  }
+
+  get nameNoFreq(): string {
+    return this.buildName({ freq: null });
+  }
+
+  static isValidName(str: string): boolean {
+    return NAME_REGEX.test(str);
+  }
+
+  // ─── Frequency helpers ───────────────────────────────────────────
+
+  static frequencyFromCode(
+    code: string | null | undefined,
+  ): FrequencyLong | null {
+    if (!code) return null;
+    return FREQ_CODE_TO_LONG[code.toUpperCase() as FrequencyCode] ?? null;
+  }
+
+  static codeFromFrequency(
+    freq: string | null | undefined,
+  ): FrequencyCode | null {
+    if (!freq) return null;
+    const normalized = freq.toLowerCase().replace(/ly$/, "");
+    return FREQ_LONG_TO_CODE[normalized as FrequencyLong] ?? null;
+  }
+
+  get frequencyCode(): FrequencyCode | null {
+    return Series.codeFromFrequency(this.frequency);
+  }
+
+  get frequencyFromName(): FrequencyLong | null {
+    return Series.parseName(this.name).freqLong;
+  }
+
+  // ─── Identity & relationships ────────────────────────────────────
+
+  get isPrimary(): boolean {
+    return this.primarySeriesId === this.id;
+  }
+
+  get isAlias(): boolean {
+    return !this.isPrimary;
+  }
+
+  // ─── Seasonal adjustment ─────────────────────────────────────────
+
+  get isSA(): boolean {
+    if (this.seasonalAdjustment === "seasonally_adjusted") return true;
+    if (this.seasonalAdjustment === "not_seasonally_adjusted") return false;
+    // fuzzy: infer from name suffix
+    return /SA$/i.test(this.parseName().prefix);
+  }
+
+  get isNS(): boolean {
+    if (this.seasonalAdjustment === "not_seasonally_adjusted") return true;
+    if (this.seasonalAdjustment === "seasonally_adjusted") return false;
+    return /NS$/i.test(this.parseName().prefix);
+  }
+
+  get nsSeriesName(): string {
+    const prefix = this.parseName().prefix;
+    if (/NS$/i.test(prefix)) throw new Error(`${this} already ends in NS`);
+    return this.buildName({ prefix: prefix + "NS" });
+  }
+
+  get nonNsSeriesName(): string {
+    return this.buildName({
+      prefix: this.parseName().prefix.replace(/NS$/i, ""),
+    });
+  }
+
+  // ─── Validation ──────────────────────────────────────────────────
+
+  get isValid(): boolean {
+    return this.validate().length === 0;
+  }
+
+  validate(): string[] {
+    const errors: string[] = [];
+    if (!this.name) errors.push("Name is required");
+    if (this.sourceLink && !Series.#isValidUrl(this.sourceLink)) {
+      errors.push("Source link is not a valid URL");
+    }
+    if (this.universe === "UHERO" && !this.#noEnforceFields) {
+      if (!this.dataPortalName) errors.push("Data Portal Name is required");
+      if (!this.unitId) errors.push("Unit is required");
+      if (!this.sourceId) errors.push("Source is required");
+      if (this.decimals == null) errors.push("Decimals is required");
+    }
+    return errors;
+  }
+
+  get #noEnforceFields(): boolean {
+    if (this.universe !== "UHERO") return true;
+    if (this.scratch === 11011) return true;
+    if (this.scratch === 90909) return true;
+    if (/test/i.test(this.name)) return true;
+    return false;
+  }
+
+  static #isValidUrl(str: string): boolean {
+    try {
+      new URL(str);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ─── Metadata integrity ──────────────────────────────────────────
+  // Port of Rails Series.meta_integrity_check
+  // Enforces implicational relationships between attributes.
+
+  enforceMetaIntegrity(): void {
+    if (this.frequency === "year") {
+      this.seasonalAdjustment = "not_applicable";
+    } else if (this.name && /NS$/i.test(Series.parseName(this.name).prefix)) {
+      this.seasonalAdjustment = "not_seasonally_adjusted";
+    }
+  }
+
+  // ─── In-memory data (non-persisted) ──────────────────────────────
+
+  get data(): Map<string, number> {
+    return (this.#data ??= new Map());
+  }
+
+  set data(value: Map<string, number>) {
+    this.#data = value;
+  }
+
+  get trimPeriodStart(): Date | null {
+    return this.#trimStart;
+  }
+  set trimPeriodStart(d: Date | null) {
+    this.#trimStart = d;
+  }
+
+  get trimPeriodEnd(): Date | null {
+    return this.#trimEnd;
+  }
+  set trimPeriodEnd(d: Date | null) {
+    this.#trimEnd = d;
+  }
+
+  get firstObservation(): string | null {
+    const dates = [...this.data.keys()]
+      .filter((k) => this.data.get(k) != null)
+      .sort();
+    return dates[0] ?? null;
+  }
+
+  /** Alias for firstObservation (mirrors Rails first_value_date). */
+  get firstValueDate(): string | null {
+    return this.firstObservation;
+  }
+
+  get lastObservation(): string | null {
+    const dates = [...this.data.keys()]
+      .filter((k) => this.data.get(k) != null)
+      .sort();
+    return dates.at(-1) ?? null;
+  }
+
+  /** Returns the last complete December date in the data. */
+  getLastCompleteDecember(): string | null {
+    const last = this.lastObservation;
+    if (!last) return null;
+    const { year, month } = parseYM(last);
+    return month === 12 ? last : `${year - 1}-12-01`;
+  }
+
+  /**
+   * Returns the last complete 4th-quarter date (month 10 = Oct, which
+   * represents Q4 in this codebase's first-month-of-period convention)
+   * in the data.
+   */
+  getLastComplete4thQuarter(): string | null {
+    const last = this.lastObservation;
+    if (!last) return null;
+    const { year, month } = parseYM(last);
+    return month === 10 ? last : `${year - 1}-10-01`;
+  }
+
+  get observationCount(): number {
+    return [...this.data.values()].filter((v) => v != null).length;
+  }
+
+  // ─── Serialization ───────────────────────────────────────────────
+
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name,
+      universe: this.universe,
+      dataPortalName: this.dataPortalName,
+      description: this.description,
+      decimals: this.decimals,
+      frequency: this.frequency,
+      frequencyCode: this.frequencyCode,
+      restricted: this.restricted,
+      quarantined: this.quarantined,
+      seasonalAdjustment: this.seasonalAdjustment,
+      isPrimary: this.isPrimary,
+      sourceLink: this.sourceLink,
+    };
+  }
+
+  // ─── Stubs for domain logic (to be implemented) ──────────────────
+  // These mirror the Rails model's richer methods. The Collection layer
+  // handles the DB side; these handle the business logic.
+
+  /** Rename series, updating dependents' loader evals. */
+  rename(_newName: string): void {
+    /* TODO */
+  }
+
+  /** Duplicate this series under a new name. */
+  duplicate(_newName: string, _overrides?: Partial<SeriesAttrs>): Series {
+    /* TODO */ return this;
+  }
+
+  /** Create an alias of this series into another universe. */
+  createAlias(_props: { universe: Universe; name?: string }): Series {
+    /* TODO */ return this;
+  }
+
+  /** Reload all enabled data sources for this series. */
+  reloadSources(_opts?: { nightly?: boolean; clearFirst?: boolean }): void {
+    /* TODO */
+  }
+
+  // ─── Arithmetic (series_arithmetic.rb) ────────────────────────────
+
+  /**
+   * Apply an arithmetic operation between this series and another series.
+   * Iterates over dates from the longer series; dates where either value
+   * is missing are excluded from the result.
+   */
+  private performArithmetic(op: string, other: Series): Series {
+    const longerData =
+      this.data.size >= other.data.size ? this.data : other.data;
+    const newData = new Map<string, number>();
+
+    for (const date of longerData.keys()) {
+      const a = this.data.get(date);
+      const b = other.data.get(date);
+      if (a === undefined || b === undefined) continue;
+      const result = doArithmetic(a, op, b);
+      if (result !== null) newData.set(date, result);
+    }
+
+    const s = new Series({ name: `${this} ${op} ${other}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Apply an arithmetic operation between this series and a constant.
+   * Keeps all dates from the original series.
+   */
+  private performConstArithmetic(op: string, constant: number): Series {
+    const newData = new Map<string, number>();
+
+    for (const [date, value] of this.data) {
+      const result = doArithmetic(value, op, constant);
+      if (result !== null) newData.set(date, result);
+    }
+
+    const s = new Series({ name: `${this} ${op} ${constant}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Add another series or scalar to this series point-by-point. */
+  add(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("+", other)
+      : this.performArithmetic("+", other);
+  }
+
+  /** Subtract another series or scalar from this series. */
+  subtract(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("-", other)
+      : this.performArithmetic("-", other);
+  }
+
+  /** Multiply this series by another series or scalar. */
+  multiply(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("*", other)
+      : this.performArithmetic("*", other);
+  }
+
+  /** Divide this series by another series or scalar. */
+  divide(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("/", other)
+      : this.performArithmetic("/", other);
+  }
+
+  /** Raise this series to a power. */
+  power(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("**", other)
+      : this.performArithmetic("**", other);
+  }
+
+  /** Add with zero-fill: treat missing values as 0 before adding. */
+  zeroAdd(other: Series): Series {
+    const longerData =
+      this.data.size >= other.data.size ? this.data : other.data;
+    const newData = new Map<string, number>();
+
+    for (const date of longerData.keys()) {
+      const a = this.data.get(date) ?? 0;
+      const b = other.data.get(date) ?? 0;
+      newData.set(date, a + b);
+    }
+
+    const s = new Series({ name: `${this} zero_add ${other}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Round data values to the given precision. */
+  round(precision = 0): Series {
+    const factor = Math.pow(10, precision);
+    const newData = new Map<string, number>();
+
+    for (const [date, value] of this.data) {
+      newData.set(date, Math.round(value * factor) / factor);
+    }
+
+    const s = new Series({ name: `${this} round ${precision}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Rebase the series: divide every value by `newBase` and multiply by 100.
+   * When no `date` is given, defaults to the annual series' last observation.
+   * The annual sibling lookup is handled by the eval-executor; this method
+   * receives the already-loaded annual series.
+   *
+   * Ports Series#rebase (tmp/lib/series_arithmetic.rb:70-85).
+   */
+  rebase(annualSeries: Series, date?: string): Series {
+    const rebaseDate = date ?? annualSeries.lastObservation;
+    if (!rebaseDate) {
+      throw new Error(`No observation date for rebase of ${this}`);
+    }
+    const newBase = annualSeries.data.get(rebaseDate);
+    if (newBase === undefined || newBase === null || newBase === 0) {
+      const year = rebaseDate.slice(0, 4);
+      throw new Error(`No nonzero rebase of ${this} to ${year}`);
+    }
+
+    const newData = new Map<string, number>();
+    for (const [d, value] of this.data) {
+      if (value !== null && value !== undefined) {
+        newData.set(d, (value / newBase) * 100);
+      }
+    }
+
+    const year = rebaseDate.slice(0, 4);
+    const s = new Series({ name: `${this} rebased to ${year}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Deflate nominal values using a price index series. Intercepted by EvalExecutor. */
+  convertToReal(_index?: string): Series {
+    throw new Error("convertToReal must be called via EvalExecutor");
+  }
+
+  /** Per-capita transform: divide by population series. Intercepted by EvalExecutor. */
+  perCap(_options?: { pop?: string; multiplier?: number }): Series {
+    throw new Error("perCap must be called via EvalExecutor");
+  }
+
+  /** Year-over-year percent change. */
+  yoy(): Series {
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      const prevDate = addMonthsStr(dateStr, -12);
+      const prevVal = this.data.get(prevDate);
+      const pct = pctChange(value, prevVal);
+      if (pct != null) newData.set(dateStr, pct);
+    }
+    const s = new Series({ name: `Annualized percentage change of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Year-to-date: YTD cumulative sum, then YOY of that. */
+  ytd(): Series {
+    return this.ytdSum().yoy();
+  }
+
+  /**
+   * Period-over-period percent change.
+   * Uses a frequency-aware month offset: M→1, Q→3, S→6, A→12.
+   * Falls back to 1-period lag for weekly/daily.
+   */
+  pop(): Series {
+    const freqMonths: Record<string, number> = {
+      month: 1,
+      quarter: 3,
+      semi: 6,
+      year: 12,
+    };
+    const months = freqMonths[this.frequency ?? ""] ?? null;
+
+    if (months != null) {
+      // Use month-based offset (same approach as yoy but shorter lag)
+      const newData = new Map<string, number>();
+      for (const [dateStr, value] of this.data) {
+        const prevDate = addMonthsStr(dateStr, -months);
+        const prevVal = this.data.get(prevDate);
+        const pct = pctChange(value, prevVal);
+        if (pct != null) newData.set(dateStr, pct);
+      }
+      const s = new Series({ name: `Period-over-period % change of ${this}` });
+      s.data = newData;
+      s.frequency = this.frequency;
+      return s;
+    }
+
+    // Weekly / daily: use 1-observation lag via diff-based % change
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+    for (let i = 1; i < sorted.length; i++) {
+      const [dateStr, value] = sorted[i];
+      const prevVal = sorted[i - 1][1];
+      const pct = pctChange(value, prevVal);
+      if (pct != null) newData.set(dateStr, pct);
+    }
+    const s = new Series({ name: `Period-over-period % change of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Month-to-date cumulative sum (daily series only). For each day, the
+   * value is the running sum of all observations from the 1st of the month
+   * up to and including that day. Resets at the start of each month. Raises
+   * if there is a gap (>1 day) between consecutive observations within a
+   * month.
+   *
+   * Ports Series#mtd_sum (tmp/lib/series_arithmetic.rb:195).
+   */
+  mtdSum(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "day") {
+      // Rails returns an all-nil series; preserve that behavior.
+      return this.allNil();
+    }
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+    let trackMonth: number | null = null;
+    let runSum = 0;
+    let lastDay = 0;
+
+    for (const [dateStr, value] of sorted) {
+      const { month } = parseYM(dateStr);
+      const day = Number(dateStr.slice(8, 10));
+      if (month !== trackMonth) {
+        trackMonth = month;
+        runSum = 0;
+        lastDay = 0;
+      }
+      if (day - lastDay > 1 && newData.size > 0) {
+        throw new Error(`mtd_sum: gap in daily data preceding ${dateStr}`);
+      }
+      runSum += value;
+      lastDay = day;
+      newData.set(dateStr, runSum);
+    }
+
+    const s = new Series({ name: `Month-to-date sum of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Month-to-date running average (daily series only): each day's value is
+   * the mtd sum divided by the day-of-month.
+   *
+   * Ports Series#mtd_avg (tmp/lib/series_arithmetic.rb:215).
+   */
+  mtdAvg(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "day") {
+      return this.allNil();
+    }
+    const sums = this.mtdSum();
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of sums.data) {
+      const day = Number(dateStr.slice(8, 10));
+      newData.set(dateStr, value / day);
+    }
+    const s = new Series({ name: `Month-to-date average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Year-over-year change of the month-to-date running average. Daily series only.
+   *
+   * Ports Series#mtd (tmp/lib/series_arithmetic.rb:224).
+   */
+  mtd(): Series {
+    return this.mtdAvg().yoy();
+  }
+
+  /** Return a same-shape series with every value set to nil (Rails `all_nil`). */
+  private allNil(): Series {
+    const newData = new Map<string, number>();
+    // Rails sets explicit nil entries; in TS we just leave the map empty
+    // for the same effect downstream (no observations).
+    const s = new Series({ name: `All nil for dates in ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Year-to-date cumulative sum. */
+  ytdSum(): Series {
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+    let trackYear: number | null = null;
+    let cumSum = 0;
+
+    for (const [dateStr, value] of sorted) {
+      const { year } = parseYM(dateStr);
+      if (year !== trackYear) {
+        trackYear = year;
+        cumSum = 0;
+      }
+      cumSum += value;
+      newData.set(dateStr, cumSum);
+    }
+
+    const s = new Series({ name: `Year-to-date sum of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Period-over-period difference (lag defaults to 1 observation). */
+  diff(lag = 1): Series {
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+
+    for (let i = lag; i < sorted.length; i++) {
+      const [date, value] = sorted[i];
+      const prevVal = sorted[i - lag][1];
+      if (prevVal != null) {
+        newData.set(date, value - prevVal);
+      }
+    }
+
+    const s = new Series({ name: `Difference of ${this} w/lag of ${lag}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Scalar average of all data points. Returns a scalar-wrapped Series for use in arithmetic. */
+  average(): Series {
+    const values = [...this.data.values()];
+    const count = values.length;
+    const avg = count > 0 ? values.reduce((s, v) => s + v, 0) / count : 0;
+    return Series.scalar(avg);
+  }
+
+  /** Wrap a bare number so it can travel through eval arithmetic. */
+  static scalar(value: number): Series {
+    const s = new Series({ name: `__scalar_${value}` });
+    s.data = new Map([["scalar", value]]);
+    s.isScalarWrapper = true;
+    return s;
+  }
+
+  /** The wrapped number, or null when this is an ordinary dated Series. */
+  get scalarValue(): number | null {
+    return this.isScalarWrapper ? (this.data.get("scalar") ?? null) : null;
+  }
+
+  /**
+   * Annual sum: aggregate to annual sum, then map back to each observation date.
+   * Each data point gets the annual sum for its year.
+   */
+  annualSum(): Series {
+    // Aggregate to annual sums (without pruning — we need all years)
+    const annualSums = new Map<number, { sum: number; count: number }>();
+    for (const [dateStr, value] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualSums.get(year);
+      if (entry) {
+        entry.sum += value;
+        entry.count++;
+      } else annualSums.set(year, { sum: value, count: 1 });
+    }
+
+    // Prune incomplete years
+    const expectedPerYear = freqPerFreq(
+      normalizeFreq(this.frequency ?? ""),
+      "year",
+    );
+    const newData = new Map<string, number>();
+    for (const [dateStr] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualSums.get(year);
+      if (!entry) continue;
+      if (expectedPerYear && entry.count < expectedPerYear) continue;
+      newData.set(dateStr, entry.sum);
+    }
+
+    const s = new Series({ name: `Annual sum of ${this.name}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Annual average: aggregate to annual average, then map back to each observation date.
+   * Each data point gets the annual average for its year.
+   */
+  annualAverage(): Series {
+    const annualGroups = new Map<number, { sum: number; count: number }>();
+    for (const [dateStr, value] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualGroups.get(year);
+      if (entry) {
+        entry.sum += value;
+        entry.count++;
+      } else annualGroups.set(year, { sum: value, count: 1 });
+    }
+
+    const expectedPerYear = freqPerFreq(
+      normalizeFreq(this.frequency ?? ""),
+      "year",
+    );
+    const newData = new Map<string, number>();
+    for (const [dateStr] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualGroups.get(year);
+      if (!entry) continue;
+      if (expectedPerYear && entry.count < expectedPerYear) continue;
+      newData.set(dateStr, entry.sum / entry.count);
+    }
+
+    const s = new Series({ name: `Annual average of ${this.name}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Period-over-period percentage change. */
+  percentageChange(): Series {
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+
+    for (let i = 1; i < sorted.length; i++) {
+      const [date, current] = sorted[i];
+      const prev = sorted[i - 1][1];
+      if (prev == null || current == null) continue;
+      if (prev === 0 && current !== 0) continue;
+      if (prev === 0 && current === 0) {
+        newData.set(date, 0);
+        continue;
+      }
+      newData.set(date, ((current - prev) / prev) * 100);
+    }
+
+    const s = new Series({ name: `Percentage change of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Year-over-year difference (level change, not percent). */
+  yoyDiff(): Series {
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      const prevDate = addMonthsStr(dateStr, -12);
+      const prevVal = this.data.get(prevDate);
+      if (prevVal == null) continue;
+      newData.set(dateStr, value - prevVal);
+    }
+    const s = new Series({ name: `Year over year diff of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Return data scaled by the given factor (does not mutate). */
+  scaledData(scale = 1.0): Map<string, number> {
+    const SENTINEL = 1.0e15;
+    const result = new Map<string, number>();
+    for (const [date, value] of this.data) {
+      result.set(date, value === SENTINEL ? value : value * scale);
+    }
+    return result;
+  }
+
+  // ─── Aggregation (series_aggregation.rb) ──────────────────────────
+
+  /** Aggregate to a lower frequency (e.g. month → quarter). */
+  aggregate(frequency: string, operation?: string): Series {
+    const targetFreq = normalizeFreq(frequency);
+    const srcFreq = normalizeFreq(this.frequency ?? "");
+
+    if (!["year", "semi", "quarter", "month", "week"].includes(targetFreq)) {
+      throw new Error(`Cannot aggregate to frequency ${frequency}`);
+    }
+    if (freqn(targetFreq) >= freqn(srcFreq)) {
+      throw new Error("Can only aggregate to a lower frequency");
+    }
+
+    const op = (operation ?? "average") as AggOp;
+
+    // Group data points by target-frequency period start date. Track the
+    // latest non-null source date so we can tell whether an in-progress
+    // period has been "closed out" by subsequent observations.
+    const groups = new Map<string, number[]>();
+    const sortedDates = [...this.data.keys()].sort();
+    let maxDate = "";
+    for (const date of sortedDates) {
+      const value = this.data.get(date);
+      if (value == null) continue;
+      maxDate = date; // sortedDates ascending; last non-null assignment wins
+      const key = periodStart(date, targetFreq);
+      const arr = groups.get(key);
+      if (arr) arr.push(value);
+      else groups.set(key, [value]);
+    }
+
+    // Prune incomplete periods. Day source needs a different rule than the
+    // generic `minPoints` count: daily series often have legitimate gaps
+    // (weekends, holidays, late reports) so a strict count match would hide
+    // every otherwise-complete month. Instead, emit a period once we have
+    // evidence that it's over — i.e. the latest source observation lies on
+    // or after the last calendar day of that period. Equivalently: we've
+    // seen a data point on the last day of the month (or later), which
+    // matches Rails `days_in_period` semantics in the common dense case
+    // while gracefully handling sparse daily feeds.
+    const newData = new Map<string, number>();
+    if (srcFreq === "day") {
+      for (const [date, values] of groups) {
+        if (maxDate < lastDayOfPeriod(date, targetFreq)) continue;
+        newData.set(date, applyAggOp(values, op));
+      }
+    } else {
+      const minPoints = freqPerFreq(srcFreq, targetFreq);
+      for (const [date, values] of groups) {
+        if (minPoints && values.length < minPoints) continue;
+        newData.set(date, applyAggOp(values, op));
+      }
+    }
+
+    const s = new Series({ name: `Aggregated as ${op} from ${this}` });
+    s.data = newData;
+    s.frequency = targetFreq;
+    return s;
+  }
+
+  // ─── Disaggregation (src/core/timeseries) ─────────────────────────
+
+  /**
+   * Temporally disaggregate this series to a higher frequency (e.g. year →
+   * quarter) using the `timeseries` port of R's tempdisagg. Returns the new
+   * high-frequency Series; use `disaggregateDetailed()` for the fit
+   * statistics as well.
+   *
+   * `conversion` defaults to "average" (quarters average to the annual);
+   * use "sum" for flows, "first"/"last" for start/end-of-period readings.
+   *
+   * Missing periods split the series into contiguous runs that are
+   * disaggregated separately; the gap is left in the output (see `gaps`).
+   * `indicator`, if given, must be a Series at the target frequency that
+   * starts in the same period as this series; it may extend past the end,
+   * in which case the surplus periods are forecast. Gaps are not allowed
+   * with an indicator.
+   */
+  disaggregate(
+    frequency: string,
+    options: SeriesDisaggregateOptions = {},
+  ): Series {
+    return this.disaggregateDetailed(frequency, options).series;
+  }
+
+  disaggregateDetailed(
+    frequency: string,
+    options: SeriesDisaggregateOptions = {},
+  ): { series: Series; results: DisaggregateResult[] } {
+    const srcFreq = normalizeFreq(this.frequency ?? "");
+    const targetFreq = normalizeFreq(frequency);
+    const srcMonths = MONTHS_PER_FREQ[srcFreq];
+    const targetMonths = MONTHS_PER_FREQ[targetFreq];
+    if (!srcMonths) {
+      throw new Error(
+        `Cannot disaggregate from frequency "${this.frequency}"; source must be year, semi, quarter or month`,
+      );
+    }
+    if (!targetMonths) {
+      throw new Error(
+        `Cannot disaggregate to frequency "${frequency}"; target must be year, semi, quarter or month`,
+      );
+    }
+    const ratio = freqPerFreq(targetFreq, srcFreq);
+    if (!ratio || ratio < 2) {
+      throw new Error("Can only disaggregate to a higher frequency");
+    }
+
+    // Default to "average" here (the array-level API keeps tempdisagg's
+    // "sum"): this replaces `interpolate(freq, "average")`, and most udaman
+    // annual series are rates/levels, not flows.
+    const {
+      indicator,
+      conversion = "average",
+      gaps = "split",
+      ...rest
+    } = options;
+
+    const runs =
+      gaps === "split" && !indicator
+        ? contiguousRuns(this, srcMonths)
+        : [
+            (([dates, values]) => ({ dates, values }))(
+              contiguousValues(this, srcMonths),
+            ),
+          ];
+
+    let indicatorValues: number[] | undefined;
+    if (indicator) {
+      if (normalizeFreq(indicator.frequency ?? "") !== targetFreq) {
+        throw new Error(
+          `Indicator frequency "${indicator.frequency}" must match the target frequency "${targetFreq}"`,
+        );
+      }
+      const start = periodStart(runs[0].dates[0], srcFreq);
+      const [indDates, indValues] = contiguousValues(indicator, targetMonths);
+      if (periodStart(indDates[0], targetFreq) !== start) {
+        throw new Error(
+          `Indicator must start in the same period as the series (${start}); it starts at ${indDates[0]}`,
+        );
+      }
+      indicatorValues = indValues;
+    }
+
+    const newData = new Map<string, number>();
+    const results: DisaggregateResult[] = [];
+    for (const run of runs) {
+      const start = periodStart(run.dates[0], srcFreq);
+      const result = disaggregateArray(run.values, {
+        ...rest,
+        // Smoothing across a single point is meaningless; spread it evenly.
+        method: run.values.length < 2 ? "uniform" : rest.method,
+        conversion,
+        ratio,
+        indicator: indicatorValues,
+      });
+      result.values.forEach((v, i) => {
+        newData.set(addMonthsStr(start, i * targetMonths), v);
+      });
+      results.push(result);
+    }
+
+    const { method } = results[results.length - 1];
+    const s = new Series({
+      name: `Disaggregated (${method}, ${conversion}) from ${this}`,
+    });
+    s.data = newData;
+    s.frequency = targetFreq;
+    return { series: s, results };
+  }
+
+  // ─── Interpolation (series_interpolation.rb) ──────────────────────
+
+  /** Fill gaps in monthly data with linear interpolation. */
+  fillMissingMonthsLinear(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "month") {
+      throw new Error("Must be a monthly series");
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) throw new Error("Must have at least two points");
+
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const [dateStr1, val1] = sorted[i];
+      const [dateStr2, val2] = sorted[i + 1];
+
+      newData.set(dateStr1, val1);
+
+      const ym1 = parseYM(dateStr1);
+      const ym2 = parseYM(dateStr2);
+      const gap = ym2.year * 12 + ym2.month - (ym1.year * 12 + ym1.month) - 1;
+      const step = (val2 - val1) / (gap + 1);
+
+      for (let m = 1; m <= gap; m++) {
+        newData.set(addMonthsStr(dateStr1, m), val1 + step * m);
+      }
+    }
+
+    const [lastDate, lastVal] = sorted[sorted.length - 1];
+    newData.set(lastDate, lastVal);
+
+    const s = new Series({ name: `Linear month gap fill for ${this.name}` });
+    s.data = newData;
+    s.frequency = "month";
+    return s;
+  }
+
+  /**
+   * Insert a missing data point by interpolating from adjacent observations.
+   * Usage in eval: "SERIES".ts.add_missing_dp("2023-07-01", :average)
+   */
+  addMissingDp(dateStr: string, operation: string = "average"): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const prevEntry = sorted.filter(([d]) => d < dateStr).pop();
+    const nextEntry = sorted.find(([d]) => d > dateStr);
+
+    if (!prevEntry) throw new Error(`No data point found before ${dateStr}`);
+    if (!nextEntry) throw new Error(`No data point found after ${dateStr}`);
+
+    if (operation !== "average") {
+      throw new Error(`Operation ${operation} is not supported. Use "average"`);
+    }
+
+    const newValue = (prevEntry[1] + nextEntry[1]) / 2;
+
+    const s = new Series({
+      name: `Added missing data point at ${dateStr} (${operation}) from ${this}`,
+    });
+    s.data = new Map([[dateStr, newValue]]);
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Extend this series' last value forward, one period at a time, until
+   * it reaches the last observation of `refSeries`. Returns a delta-only
+   * Series (just the new padded points) — `update_data` on the caller
+   * merges it with existing data.
+   *
+   * Ports Series#extend_last_fwd_to_match (tmp/lib/series_interpolation.rb:22-36).
+   */
+  extendLastFwdToMatch(refSeries: Series): Series {
+    const refLast = refSeries.lastObservation;
+    if (!refLast) {
+      throw new Error(
+        `extendLastFwdToMatch: reference series ${refSeries.name} has no observations`,
+      );
+    }
+    const myLast = this.lastObservation;
+    if (!myLast) {
+      throw new Error(
+        `extendLastFwdToMatch: ${this.name} has no data to extend`,
+      );
+    }
+    const lastVal = this.data.get(myLast);
+    if (lastVal == null) {
+      throw new Error(
+        `extendLastFwdToMatch: ${this.name} has no value at ${myLast}`,
+      );
+    }
+    const offset = freqPerFreq("month", this.frequency ?? "");
+    if (offset == null) {
+      throw new Error(
+        `extendLastFwdToMatch: cannot handle frequency ${this.frequency}`,
+      );
+    }
+
+    const newData = new Map<string, number>();
+    let newDate = addMonthsStr(myLast, offset);
+    while (newDate <= refLast) {
+      newData.set(newDate, lastVal);
+      newDate = addMonthsStr(newDate, offset);
+    }
+
+    const s = new Series({
+      name: `Replicated the last value out to the last date of ${refSeries.name}`,
+    });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * AREMOS-style interpolation to a higher frequency.
+   * method: "average" (default) or "sum"
+   */
+  interpolate(targetFreq: string, method: string = "average"): Series {
+    const target = normalizeFreq(targetFreq);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    if (method !== "average" && method !== "sum") {
+      throw new Error(`Interpolation method ${method} not supported`);
+    }
+    if (freqn(target) <= freqn(src)) {
+      throw new Error("Can only interpolate to a higher frequency");
+    }
+    if (this.data.size < 2) throw new Error("Insufficient data");
+
+    const howMany = freqPerFreq(target, src);
+    const targetMonths = freqPerFreq("month", target);
+    if (!howMany || !targetMonths) {
+      throw new Error(`Interpolation from ${src} to ${target} not supported`);
+    }
+
+    const allFactors: Record<string, Record<string, number[]>> = {
+      year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
+      semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
+      quarter: { month: [-1, 0, 1] },
+    };
+
+    const factors = allFactors[src]?.[target];
+    if (!factors) {
+      throw new Error(
+        `Interpolation from ${src} to ${target} not yet supported`,
+      );
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const newData = new Map<string, number>();
+    let lastDate: string | null = null;
+    let lastVal: number | null = null;
+    let increment = 0;
+
+    for (const [thisDate, thisVal] of sorted) {
+      if (lastVal !== null && lastDate !== null) {
+        increment = (thisVal - lastVal) / howMany;
+        let values = factors.map((f) => lastVal! + f * increment);
+        if (method === "sum") values = values.map((v) => v / howMany);
+        for (let t = 0; t < howMany; t++) {
+          newData.set(addMonthsStr(lastDate, t * targetMonths), values[t]);
+        }
+      }
+      lastDate = thisDate;
+      lastVal = thisVal;
+    }
+
+    // Repeat for final observation
+    if (lastDate !== null && lastVal !== null) {
+      let values = factors.map((f) => lastVal! + f * increment);
+      if (method === "sum") values = values.map((v) => v / howMany);
+      for (let t = 0; t < howMany; t++) {
+        newData.set(addMonthsStr(lastDate, t * targetMonths), values[t]);
+      }
+    }
+
+    const s = new Series({
+      name: `Interpolated by ${method} method from ${this}`,
+    });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  /** Linear match-last interpolation to the given frequency. */
+  linearInterpolate(frequency: string): Series {
+    const target = normalizeFreq(frequency);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    const valid =
+      (src === "year" && target === "quarter") ||
+      (src === "quarter" && target === "month");
+    if (!valid)
+      throw new Error(`Cannot linear interpolate from ${src} to ${target}`);
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) throw new Error("Insufficient data");
+
+    const newData = new Map<string, number>();
+
+    // First point: no diff, so interpolate with diff=0
+    const [firstDate, firstVal] = sorted[0];
+    if (src === "year" && target === "quarter") {
+      newData.set(firstDate, firstVal);
+      newData.set(addMonthsStr(firstDate, 3), firstVal);
+      newData.set(addMonthsStr(firstDate, 6), firstVal);
+      newData.set(addMonthsStr(firstDate, 9), firstVal);
+    } else {
+      newData.set(firstDate, firstVal);
+      newData.set(addMonthsStr(firstDate, 1), firstVal);
+      newData.set(addMonthsStr(firstDate, 2), firstVal);
+    }
+
+    for (let i = 1; i < sorted.length; i++) {
+      const [date, val] = sorted[i];
+      const diff = val - sorted[i - 1][1];
+
+      if (src === "year" && target === "quarter") {
+        newData.set(date, val - (diff / 4) * 3);
+        newData.set(addMonthsStr(date, 3), val - (diff / 4) * 2);
+        newData.set(addMonthsStr(date, 6), val - diff / 4);
+        newData.set(addMonthsStr(date, 9), val);
+      } else {
+        // quarter → month
+        newData.set(date, val - (diff / 3) * 2);
+        newData.set(addMonthsStr(date, 1), val - diff / 3);
+        newData.set(addMonthsStr(date, 2), val);
+      }
+    }
+
+    const s = new Series({
+      name: `Interpolated (linear match last) from ${this}`,
+    });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  /**
+   * Census-method interpolation from annual to quarterly. Each year's value
+   * is treated as the Q3 (Jul) of that year, with the prior three quarters
+   * back-filled by stepping toward the previous year's Q3 value (step =
+   * (this - last) / 4). The first year in the input also seeds Q4 of two
+   * years prior + Q1/Q2/Q3 of the previous year.
+   *
+   * Ports Series#census_interpolate (tmp/lib/series_interpolation.rb:234).
+   */
+  censusInterpolate(frequency: string): Series {
+    const target = normalizeFreq(frequency);
+    if (
+      target !== "quarter" ||
+      normalizeFreq(this.frequency ?? "") !== "year"
+    ) {
+      throw new Error(
+        `census_interpolate only supports year → quarter (got ${this.frequency} → ${target})`,
+      );
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const newData = new Map<string, number>();
+    let last: number | null = null;
+    let started = false;
+
+    for (const [dateStr, value] of sorted) {
+      if (last !== null) {
+        const { year } = parseYM(dateStr);
+        const step = (value - last) / 4;
+        newData.set(fmtDate(year - 1, 10), value - 3 * step);
+        newData.set(fmtDate(year, 1), value - 2 * step);
+        newData.set(fmtDate(year, 4), value - 1 * step);
+        newData.set(fmtDate(year, 7), value);
+        if (!started) {
+          newData.set(fmtDate(year - 2, 10), last - 3 * step);
+          newData.set(fmtDate(year - 1, 1), last - 2 * step);
+          newData.set(fmtDate(year - 1, 4), last - 1 * step);
+          newData.set(fmtDate(year - 1, 7), last);
+          started = true;
+        }
+      }
+      last = value;
+    }
+
+    const s = new Series({
+      name: `Interpolated with Census method from ${this}`,
+    });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  /**
+   * Interpolate an annual series to quarterly using the TRMS method.
+   *
+   * For each consecutive pair of annual observations (prev → curr) we lay
+   * down 4 quarters anchored on `prev`'s year:
+   *   Q1 = prev - 1.5 * step
+   *   Q2 = prev - 0.5 * step
+   *   Q3 = prev + 0.5 * step
+   *   Q4 = prev + 1.5 * step
+   * where step = (curr - prev) / 4. The final year reuses the most recent
+   * `step` (Rails `last_diff / 4`) to extend the pattern through its 4 Qs.
+   *
+   * After the per-year fill, we smooth pairwise by averaging each quarter
+   * with its predecessor (a 2-point backward MA), dropping the first quarter.
+   *
+   * Ports Series#trms_interpolate_to_quarterly (tmp/lib/series_interpolation.rb:304).
+   */
+  trmsInterpolateToQuarterly(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "year") {
+      throw new Error(
+        `trms_interpolate_to_quarterly requires an annual series (got ${this.frequency})`,
+      );
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    if (sorted.length < 2) {
+      throw new Error(
+        "trms_interpolate_to_quarterly requires at least 2 annual observations",
+      );
+    }
+
+    const newSeriesData = new Map<string, number>();
+    let previousVal: number | null = null;
+    let previousYear: number | null = null;
+    let lastDiff = 0;
+
+    for (const [dateStr, val] of sorted) {
+      const { year } = parseYM(dateStr);
+      if (previousVal === null) {
+        previousVal = val;
+        previousYear = year;
+        continue;
+      }
+      const py = previousYear!;
+      const step = (val - previousVal) / 4;
+      newSeriesData.set(fmtDate(py, 1), previousVal - step * 1.5);
+      newSeriesData.set(fmtDate(py, 4), previousVal - step * 0.5);
+      newSeriesData.set(fmtDate(py, 7), previousVal + step * 0.5);
+      newSeriesData.set(fmtDate(py, 10), previousVal + step * 1.5);
+      lastDiff = val - previousVal;
+      previousVal = val;
+      previousYear = year;
+    }
+
+    // Tail year: reuse the most recent diff to fill the final 4 quarters.
+    const ty = previousYear!;
+    const tailStep = lastDiff / 4;
+    newSeriesData.set(fmtDate(ty, 1), previousVal! - tailStep * 1.5);
+    newSeriesData.set(fmtDate(ty, 4), previousVal! - tailStep * 0.5);
+    newSeriesData.set(fmtDate(ty, 7), previousVal! + tailStep * 0.5);
+    newSeriesData.set(fmtDate(ty, 10), previousVal! + tailStep * 1.5);
+
+    // Pairwise backward-looking 2-point average over the quarterly fill.
+    const blma = new Map<string, number>();
+    let prev: number | null = null;
+    const sortedNew = [...newSeriesData.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    for (const [key, val] of sortedNew) {
+      if (prev === null) {
+        prev = val;
+        continue;
+      }
+      blma.set(key, (val + prev) / 2);
+      prev = val;
+    }
+
+    const s = new Series({
+      name: `TRMS style interpolation of ${this.name}`,
+    });
+    s.data = blma;
+    s.frequency = "quarter";
+    return s;
+  }
+
+  /**
+   * Two-pass interpolation that first "stretches" each source observation
+   * away from the previous one, then runs `linearInterpolate` on the result.
+   *
+   * Pass 1 (at source frequency):
+   *   temp[date] = val + (val - temp[prev]) * ((d - 1) / (d + 1))
+   *   where d is the period multiplier (year→quarter = 4, quarter→month = 3,
+   *   month→day = 30.4375). The first observation is copied as-is.
+   *
+   * Pass 2: run linear match-last interpolation on `temp` at the target freq.
+   *
+   * Ports Series#pseudo_centered_spline_interpolation (tmp/lib/series_interpolation.rb:142).
+   */
+  pseudoCenteredSplineInterpolation(frequency: string): Series {
+    const target = normalizeFreq(frequency);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    let divisor: number;
+    if (target === "quarter" && src === "year") divisor = 4;
+    else if (target === "month" && src === "quarter") divisor = 3;
+    else if (target === "day" && src === "month") divisor = 30.4375;
+    else
+      throw new Error(
+        `pseudo_centered_spline_interpolation from ${src} to ${target} not supported`,
+      );
+
+    const factor = (divisor - 1) / (divisor + 1);
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const tempData = new Map<string, number>();
+    let lastDate: string | null = null;
+    for (const [date, val] of sorted) {
+      if (lastDate === null) {
+        tempData.set(date, val);
+        lastDate = date;
+        continue;
+      }
+      const lastTemp = tempData.get(lastDate)!;
+      tempData.set(date, val + (val - lastTemp) * factor);
+      lastDate = date;
+    }
+
+    const temp = new Series({ name: `Temp series from ${this}` });
+    temp.data = tempData;
+    temp.frequency = src;
+
+    const interpolated = temp.linearInterpolate(target);
+
+    const s = new Series({
+      name: `Pseudo Centered Spline Interpolation of ${this}`,
+    });
+    s.data = interpolated.data;
+    s.frequency = target;
+    return s;
+  }
+
+  /**
+   * Distribute each weekly observation across the days it spans (value/days).
+   * Wraps `interpolateWeekToDay("distribute")`.
+   *
+   * Ports Series#distribute_days_interpolation (tmp/lib/series_interpolation.rb:119).
+   */
+  distributeDaysInterpolation(): Series {
+    return this.interpolateWeekToDay("distribute");
+  }
+
+  /**
+   * Fill each day in a week with that week's observation (no division).
+   * Wraps `interpolateWeekToDay("fill")`.
+   *
+   * Ports Series#fill_days_interpolation (tmp/lib/series_interpolation.rb:115).
+   */
+  fillDaysInterpolation(): Series {
+    return this.interpolateWeekToDay("fill");
+  }
+
+  /**
+   * Convert a weekly series to a daily series. Each weekly observation is
+   * assumed to fall at the END of the week it represents. The fill length
+   * for each week is the gap (in days) to the previous observation; for the
+   * earliest observation it defaults to 7. Gaps outside [5, 9] days raise.
+   *
+   * - "fill"      → each day gets the weekly value as-is
+   * - "distribute" → each day gets value / fillLength
+   *
+   * Ports Series#interpolate_week_to_day (tmp/lib/series_interpolation.rb:125).
+   */
+  private interpolateWeekToDay(method: "fill" | "distribute"): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "week") {
+      throw new Error("original series not weekly");
+    }
+
+    const sortedKeys = [...this.data.keys()]
+      .filter((k) => this.data.get(k) != null)
+      .sort();
+    const newData = new Map<string, number>();
+
+    // Walk from latest → earliest, mirroring Rails `weekly_keys.pop` loop.
+    while (sortedKeys.length > 0) {
+      const date = sortedKeys.pop()!;
+      const prev = sortedKeys[sortedKeys.length - 1];
+      const fillLength = prev !== undefined ? daysBetweenStr(date, prev) : 7;
+      if (fillLength < 5 || fillLength > 9) {
+        throw new Error(
+          `observation gap of ${fillLength} days too long or short near ${date}`,
+        );
+      }
+      const raw = this.data.get(date)!;
+      const value = method === "fill" ? raw : raw / fillLength;
+      for (let offset = 0; offset < fillLength; offset++) {
+        newData.set(addDaysStr(date, -offset), value);
+      }
+    }
+
+    // Sort the result chronologically (Rails calls `dailyseries.sort`).
+    const sorted = new Map<string, number>(
+      [...newData.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    );
+
+    const s = new Series({
+      name: `Interpolated days (${method}) from ${this}`,
+    });
+    s.data = sorted;
+    s.frequency = "day";
+    return s;
+  }
+
+  /** Fill-interpolate to a target frequency (repeats each value across sub-periods). */
+  fillInterpolateTo(targetFrequency: string): Series {
+    const target = normalizeFreq(targetFrequency);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    if (src !== "year") {
+      throw new Error(
+        `fill_interpolate_to only supports annual source, got ${src}`,
+      );
+    }
+
+    let monthValues: number[];
+    if (target === "quarter") {
+      monthValues = [1, 4, 7, 10];
+    } else if (target === "month") {
+      monthValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    } else {
+      throw new Error(`Cannot fill-interpolate from ${src} to ${target}`);
+    }
+
+    const newData = new Map<string, number>();
+    for (const [dateStr, val] of this.data) {
+      const { year } = parseYM(dateStr);
+      for (const month of monthValues) {
+        newData.set(fmtDate(year, month), val);
+      }
+    }
+
+    const s = new Series({
+      name: `Interpolated by filling ${this} to ${target}`,
+    });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  // ─── Moving averages (series_sharing.rb) ─────────────────────────
+
+  /** Standard window size for moving averages based on frequency. */
+  private get standardWindowSize(): number {
+    switch (normalizeFreq(this.frequency ?? "")) {
+      case "day":
+        return 7;
+      case "month":
+        return 12;
+      case "week":
+      case "quarter":
+      case "year":
+        return 4;
+      default:
+        throw new Error(
+          `No window size defined for frequency ${this.frequency}`,
+        );
+    }
+  }
+
+  /**
+   * Backward-looking moving average.
+   * Each point is the average of itself and the (window-1) preceding points.
+   */
+  backwardLookingMovingAverage(window?: number): Series {
+    const periods = window ?? this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const start = i - periods + 1;
+      if (start < 0) continue;
+      let sum = 0;
+      for (let j = start; j <= i; j++) sum += sorted[j][1];
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({
+      name: `Backward-looking moving average of ${this}`,
+    });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Forward-looking moving average. */
+  forwardLookingMovingAverage(window?: number): Series {
+    const periods = window ?? this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const end = i + periods - 1;
+      if (end >= sorted.length) continue;
+      let sum = 0;
+      for (let j = i; j <= end; j++) sum += sorted[j][1];
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({ name: `Forward-looking moving average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Centered moving average with edge fallback to forward/backward. */
+  movingAverage(): Series {
+    const periods = this.standardWindowSize;
+    const half = Math.floor(periods / 2);
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const last = sorted.length - 1;
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      let start: number, end: number;
+      if (i < half) {
+        // left edge: forward-looking
+        start = i;
+        end = i + periods - 1;
+      } else if (i > last - half) {
+        // right edge: backward-looking
+        start = i - periods + 1;
+        end = i;
+      } else {
+        // centered
+        start = i - half;
+        end = i + half;
+      }
+      if (start < 0 || end >= sorted.length) continue;
+      const halveEndpoints = end - start === periods;
+      let sum = 0;
+      for (let j = start; j <= end; j++) {
+        let val = sorted[j][1];
+        if (halveEndpoints && (j === start || j === end)) val *= 0.5;
+        sum += val;
+      }
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({ name: `Moving average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Centered moving average with offset at the left edge.
+   * Like movingAverage(), but the forward-looking window at the left edge
+   * is shifted right by 1 position (offset_ma in Rails).
+   */
+  movingAverageOffsetEarly(): Series {
+    const periods = this.standardWindowSize;
+    const half = Math.floor(periods / 2);
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const last = sorted.length - 1;
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const atLeftEdge = i < half;
+      const atRightEdge = i > last - half;
+
+      let start: number, end: number;
+      if (atLeftEdge) {
+        // forward-looking with +1 offset
+        start = i + 1;
+        end = i + periods;
+      } else if (atRightEdge) {
+        // backward-looking
+        start = i - periods + 1;
+        end = i;
+      } else {
+        // centered
+        start = i - half;
+        end = i + half;
+      }
+      if (start < 0 || end > last) continue;
+
+      const halveEndpoints = end - start === periods;
+      let sum = 0;
+      for (let j = start; j <= end; j++) {
+        let val = sorted[j][1];
+        if (halveEndpoints && (j === start || j === end)) val *= 0.5;
+        sum += val;
+      }
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({ name: `Moving Average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Forward-looking moving average offset by +1 position.
+   * Always forward-looking (no edge adaptation), window shifted right by 1.
+   */
+  offsetForwardLookingMovingAverage(): Series {
+    const periods = this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const last = sorted.length - 1;
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const start = i + 1;
+      const end = i + periods;
+      if (start < 0 || end > last) continue;
+      let sum = 0;
+      for (let j = start; j <= end; j++) sum += sorted[j][1];
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({
+      name: `Offset Forward Looking Moving Average of ${this}`,
+    });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Compute share: (ratioTop / ratioBottom) * self. */
+  shareUsing(ratioTop: Series, ratioBottom: Series): Series {
+    const shared = ratioTop.divide(ratioBottom).multiply(this);
+    const s = new Series({
+      name: `Share of ${this} using ratio of ${ratioTop} over ${ratioBottom}`,
+    });
+    s.data = shared.data;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Strict centered moving average with annual-average edge padding.
+   * Computes a centered MA that skips points where the window extends
+   * beyond data bounds, then fills edge gaps with annual average values.
+   */
+  movingAverageAnnavgPadded(startDate?: string, endDate?: string): Series {
+    const start = startDate ?? this.firstObservation ?? undefined;
+    const end = endDate ?? undefined;
+
+    // Annual average data for edge padding
+    const annAvgData = this.annualAverage().trim(start, end).data;
+
+    // Strict centered MA on trimmed data
+    const trimmed = this.trim(start, end);
+    const periods = trimmed.standardWindowSize;
+    const half = Math.floor(periods / 2);
+    const sorted = [...trimmed.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const last = sorted.length - 1;
+    const cmaData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const winStart = i - half;
+      const winEnd = i + half;
+      // strict: skip if window extends beyond data bounds
+      if (winStart < 0 || winEnd > last) continue;
+
+      // Centered MA with halved endpoints (window width = periods + 1)
+      let sum = 0;
+      for (let j = winStart; j <= winEnd; j++) {
+        let val = sorted[j][1];
+        if (j === winStart || j === winEnd) val *= 0.5;
+        sum += val;
+      }
+      cmaData.set(sorted[i][0], sum / periods);
+    }
+
+    // Merge: start with annual avg, overwrite with CMA data
+    const mergedData = new Map(annAvgData);
+    for (const [date, value] of cmaData) {
+      mergedData.set(date, value);
+    }
+
+    const s = new Series({
+      name: `Moving Average of ${this} edge-padded with Annual Average`,
+    });
+    s.data = mergedData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Get data for the last incomplete year (current year if not finished).
+   *
+   * `startDate` forces an explicit cutoff instead, bypassing both the
+   * last-observation lookup and the December guard — Rails calls this
+   * "special handling for unusual cases where we want to force a specific
+   * cutoff" (tmp/lib/series_data_adjustment.rb:72).
+   *
+   * The case it exists for: this method is normally paired with a loader
+   * that owns the complete years, so it only has to patch the ragged tail.
+   * When that other loader's source goes stale, the guard starts rejecting
+   * years nobody is filling, and for a self-referential eval like
+   * `apply_ns_growth_rate_sa` the resulting gap propagates forward — each
+   * missing period removes the anchor the next one needs. Forcing the
+   * cutoff lets the series heal past the gap.
+   */
+  getLastIncompleteYear(startDate?: string | null): Series {
+    // Explicit cutoff wins outright. End date is left to trim()'s default
+    // (trimPeriodEnd, else today), matching Rails' `trim(start_date, nil)`.
+    if (startDate) return this.trim(startDate);
+
+    const lastObs = this.lastObservation;
+    if (!lastObs) {
+      const s = new Series({ name: `No data because no incomplete year` });
+      s.frequency = this.frequency;
+      return s;
+    }
+    const { year, month } = parseYM(lastObs);
+    const freq = normalizeFreq(this.frequency ?? "");
+    if (
+      (freq === "month" && month === 12) ||
+      (freq === "quarter" && month === 10)
+    ) {
+      const s = new Series({ name: `No data because no incomplete year` });
+      s.frequency = this.frequency;
+      return s;
+    }
+    return this.trim(fmtDate(year, 1));
+  }
+
+  // ─── Data adjustment (series_data_adjustment.rb) ──────────────────
+
+  /** Set trim start to far past so trim() won't clip early data. Chainable, mutates self. */
+  noTrimPast(): this {
+    this.trimPeriodStart = new Date("1000-01-01T00:00:00");
+    return this;
+  }
+
+  /** Set trim end to far future so trim() won't clip future data. Chainable, mutates self. */
+  noTrimFuture(): this {
+    this.trimPeriodEnd = new Date("2999-12-31T00:00:00");
+    return this;
+  }
+
+  /**
+   * January 1 of the year containing the last observation.
+   * Ports get_last_incomplete_january from Rails.
+   */
+  getLastIncompleteJanuary(): string | null {
+    const lastObs = this.lastObservation;
+    if (!lastObs) return null;
+    const { year } = parseYM(lastObs);
+    return fmtDate(year, 1);
+  }
+
+  /**
+   * Trim data to a date window. Matches Rails trim() defaults:
+   *  - startDate defaults to trimPeriodStart ?? getLastIncompleteJanuary
+   *  - endDate   defaults to trimPeriodEnd   ?? today
+   * If startDate is still null after defaults, returns data unchanged.
+   */
+  trim(startDate?: string | null, endDate?: string | null): Series {
+    const start =
+      startDate ??
+      (this.trimPeriodStart
+        ? fmtDate(
+            this.trimPeriodStart.getFullYear(),
+            this.trimPeriodStart.getMonth() + 1,
+            this.trimPeriodStart.getDate(),
+          )
+        : null) ??
+      this.getLastIncompleteJanuary();
+
+    const end =
+      endDate ??
+      (this.trimPeriodEnd
+        ? fmtDate(
+            this.trimPeriodEnd.getFullYear(),
+            this.trimPeriodEnd.getMonth() + 1,
+            this.trimPeriodEnd.getDate(),
+          )
+        : null) ??
+      hstToday();
+
+    if (!start) {
+      // No start date even after defaults — return data as-is
+      const s = new Series({ name: `${this} trimmed` });
+      s.data = new Map(this.data);
+      s.frequency = this.frequency;
+      return s;
+    }
+
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      if (dateStr < start) continue;
+      if (end && dateStr > end) continue;
+      newData.set(dateStr, value);
+    }
+    const label =
+      start === "1000-01-01" ? this.name : `Trimmed ${this} starting ${start}`;
+    const s = new Series({ name: label });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Shift all dates by n months. */
+  shiftBy(months: number): Series {
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      newData.set(addMonthsStr(dateStr, months), value);
+    }
+    const s = new Series({ name: `${this} shifted by ${months} months` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Returns a Series where each value is the number of days in that
+   * observation's period (month, quarter, semi, or year).
+   */
+  daysInPeriod(): Series {
+    const freq = normalizeFreq(this.frequency ?? "");
+    const newData = new Map<string, number>();
+
+    for (const [dateStr] of this.data) {
+      const d = new Date(dateStr + "T00:00:00");
+      const y = d.getFullYear();
+      const m = d.getMonth(); // 0-based
+      let days: number;
+
+      switch (freq) {
+        case "month": {
+          // Days in this month: day 0 of next month = last day of this month
+          days = new Date(y, m + 1, 0).getDate();
+          break;
+        }
+        case "quarter": {
+          const qStart = new Date(y, Math.floor(m / 3) * 3, 1);
+          const qEnd = new Date(y, Math.floor(m / 3) * 3 + 3, 1);
+          days = (qEnd.getTime() - qStart.getTime()) / (1000 * 60 * 60 * 24);
+          break;
+        }
+        case "semi": {
+          const hStart = new Date(y, m < 6 ? 0 : 6, 1);
+          const hEnd = new Date(y, m < 6 ? 6 : 12, 1);
+          days = (hEnd.getTime() - hStart.getTime()) / (1000 * 60 * 60 * 24);
+          break;
+        }
+        case "year": {
+          const isLeap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+          days = isLeap ? 366 : 365;
+          break;
+        }
+        case "week":
+          days = 7;
+          break;
+        default:
+          days = 1;
+      }
+
+      newData.set(dateStr, days);
+    }
+
+    const s = new Series({
+      name: `number of days in each ${freq}`,
+    });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Average daily census: divide by days in period.
+   * SA series use a constant denominator (365 / periods-per-year).
+   * NS series use actual days in each period.
+   */
+  dailyCensus(): Series {
+    if (this.isSA) {
+      const freq = normalizeFreq(this.frequency ?? "");
+      const fpf = freqPerFreq(freq, "year");
+      if (!fpf) {
+        throw new Error(
+          `Cannot compute daily census on SA series of frequency ${freq}`,
+        );
+      }
+      const denom = Math.round((365 / fpf) * 100) / 100;
+      return this.divide(denom);
+    }
+    return this.divide(this.daysInPeriod());
+  }
+
+  // ─── File loading ───────────────────────────────────────────────────
+  // File I/O is handled by the eval executor + DataFileReader (server-only).
+  // These stubs exist so the ALLOWED_INSTANCE_METHODS whitelist in the
+  // executor recognizes them; actual dispatch is intercepted before reaching here.
+
+  /** Load data from a static file into this series. */
+  loadFrom(_path: string): Series {
+    throw new Error("loadFrom must be called via EvalExecutor");
+  }
+
+  /** Load seasonally-adjusted data from a static file. */
+  loadSaFrom(_path: string): Series {
+    throw new Error("loadSaFrom must be called via EvalExecutor");
+  }
+
+  // ─── Statistics ──────────────────────────────────────────────────────
+
+  /** Sum all non-null values. */
+  sum(): number {
+    let total = 0;
+    for (const v of this.data.values()) {
+      if (v != null) total += v;
+    }
+    return total;
+  }
+
+  /** Arithmetic mean of non-null values. Returns 0 if empty. */
+  mean(): number {
+    const n = this.observationCount;
+    return n > 0 ? this.sum() / n : 0;
+  }
+
+  /** Sample variance (n-1 denominator). */
+  variance(): number {
+    const n = this.observationCount;
+    if (n <= 1) return 0;
+    const avg = this.mean();
+    let sumSq = 0;
+    for (const v of this.data.values()) {
+      if (v != null) sumSq += (v - avg) ** 2;
+    }
+    return sumSq / (n - 1);
+  }
+
+  /** Sample standard deviation. */
+  standardDeviation(): number {
+    return Math.sqrt(this.variance());
+  }
+
+  /** Median of non-null values. Returns null if empty. */
+  median(): number | null {
+    const values = [...this.data.values()]
+      .filter((v) => v != null)
+      .sort((a, b) => a - b);
+    if (values.length === 0) return null;
+    const mid = Math.floor(values.length / 2);
+    return values.length % 2 === 1
+      ? values[mid]
+      : (values[mid - 1] + values[mid]) / 2;
+  }
+
+  // ─── Trend & filter methods ─────────────────────────────────────────
+
+  /**
+   * Backward-looking rolling standard deviation.
+   * Matches the pattern of backwardLookingMovingAverage.
+   */
+  rollingStdDev(window?: number): Series {
+    const periods = window ?? this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+
+    for (let i = periods - 1; i < sorted.length; i++) {
+      let sum = 0;
+      for (let j = i - periods + 1; j <= i; j++) sum += sorted[j][1];
+      const mean = sum / periods;
+      let sumSq = 0;
+      for (let j = i - periods + 1; j <= i; j++)
+        sumSq += (sorted[j][1] - mean) ** 2;
+      newData.set(sorted[i][0], Math.sqrt(sumSq / (periods - 1)));
+    }
+
+    const s = new Series({ name: `Rolling std dev of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Least-squares linear trend: fitted values from regression on index. */
+  linearTrend(): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) return this;
+
+    const n = sorted.length;
+    let sumX = 0,
+      sumY = 0,
+      sumXY = 0,
+      sumXX = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += i;
+      sumY += sorted[i][1];
+      sumXY += i * sorted[i][1];
+      sumXX += i * i;
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    const newData = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+      newData.set(sorted[i][0], intercept + slope * i);
+    }
+
+    const s = new Series({ name: `Linear trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Log-linear trend: regress on ln(values), exp() the result. Skips non-positive values. */
+  logLinearTrend(): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null && v > 0)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) return this;
+
+    const n = sorted.length;
+    let sumX = 0,
+      sumY = 0,
+      sumXY = 0,
+      sumXX = 0;
+    for (let i = 0; i < n; i++) {
+      const lnV = Math.log(sorted[i][1]);
+      sumX += i;
+      sumY += lnV;
+      sumXY += i * lnV;
+      sumXX += i * i;
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    const newData = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+      newData.set(sorted[i][0], Math.exp(intercept + slope * i));
+    }
+
+    const s = new Series({ name: `Log-linear trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Hodrick-Prescott filter.
+   * Solves (I + λ·K'K)·τ = y where K is the second-difference matrix.
+   * The resulting system is symmetric pentadiagonal, solved via LDL' decomposition.
+   * Auto-lambda: 14400 monthly, 1600 quarterly, 100 annual.
+   */
+  hpTrend(lambda?: number): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    const n = sorted.length;
+    if (n < 3) return this;
+
+    const lam =
+      lambda ??
+      (() => {
+        switch (normalizeFreq(this.frequency ?? "")) {
+          case "month":
+            return 14400;
+          case "quarter":
+            return 1600;
+          case "year":
+            return 100;
+          default:
+            return 1600;
+        }
+      })();
+
+    const y = sorted.map(([, v]) => v);
+
+    // Build symmetric pentadiagonal A = I + λ·K'K
+    // Three unique diagonals: main (diag), sub/super-1 (off1), sub/super-2 (off2)
+    const diag = new Float64Array(n);
+    const off1 = new Float64Array(n); // A[i+1,i] = A[i,i+1]
+    const off2 = new Float64Array(n); // A[i+2,i] = A[i,i+2]
+
+    for (let i = 0; i < n; i++) {
+      let v = 1;
+      if (i === 0 || i === n - 1) v += lam;
+      else if (i === 1 || i === n - 2) v += 5 * lam;
+      else v += 6 * lam;
+      diag[i] = v;
+    }
+    for (let i = 0; i < n - 1; i++) {
+      off1[i] = i === 0 || i === n - 2 ? -2 * lam : -4 * lam;
+    }
+    for (let i = 0; i < n - 2; i++) {
+      off2[i] = lam;
+    }
+
+    // LDL' decomposition: A = L D L^T
+    // L is unit lower banded; l1[i] = L[i+1,i], l2[i] = L[i+2,i]
+    const dd = new Float64Array(n);
+    const l1 = new Float64Array(n);
+    const l2 = new Float64Array(n);
+
+    dd[0] = diag[0];
+    if (n > 1) {
+      l1[0] = off1[0] / dd[0];
+      if (n > 2) l2[0] = off2[0] / dd[0];
+    }
+    if (n > 1) {
+      dd[1] = diag[1] - l1[0] * l1[0] * dd[0];
+      if (n > 2) {
+        l1[1] = (off1[1] - l2[0] * l1[0] * dd[0]) / dd[1];
+        if (n > 3) l2[1] = off2[1] / dd[1];
+      }
+    }
+    for (let i = 2; i < n; i++) {
+      dd[i] =
+        diag[i] -
+        l1[i - 1] * l1[i - 1] * dd[i - 1] -
+        l2[i - 2] * l2[i - 2] * dd[i - 2];
+      if (i < n - 1) {
+        l1[i] = (off1[i] - l2[i - 1] * l1[i - 1] * dd[i - 1]) / dd[i];
+      }
+      if (i < n - 2) {
+        l2[i] = off2[i] / dd[i];
+      }
+    }
+
+    // Forward substitution: L z = y
+    const z = Float64Array.from(y);
+    for (let i = 1; i < n; i++) {
+      z[i] -= l1[i - 1] * z[i - 1];
+      if (i >= 2) z[i] -= l2[i - 2] * z[i - 2];
+    }
+
+    // Diagonal solve: D w = z
+    const w = new Float64Array(n);
+    for (let i = 0; i < n; i++) w[i] = z[i] / dd[i];
+
+    // Back substitution: L^T τ = w
+    const tau = new Float64Array(n);
+    tau[n - 1] = w[n - 1];
+    if (n > 1) tau[n - 2] = w[n - 2] - l1[n - 2] * tau[n - 1];
+    for (let i = n - 3; i >= 0; i--) {
+      tau[i] = w[i] - l1[i] * tau[i + 1] - l2[i] * tau[i + 2];
+    }
+
+    const newData = new Map<string, number>();
+    for (let i = 0; i < n; i++) newData.set(sorted[i][0], tau[i]);
+
+    const s = new Series({ name: `HP trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Z-score: (x - mean) / stdDev per point. */
+  zScore(): Series {
+    const avg = this.mean();
+    const sd = this.standardDeviation();
+    if (sd === 0) return this;
+
+    const newData = new Map<string, number>();
+    for (const [date, value] of this.data) {
+      if (value != null) newData.set(date, (value - avg) / sd);
+    }
+
+    const s = new Series({ name: `Z-score of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Deviation from linear trend: x - linearTrend(x) per point. */
+  deviationFromTrend(): Series {
+    const trend = this.linearTrend();
+    const newData = new Map<string, number>();
+
+    for (const [date, value] of this.data) {
+      const trendVal = trend.data.get(date);
+      if (value != null && trendVal != null) {
+        newData.set(date, value - trendVal);
+      }
+    }
+
+    const s = new Series({ name: `Deviation from trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Natural log of level values. Skips x <= 0. */
+  logLevel(): Series {
+    const newData = new Map<string, number>();
+    for (const [date, value] of this.data) {
+      if (value != null && value > 0) {
+        newData.set(date, Math.log(value));
+      }
+    }
+
+    const s = new Series({ name: `Log level of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  // ─── Analyze serialization ──────────────────────────────────────────
+
+  /** Serialize for the analyze page: identity fields + sorted [date, value] tuples. */
+  toAnalyzeJSON(): AnalyzeSeriesData {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    return {
+      id: this.id,
+      name: this.name,
+      dataPortalName: this.dataPortalName,
+      universe: this.universe,
+      frequency: this.frequency,
+      frequencyCode: this.frequencyCode,
+      decimals: this.decimals,
+      observationCount: this.observationCount,
+      data: sorted,
+    };
+  }
+}
+
+// ─── Errors ──────────────────────────────────────────────────────────
+
+export class SeriesNameError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SeriesNameError";
+  }
+}
+
+export class SeriesValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SeriesValidationError";
+  }
+}
+
+export class SeriesDestroyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SeriesDestroyError";
+  }
+}
+
+export default Series;

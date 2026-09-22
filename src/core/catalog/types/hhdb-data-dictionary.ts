@@ -1,0 +1,1973 @@
+import type { FieldDef, SummaryViewType } from "./hhdb";
+
+const ALL_VIEWS: SummaryViewType[] = ["summary"];
+
+export interface DictionaryField {
+  key: string;
+  label: string;
+  description: string;
+  summary?: SummaryViewType[];
+  format?: "dollar" | "number" | "year" | "text";
+  /** When true, the field is shown but not selectable in summaries. */
+  disabled?: boolean;
+  disabledReason?: string;
+  /** Notes about county-specific deviations from the default (Honolulu) source. */
+  source_notes?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Single source of truth for every column in every HHDB table.
+// Keys match the DB table names used by HHDB_TABLE_CONFIG.fieldsTable.
+// ---------------------------------------------------------------------------
+
+export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
+  // ── Properties ──────────────────────────────────────────────────────────
+  properties: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description:
+        "Tax Map Key. Unique 9-digit parcel identifier assigned by the county.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "island_code",
+      label: "Island Code",
+      description:
+        "Single-digit code identifying the island: 1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "parcel_number",
+      label: "Parcel Number",
+      description:
+        "County-assigned parcel number, often the same as TMK but may include formatting differences.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "location_address",
+      label: "Address",
+      description:
+        "Street address of the property as recorded by the county assessor.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "address_other",
+      label: "Address (Other)",
+      description:
+        "Additional address information such as unit numbers or secondary addresses.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "project_name",
+      label: "Project Name",
+      description:
+        "Name of the development or subdivision the property belongs to.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui: pulled from 'Condo Name' in Improvement Information (not in Parcel Information).",
+    },
+    {
+      key: "legal_information",
+      label: "Legal Information",
+      description:
+        "Legal description from deed records (lot, block, plat references).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "property_class",
+      label: "Property Class",
+      description:
+        "County classification code indicating land use type (residential, commercial, agricultural, etc.).",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui: pulled from Assessment Information 'Tax Class' (not in Parcel Information). Kauai: pulled from 'Tax Classification' field in Parcel Information.",
+    },
+    {
+      key: "land_area_sqft",
+      label: "Land Area (sqft)",
+      description: "Total land area of the parcel in square feet.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "land_area_acres",
+      label: "Land Area (acres)",
+      description: "Total land area of the parcel in acres.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "neighborhood_code",
+      label: "Neighborhood Code",
+      description:
+        "Assessor-defined neighborhood grouping used for comparable-sales valuation.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "zoning",
+      label: "Zoning",
+      description: "County zoning designation controlling permitted land uses.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "parcel_note",
+      label: "Parcel Note",
+      description:
+        "Free-text notes recorded by the assessor about this parcel.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "damage",
+      label: "Damage",
+      description:
+        "Damage designation, typically from natural disasters (e.g. lava zone damage).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "reentry_zone",
+      label: "Reentry Zone",
+      description: "Disaster reentry zone classification, if applicable.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "zone_color",
+      label: "Zone Color",
+      description: "Color-coded zone classification used in hazard mapping.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "non_taxable_status",
+      label: "Non-Taxable Status",
+      description:
+        "Exemption status indicating the property is wholly or partially non-taxable.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Kauai only. Not present in other counties' Parcel Information.",
+    },
+    {
+      key: "living_units",
+      label: "Living Units",
+      description: "Number of residential living units on the parcel.",
+      summary: ALL_VIEWS,
+      format: "number",
+      source_notes: "Kauai only.",
+    },
+    {
+      key: "map_url",
+      label: "Map URL",
+      description: "Link to the county GIS map viewer for this parcel.",
+      source_notes:
+        "Not published by Maui — Maui pages have no Map section, only a View Map link.",
+    },
+    {
+      key: "sketch_url",
+      label: "Sketch URL",
+      description:
+        "Link to the assessor's building sketch. Deliberately not captured: the source renders sketches (all islands) but only as expiring Azure SAS URLs that go dead within days of the scrape, so this stays NULL. If ever captured, store all sketch URLs joined in this one column.",
+      disabled: true,
+      disabledReason: "Not parsed — source URLs expire shortly after scrape.",
+    },
+    {
+      key: "zip",
+      label: "ZIP",
+      description: "Postal ZIP code for the property address.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Never populated — the intended source (state address list) was not loaded. Use zcta20 for ZIP-level geography.",
+    },
+    {
+      key: "latitude",
+      label: "Latitude",
+      description:
+        "Latitude of the land parcel centroid (WGS84). Condo units carry their parent parcel's centroid.",
+      source_notes:
+        "From the parcel/ZCTA/tract crosswalk (qpub crosswalk), not the assessor pages. NULL for the ~330 parcels absent from the State's parcel layer.",
+    },
+    {
+      key: "longitude",
+      label: "Longitude",
+      description:
+        "Longitude of the land parcel centroid (WGS84). Condo units carry their parent parcel's centroid.",
+      source_notes:
+        "From the parcel/ZCTA/tract crosswalk (qpub crosswalk), not the assessor pages.",
+    },
+    {
+      key: "zcta20",
+      label: "ZCTA (2020)",
+      description:
+        "2020 Census ZIP Code Tabulation Area containing the parcel centroid. Approximates the postal ZIP but is a Census geography, not a USPS one.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "From the parcel/ZCTA/tract crosswalk. ~240 parcels whose centroid falls in no ZCTA polygon were assigned the nearest one (all within 1 km); ~180 remain NULL.",
+    },
+    {
+      key: "countyfp",
+      label: "County FIPS",
+      description:
+        "Census county FIPS code: 001 Hawaii, 003 Honolulu, 005 Kalawao, 007 Kauai, 009 Maui. Not the same as island_code — Kalawao (Kalaupapa, Molokai) is its own county.",
+      summary: ALL_VIEWS,
+      source_notes: "From the parcel/ZCTA/tract crosswalk.",
+    },
+    {
+      key: "tractce",
+      label: "Census Tract",
+      description:
+        "Six-digit census tract code within the county (2020 vintage). Divide by 100 for the conventional tract name, e.g. 020202 → 202.02.",
+      summary: ALL_VIEWS,
+      source_notes: "From the parcel/ZCTA/tract crosswalk.",
+    },
+    {
+      key: "tract_geoid",
+      label: "Tract GEOID",
+      description:
+        "Full 11-digit census tract GEOID (state 15 + countyfp + tractce), the key to join against ACS and decennial tables.",
+      summary: ALL_VIEWS,
+      source_notes: "From the parcel/ZCTA/tract crosswalk.",
+    },
+  ],
+
+  // ── Assessments ─────────────────────────────────────────────────────────
+  assessments: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_year",
+      label: "Tax Year",
+      description: "The fiscal year this assessment applies to.",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+    {
+      key: "property_class",
+      label: "Property Class",
+      description: "County classification code for this assessment year.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "assessed_land_value",
+      label: "Assessed Land Value",
+      description: "Assessor's valuation of the land component.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        "Published by Oahu, Maui, and Big Island. Kauai publishes totals only.",
+    },
+    {
+      key: "assessed_building_value",
+      label: "Assessed Building Value",
+      description: "Assessor's valuation of buildings and improvements.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        "Published by Oahu, Maui, and Big Island. Kauai publishes totals only. Maui's column is headed simply \"Building Value\" (no qualifier); it is the assessed figure — Maui publishes no market building column (only Big Island has market_building_value).",
+    },
+    {
+      key: "dedicated_use_value",
+      label: "Dedicated Use Value",
+      description:
+        "Value attributed to dedicated land use (e.g. agricultural dedication).",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes: "Published by Oahu and Big Island only.",
+    },
+    {
+      key: "land_exemption",
+      label: "Land Exemption",
+      description:
+        "Exemption amount applied to land value (homeowner, disabled veteran, etc.).",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
+    },
+    {
+      key: "building_exemption",
+      label: "Building Exemption",
+      description: "Exemption amount applied to building value.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
+    },
+    {
+      key: "net_taxable_land_value",
+      label: "Net Taxable Land Value",
+      description: "Land value remaining after exemptions are applied.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
+    },
+    {
+      key: "net_taxable_building_value",
+      label: "Net Taxable Building Value",
+      description: "Building value remaining after exemptions are applied.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        "Published by Oahu only — other counties publish only parcel-level totals.",
+    },
+    {
+      key: "total_property_assessed_value",
+      label: "Total Assessed Value",
+      description:
+        "Sum of assessed land and building values before exemptions.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        'Published by all four counties (label varies: "Total Assessed Value" on Maui/Big Island).',
+    },
+    {
+      key: "total_property_exemption",
+      label: "Total Property Exemption",
+      description:
+        "Total dollar amount of all exemptions applied to the property.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        'Published by all four counties (label varies: "Total Exemption Value" on Maui/Big Island).',
+    },
+    {
+      key: "total_net_taxable_value",
+      label: "Net Taxable Value",
+      description:
+        "Total assessed value minus exemptions — the value taxes are computed on.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes:
+        'Published by all four counties (label varies: "Total Taxable Value" on Big Island).',
+    },
+    {
+      key: "agricultural_land_value",
+      label: "Agricultural Land Value",
+      description:
+        "Land value computed under agricultural-use valuation rules.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes: "Published by Maui only.",
+    },
+    {
+      key: "market_land_value",
+      label: "Market Land Value",
+      description:
+        "Full market value of the land without agricultural or dedicated-use adjustments.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes: "Published by Maui and Big Island.",
+    },
+    {
+      key: "market_building_value",
+      label: "Market Building Value",
+      description: "Full market value of buildings and improvements.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes: "Published by Big Island only.",
+    },
+    {
+      key: "total_market_value",
+      label: "Total Market Value",
+      description:
+        "Combined market value of land and buildings at full market rates.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+      source_notes: "Published by Big Island and Kauai.",
+    },
+  ],
+
+  // ── Sales ───────────────────────────────────────────────────────────────
+  sales: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "sale_date",
+      label: "Sale Date",
+      description: "Date the sale transaction occurred.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "sale_amount",
+      label: "Sale Amount",
+      description: "Reported sale price of the property.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "instrument",
+      label: "Instrument",
+      description: "Recording instrument number for the transaction.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "instrument_type",
+      label: "Instrument Type",
+      description: "Type code for the legal instrument (e.g. D=Deed, L=Lease).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "instrument_description",
+      label: "Instrument Description",
+      description:
+        "Descriptive text for the recorded document (e.g. Warranty Deed). Honolulu/Big Island head the column \"Instrument Description\"; Maui/Kauai head the same concept \"Document Type\" — one column. Big Island renders both headers; when both are filled they agree, and the first non-empty cell wins.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "valid_sale",
+      label: "Valid Sale",
+      description:
+        "Flag indicating whether the sale is considered arm's-length and usable for valuation. Honolulu publishes a bare flag; Maui's column is \"Valid Sale or Other Reason\" and conflates the flag with a rejection reason (e.g. \"Leasehold unadj\"). Not published by Big Island or Kauai.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "date_of_recording",
+      label: "Date of Recording",
+      description:
+        "Date the transaction was officially recorded at the Bureau of Conveyances.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "land_court_document_number",
+      label: "Land Court Doc #",
+      description:
+        "Land Court document number for registered land transactions.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "cert",
+      label: "Certificate",
+      description: "Transfer certificate of title number.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "book_page",
+      label: "Book/Page",
+      description: "Bureau of Conveyances book and page reference.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "conveyance_tax",
+      label: "Conveyance Tax",
+      description:
+        "State conveyance tax paid on the transaction. Published by Big Island and Kauai only.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+  ],
+
+  // ── Residential Improvements ────────────────────────────────────────────
+  residential_improvements: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "building_number",
+      label: "Building #",
+      description: "Identifies which building on the parcel (1, 2, etc.).",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "year_built",
+      label: "Year Built",
+      description: "Original construction year of the building.",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+    {
+      key: "eff_year_built",
+      label: "Eff Year Built",
+      description: "Effective year built, adjusted for major renovations.",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+    {
+      key: "living_area",
+      label: "Living Area",
+      description: "Total interior living space in square feet.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "bedrooms",
+      label: "Bedrooms",
+      description: "Number of bedrooms in the dwelling.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "full_bath",
+      label: "Full Bath",
+      description: "Number of full bathrooms (toilet, sink, tub/shower).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "half_bath",
+      label: "Half Bath",
+      description: "Number of half bathrooms (toilet and sink only).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "occupancy",
+      label: "Occupancy",
+      description:
+        "Occupancy type classification (e.g. single-family, duplex).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "framing",
+      label: "Framing",
+      description:
+        "Building frame construction type (e.g. wood, steel, concrete).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "percent_complete",
+      label: "% Complete",
+      description:
+        "Percentage of construction completed, for buildings under construction.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "heating_cooling",
+      label: "Heating/Cooling",
+      description: "Type of HVAC system installed.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "exterior_wall",
+      label: "Exterior Wall",
+      description: "Material of exterior walls (e.g. wood, stucco, masonry).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "roof_material",
+      label: "Roof Material",
+      description: "Roofing material type (e.g. asphalt shingle, tile, metal).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "fireplace",
+      label: "Fireplace",
+      description: "Fireplace presence and type.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "grade",
+      label: "Grade",
+      description: "Construction quality grade assigned by the assessor.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "building_value",
+      label: "Building Value",
+      description: "Assessed value of this residential building.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "total_room_count",
+      label: "Total Room Count",
+      description: "Total number of rooms in the dwelling.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "condo_style",
+      label: "Condo Style",
+      description:
+        "Building form of the condo project (e.g. Highrise, Walk-Up).",
+      summary: ALL_VIEWS,
+      source_notes: "Oahu only.",
+    },
+    {
+      key: "condo_type",
+      label: "Condo Type",
+      description:
+        "Position of the unit within the floor (e.g. Corner). Distinct variable from condo_style.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui only, from Improvement Information 'Condo Type'. Maui's Unit Number field is deliberately not stored — the unit designation already appears in the parcel's Location Address.",
+    },
+    {
+      key: "condo_view",
+      label: "Condo View",
+      description:
+        "View classification for condominiums (e.g. ocean, mountain, city).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "floor_level",
+      label: "Floor Level",
+      description: "Floor level of the unit within a multi-story building.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "parking_spaces",
+      label: "Parking Spaces",
+      description:
+        "Number of assigned parking spaces. Fractional values occur (e.g. 1.75).",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+  ],
+
+  // ── Commercial Improvements ─────────────────────────────────────────────
+  commercial_improvements: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "building_number",
+      label: "Building #",
+      description: "Identifies which building on the parcel.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "building_card",
+      label: "Building Card",
+      description: "Card number for assessor records.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "year_built",
+      label: "Year Built",
+      description: "Original construction year.",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+    {
+      key: "effective_year_built",
+      label: "Eff Year Built",
+      description: "Effective year built, adjusted for renovations.",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+    {
+      key: "improvement_name",
+      label: "Improvement Name",
+      description:
+        "Name of the commercial building (e.g. GRAND WAILEA, CENTURY SQUARE). Honolulu/Big Island label this \"Improvement Name\"; Maui/Kauai label the same concept \"Building Type\" and their values are copied here (building_type also keeps them verbatim).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "property_class",
+      label: "Property Class",
+      description: "Classification of commercial use.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "structure_type",
+      label: "Structure Type",
+      description:
+        "Structure class code (e.g. WAREHOUSE MET/MAS/AVG, 232-COMM C-2). Honolulu/Big Island label this \"Structure Type\"; Kauai labels the same code column \"Structure\". Not published by Maui.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "units",
+      label: "Units",
+      description: "Number of units in the building.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "identical_units",
+      label: "Identical Units",
+      description: "Number of identical units used for mass appraisal.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "gross_building_description",
+      label: "Gross Building Desc",
+      description:
+        "Free-text description of the building for assessment purposes.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "building_square_footage",
+      label: "Building Sq Ft",
+      description: "Total gross building area in square feet.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "building_type",
+      label: "Building Type",
+      description: "Type classification for the building.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "percent_complete",
+      label: "% Complete",
+      description: "Percentage of construction completed.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "structure",
+      label: "Structure",
+      description:
+        "Unused — written by nothing. Kauai's bare \"Structure\" header carries the same class-code vocabulary as Oahu's \"Structure Type\" and maps to structure_type. Retained pending confirmation nothing external reads it.",
+      summary: ALL_VIEWS,
+      disabled: true,
+      disabledReason:
+        "No parser writes this column — Kauai's Structure label maps to structure_type.",
+    },
+    {
+      key: "value",
+      label: "Value",
+      description: "Assessed value of this commercial improvement.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+  ],
+
+  // ── Permits ─────────────────────────────────────────────────────────────
+  permits: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "permit_date",
+      label: "Permit Date",
+      description: "Date the building permit was issued.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "permit_number",
+      label: "Permit Number",
+      description: "County-assigned permit reference number.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "reason",
+      label: "Reason",
+      description:
+        "Purpose or reason for the permit (e.g. new construction, renovation, addition).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "permit_amount",
+      label: "Permit Amount",
+      description: "Estimated construction cost declared on the permit.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+  ],
+
+  // ── Condominium Projects ────────────────────────────────────────────────
+  condominium_projects: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key for the condominium project master record.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "project_name",
+      label: "Project Name",
+      description: "Official name of the condominium project.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "unit_count",
+      label: "Unit Count",
+      description: "Total number of units in the project.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "dcca_link",
+      label: "DCCA Link",
+      description: "Link to the DCCA condominium registration page.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "zoning",
+      label: "Zoning",
+      description: "Zoning designation for the project site.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "address",
+      label: "Address",
+      description: "Street address of the condominium project.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "city",
+      label: "City",
+      description: "City where the project is located.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "developer",
+      label: "Developer",
+      description: "Name of the project developer.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "project_number",
+      label: "Project Number",
+      description: "DCCA-assigned project registration number.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "commercial",
+      label: "Commercial Units",
+      description: "Number of commercial units in the project.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tool_sheds",
+      label: "Tool Sheds",
+      description: "Number of tool shed units.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "ohana",
+      label: "Ohana",
+      description:
+        "Whether the project includes ohana (accessory dwelling) units.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "residential",
+      label: "Residential Units",
+      description: "Number of residential units in the project.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "parking",
+      label: "Parking Units",
+      description: "Number of parking units.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "converted",
+      label: "Converted",
+      description:
+        "Whether the project was converted from another use (e.g. rental to condo).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "agricultural",
+      label: "Agricultural Units",
+      description: "Number of agricultural-zoned units.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "other",
+      label: "Other Units",
+      description: "Number of units not classified in other categories.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "buildings",
+      label: "Buildings",
+      description: "Number of buildings in the project.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "floors",
+      label: "Floors",
+      description: "Number of floors in the building(s).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "land_ownership",
+      label: "Land Ownership",
+      description: "Fee simple or leasehold ownership of the underlying land.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "preliminary_date",
+      label: "Preliminary Date",
+      description: "Date of preliminary condo registration.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "contingent_final_date",
+      label: "Contingent Final Date",
+      description: "Contingent final registration date.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "final_date",
+      label: "Final Date",
+      description: "Final condo registration date.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "biennial_registration_date",
+      label: "Biennial Registration",
+      description: "Most recent biennial registration date.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Condominium Units ───────────────────────────────────────────────────
+  condominium_units: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key for the individual condo unit (CPR number).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "parent_tmk",
+      label: "Parent TMK",
+      description: "TMK of the parent condominium project.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "unit_number",
+      label: "Unit Number",
+      description: "Unit designation within the condo project.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "owner_name",
+      label: "Owner Name",
+      description: "Name of the unit owner on file.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Parcels ─────────────────────────────────────────────────────────────
+  parcels: [
+    {
+      key: "parcel_number",
+      label: "Parcel Number",
+      description: "County-assigned parcel number.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "location_address",
+      label: "Address",
+      description: "Street address at the time this parcel record was scraped.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "address_other",
+      label: "Address (Other)",
+      description: "Additional address information.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "project_name",
+      label: "Project Name",
+      description: "Development or subdivision name.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui: pulled from 'Condo Name' in Improvement Information (not in Parcel Information).",
+    },
+    {
+      key: "legal_information",
+      label: "Legal Information",
+      description: "Legal description from deed records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "property_class",
+      label: "Property Class",
+      description: "County classification code.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui: pulled from Assessment Information 'Tax Class' (not in Parcel Information). Kauai: pulled from 'Tax Classification' field in Parcel Information.",
+    },
+    {
+      key: "land_area_sqft",
+      label: "Land Area (sqft)",
+      description: "Parcel land area in square feet.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "land_area_acres",
+      label: "Land Area (acres)",
+      description: "Parcel land area in acres.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "neighborhood_code",
+      label: "Neighborhood Code",
+      description: "Assessor-defined neighborhood grouping.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "zoning",
+      label: "Zoning",
+      description: "County zoning designation.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "parcel_note",
+      label: "Parcel Note",
+      description: "Free-text notes recorded by the assessor.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "damage",
+      label: "Damage",
+      description: "Damage designation from natural disasters.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "reentry_zone",
+      label: "Reentry Zone",
+      description: "Disaster reentry zone classification.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "zone_color",
+      label: "Zone Color",
+      description: "Color-coded zone classification.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "non_taxable_status",
+      label: "Non-Taxable Status",
+      description: "Exemption status for the parcel.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Kauai only. Not present in other counties' Parcel Information.",
+    },
+    {
+      key: "living_units",
+      label: "Living Units",
+      description: "Number of residential living units.",
+      summary: ALL_VIEWS,
+      format: "number",
+      source_notes: "Kauai only.",
+    },
+  ],
+
+  // ── Owners ──────────────────────────────────────────────────────────────
+  owners: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key for the individual condo unit (CPR number).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "owner_name",
+      label: "Owner Name",
+      description: "Full name of the property owner as recorded.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "owner_type",
+      label: "Owner Type",
+      description:
+        "Classification of ownership (e.g. individual, corporation, trust, government).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "owner_address",
+      label: "Owner Address",
+      description: "Mailing address of the owner.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "sequence_order",
+      label: "Sequence Order",
+      description: "Order of this owner when a property has multiple owners.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Appeals ─────────────────────────────────────────────────────────────
+  appeals: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key for the individual condo unit (CPR number).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "year",
+      label: "Year",
+      description: "Tax year the appeal was filed for.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "appeal_type_value",
+      label: "Appeal Type/Value",
+      description: "Type of appeal and the contested value.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "scheduled_hearing_date_subject_to_change",
+      label: "Hearing Date",
+      description: "Scheduled hearing date (subject to change).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "status",
+      label: "Status",
+      description:
+        "Current status of the appeal (e.g. pending, settled, withdrawn).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "date_settled",
+      label: "Date Settled",
+      description: "Date the appeal was resolved.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "final_value",
+      label: "Final Value",
+      description: "Property value determined after appeal resolution.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "tax_payer_opinion_of_value",
+      label: "Taxpayer Opinion Value",
+      description: "Property value claimed by the taxpayer in the appeal.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "tax_payer_opinion_of_property_class",
+      label: "Taxpayer Opinion Class",
+      description: "Property class the taxpayer believes is correct.",
+      summary: ALL_VIEWS,
+      format: "number",
+      source_notes:
+        "Maui only. Numeric class code, stored verbatim: 0=Time Share, 1=Non-Owner-Occupied, 2=Apartment, 3=Commercial, 4=Industrial, 5=Agricultural, 7=Hotel/Resort, 9=Owner-Occupied, 10=Commercialized Residential, 11=TVR-STRH, 12=Long-Term Rental (6 and 8 unobserved). Mapping derived empirically by correlating appeals against same-year assessed property_class; the taxpayer's opinion class can legitimately differ from the assessed class.",
+    },
+    {
+      key: "tax_payer_opinion_of_exemptions",
+      label: "Taxpayer Opinion Exemptions",
+      description:
+        "Exemption amount the taxpayer believes they are entitled to.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+  ],
+
+  // ── Dedications ─────────────────────────────────────────────────────────
+  dedications: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key for the individual condo unit (CPR number).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_year",
+      label: "Tax Year",
+      description: "Tax year the dedication applies to.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "number_of_dedications",
+      label: "# Dedications",
+      description: "Number of dedication programs the property is enrolled in.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Home Exemptions ─────────────────────────────────────────────────────
+  home_exemptions: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key of the parcel the exemption claim is filed on.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "claimant_name",
+      label: "Claimant",
+      description:
+        "Homestead (owner-occupant) exemption claimant, as printed by the county. Multiple claimants on one parcel and year are co-owners each filing a claim.",
+      summary: ALL_VIEWS,
+      source_notes:
+        "Maui only. Scraped from the qPublic \"Home Exemption Information\" section, where each row is a packed \"CLAIMANT NAME YYYY\" string split at load.",
+    },
+    {
+      key: "tax_year",
+      label: "Tax Year",
+      description:
+        "Tax year the exemption claim applies to. Claim years run one year ahead of assessment years (2026 claims appear in the 2026-1 scrape).",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+  ],
+
+  // ── Land Classifications ────────────────────────────────────────────────
+  land_classifications: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key for the individual condo unit (CPR number).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "land_classification",
+      label: "Land Classification",
+      description: "State Land Use Commission classification for the parcel.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "square_footage",
+      label: "Square Footage",
+      description: "Area of this classification segment in square feet.",
+      summary: ALL_VIEWS,
+      format: "number",
+      source_notes:
+        "Scraped with thousands separators (e.g. \"5,000\"); commas stripped at load. Max observed 221,912,866.",
+    },
+    {
+      key: "acreage",
+      label: "Acreage",
+      description: "Area of this classification segment in acres.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "agricultural_use_indicator",
+      label: "Agricultural Use",
+      description:
+        "Whether this land segment is actively used for agriculture.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Current Tax Bills ───────────────────────────────────────────────────
+  current_tax_bills: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key for the individual condo unit (CPR number).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_period",
+      label: "Tax Period",
+      description: "Billing period (e.g. 1st half, 2nd half).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "description",
+      label: "Description",
+      description: "Line-item description on the tax bill.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "original_due_date",
+      label: "Original Due Date",
+      description: "Payment due date before any extensions.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "taxes_assessment",
+      label: "Taxes Assessment",
+      description: "Tax amount based on the property assessment.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "tax_credits",
+      label: "Tax Credits",
+      description: "Credits applied to reduce the tax bill.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "net_tax",
+      label: "Net Tax",
+      description: "Tax amount after credits are applied.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "penalty",
+      label: "Penalty",
+      description: "Late payment penalty assessed.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "interest",
+      label: "Interest",
+      description: "Interest charged on overdue taxes.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "other",
+      label: "Other",
+      description: "Other charges or adjustments on the tax bill.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "amount_due",
+      label: "Amount Due",
+      description: "Total amount currently due.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+  ],
+
+  // ── Historical Tax Summary ──────────────────────────────────────────────
+  historical_tax_summary: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "year",
+      label: "Year",
+      description: "Tax year for this summary record.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax",
+      label: "Tax",
+      description: "Total tax assessed for the year.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "payments_and_credits",
+      label: "Payments & Credits",
+      description: "Total payments and credits applied during the year.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "penalty",
+      label: "Penalty",
+      description: "Total penalties assessed during the year.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "interest",
+      label: "Interest",
+      description: "Total interest charges for the year.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "other",
+      label: "Other",
+      description: "Other charges or adjustments.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "amount_due",
+      label: "Amount Due",
+      description: "Remaining amount due for the year.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "tax_details_total_tax",
+      label: "Details: Total Tax",
+      description: "Sum of all tax detail line items.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_details_total_payments_credits",
+      label: "Details: Payments/Credits",
+      description: "Sum of payments and credits from detail records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_details_total_penalty",
+      label: "Details: Penalty",
+      description: "Sum of penalties from detail records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_details_total_interest",
+      label: "Details: Interest",
+      description: "Sum of interest from detail records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_details_total_other",
+      label: "Details: Other",
+      description: "Sum of other charges from detail records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_payments_total_tax",
+      label: "Payments: Tax",
+      description: "Total tax amount from payment records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_payments_total_penalty",
+      label: "Payments: Penalty",
+      description: "Total penalty from payment records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_payments_total_interest",
+      label: "Payments: Interest",
+      description: "Total interest from payment records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_payments_total_other",
+      label: "Payments: Other",
+      description: "Total other amounts from payment records.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_credits_total_amount",
+      label: "Credits: Total",
+      description: "Total amount of tax credits applied.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Historical Tax Details ──────────────────────────────────────────────
+  historical_tax_details: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax_period",
+      label: "Tax Period",
+      description: "Billing period for this detail line item.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "description",
+      label: "Description",
+      description: "Description of the tax detail line item.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "tax",
+      label: "Tax",
+      description: "Tax amount for this line item.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "payments_credits",
+      label: "Payments/Credits",
+      description: "Payments and credits applied to this line item.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "penalty",
+      label: "Penalty",
+      description: "Penalty for this line item.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "interest",
+      label: "Interest",
+      description: "Interest charged on this line item.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "other",
+      label: "Other",
+      description: "Other charges for this line item.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Historical Tax Payments ─────────────────────────────────────────────
+  historical_tax_payments: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "payment_sequence",
+      label: "Payment Sequence",
+      description: "Identifier for the payment sequence or batch.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "effective_date",
+      label: "Effective Date",
+      description: "Date the payment was applied.",
+      summary: ALL_VIEWS,
+      format: "text",
+    },
+    {
+      key: "tax",
+      label: "Tax",
+      description: "Tax portion of the payment.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "penalty",
+      label: "Penalty",
+      description: "Penalty portion of the payment.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+    {
+      key: "interest",
+      label: "Interest",
+      description: "Interest portion of the payment.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "other",
+      label: "Other",
+      description: "Other amounts included in the payment.",
+      summary: ALL_VIEWS,
+    },
+  ],
+
+  // ── Historical Tax Credits ──────────────────────────────────────────────
+  historical_tax_credits: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "period",
+      label: "Period",
+      description: "Tax period the credit applies to.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "description",
+      label: "Description",
+      description: "Description of the tax credit.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "amount",
+      label: "Amount",
+      description: "Dollar amount of the tax credit.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+  ],
+
+  // ── Agricultural Assessments ────────────────────────────────────────────
+  agricultural_assessments: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "agricultural_type",
+      label: "Agricultural Type",
+      description:
+        "Type of agricultural activity (e.g. crop, pasture, forestry).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "use_description",
+      label: "Use Description",
+      description:
+        "Use-class taxonomy for the row (e.g. HOMESITE, GOOD PASTURE 10 YR. DED.). Big Island heads the column \"Use Description\"; Maui heads the same taxonomy \"Description\" (\"HOME SITE\", \"PASTUR B 10YR\") — both aliased here. Oahu publishes no equivalent (see agricultural_type).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "acres_in_production",
+      label: "Acres in Production",
+      description:
+        "Acreage in the agricultural use class (one row per class). Oahu/Big Island head the column \"Acres in Production\"; Maui heads the same column bare \"Acres\" — both are aliased here. Includes non-producing classes (e.g. WASTE LAND) in all counties.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "agricultural_value",
+      label: "Agricultural Value",
+      description:
+        "Discounted agricultural-use value for the row in whole dollars. Oahu/Big Island head the column \"Agricultural Value\"; Maui heads the same figure \"Assessed Value\" — both aliased here.",
+      summary: ALL_VIEWS,
+      format: "dollar",
+    },
+  ],
+
+  // ── Commercial Improvement Details ──────────────────────────────────────
+  commercial_improvement_details: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "card",
+      label: "Card",
+      description: "Assessor card number for this section.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "section",
+      label: "Section",
+      description: "Section identifier within the building.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "floor",
+      label: "Floor",
+      description: "Floor number within the building.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "usage",
+      label: "Usage",
+      description: "How this section is used (e.g. office, retail, storage).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "area",
+      label: "Area",
+      description: "Square footage of this section.",
+      summary: ALL_VIEWS,
+      format: "text",
+    },
+    {
+      key: "perimeter",
+      label: "Perimeter",
+      description: "Perimeter measurement of this section.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "exterior_wall",
+      label: "Exterior Wall",
+      description: "Exterior wall material for this section.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "wall_height",
+      label: "Wall Height",
+      description: "Wall height measurement.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "construction",
+      label: "Construction",
+      description:
+        "Construction type classification. Big Island/Kauai publish it under a \"Construction\" header (STEEL, WOOD FRAME, MASONRY, NONE, STEEL/MASONRY); Maui publishes the same concept under a \"Building Class\" header with a richer vocabulary (e.g. \"Wood/Steel Framing s1 p8\", \"Masonry Bearing Walls s1 p7\"); Oahu publishes neither.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "rank",
+      label: "Rank",
+      description:
+        "Quality/depreciation rank factor (e.g. 0.7, 1.2, 4.5). Maui only.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "condo_style",
+      label: "Condo Style",
+      description: "Condo architectural style, if applicable.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "condo_type",
+      label: "Condo Type",
+      description: "Condo type classification, if applicable.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "condo_unit",
+      label: "Condo Unit",
+      description: "Condo unit designation.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "floor_level",
+      label: "Floor Level",
+      description: "Floor level within a multi-story building.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "view",
+      label: "View",
+      description: "View classification (e.g. ocean, mountain, garden).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "project",
+      label: "Project",
+      description: "Project name this section belongs to.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "description",
+      label: "Description",
+      description: "Free-text description of the improvement section.",
+      summary: ALL_VIEWS,
+      disabled: true,
+      disabledReason:
+        "No county has been observed publishing a Description column in the commercial improvement detail tables (2026-1 survey). Kept for future observation.",
+    },
+  ],
+
+  // ── Residential Additions ───────────────────────────────────────────────
+  residential_additions: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description:
+        "9 digit Tax Map Key. Division-Zone-Section-Plat-Parcel-CPR, where Division translates to County.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "card",
+      label: "Card",
+      description: "Assessor card number.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "line",
+      label: "Line",
+      description: "Line item number on the assessor card.",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "lower",
+      label: "Lower",
+      description: "Lower level addition description.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "first",
+      label: "First",
+      description: "First floor addition description.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "second",
+      label: "Second",
+      description: "Second floor addition description.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "third",
+      label: "Third",
+      description: "Third floor addition description.",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "area",
+      label: "Area",
+      description: "Area of the addition in square feet.",
+      summary: ALL_VIEWS,
+      format: "text",
+    },
+  ],
+
+  // ── Accessory Improvements ──────────────────────────────────────────────
+  // Accessory/yard structures from three page sections: Oahu/Big Island/Kauai
+  // "Other Building and Yard Improvements", Maui residential "Accessory
+  // Information", and Maui commercial "Commercial Improvement Information >
+  // Other Features" (dgOtherFeatures; its Stops column is dropped). The former
+  // accessory_structures table never matched a section and was dropped
+  // (2026-08-14 migration).
+  accessory_improvements: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "description",
+      label: "Description",
+      description:
+        "Description of the accessory or yard structure (e.g. fence, retaining wall, shed, garage, carport, pool, canopy, loading dock). Sourced from three sections: Oahu/Big Island/Kauai \"Other Building and Yard Improvements\", Maui residential \"Accessory Information\", and Maui commercial \"Commercial Improvement Information > Other Features\" (Structure column; the Stops column is dropped).",
+      summary: ALL_VIEWS,
+    },
+    {
+      key: "quantity",
+      label: "Quantity",
+      description:
+        "Quantity or count of the improvement. Mostly whole numbers; fractional values occur (e.g. 400.5).",
+      summary: ALL_VIEWS,
+      format: "number",
+    },
+    {
+      key: "year_built",
+      label: "Year Built",
+      description: "Year the improvement was constructed.",
+      summary: ALL_VIEWS,
+      format: "year",
+    },
+    {
+      key: "area",
+      label: "Area",
+      description: "Area or linear measurement of the improvement.",
+      summary: ALL_VIEWS,
+      format: "text",
+    },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// Table-level documentation
+// ---------------------------------------------------------------------------
+
+/**
+ * One paragraph of documentation per table: what it holds, which qPublic
+ * section(s) feed it, and the county coverage caveats a reader needs before
+ * trusting cross-county comparisons. Shown in the Docs section of each
+ * table's Summary tab. Keys match HHDB_TABLE_CONFIG.fieldsTable.
+ */
+export const HHDB_TABLE_DOCS: Record<string, string> = {
+  properties:
+    "One row per TMK — the central table other tables join to. Carries the current Parcel Information snapshot (address, legal, class, land area) plus externally joined fields (parcel centroid, 2020 ZCTA and census-tract FIPS from the parcel crosswalk; state parcel-list reconciliation flags). Condo units inherit their parent land parcel's geography. County quirks: Honolulu publishes no neighborhood code or zoning; Big Island refers zoning to the county GIS; the damage/reentry-zone/zone-color trio is Maui-only (Lahaina fire); non_taxable_status and living_units are Kauai-only.",
+  parcels:
+    "Per-scrape observations of the Parcel Information section — the same fields as properties, but versioned by observation (scraped_at / last_year_observed) rather than collapsed to one row per TMK. Use it to see how a parcel's recorded attributes changed across scrape periods.",
+  owners:
+    "Owner rows from the Owner Information section, one row per (name, type, address) per parcel. A single owner can legitimately appear several times with different representative addresses (estates with multiple C/O-ATTN contacts). Honolulu withholds owner addresses entirely — owner_address is NULL for all of Oahu. last_year_observed marks the most recent scrape that still listed the owner.",
+  assessments:
+    "Assessed valuations by tax year, combining the current and historical valuation grids. The counties publish very different detail: Oahu is the only county with land/building splits of exemptions and net-taxable; Maui adds market land and agricultural land values; Big Island is the only county splitting market value by component; Kauai publishes parcel-level totals only. Per-column county coverage is noted on each field.",
+  sales:
+    "Sales/conveyance records, accumulated across scrapes (new documents insert; re-scraped old sales are skipped on a document-identity match). Distinct documents can record on the same date with consecutive document numbers. valid_sale exists on Oahu/Maui only; book_page is unpublished by Maui; conveyance_tax is Big Island/Kauai only. Maui/Kauai's \"Document Type\" lands in instrument_description.",
+  residential_improvements:
+    "Residential building records from \"Residential Improvement Information\" (Honolulu/Big Island) and \"Improvement Information\" (Maui/Kauai), one row per building, versioned by change detection. Field coverage varies sharply: Oahu publishes 9 labels (incl. occupancy), Kauai only 8 basics, Maui/Big Island add materials/quality fields. Condo-unit attributes: condo_style is Oahu's building form, condo_type is Maui's unit position — distinct variables; Big Island units carry only a condo name.",
+  commercial_improvements:
+    "Commercial building summaries from \"Commercial Improvement Information\". Two report templates exist: Oahu/Big Island (card, improvement name, class, structure type, units, gross building description) and Maui/Kauai (building type, square footage, percent complete; value on Maui only). Maui/Kauai's \"Building Type\" holds the building's proper name and is copied into improvement_name; Kauai's \"Structure\" label maps to structure_type.",
+  commercial_improvement_details:
+    "Per-building detail rows, replaced wholesale with their parent on each load. Two row kinds share the table: floor-detail rows (card/section/floor/area/perimeter/usage/wall height/exterior wall, plus construction and Maui's rank) and Condominium Information rows (project/condo unit/floor level/condo type/view/condo style) from commercial condo pages. Maui has no Card column; Oahu's exterior_wall is almost always the constant \"DEFAULT WALLS\"; construction vocabularies differ by county.",
+  permits:
+    "Building permits, accumulated by permit number per parcel (first-seen wins; county re-entries of the same permit number are skipped).",
+  condominium_projects:
+    "Condo master records (the parent TMK listing all units), enriched with DCCA registration data (developer, project number, unit mix, registration dates) where matched.",
+  land_classifications:
+    "Land-use classification rows, several per parcel — one per (classification, square footage, acreage) segment, versioned by change detection. A parcel routinely carries multiple segments of the same classification differing only in size.",
+  current_tax_bills:
+    "Current-year tax bills, one row per (parcel, tax period), upserted in place. qPublic's blank-period rollup line (\"Tax Bill with Interest computed through <date>\") is filtered out on the way in — every stored row is a real per-period bill.",
+  historical_tax_summary:
+    "Historical tax summary, one row per (parcel, year), with totals from the nested detail/payment/credit tables denormalized on. Kauai publishes this under \"Historical Payment Information\" and has no Amount Due column; Big Island issues no tax-credit lines (relief is via exemptions).",
+  historical_tax_details:
+    "Per-period tax detail lines nested under each year (Beginning Tax, Payment, Adjustment…), replaced wholesale per parcel on each load.",
+  historical_tax_payments:
+    "Individual payment events nested under each year (payment sequence, effective date, amounts), replaced wholesale per parcel on each load.",
+  historical_tax_credits:
+    "Tax credit lines nested under each year (named county programs like Circuit Breaker Credit). Oahu, Maui and Kauai only — Big Island publishes none.",
+  appeals:
+    "Assessment appeals (Oahu, Maui, Kauai — Big Island publishes no appeals section). Matched in place on (year, appeal type/value): status, hearing date, settlement and value fields update as the appeal progresses, keeping one current row per appeal. The five settlement/taxpayer-opinion columns are Maui-only; the taxpayer-opinion property class is a Maui code (0=Time Share … 12=Long-Term Rental).",
+  agricultural_assessments:
+    "Agricultural-use assessment rows, one per land-use class per parcel (Oahu, Maui, Big Island — Kauai's template has no ag module). County labels are merged: acreage (\"Acres in Production\"/\"Acres\"), value (\"Agricultural Value\"/\"Assessed Value\") and use class (\"Use Description\"/\"Description\") each land in one column. agricultural_type is an Oahu-only dedication/ratio code kept separate.",
+  accessory_improvements:
+    "Accessory structures and yard improvements (sheds, garages, pools, fences, sprinklers, elevators…). Three source sections land here: \"Other Building and Yard Improvements\" (Oahu/Big Island/Kauai), Maui's residential \"Accessory Information\", and the Other Features grid inside Maui's Commercial Improvement Information (Stops column dropped). qPublic's GROSS BUILDING VALUE summary rows have their dollar amount repositioned from area into value on the way in.",
+  dedications:
+    "Land-use dedications by tax year (Oahu only), e.g. \"RESIDENTIAL USE(1)\", \"AG DEDI - 10 YEARS(2)\" — one row per parcel per tax year, updated in place.",
+  home_exemptions:
+    "Homestead (owner-occupant) exemption claims (Maui only, ~1/3 of Maui parcels): claimant name and tax year, split from qPublic's packed \"NAME YYYY\" rows. Claim years run one ahead of assessment years, and co-owners filing jointly appear as separate claimant rows.",
+  residential_additions:
+    "Residential additions/features by card and line (decks, lanais, garages attached to the main improvement), versioned by change detection.",
+};
+
+/** Get the table-level documentation paragraph, or null. */
+export function getTableDocs(tableName: string): string | null {
+  return HHDB_TABLE_DOCS[tableName] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Get the human-readable label for a column from the data dictionary, or null. */
+export function getDictionaryLabel(
+  tableName: string,
+  columnName: string,
+): string | null {
+  const fields = HHDB_DATA_DICTIONARY[tableName];
+  if (!fields) return null;
+  const field = fields.find((f) => f.key === columnName);
+  return field?.label ?? null;
+}
+
+/** Get all dictionary fields for a table. */
+export function getDictionaryFields(
+  tableName: string,
+): DictionaryField[] | null {
+  return HHDB_DATA_DICTIONARY[tableName] ?? null;
+}
+
+/**
+ * Get summary-compatible FieldDef[] for a table, optionally filtered by view type.
+ * Returns only fields that have a `summary` config.
+ */
+export function getSummaryFieldDefs(
+  tableName: string,
+  viewType?: SummaryViewType,
+): FieldDef[] | null {
+  const fields = HHDB_DATA_DICTIONARY[tableName];
+  if (!fields) return null;
+  const result: FieldDef[] = [];
+  for (const f of fields) {
+    if (!f.summary || f.summary.length === 0) continue;
+    if (viewType && !f.summary.includes(viewType)) continue;
+    // Use the first summary type as the primary type (or the requested viewType)
+    const type = viewType ?? f.summary[0];
+    result.push({
+      column: f.key,
+      label: f.label,
+      type,
+      format: f.format,
+      disabled: f.disabled,
+      disabledReason: f.disabledReason,
+    });
+  }
+  return result.length > 0 ? result : null;
+}
+
+/** Get dictionary fields that support a specific view type. */
+export function getFieldsForViewType(
+  tableName: string,
+  viewType: SummaryViewType,
+): DictionaryField[] | null {
+  const fields = HHDB_DATA_DICTIONARY[tableName];
+  if (!fields) return null;
+  const result = fields.filter((f) => f.summary?.includes(viewType));
+  return result.length > 0 ? result : null;
+}

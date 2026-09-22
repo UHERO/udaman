@@ -1,26 +1,54 @@
-Passengerfile.json
-.DS_Store
-**/.DS_Store
-.idea
-.bundle
-.vagrant
-db/*.sqlite3
-log/*.log
-log/*.gz
-tmp/
-config/site.yml
-script/investigate_visual.png
-public/
-*.log
-*.out
-*.sql
-*.pid
-*.lock
-config/deploy.rb
-config/deploy/*
-Capfile
-spec/datafiles/specs_output
-NOTES
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+bun.lock
+next-env.d.ts
+
+# Local env files
+.env.prod
 .env
-script.rb
-vendor/bundle
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage
+
+# Vercel
+.vercel
+
+# Build Outputs
+.next/
+out/
+build
+dist
+/tsconfig.tsbuildinfo
+*.tsbuildinfo
+next-env.d.ts
+
+# Debug
+npm-debug.log*
+
+# Data Files
+*.csv
+*.xls
+*.xlsx
+data-dir/
+
+# Logs
+## logs/
+*.log
+
+# Misc
+.DS_Store
+*.pem
+tmp
+
+# Ruby/Bundler
+.bundle/
+vendor/
+Gemfile.lock

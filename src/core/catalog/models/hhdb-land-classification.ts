@@ -1,0 +1,70 @@
+export interface HhdbLandClassificationAttrs {
+  id?: number | null;
+  tmk?: string | null;
+  scraped_at?: Date | string | null;
+  last_year_observed?: number | null;
+  land_classification?: string | null;
+  square_footage?: number | null;
+  acreage?: number | null;
+  agricultural_use_indicator?: string | null;
+}
+
+export class HhdbLandClassification {
+  id: number | null;
+  tmk: string | null;
+  scrapedAt: Date | null;
+  lastYearObserved: number | null;
+  landClassification: string | null;
+  squareFootage: number | null;
+  acreage: number | null;
+  agriculturalUseIndicator: string | null;
+
+  constructor(attrs: HhdbLandClassificationAttrs) {
+    this.id = attrs.id != null ? Number(attrs.id) : null;
+    this.tmk = attrs.tmk ?? null;
+    this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
+    this.lastYearObserved =
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+    this.landClassification = attrs.land_classification ?? null;
+    this.squareFootage =
+      attrs.square_footage != null ? Number(attrs.square_footage) : null;
+    this.acreage = attrs.acreage != null ? Number(attrs.acreage) : null;
+    this.agriculturalUseIndicator = attrs.agricultural_use_indicator ?? null;
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      tmk: this.tmk,
+      scrapedAt: this.scrapedAt?.toISOString() ?? null,
+      lastYearObserved: this.lastYearObserved,
+      landClassification: this.landClassification,
+      squareFootage: this.squareFootage,
+      acreage: this.acreage,
+      agriculturalUseIndicator: this.agriculturalUseIndicator,
+    };
+  }
+}
+
+export type HhdbLandClassificationJSON = ReturnType<
+  HhdbLandClassification["toJSON"]
+>;
+
+export function hhdbLandClassificationRowToJSON(
+  attrs: HhdbLandClassificationAttrs,
+): HhdbLandClassificationJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
+    lastYearObserved:
+      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+    landClassification: attrs.land_classification ?? null,
+    squareFootage:
+      attrs.square_footage != null ? Number(attrs.square_footage) : null,
+    acreage: attrs.acreage != null ? Number(attrs.acreage) : null,
+    agriculturalUseIndicator: attrs.agricultural_use_indicator ?? null,
+  };
+}

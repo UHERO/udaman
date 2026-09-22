@@ -1,0 +1,425 @@
+"use client";
+
+import * as React from "react";
+import { useState } from "react";
+import { signOut } from "next-auth/react";
+import Link from "next/link";
+import { useParams, usePathname } from "next/navigation";
+import {
+  Activity,
+  AudioWaveform,
+  BarChart3,
+  BookOpen,
+  Building2,
+  Calendar,
+  ChartNoAxesCombined,
+  Command,
+  FunctionSquare,
+  GalleryVerticalEnd,
+  Gauge,
+  Globe,
+  House,
+  KeyRound,
+  Library,
+  LogOut,
+  Mail,
+  Megaphone,
+  Plus,
+  ScrollText,
+  Server,
+  Shield,
+  ToggleRight,
+  UserPlus,
+  Users,
+  Wrench,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { CreateAccountDialog } from "@/components/create-account-dialog";
+import { NavHhdb } from "@/components/nav-hhdb";
+import { NavMain } from "@/components/nav-main";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { UniverseSwitcher } from "@/components/universe-switcher";
+import { hasFullAccess } from "@/lib/auth/roles";
+import {
+  canAccess,
+  getLandingPath,
+  getVisibleChildren,
+  getVisibleRoutes,
+  ROUTES,
+  toReadableSet,
+} from "@/lib/auth/route-access";
+import { cn } from "@/lib/utils";
+
+/** Per-universe icon overrides. Anything missing falls back to GalleryVerticalEnd. */
+const UNIVERSE_ICONS: Record<string, React.ElementType> = {
+  UHERO: GalleryVerticalEnd,
+  NTA: AudioWaveform,
+  FC: Command,
+  CCOM: Command,
+  DBEDT: Command,
+  COH: Command,
+};
+
+const MODE_BRANDING: Record<
+  string,
+  { icon: React.ElementType; title: string; subtitle: string }
+> = {
+  admin: { icon: Shield, title: "Admin", subtitle: "System Administration" },
+  hhdb: {
+    icon: Building2,
+    title: "HHDB",
+    subtitle: "Housing Database",
+  },
+  docs: { icon: BookOpen, title: "Docs", subtitle: "Documentation" },
+  comms: {
+    icon: Megaphone,
+    title: "Comms",
+    subtitle: "Communications",
+  },
+  uhu: { icon: Wrench, title: "UHU", subtitle: "UHERO Utilities" },
+  "data-registry": {
+    icon: Library,
+    title: "Data Registry",
+    subtitle: "Data Sources",
+  },
+};
+
+/**
+ * App rail. Access for every entry except the UDAMAN home comes from the
+ * matching `ROUTES` rail entry (looked up by `href`), so there is a single
+ * place — route-access.ts — that decides who sees and can open what. The
+ * middleware enforces the same manifest, so a hidden item is also unreachable.
+ */
+const RAIL_ITEMS = [
+  {
+    label: "UDAMAN",
+    icon: ChartNoAxesCombined,
+    href: "/udaman",
+    match: "/udaman",
+  },
+  { label: "HHDB", icon: House, href: "/hhdb", match: "/hhdb" },
+  { label: "Admin", icon: Shield, href: "/admin", match: "/admin" },
+  { label: "Comms", icon: Megaphone, href: "/comms", match: "/comms" },
+  { label: "Docs", icon: BookOpen, href: "/docs", match: "/docs" },
+  {
+    label: "Registry",
+    icon: Library,
+    href: "/data-registry",
+    match: "/data-registry",
+  },
+] as const;
+
+function prefixUrl(url: string, universe: string): string {
+  if (url.startsWith("/udaman/")) return url;
+  if (url.startsWith("/")) return `/udaman/${universe}${url}`;
+  return url;
+}
+
+/** Icons for admin children keyed by route path. */
+const ADMIN_ICONS: Record<string, LucideIcon> = {
+  "/admin": Shield,
+  "/admin/feature-toggles": ToggleRight,
+  "/admin/workers": Activity,
+  "/admin/schedules": Calendar,
+  "/admin/users": Users,
+  "/admin/logs": ScrollText,
+  "/admin/crawlers": Globe,
+  "/admin/stats": BarChart3,
+  "/admin/perf": Gauge,
+  "/admin/api-keys": KeyRound,
+  "/admin/messages": Mail,
+};
+
+const COMMS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
+  { title: "Pre-Release Forms", url: "/comms", icon: Megaphone },
+  { title: "New form", url: "/comms/pub-form/new", icon: Plus },
+];
+
+const DOCS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
+  { title: "IT Infrastructure", url: "/docs/it-infrastructure", icon: Server },
+  {
+    title: "Loader Actions",
+    url: "/docs/loader-actions",
+    icon: FunctionSquare,
+  },
+];
+
+export function AppSidebar({
+  user,
+  universes: allUniverses,
+  mode = "udaman",
+  readableResources,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    createdAt: string;
+    role: string;
+    universe: string;
+  };
+  universes?: { name: string; description: string | null }[];
+  mode?: "udaman" | "admin" | "hhdb" | "docs" | "comms" | "data-registry";
+  /**
+   * Resources this user may read, resolved server-side from role_permissions
+   * and unioned with the manifest's hardcoded roles. Omit and access falls
+   * back to the manifest alone.
+   */
+  readableResources?: readonly string[];
+}) {
+  const params = useParams();
+  const pathname = usePathname();
+  const universe = (params.universe as string) || "uhero";
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
+  const canCreateAccounts = hasFullAccess(user.role);
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  // On mobile the sidebar is a sheet overlaying the page — dismiss it once a
+  // rail or nav link has actually navigated, so the destination is visible.
+  React.useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
+
+  // Filter by the URL universe (current context) so a UHERO user who has
+  // switched to another universe sees routes scoped to that universe.
+  const readable = React.useMemo(
+    () => toReadableSet(readableResources),
+    [readableResources],
+  );
+
+  const routes = React.useMemo(
+    () => getVisibleRoutes(user.role, universe.toUpperCase(), readable),
+    [user.role, universe, readable],
+  );
+
+  // Only show sidebar-located routes (not rail routes)
+  const sidebarRoutes = React.useMemo(
+    () => routes.filter((r) => r.location !== "rail"),
+    [routes],
+  );
+
+  const navMain = React.useMemo(() => {
+    if (mode === "admin") {
+      const children = getVisibleChildren(
+        user.role,
+        user.universe,
+        "/admin",
+        readable,
+      );
+      return children.map((child) => ({
+        title: child.label,
+        url: child.path,
+        icon: ADMIN_ICONS[child.path],
+      }));
+    }
+    if (mode === "hhdb") return []; // hhdb renders its own grouped nav (NavHhdb)
+    if (mode === "docs") return DOCS_NAV_ITEMS;
+    if (mode === "comms") return COMMS_NAV_ITEMS;
+    // Data Registry has no nav items — the page renders a description instead.
+    if (mode === "data-registry") return [];
+    return sidebarRoutes.map((entry) => ({
+      title: entry.label,
+      url: prefixUrl(entry.href ?? entry.path, universe),
+      match: prefixUrl(entry.path, universe),
+      icon: entry.icon,
+    }));
+  }, [mode, sidebarRoutes, universe, user.role, user.universe, readable]);
+
+  // UHERO users can switch to any universe; others see only their own
+  const universes = React.useMemo(() => {
+    const decorated = (allUniverses ?? []).map((u) => ({
+      name: u.name,
+      logo: UNIVERSE_ICONS[u.name.toUpperCase()] ?? GalleryVerticalEnd,
+      description: u.description ?? u.name,
+    }));
+    if (user.universe.toUpperCase() === "UHERO") return decorated;
+    return decorated.filter((u) => u.name === user.universe.toUpperCase());
+  }, [allUniverses, user.universe]);
+
+  const branding = MODE_BRANDING[mode];
+
+  // Rail visibility — the UDAMAN home is always available (it lands on the
+  // universe homepage for limited roles); everything else defers to the
+  // manifest roles unioned with the user's read permissions.
+  const homeHref = getLandingPath(user.role, user.universe, readable);
+  const visibleRailItems = RAIL_ITEMS.filter((item) => {
+    if (item.href === "/udaman") return true;
+    const entry = ROUTES.find(
+      (r) => r.location === "rail" && r.path === item.href,
+    );
+    return entry ? canAccess(user.role, user.universe, entry, readable) : false;
+  });
+
+  const initials = user.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <Sidebar
+      collapsible="icon"
+      className="overflow-hidden *:data-[sidebar=sidebar]:flex-row"
+      {...props}
+    >
+      {/* ── App Rail (plain elements to avoid Radix ID hydration mismatch) ── */}
+      <div
+        data-slot="sidebar"
+        className="bg-ublue flex h-full w-16 shrink-0 flex-col border-r"
+      >
+        {/* Nav items — scrollable (scrollbar hidden) so a short viewport, e.g.
+            a phone held in landscape, can still reach the last rail entry. */}
+        <nav className="flex min-h-0 flex-1 scrollbar-none flex-col items-center gap-1 overflow-y-auto overscroll-contain px-1.5 pt-3">
+          {visibleRailItems.map((item) => {
+            const href = item.href === "/udaman" ? homeHref : item.href;
+            const isActive = pathname.startsWith(item.match);
+
+            return (
+              <Link
+                key={item.label}
+                href={href}
+                title={item.label}
+                className={cn(
+                  "flex h-12 w-full shrink-0 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] font-medium transition-colors",
+                  isActive
+                    ? "bg-white/20 text-white"
+                    : "text-white/60 hover:bg-white/10 hover:text-white",
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="leading-none">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User menu — pinned below the scrolling nav so it is always reachable */}
+        <div className="flex shrink-0 items-center justify-center border-t border-white/10 py-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+                title={user.name}
+              >
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback className="bg-uorange text-[10px] font-medium text-white">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side={isMobile ? "top" : "right"}
+              align={isMobile ? "start" : "end"}
+              collisionPadding={8}
+              className="w-56"
+            >
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback className="bg-uorange text-xs font-medium text-white">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{user.name}</span>
+                    <span className="text-muted-foreground truncate text-xs">
+                      {user.email}
+                    </span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setPasswordDialogOpen(true)}>
+                <KeyRound />
+                Change Password
+              </DropdownMenuItem>
+              {canCreateAccounts && (
+                <DropdownMenuItem onClick={() => setCreateAccountOpen(true)}>
+                  <UserPlus />
+                  Create Account
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onClick={() => signOut({ callbackUrl: "/udaman" })}
+              >
+                <LogOut />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* ── Main sidebar content ──
+          Sits beside the rail on desktop and inside the mobile sheet, where it
+          used to be `hidden` — leaving the tray showing only the rail. */}
+      <Sidebar collapsible="none" className="flex w-auto min-w-0 flex-1">
+        <SidebarHeader>
+          {mode === "udaman" ? (
+            <UniverseSwitcher universes={universes} />
+          ) : branding ? (
+            <div className="flex items-center gap-2 px-2 py-1.5">
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <branding.icon className="size-4" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{branding.title}</span>
+                <span className="truncate text-xs">{branding.subtitle}</span>
+              </div>
+            </div>
+          ) : null}
+        </SidebarHeader>
+        <SidebarContent>
+          {mode === "hhdb" ? (
+            <NavHhdb />
+          ) : mode === "data-registry" ? (
+            <div className="text-muted-foreground px-4 py-3 text-xs leading-relaxed">
+              A catalog of upstream UHERO data sources
+            </div>
+          ) : (
+            <NavMain items={navMain} label={branding?.title ?? "UDAMAN"} />
+          )}
+        </SidebarContent>
+      </Sidebar>
+
+      <ChangePasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        user={{
+          name: user.name,
+          email: user.email,
+          createdAt: user.createdAt,
+        }}
+      />
+      {canCreateAccounts && (
+        <CreateAccountDialog
+          open={createAccountOpen}
+          onOpenChange={setCreateAccountOpen}
+        />
+      )}
+    </Sidebar>
+  );
+}

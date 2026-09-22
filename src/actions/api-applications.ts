@@ -1,0 +1,109 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import type {
+  CreateApiApplicationPayload,
+  UpdateApiApplicationPayload,
+} from "@catalog/collections/api-application-collection";
+import { AppLogCollection } from "@catalog/collections/app-log-collection";
+import {
+  createApiApplication as createCtrl,
+  deleteApiApplication as deleteCtrl,
+  getApiApplications as fetchCtrl,
+  updateApiApplication as updateCtrl,
+} from "@catalog/controllers/api-applications";
+
+import { createLogger } from "@/core/observability/logger";
+import { getCurrentUserId, getCurrentUserRole } from "@/lib/auth/dal";
+import { AuthorizationError } from "@/lib/errors";
+
+const log = createLogger("action.api-applications");
+
+async function requireDev() {
+  const role = await getCurrentUserRole();
+  if (role !== "dev")
+    throw new AuthorizationError("Unauthorized: dev role required");
+}
+
+export async function listApiApplications() {
+  await requireDev();
+  log.info("listApiApplications action called");
+  const result = await fetchCtrl();
+  return result.data.map((a) => a.toJSON());
+}
+
+export async function createApiApplicationAction(
+  payload: CreateApiApplicationPayload,
+): Promise<{ success: boolean; message: string }> {
+  await requireDev();
+  const userId = await getCurrentUserId();
+  try {
+    log.info("createApiApplicationAction called");
+    const result = await createCtrl({ payload });
+    revalidatePath("/admin/api-keys");
+    log.info(
+      { id: result.data.id, userId },
+      "createApiApplicationAction completed",
+    );
+    AppLogCollection.log({
+      category: "api-application",
+      name: "api-application.create",
+      userId,
+    });
+    return { success: true, message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "createApiApplicationAction failed");
+    AppLogCollection.logError(err, { userId, name: "api-application.create" });
+    return { success: false, message: `Failed to create API key: ${message}` };
+  }
+}
+
+export async function updateApiApplicationAction(
+  id: number,
+  payload: UpdateApiApplicationPayload,
+): Promise<{ success: boolean; message: string }> {
+  await requireDev();
+  const userId = await getCurrentUserId();
+  try {
+    log.info({ id }, "updateApiApplicationAction called");
+    const result = await updateCtrl({ id, payload });
+    revalidatePath("/admin/api-keys");
+    log.info({ id, userId }, "updateApiApplicationAction completed");
+    AppLogCollection.log({
+      category: "api-application",
+      name: "api-application.update",
+      userId,
+    });
+    return { success: true, message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "updateApiApplicationAction failed");
+    AppLogCollection.logError(err, { userId, name: "api-application.update" });
+    return { success: false, message: `Failed to update API key: ${message}` };
+  }
+}
+
+export async function deleteApiApplicationAction(
+  id: number,
+): Promise<{ success: boolean; message: string }> {
+  await requireDev();
+  const userId = await getCurrentUserId();
+  try {
+    log.info({ id }, "deleteApiApplicationAction called");
+    const result = await deleteCtrl({ id });
+    revalidatePath("/admin/api-keys");
+    log.info({ id, userId }, "deleteApiApplicationAction completed");
+    AppLogCollection.log({
+      category: "api-application",
+      name: "api-application.delete",
+      userId,
+    });
+    return { success: true, message: result.message };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "deleteApiApplicationAction failed");
+    AppLogCollection.logError(err, { userId, name: "api-application.delete" });
+    return { success: false, message: `Failed to delete API key: ${message}` };
+  }
+}
