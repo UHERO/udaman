@@ -43,6 +43,13 @@ export type LoadMeta = {
   priority: number;
   sourceUrl: string;
   htmlPath: string | null;
+  /**
+   * When the page was actually fetched, as an HST 'YYYY-MM-DD HH:MM:SS'
+   * string — only for importing pages saved in the past. On INSERT it
+   * replaces NOW() for first_seen_at / last_seen_at / fetched_at (parsed_at
+   * stays NOW()). Ignored on UPDATE.
+   */
+  observedAt?: string;
 };
 
 export type LoadOutcome =
@@ -278,25 +285,35 @@ function writeColumns(): string[] {
   ];
 }
 
-/** INSERT for a listing seen for the first time. All four DATETIMEs = NOW(). */
+/**
+ * INSERT for a listing seen for the first time. All four DATETIMEs = NOW(),
+ * unless meta.observedAt backdates the three "seen/fetched" ones.
+ */
 export function buildInsert(
   listing: NormalizedListing,
   meta: LoadMeta,
 ): SqlStatement {
   const paramColumns = ["mls_board", "mls_number", ...writeColumns()];
-  const nowColumns = [
-    "first_seen_at",
-    "last_seen_at",
-    "fetched_at",
-    "parsed_at",
-  ];
+  const seenColumns = ["first_seen_at", "last_seen_at", "fetched_at"];
+  const observed = meta.observedAt ?? null;
+  if (
+    observed !== null &&
+    !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(observed)
+  ) {
+    throw new MlsLoadError(
+      `observedAt must be 'YYYY-MM-DD HH:MM:SS' (HST), got "${observed}"`,
+    );
+  }
+  const seenValue = observed === null ? "NOW()" : "?";
   const sql =
     `INSERT INTO ${q(LISTINGS_TABLE)} (` +
-    [...paramColumns, ...nowColumns].map(q).join(", ") +
+    [...paramColumns, ...seenColumns, "parsed_at"].map(q).join(", ") +
     ") VALUES (" +
-    [...paramColumns.map(() => "?"), ...nowColumns.map(() => "NOW()")].join(
-      ", ",
-    ) +
+    [
+      ...paramColumns.map(() => "?"),
+      ...seenColumns.map(() => seenValue),
+      "NOW()",
+    ].join(", ") +
     ")";
   return {
     sql,
@@ -304,6 +321,7 @@ export function buildInsert(
       listing.mlsBoard,
       listing.mlsNumber,
       ...writeParams(listing, meta),
+      ...(observed === null ? [] : [observed, observed, observed]),
     ],
   };
 }

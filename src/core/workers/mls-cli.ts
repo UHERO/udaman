@@ -1,3 +1,4 @@
+import { importCsv } from "@/core/crawlers/mls/import-csv";
 import { backfill, daily, reparse } from "@/core/crawlers/mls/pipeline";
 import type { MlsRunOptions } from "@/core/crawlers/mls/pipeline";
 import { MLS_SITES } from "@/core/crawlers/mls/registry";
@@ -22,6 +23,12 @@ Commands:
                 This is what the scheduled worker job runs.
   reparse       Re-parse the latest cached HTML for every listing and upsert.
                 No network.
+  import        One-off: load listings from an earlier scrape. Needs
+                --csv <file> (columns mlsNumber, sourceUrl) and
+                --pages-dir <dir> of saved listing-<mls>.html files. Numbers
+                already in the table are skipped; saved pages are parsed;
+                the rest are fetched (--max-fetches <n> to cap). Unresolved
+                numbers are written to <csv>.unresolved.csv.
 
 Options:
   --site <name>        ${Object.keys(MLS_SITES).join(" | ")} (default: hicentral)
@@ -40,15 +47,21 @@ HTML is cached under <NAS>/work/scrapes/mls; set MLS_NAS_PATH to use a local dir
   process.exit(1);
 }
 
-function parseArgs(argv: string[]): { command: string; opts: MlsRunOptions } {
+type CliOpts = MlsRunOptions & {
+  csv?: string;
+  pagesDir?: string;
+  maxFetches?: number;
+};
+
+function parseArgs(argv: string[]): { command: string; opts: CliOpts } {
   const [command, ...rest] = argv;
   if (!command || command === "--help" || command === "-h") usage();
-  const opts: MlsRunOptions = { site: "hicentral" };
+  const opts: CliOpts = { site: "hicentral" };
 
-  const intArg = (flag: string, raw: string | undefined): number => {
+  const intArg = (flag: string, raw: string | undefined, min = 1): number => {
     const n = Number(raw);
-    if (!Number.isInteger(n) || n < 1) {
-      console.error(`${flag} needs a positive integer`);
+    if (!Number.isInteger(n) || n < min) {
+      console.error(`${flag} needs an integer >= ${min}`);
       usage();
     }
     return n;
@@ -62,6 +75,9 @@ function parseArgs(argv: string[]): { command: string; opts: MlsRunOptions } {
     } else if (arg === "--max-pages") opts.maxPages = intArg(arg, rest[++i]);
     else if (arg === "--max-details") opts.maxDetails = intArg(arg, rest[++i]);
     else if (arg === "--sold-only") opts.soldOnly = true;
+    else if (arg === "--csv") opts.csv = rest[++i] ?? usage();
+    else if (arg === "--pages-dir") opts.pagesDir = rest[++i] ?? usage();
+    else if (arg === "--max-fetches") opts.maxFetches = intArg(arg, rest[++i], 0);
     else if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--refetch") opts.refetch = true;
     else {
@@ -74,6 +90,21 @@ function parseArgs(argv: string[]): { command: string; opts: MlsRunOptions } {
 
 async function run(): Promise<void> {
   const { command, opts } = parseArgs(process.argv.slice(2));
+  if (command === "import") {
+    if (!opts.csv || !opts.pagesDir) {
+      console.error("import needs --csv <file> and --pages-dir <dir>");
+      usage();
+    }
+    const summary = await importCsv({
+      site: opts.site,
+      csvPath: opts.csv,
+      pagesDir: opts.pagesDir,
+      maxFetches: opts.maxFetches,
+      dryRun: opts.dryRun,
+    });
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
   const commands = { backfill, daily, reparse };
   const fn = commands[command as keyof typeof commands];
   if (!fn) usage();

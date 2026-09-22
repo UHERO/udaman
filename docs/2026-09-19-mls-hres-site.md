@@ -192,3 +192,22 @@ source for reparse), `listing_agent`, `lanai_sf`, `other_sf`, `year_remodeled`, 
   removed listing answers **HTTP 404 "Listing Not Found"** (verified) → `off_market`. (HiCentral says
   the same thing with a 200; the fetcher now has an opt-in "these statuses mean gone".) This site never reports a sold price, so
   HIS/RAM listings end as `off_market`, not `sold`.
+
+## One-off import of the Feb 2026 Oahu scrape (2026-09-22)
+
+`bun run mls import --site hres --csv oahu-mls-hoa-fee.csv --pages-dir /Volumes/UHEROroot/work/scrapes/mls/hres/single-pages`
+
+The CSV (22,400 rows, 10,225 distinct HBR numbers, monthly scrapes Nov 2024–Feb 2026) and the 5,448
+`listing-<mls>.html` pages saved in Feb 2026 predate this pipeline. The command: dedupes by number
+against `mls_listings` (any site/status → skipped), parses a saved page when there is one (3,282 of the
+numbers; `first_seen_at`/`fetched_at` backdated to the file's mtime, `html_path` points at it), and
+fetches the rest through the normal fetcher (NAS cache, 5 s delay; the CSV's `sourceUrl` when it is a
+URL, else the number-only URL). A listing fetched today that has since closed gets its `sold_price`
+from the page and its `list_price` from the CSV. Numbers that resolved to nothing (404, parse error)
+are listed in `<csv>.unresolved.csv`. Rerunnable — a rerun skips whatever a previous run loaded.
+
+Two things to know: the rows loaded from saved pages carry **Feb 2026 status** (mostly `active`); the
+next hres daily run marks the ones no longer listed `off_market`, and a `mls backfill` (hicentral)
+rerun takes over any that HiCentral now lists as sold, with the real sold price and date. And on the
+dev DB 6,908 numbers needed fetching (~9.6 h); against production, where HiCentral's Oahu backfill
+already holds ~10k listings, expect far fewer.

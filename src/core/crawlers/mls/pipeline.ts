@@ -171,7 +171,7 @@ function walkFor(
  * `cacheRoot` undefined = the permanent NAS cache (backfill); the daily run
  * passes its per-day temp dir.
  */
-function makeFetcher(
+export function makeFetcher(
   adapter: SiteAdapter,
   refetch?: boolean,
   cacheRoot?: string,
@@ -315,7 +315,7 @@ function finish(
  * write somewhere else. Without this, a host with no NAS would mkdir -p the
  * mount path on its own disk (or fail one page at a time).
  */
-function assertPermanentCacheAvailable(): void {
+export function assertPermanentCacheAvailable(): void {
   if (process.env.MLS_NAS_PATH?.trim()) return; // explicit override (dev)
   const scrapesRoot = nodePath.dirname(mlsCacheRoot());
   if (!existsSync(scrapesRoot)) {

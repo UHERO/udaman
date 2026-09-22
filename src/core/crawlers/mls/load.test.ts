@@ -551,3 +551,40 @@ describe("keepListPriceOnSale", () => {
     expect(keepListPriceOnSale(l, held(null))).toBe(l);
   });
 });
+
+describe("buildInsert with observedAt (importing pages saved in the past)", () => {
+  const l: NormalizedListing = {
+    mlsBoard: "HBR",
+    mlsNumber: "202500001",
+    status: "active",
+    statusRaw: "Active",
+    fields: {},
+    extra: {},
+  };
+  const meta = { site: "hres", priority: 50, sourceUrl: "u", htmlPath: null };
+
+  test("backdates the three seen/fetched stamps, parsed_at stays NOW()", () => {
+    const stmt = buildInsert(l, { ...meta, observedAt: "2026-02-24 12:39:07" });
+    expect(stmt.sql).toMatch(
+      /`first_seen_at`, `last_seen_at`, `fetched_at`, `parsed_at`\) VALUES \(.*\?, \?, \?, NOW\(\)\)$/,
+    );
+    expect(stmt.params.slice(-3)).toEqual([
+      "2026-02-24 12:39:07",
+      "2026-02-24 12:39:07",
+      "2026-02-24 12:39:07",
+    ]);
+    expect((stmt.sql.match(/\?/g) ?? []).length).toBe(stmt.params.length);
+  });
+
+  test("without observedAt everything is NOW() and no extra params", () => {
+    const stmt = buildInsert(l, meta);
+    expect(stmt.sql).toMatch(/NOW\(\), NOW\(\), NOW\(\), NOW\(\)\)$/);
+    expect((stmt.sql.match(/\?/g) ?? []).length).toBe(stmt.params.length);
+  });
+
+  test("rejects a Date-ish string that is not HST wall-clock", () => {
+    expect(() =>
+      buildInsert(l, { ...meta, observedAt: "2026-02-24T12:39:07.000Z" }),
+    ).toThrow(/observedAt/);
+  });
+});
