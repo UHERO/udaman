@@ -195,7 +195,7 @@ source for reparse), `listing_agent`, `lanai_sf`, `other_sf`, `year_remodeled`, 
 
 ## One-off import of the Feb 2026 Oahu scrape (2026-09-22)
 
-`bun run mls import --site hres --csv oahu-mls-hoa-fee.csv --pages-dir /Volumes/UHEROroot/work/scrapes/mls/hres/single-pages`
+`bun run mls import --site hres --csv /Volumes/UHEROroot/work/scrapes/mls/hres/oahu-mls-hoa-fee.csv --pages-dir /Volumes/UHEROroot/work/scrapes/mls/hres/single-pages` (CSV and pages both live on the NAS; the unresolved report is written next to the CSV)
 
 The CSV (22,400 rows, 10,225 distinct HBR numbers, monthly scrapes Nov 2024–Feb 2026) and the 5,448
 `listing-<mls>.html` pages saved in Feb 2026 predate this pipeline. The command: dedupes by number
