@@ -581,3 +581,26 @@ export const MLS_LOADER_COLUMNS = [
   "fetched_at",
   "parsed_at",
 ] as const;
+
+/**
+ * Columns whose fill rate says the most about what the table can and can't
+ * tell you — the "Field Completeness by Source" chart on the exploration
+ * tab. Lives here (no imports) so the client component can use it without
+ * pulling the DB collection into the browser bundle.
+ */
+export const MLS_COMPLETENESS_COLUMNS = [
+  "list_date",
+  "list_price",
+  "sold_price",
+  "date_sold",
+  "tmk",
+  "living_sf",
+  "land_area_sf",
+  "year_built",
+  "bedrooms",
+  "assd_val_total",
+  "maintenance_fees",
+  "remarks",
+  "listing_agent",
+  "elem_school",
+] as const satisfies readonly MlsColumnName[];

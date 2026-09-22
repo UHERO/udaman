@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MLS_COMPLETENESS_COLUMNS } from "@catalog/collections/hhdb-mls-exploration-collection";
 import type { MlsExplorationData } from "@catalog/controllers/hhdb";
 import { getDictionaryLabel } from "@catalog/types/hhdb-data-dictionary";
 import { Loader2 } from "lucide-react";
@@ -30,6 +29,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { MLS_COMPLETENESS_COLUMNS } from "@/core/crawlers/mls/columns";
 
 const STATUS_CONFIG: ChartConfig = {
   open: { label: "Open (active / under contract / pending)", color: "#1D667F" },

@@ -1,3 +1,4 @@
+import { MLS_COMPLETENESS_COLUMNS } from "@/core/crawlers/mls/columns";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 import { isMissingTableError } from "../utils/hhdb-missing-table";
@@ -38,27 +39,6 @@ export interface MlsIslandRow {
   off_market: number;
   total: number;
 }
-
-/**
- * Columns whose fill rate says the most about what the table can and can't
- * tell you. Ordered as shown on the chart.
- */
-export const MLS_COMPLETENESS_COLUMNS = [
-  "list_date",
-  "list_price",
-  "sold_price",
-  "date_sold",
-  "tmk",
-  "living_sf",
-  "land_area_sf",
-  "year_built",
-  "bedrooms",
-  "assd_val_total",
-  "maintenance_fees",
-  "remarks",
-  "listing_agent",
-  "elem_school",
-] as const;
 
 export interface MlsCompletenessRow {
   column: (typeof MLS_COMPLETENESS_COLUMNS)[number];
