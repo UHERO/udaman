@@ -43,11 +43,14 @@ The island pages list open listings only. Closed sales are in two separate feeds
 | `/mls/kauai_sold/` | 694 | 58 | ~1 h |
 | `/mls/big-island-sold/` | 3,930 | 328 | ~6.5 h |
 
-Roughly the last year of closings (Kauai closes ~60/month, the Big Island ~330), with list dates back
-to 2022. **There is no Maui or Oahu equivalent**: `/mls/hicentral_sold/` is disallowed by robots.txt,
-and RAM closings are only reachable through `/mls/maui/search.html?…search_status[]=Closed` (6,604
-results incl. ~4,700 closed) — a search path the site's robots.txt disallows under `/idx/` though not
-literally under `/mls/`. Not crawled; that is a policy call, not a technical one.
+| `/mls/maui/search.html?…search_status[0]=Closed` (RAM) | 4,860 | 102 (48/page) | ~7.5 h |
+
+Roughly the last year of closings for HIS (Kauai ~60/month, Big Island ~330), with list dates back to
+2022; the Maui search reaches back further (list dates to 2014 on the last page). **No Oahu equivalent**:
+`/mls/hicentral_sold/` is disallowed by robots.txt — and Oahu closings come from HiCentral anyway. Maui
+has no sold section either; its closings come through the site's search form filtered to Closed only,
+all property types, no price floor (`HRES_MAUI_CLOSED_SEARCH`). robots.txt disallows the search paths
+under `/idx/`, not this `/mls/` one; crawled on the user's decision (2026-09-21), backfill only.
 
 What a sold page gives, and doesn't:
 
@@ -72,7 +75,7 @@ What a sold page gives, and doesn't:
   `--sold-only` every so often therefore upgrades `off_market` rows on Kauai / the Big Island to `sold`.
 
 ```bash
-bun run mls backfill --site hres --sold-only   # just the two sold feeds, ~7.5 h
+bun run mls backfill --site hres --sold-only   # the three sold walks (Kauai, Big Island, Maui), ~15 h
 bun run mls backfill --site hres     # after the hicentral backfill; ~9 h at the 5 s crawl delay
 bun run mls daily --site hres        # what the 5:15 AM worker job runs (~25 min of list pages + new listings); keeps no HTML
 bun run mls reparse --site hres

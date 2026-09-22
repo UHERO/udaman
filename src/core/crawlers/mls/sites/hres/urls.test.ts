@@ -32,19 +32,29 @@ describe("hres listUrl", () => {
     });
   });
 
-  test("sold lists exist for hawaii and kauai only", () => {
+  test("sold lists: hawaii, kauai (sections) and maui (search)", () => {
     expect(listUrl({ island: "kauai", statusSet: "sold", page: 1 })).toBe(
       "https://www.hawaiirealestatesearch.com/mls/kauai_sold/",
     );
     expect(listUrl({ island: "hawaii", statusSet: "sold", page: 328 })).toBe(
       "https://www.hawaiirealestatesearch.com/mls/big-island-sold/?p=328",
     );
-    for (const island of ["oahu", "maui", "molokai"] as IslandKey[]) {
+    // Maui closings come through the search form, Closed only, no price floor.
+    const maui = listUrl({ island: "maui", statusSet: "sold", page: 1 });
+    expect(maui).toStartWith(
+      "https://www.hawaiirealestatesearch.com/mls/maui/search.html?",
+    );
+    expect(maui).toContain("search_status%5B0%5D=Closed");
+    expect(maui).not.toMatch(/Active|Pending|minimum_price/);
+    expect(listUrl({ island: "maui", statusSet: "sold", page: 102 })).toBe(
+      `${maui}&p=102`,
+    );
+    for (const island of ["oahu", "molokai"] as IslandKey[]) {
       expect(() => listUrl({ island, statusSet: "sold", page: 1 })).toThrow(
         /no sold list/,
       );
     }
-    expect(hresAdapter.soldWalkIslands).toEqual(["hawaii", "kauai"]);
+    expect(hresAdapter.soldWalkIslands).toEqual(["hawaii", "kauai", "maui"]);
   });
 
   test("'active' and 'any' are the same walk — the island pages only list open listings", () => {
