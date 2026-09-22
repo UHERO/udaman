@@ -22,6 +22,7 @@ import {
   getLandClassificationsJSON as getLandClassificationsCtrl,
   getMedianAssessedByClass as getMedianAssessedCtrl,
   getMedianSalePriceByIsland as getMedianSalePriceCtrl,
+  getMlsExploration as getMlsExplorationCtrl,
   getMlsListingsJSON as getMlsListingsCtrl,
   getOutOfStateRatioByQuarter as getOutOfStateRatioCtrl,
   getOutOfStateTopStates as getOutOfStateTopStatesCtrl,
@@ -339,6 +340,16 @@ export async function getHhdbTopOwners(limit?: number, islandCode?: string) {
 export async function getHhdbConcentrationByIsland() {
   await requirePermission("hhdb", "read");
   return cachedDashboard("concentrationByIsland", getConcentrationByIslandCtrl);
+}
+
+/**
+ * MLS data changes daily, so this is NOT put through cachedDashboard (a
+ * 2-day TTL would show yesterday's counts on a table that updates every
+ * morning); the queries are small.
+ */
+export async function getHhdbMlsExploration() {
+  await requirePermission("hhdb", "read");
+  return getMlsExplorationCtrl();
 }
 
 export async function getHhdbTableCount(table: string): Promise<number | null> {

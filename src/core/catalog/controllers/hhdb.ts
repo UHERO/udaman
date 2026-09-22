@@ -16,6 +16,7 @@ import HhdbHistoricalTaxSummaryCollection from "../collections/hhdb-historical-t
 import HhdbHomeExemptionCollection from "../collections/hhdb-home-exemption-collection";
 import HhdbImprovementCollection from "../collections/hhdb-improvement-collection";
 import HhdbLandClassificationCollection from "../collections/hhdb-land-classification-collection";
+import HhdbMlsExplorationCollection from "../collections/hhdb-mls-exploration-collection";
 import HhdbMlsListingCollection from "../collections/hhdb-mls-listing-collection";
 import HhdbOwnerCollection from "../collections/hhdb-owner-collection";
 import HhdbParcelCollection from "../collections/hhdb-parcel-collection";
@@ -545,3 +546,22 @@ export async function getConcentrationByIsland() {
   log.info({ count: data.length }, "concentration by island fetched");
   return data;
 }
+
+// ─── MLS listings exploration ─────────────────────────────────────────
+
+export async function getMlsExploration() {
+  log.info("fetching mls exploration");
+  const [monthly, medians, propertyTypes, islands, coverage, completeness] =
+    await Promise.all([
+      HhdbMlsExplorationCollection.getMonthlyCounts(),
+      HhdbMlsExplorationCollection.getMonthlyMedianListPrice(),
+      HhdbMlsExplorationCollection.getPropertyTypeCounts(),
+      HhdbMlsExplorationCollection.getIslandCounts(),
+      HhdbMlsExplorationCollection.getCoverage(),
+      HhdbMlsExplorationCollection.getCompleteness(),
+    ]);
+  log.info({ months: monthly.length }, "mls exploration fetched");
+  return { monthly, medians, propertyTypes, islands, coverage, completeness };
+}
+
+export type MlsExplorationData = Awaited<ReturnType<typeof getMlsExploration>>;

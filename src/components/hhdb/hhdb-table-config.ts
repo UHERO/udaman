@@ -152,6 +152,7 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     // Newest listings first.
     defaultSort: "list_date",
     defaultOrder: "desc",
+    exploration: true,
   },
 };
 
