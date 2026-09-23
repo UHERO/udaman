@@ -1,5 +1,9 @@
 import { MLS_COLUMNS, type MlsColumnKind } from "@/core/crawlers/mls/columns";
 
+import {
+  TG_TRANSACTION_COLUMNS,
+  type TgColumnKind,
+} from "../models/hhdb-tg-transaction";
 import type { FieldDef, SummaryViewType } from "./hhdb";
 
 const ALL_VIEWS: SummaryViewType[] = ["summary"];
@@ -122,6 +126,32 @@ const MLS_LISTINGS_FIELDS: DictionaryField[] = [
     ...(MLS_NO_SUMMARY.has(col.column) ? {} : { summary: ALL_VIEWS }),
   })),
 ];
+
+// ---------------------------------------------------------------------------
+// Title Guaranty transactions — generated from the read model's column spec
+// ---------------------------------------------------------------------------
+
+const TG_KIND_FORMAT: Record<TgColumnKind, DictionaryField["format"]> = {
+  money: "dollar",
+  int: "number",
+  text: "text",
+  date: "text",
+};
+
+/**
+ * `tg_transactions`: one entry per TG_TRANSACTION_COLUMNS spec (the single
+ * source of truth shared with the list query, the table view and the freq
+ * table SQL). Which columns get a Summary tab is decided on the spec.
+ */
+const TG_TRANSACTIONS_FIELDS: DictionaryField[] = TG_TRANSACTION_COLUMNS.map(
+  (col): DictionaryField => ({
+    key: col.column,
+    label: col.label,
+    description: col.description,
+    format: TG_KIND_FORMAT[col.kind],
+    ...(col.summary ? { summary: ALL_VIEWS } : {}),
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Single source of truth for every column in every HHDB table.
@@ -1958,6 +1988,9 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
 
   // ── MLS Listings (generated above from MLS_COLUMNS) ─────────────────────
   mls_listings: MLS_LISTINGS_FIELDS,
+
+  // ── Title Guaranty transactions (generated above from TG_TRANSACTION_COLUMNS)
+  tg_transactions: TG_TRANSACTIONS_FIELDS,
 };
 
 // ---------------------------------------------------------------------------
@@ -2017,6 +2050,8 @@ export const HHDB_TABLE_DOCS: Record<string, string> = {
     "Residential additions/features by card and line (decks, lanais, garages attached to the main improvement), versioned by change detection.",
   mls_listings:
     "Residential MLS listings scraped daily from HiCentral, the Honolulu Board of REALTORS public property search — not a qPublic table. One row per listing, keyed by (mls_board, mls_number) and updated in place as status and price change; each change is recorded in mls_listing_history. Coverage is strongest for Oahu and thin for the neighbor islands. The initial backfill reaches back only to roughly 2024, because the site caps any one search at about 9,980 results. tmk uses the same format as the qPublic tables, so listings join to properties/parcels. first_seen_at / last_seen_at are our observation times, not MLS dates — use list_date and date_sold for market timing. County columns here are derived from the TMK's leading digit, so listings without a TMK count toward the State total only.",
+  tg_transactions:
+    "Recorded real-property documents from the Title Guaranty (TG) API — not a qPublic table. One row per recorded instrument: mortgages and financing statements make up well over half, with deeds, apartment deeds, leases and agreements of sale the rest. Each row carries the parcel (tmk / taxKey, same format as qPublic so it joins to properties), the recording date, the parties, the declared amounts, the assessed owner's mailing address (the basis of the out-of-state buyer charts on the Exploration tab) and the parcel's valuation grid at the time of the record. Loaded in bulk from TG outside this app, so scraped_at-style columns do not exist; recDate is the only time axis. County columns are the TMK's leading digit; TG's placeholder 9-9-9-… parcel and rows with no TMK count toward the State total only.",
 };
 
 /** Get the table-level documentation paragraph, or null. */

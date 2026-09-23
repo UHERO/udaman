@@ -26,6 +26,7 @@ import HhdbPropertyCollection from "../collections/hhdb-property-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
+import HhdbTgTransactionCollection from "../collections/hhdb-tg-transaction-collection";
 import type {
   CategoricalDrilldown,
   FreqSummaryParams,
@@ -365,6 +366,13 @@ export async function getMlsListingsJSON(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb mls listings");
   const result = await HhdbMlsListingCollection.listJSON(params);
   log.info({ total: result.total }, "hhdb mls listings fetched");
+  return result;
+}
+
+export async function getTgTransactionsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb tg transactions");
+  const result = await HhdbTgTransactionCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb tg transactions fetched");
   return result;
 }
 

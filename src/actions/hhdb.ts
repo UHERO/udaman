@@ -43,6 +43,7 @@ import {
   getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
   getSalesJSON as getSalesCtrl,
   getTableCount as getTableCountCtrl,
+  getTgTransactionsJSON as getTgTransactionsCtrl,
   getTopOwners as getTopOwnersCtrl,
   getTotalAssessedByIsland as getTotalAssessedCtrl,
 } from "@catalog/controllers/hhdb";
@@ -232,6 +233,11 @@ export async function getHhdbAccessoryImprovements(params: HhdbListParams) {
 export async function getHhdbMlsListings(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
   return getMlsListingsCtrl(params);
+}
+
+export async function getHhdbTgTransactions(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getTgTransactionsCtrl(params);
 }
 
 export async function getHhdbFreqSummary(

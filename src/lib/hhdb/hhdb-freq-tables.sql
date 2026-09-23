@@ -55,6 +55,7 @@ DROP TABLE IF EXISTS freq_home_exemptions;
 DROP TABLE IF EXISTS freq_condominium_projects;
 DROP TABLE IF EXISTS freq_condominium_units;
 DROP TABLE IF EXISTS freq_mls_listings;
+DROP TABLE IF EXISTS freq_tg_transactions;
 
 -- ============================================================================
 -- CREATE FREQ TABLES (uniform EAV structure)
@@ -291,6 +292,20 @@ DROP PROCEDURE IF EXISTS sp_regenerate_freq_tables;
 -- equal, and the per-county INSERTs skip rows with no TMK (some listings have
 -- none, and county_code is NOT NULL) — those rows count toward '0' (State) only.
 CREATE TABLE freq_mls_listings (
+  county_code CHAR(1) NOT NULL,
+  column_name VARCHAR(100) NOT NULL,
+  column_value VARCHAR(500),
+  frequency BIGINT UNSIGNED NOT NULL,
+  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (county_code, column_name, column_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Title Guaranty transactions (API load, not qPublic). Same shape as
+-- freq_mls_listings. Column names are camelCase — the table's own spelling.
+-- The per-county INSERTs keep only real county digits: TG's 9-9-9-…
+-- placeholder parcel and rows with no TMK count toward '0' (State) only.
+-- Dates are counted by year, as for the qPublic date columns.
+CREATE TABLE freq_tg_transactions (
   county_code CHAR(1) NOT NULL,
   column_name VARCHAR(100) NOT NULL,
   column_value VARCHAR(500),
@@ -2911,6 +2926,136 @@ BEGIN
   SELECT '0', 'three_bed_units', LEFT(COALESCE(CAST(`three_bed_units` AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM mls_listings GROUP BY LEFT(CAST(`three_bed_units` AS CHAR), 500);
 
+  -- freq_tg_transactions
+  TRUNCATE TABLE freq_tg_transactions;
+
+  -- tmk
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'tmk', LEFT(COALESCE(CAST(`tmk` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`tmk` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'tmk', LEFT(COALESCE(CAST(`tmk` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`tmk` AS CHAR), 500);
+
+  -- recDate
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'recDate', LEFT(COALESCE(CAST(YEAR(`recDate`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(YEAR(`recDate`) AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'recDate', LEFT(COALESCE(CAST(YEAR(`recDate`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(YEAR(`recDate`) AS CHAR), 500);
+
+  -- docType
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'docType', LEFT(COALESCE(CAST(`docType` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`docType` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'docType', LEFT(COALESCE(CAST(`docType` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`docType` AS CHAR), 500);
+
+  -- conveyanceAmount
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'conveyanceAmount', LEFT(COALESCE(CAST(`conveyanceAmount` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`conveyanceAmount` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'conveyanceAmount', LEFT(COALESCE(CAST(`conveyanceAmount` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`conveyanceAmount` AS CHAR), 500);
+
+  -- considerationAmount
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'considerationAmount', LEFT(COALESCE(CAST(`considerationAmount` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`considerationAmount` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'considerationAmount', LEFT(COALESCE(CAST(`considerationAmount` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`considerationAmount` AS CHAR), 500);
+
+  -- condoName
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'condoName', LEFT(COALESCE(CAST(`condoName` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`condoName` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'condoName', LEFT(COALESCE(CAST(`condoName` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`condoName` AS CHAR), 500);
+
+  -- taxClass
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'taxClass', LEFT(COALESCE(CAST(`taxClass` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`taxClass` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'taxClass', LEFT(COALESCE(CAST(`taxClass` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`taxClass` AS CHAR), 500);
+
+  -- transactionType
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'transactionType', LEFT(COALESCE(CAST(`transactionType` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`transactionType` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'transactionType', LEFT(COALESCE(CAST(`transactionType` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`transactionType` AS CHAR), 500);
+
+  -- neighborhood
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'neighborhood', LEFT(COALESCE(CAST(`neighborhood` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`neighborhood` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'neighborhood', LEFT(COALESCE(CAST(`neighborhood` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`neighborhood` AS CHAR), 500);
+
+  -- region
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'region', LEFT(COALESCE(CAST(`region` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`region` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'region', LEFT(COALESCE(CAST(`region` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`region` AS CHAR), 500);
+
+  -- mailingCity
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailingCity', LEFT(COALESCE(CAST(`mailingCity` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`mailingCity` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailingCity', LEFT(COALESCE(CAST(`mailingCity` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`mailingCity` AS CHAR), 500);
+
+  -- mailingState
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailingState', LEFT(COALESCE(CAST(`mailingState` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`mailingState` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailingState', LEFT(COALESCE(CAST(`mailingState` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`mailingState` AS CHAR), 500);
+
+  -- mailingZipCode
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailingZipCode', LEFT(COALESCE(CAST(`mailingZipCode` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`mailingZipCode` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailingZipCode', LEFT(COALESCE(CAST(`mailingZipCode` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`mailingZipCode` AS CHAR), 500);
+
+  -- mailingCountry
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mailingCountry', LEFT(COALESCE(CAST(`mailingCountry` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`mailingCountry` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mailingCountry', LEFT(COALESCE(CAST(`mailingCountry` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`mailingCountry` AS CHAR), 500);
+
+  -- mortgageType
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'mortgageType', LEFT(COALESCE(CAST(`mortgageType` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(`mortgageType` AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'mortgageType', LEFT(COALESCE(CAST(`mortgageType` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(`mortgageType` AS CHAR), 500);
+
+  -- maturityDate
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'maturityDate', LEFT(COALESCE(CAST(YEAR(`maturityDate`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions WHERE LEFT(tmk, 1) IN ('1', '2', '3', '4') GROUP BY LEFT(tmk, 1), LEFT(CAST(YEAR(`maturityDate`) AS CHAR), 500);
+  INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
+  SELECT '0', 'maturityDate', LEFT(COALESCE(CAST(YEAR(`maturityDate`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM tg_transactions GROUP BY LEFT(CAST(YEAR(`maturityDate`) AS CHAR), 500);
 END //
 DELIMITER ;
 

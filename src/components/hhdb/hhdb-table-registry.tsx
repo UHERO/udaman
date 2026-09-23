@@ -27,6 +27,7 @@ import {
   getHhdbResidentialAdditions,
   getHhdbResidentialImprovements,
   getHhdbSales,
+  getHhdbTgTransactions,
 } from "@/actions/hhdb";
 import { AccessoryImprovementsTable } from "@/components/hhdb/tables/accessory-improvements-table";
 import { AgriculturalAssessmentsTable } from "@/components/hhdb/tables/agricultural-assessments-table";
@@ -53,6 +54,7 @@ import { PermitsTable } from "@/components/hhdb/tables/permits-table";
 import { PropertiesTable } from "@/components/hhdb/tables/properties-table";
 import { ResidentialAdditionsTable } from "@/components/hhdb/tables/residential-additions-table";
 import { SalesTable } from "@/components/hhdb/tables/sales-table";
+import { TgTransactionsTable } from "@/components/hhdb/tables/tg-transactions-table";
 
 type ActionFn = (
   params: HhdbListParams,
@@ -170,6 +172,10 @@ const REGISTRY: Record<string, TableEntry> = {
   "mls-listings": {
     action: getHhdbMlsListings,
     render: (p) => <MlsListingsTable {...p} />,
+  },
+  transactions: {
+    action: getHhdbTgTransactions,
+    render: (p) => <TgTransactionsTable {...p} />,
   },
 };
 

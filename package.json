@@ -20,6 +20,7 @@
     "@auth/prisma-adapter": "^2.11.3",
     "@hookform/resolvers": "^5.9.1",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@prisma/adapter-mariadb": "7.10.0",
     "@prisma/client": "^7.10.0",
     "@prisma/extension-accelerate": "^3.0.1",
     "@radix-ui/react-alert-dialog": "^1.1.23",

@@ -142,8 +142,12 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
   },
   transactions: {
     title: "Transactions (TG)",
-    fieldsTable: null,
-    defaultSort: "id",
+    fieldsTable: "tg_transactions",
+    // Most recently recorded documents first.
+    defaultSort: "recDate",
+    defaultOrder: "desc",
+    warning:
+      "This table contains millions of rows. Search matches the start of a dashed TMK, an undashed tax key, or a neighborhood name, and only indexed columns can be sorted. For other queries, please use the database directly.",
     exploration: true,
   },
   "mls-listings": {
