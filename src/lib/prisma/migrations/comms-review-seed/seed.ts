@@ -1,13 +1,11 @@
 /**
  * Comms Review Seed Script
  *
- * Populates the pre-release approvals + reviews (+ a few review_messages
- * threads) tables with realistic sample data so the comms review kanban
- * board has enough cards to work with locally: ~10 approvals spanning
- * UHERO's real publication types, each carrying 2-4 reviewer rows with
- * descriptive notes and a mix of board statuses/attestation states. A
- * handful of reviews also carry a short clarification thread between the
- * author and reviewer, to exercise the kanban card's message modal.
+ * Populates the pre-release approvals + reviews tables with realistic
+ * sample data so the comms review kanban board has enough cards to work
+ * with locally: ~10 approvals spanning UHERO's real publication types,
+ * each carrying 2-4 reviewer rows with descriptive notes and a mix of
+ * board statuses/attestation states.
  *
  * Existing `[SAMPLE]` rows from a prior run are deleted first so the script
  * is idempotent — re-running it always leaves exactly this data set.
@@ -56,14 +54,6 @@ const REVIEWER_EMAILS = [
 
 // ─── Sample form bodies ──────────────────────────────────────────────
 
-type MessageSeed = {
-  /** "author" or the reviewer's email — who sent this message. */
-  senderEmail: string;
-  body: string;
-  /** Hours before "now" the message was sent, for created_at ordering. */
-  hoursAgo: number;
-};
-
 type ReviewSeed = {
   reviewerEmail: string;
   boardStatus: "not_started" | "in_progress" | "needs_changes" | "reviewed";
@@ -71,8 +61,6 @@ type ReviewSeed = {
   daysAgo: number;
   attested: boolean;
   notes: string | null;
-  /** Clarification thread, oldest first. Omit for reviews with no messages. */
-  messages?: MessageSeed[];
 };
 
 type ApprovalSeed = {
@@ -122,23 +110,6 @@ const APPROVALS: ApprovalSeed[] = [
         attested: false,
         notes:
           "The Oahu single-family median price growth rate in the executive summary (6.2%) doesn't match the 5.8% figure in Table 2 — please reconcile before this goes out. Also, the Neighbor Island section is missing a citation for the Maui County building permit data; I couldn't tell if that came from the county or from our own HHF pull.",
-        messages: [
-          {
-            senderEmail: AUTHOR_EMAIL,
-            body: "Thanks for catching that — quick question before I fix it: is 6.2% or 5.8% the one you'd trust? I want to know which input changed before I edit the wrong number.",
-            hoursAgo: 40,
-          },
-          {
-            senderEmail: "kburnett@hawaii.edu",
-            body: "5.8% in Table 2 is right — that's straight from the HHF pull. The 6.2% in the summary looks like it's using the old un-revised Q1 base, so the growth rate is inflated. Once you fix the base period the summary number should drop to match the table.",
-            hoursAgo: 36,
-          },
-          {
-            senderEmail: AUTHOR_EMAIL,
-            body: "Got it, that makes sense — Q1 was revised down last month and I must have re-run the summary calc before pulling the update. Fixing now, and I'll track down the Maui permit citation too.",
-            hoursAgo: 30,
-          },
-        ],
       },
       {
         reviewerEmail: "james29@hawaii.edu",
@@ -184,18 +155,6 @@ const APPROVALS: ApprovalSeed[] = [
         attested: false,
         notes:
           "The employment chart on page 2 is using NAICS supersector labels but the legend still has the old BLS category names — will confuse readers who cross-reference against the DLIR release. Can send you the updated label mapping if that's faster than redoing it yourself.",
-        messages: [
-          {
-            senderEmail: AUTHOR_EMAIL,
-            body: "That would save me a lot of time, yes please — can you send the mapping over?",
-            hoursAgo: 18,
-          },
-          {
-            senderEmail: "vward@hawaii.edu",
-            body: "Emailed it to you separately just now. It's just a 1:1 rename table, should be a quick find-and-replace in the chart labels.",
-            hoursAgo: 16,
-          },
-        ],
       },
     ],
   },
@@ -277,28 +236,6 @@ const APPROVALS: ApprovalSeed[] = [
         attested: false,
         notes:
           "The identification strategy write-up in Section 3 needs another pass — as written it's not clear why the 2019 regulatory change is a valid instrument versus just a coincident trend break. Suggest adding the placebo test from the appendix into the main text since reviewers will ask about it anyway.",
-        messages: [
-          {
-            senderEmail: AUTHOR_EMAIL,
-            body: "Fair point on the instrument validity — do you think the placebo test alone addresses it, or should we also add a pre-trend plot showing the two groups were parallel before 2019?",
-            hoursAgo: 90,
-          },
-          {
-            senderEmail: "gangnes@hawaii.edu",
-            body: "Both, honestly. The placebo test handles the 'is this just noise' objection, but a referee is going to want to see the parallel pre-trends visually before they even get to the placebo section. I'd lead with the pre-trend plot, then the placebo test as backup.",
-            hoursAgo: 85,
-          },
-          {
-            senderEmail: AUTHOR_EMAIL,
-            body: "Makes sense, that's the right order anyway. I have the pre-trend data already pulled from the earlier draft, so this shouldn't take long. Will have a revised Section 3 to you by Friday.",
-            hoursAgo: 80,
-          },
-          {
-            senderEmail: "gangnes@hawaii.edu",
-            body: "Sounds good, no rush on my end this week. Ping me when it's ready and I'll do a quick turnaround.",
-            hoursAgo: 78,
-          },
-        ],
       },
       {
         reviewerEmail: "bonham@hawaii.edu",
@@ -341,7 +278,8 @@ const APPROVALS: ApprovalSeed[] = [
         boardStatus: "reviewed",
         daysAgo: 1,
         attested: true,
-        notes: "Confirmed the new base year weights against BLS input costs. Approved.",
+        notes:
+          "Confirmed the new base year weights against BLS input costs. Approved.",
       },
     ],
   },
@@ -526,7 +464,6 @@ async function seed() {
 
   let approvalsCreated = 0;
   let reviewsCreated = 0;
-  let messagesCreated = 0;
 
   for (const a of APPROVALS) {
     const formData = {
@@ -573,7 +510,7 @@ async function seed() {
 
     for (const r of a.reviews) {
       const reviewerId = reviewerIds.get(r.reviewerEmail)!;
-      const reviewId = await insert(
+      await insert(
         `INSERT INTO approval_reviews
            (approval_id, reviewer_user_id, reviewer, attested, reviewed_at, notes, board_status, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?,
@@ -591,20 +528,6 @@ async function seed() {
         ] as (string | number | Date)[],
       );
       reviewsCreated++;
-
-      for (const m of r.messages ?? []) {
-        const senderId =
-          m.senderEmail === AUTHOR_EMAIL
-            ? authorId
-            : reviewerIds.get(m.senderEmail)!;
-        await rawQuery(
-          `INSERT INTO review_messages
-             (approval_review_id, sender_user_id, sender, body, emailed_at, created_at)
-           VALUES (?, ?, ?, ?, DATE_SUB(NOW(), INTERVAL ? HOUR), DATE_SUB(NOW(), INTERVAL ? HOUR))`,
-          [reviewId, senderId, m.senderEmail, m.body, m.hoursAgo, m.hoursAgo],
-        );
-        messagesCreated++;
-      }
     }
 
     console.log(
@@ -616,7 +539,6 @@ async function seed() {
   console.log("Comms Review Seed complete.");
   console.log(`  Approvals: ${approvalsCreated}`);
   console.log(`  Reviews: ${reviewsCreated}`);
-  console.log(`  Messages: ${messagesCreated}`);
 }
 
 seed()

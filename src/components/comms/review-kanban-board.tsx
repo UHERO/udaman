@@ -10,7 +10,6 @@ import {
   REVIEW_BOARD_STATUSES,
   type ReviewBoardStatus,
 } from "@catalog/models/approval-review";
-import type { ReviewMessageJSON } from "@catalog/models/review-message";
 import {
   DndContext,
   DragOverlay,
@@ -29,14 +28,11 @@ import {
   Minimize2,
   Pencil,
   Plus,
-  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   deleteReview,
-  getReviewMessages,
-  sendReviewMessage,
   setReviewBoardStatus,
   submitReview,
 } from "@/actions/approvals";
@@ -538,8 +534,6 @@ function ReviewCard({
   const [savingNotes, setSavingNotes] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isOwn = review.reviewerUserId === currentUserId;
-  const canMessage =
-    isOwn || (!!approval && approval.authorUserId === currentUserId);
 
   function startEditingNotes() {
     setNotesDraft(review.notes ?? "");
@@ -763,183 +757,9 @@ function ReviewCard({
                 <p className="text-muted-foreground italic">No notes yet.</p>
               )}
             </div>
-
-            {canMessage && (
-              <ReviewMessageThread
-                reviewId={review.id}
-                open={detailsOpen}
-                currentUserId={currentUserId}
-                maximized={maximized}
-              />
-            )}
           </div>
         </DialogContent>
       </Dialog>
     </>
   );
-}
-
-/**
- * Clarification thread for one review. Loaded lazily when the modal opens
- * (not on every card render) since most cards' threads are never viewed.
- * Posting emails the other party (author <-> reviewer) via the server action.
- */
-function ReviewMessageThread({
-  reviewId,
-  open,
-  currentUserId,
-  maximized,
-}: {
-  reviewId: number;
-  open: boolean;
-  currentUserId: number;
-  maximized: boolean;
-}) {
-  const [messages, setMessages] = useState<ReviewMessageJSON[] | null>(null);
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    setMessages(null);
-    getReviewMessages(reviewId)
-      .then((data) => {
-        if (!cancelled) setMessages(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          toast.error(
-            err instanceof Error ? err.message : "Failed to load messages",
-          );
-          setMessages([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, reviewId]);
-
-  async function handleSend() {
-    const body = draft.trim();
-    if (!body) return;
-    setSending(true);
-    try {
-      const result = await sendReviewMessage(reviewId, body);
-      setMessages((prev) => [...(prev ?? []), result.data]);
-      setDraft("");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to send message",
-      );
-    } finally {
-      setSending(false);
-    }
-  }
-
-  return (
-    <div
-      className={cn(
-        "flex flex-col border-t pt-3",
-        maximized && "min-h-0 flex-1",
-      )}
-    >
-      <div className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
-        Messages
-      </div>
-      <div
-        className={cn(
-          "bg-muted/20 flex scrollbar-thin flex-col gap-2.5 overflow-y-auto rounded-md p-3",
-          maximized ? "min-h-0 flex-1" : "max-h-72",
-        )}
-      >
-        {messages === null && (
-          <p className="text-muted-foreground text-xs">Loading…</p>
-        )}
-        {messages?.length === 0 && (
-          <p className="text-muted-foreground text-xs italic">
-            No messages yet.
-          </p>
-        )}
-        {messages?.map((m) => {
-          const isMine = m.senderUserId === currentUserId;
-          return (
-            <div
-              key={m.id}
-              className={cn(
-                "flex items-end gap-2",
-                isMine && "flex-row-reverse",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white",
-                  isMine ? "bg-ublue" : "bg-upurple",
-                )}
-                title={m.sender}
-              >
-                {initials(m.sender)}
-              </div>
-              <div
-                className={cn(
-                  "max-w-[75%] rounded-2xl px-3 py-2 text-xs shadow-sm",
-                  isMine
-                    ? "bg-ublue rounded-br-sm text-white"
-                    : "bg-upurple/15 rounded-bl-sm",
-                )}
-              >
-                <p className="wrap-break-word whitespace-pre-wrap">{m.body}</p>
-                {m.createdAt && (
-                  <p
-                    className={cn(
-                      "mt-1 text-[10px]",
-                      isMine ? "text-white/70" : "text-muted-foreground",
-                    )}
-                  >
-                    {new Date(m.createdAt).toLocaleString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-2 flex items-end gap-2">
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Ask for clarification…"
-          className="min-h-16 text-sm"
-          disabled={sending}
-        />
-        <Button
-          size="icon"
-          className="shrink-0 cursor-pointer"
-          disabled={sending || !draft.trim()}
-          onClick={() => void handleSend()}
-          title="Send and email"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * First letters of up to two words, for the chat thread's avatar bubble.
- * Senders are often stored as an email (no display name on file), so an
- * "@" cuts off the domain before splitting into words.
- */
-function initials(name: string): string {
-  const base = name.trim().split("@")[0];
-  const parts = base.split(/[\s._-]+/).filter(Boolean);
-  if (!parts.length) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
