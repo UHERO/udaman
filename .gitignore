@@ -52,3 +52,6 @@ tmp
 .bundle/
 vendor/
 Gemfile.lock
+
+# Prisma generated clients (bun run db:generate)
+src/generated/

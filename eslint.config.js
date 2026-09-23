@@ -21,6 +21,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: [".next/", "node_modules/", "src/core/crawlers/qpub/old/"],
+    ignores: [".next/", "node_modules/", "src/generated/", "src/core/crawlers/qpub/old/"],
   },
 );

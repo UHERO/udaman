@@ -6,12 +6,10 @@ import type {
   sources,
   units,
   xseries,
-} from "@prisma/client";
+} from "@/generated/prisma-uhero/client";
 
 export type SeasonalAdjustment =
-  | "not_seasonally_adjusted"
-  | "seasonally_adjusted"
-  | "not_applicable";
+  "not_seasonally_adjusted" | "seasonally_adjusted" | "not_applicable";
 
 export const UNIVERSES = [
   "UHERO",

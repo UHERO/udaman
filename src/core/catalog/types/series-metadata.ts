@@ -6,7 +6,7 @@ import {
   type series,
   type units,
   type xseries,
-} from "@prisma/client";
+} from "@/generated/prisma-uhero/client";
 
 // Helper type to add prefix to keys
 type PrefixKeys<T, P extends string> = {

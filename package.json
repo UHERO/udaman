@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "bun run db:generate",
+    "db:generate": "prisma generate && prisma generate --config src/lib/prisma/hhdb/prisma.config.ts",
+    "db:pull:hhdb": "prisma db pull --config src/lib/prisma/hhdb/prisma.config.ts",
     "dev": "bun --bun next dev -p 3008 --turbopack",
     "build": "bun --bun next build",
     "start": "bun --bun next start -p 3008",

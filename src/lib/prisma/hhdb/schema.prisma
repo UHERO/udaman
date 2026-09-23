@@ -1,0 +1,1137 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../../../generated/prisma-hhdb"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model accessory_improvements {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                String     @db.VarChar(30)
+  scraped_at         DateTime   @db.DateTime(0)
+  last_year_observed Int?       @db.UnsignedSmallInt
+  building_number    Int?       @db.UnsignedSmallInt
+  description        String?    @db.VarChar(255)
+  dimensions         String?    @db.VarChar(30)
+  quantity           Decimal?   @db.Decimal(7, 2)
+  year_built         Int?       @db.UnsignedSmallInt
+  area               Int?       @db.UnsignedInt
+  percent_complete   Int?       @db.UnsignedTinyInt
+  value              BigInt?    @db.UnsignedBigInt
+  properties         properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "accessory_improvements_ibfk_1")
+
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model agricultural_assessments {
+  id                  BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                 String     @db.VarChar(30)
+  scraped_at          DateTime   @db.DateTime(0)
+  last_year_observed  Int?       @db.UnsignedSmallInt
+  acres_in_production Decimal?   @db.Decimal(12, 4)
+  agricultural_type   String?    @db.VarChar(100)
+  agricultural_value  BigInt?    @db.UnsignedBigInt
+  use_description     String?    @db.VarChar(255)
+  properties          properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "agricultural_assessments_ibfk_1")
+
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model appeals {
+  id                                       BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                                      String     @db.VarChar(30)
+  scraped_at                               DateTime?  @db.DateTime(0)
+  year                                     Int?       @db.UnsignedSmallInt
+  appeal_type_value                        String?    @db.VarChar(100)
+  scheduled_hearing_date_subject_to_change String?    @db.VarChar(50)
+  status                                   String?    @db.VarChar(50)
+  date_settled                             DateTime?  @db.Date
+  final_value                              BigInt?    @db.UnsignedBigInt
+  tax_payer_opinion_of_value               BigInt?    @db.UnsignedBigInt
+  tax_payer_opinion_of_property_class      Int?       @db.UnsignedTinyInt
+  tax_payer_opinion_of_exemptions          BigInt?    @db.UnsignedBigInt
+  properties                               properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "appeals_ibfk_1")
+
+  @@index([status], map: "idx_status")
+  @@index([tmk], map: "idx_tmk")
+  @@index([year], map: "idx_year")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model assessments {
+  id                            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                           String     @db.VarChar(30)
+  scraped_at                    DateTime?  @db.DateTime(0)
+  tax_year                      Int        @db.UnsignedSmallInt
+  property_class                String?    @db.Text
+  assessed_land_value           BigInt?    @db.UnsignedBigInt
+  assessed_building_value       BigInt?    @db.UnsignedBigInt
+  dedicated_use_value           BigInt?    @db.UnsignedBigInt
+  land_exemption                BigInt?
+  building_exemption            BigInt?
+  net_taxable_land_value        BigInt?
+  net_taxable_building_value    BigInt?
+  total_property_assessed_value BigInt?    @db.UnsignedBigInt
+  total_property_exemption      BigInt?
+  total_net_taxable_value       BigInt?
+  agricultural_land_value       BigInt?    @db.UnsignedBigInt
+  market_land_value             BigInt?    @db.UnsignedBigInt
+  market_building_value         BigInt?    @db.UnsignedBigInt
+  total_market_value            BigInt?    @db.UnsignedBigInt
+  created_at                    DateTime?  @default(now()) @db.Timestamp(0)
+  properties                    properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "assessments_ibfk_1")
+
+  @@unique([tmk, tax_year], map: "unique_assessment")
+  @@index([property_class(length: 100)], map: "idx_property_class")
+  @@index([scraped_at], map: "idx_scraped_at")
+  @@index([tax_year], map: "idx_tax_year")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model commercial_improvement_details {
+  id                        BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  commercial_improvement_id BigInt                  @db.UnsignedBigInt
+  tmk                       String                  @db.VarChar(30)
+  scraped_at                DateTime                @db.DateTime(0)
+  last_year_observed        Int?                    @db.UnsignedSmallInt
+  card                      Int?                    @db.UnsignedSmallInt
+  section                   String?                 @db.VarChar(50)
+  floor                     String?                 @db.VarChar(50)
+  usage                     String?                 @db.VarChar(100)
+  area                      Int?                    @db.UnsignedInt
+  perimeter                 Int?                    @db.UnsignedSmallInt
+  exterior_wall             String?                 @db.VarChar(100)
+  wall_height               Int?                    @db.UnsignedTinyInt
+  construction              String?                 @db.VarChar(100)
+  rank                      Decimal?                @db.Decimal(4, 2)
+  condo_style               String?                 @db.VarChar(50)
+  condo_type                String?                 @db.VarChar(50)
+  condo_unit                String?                 @db.VarChar(20)
+  floor_level               String?                 @db.VarChar(20)
+  view                      String?                 @db.VarChar(50)
+  project                   String?                 @db.VarChar(100)
+  description               String?                 @db.Text
+  commercial_improvements   commercial_improvements @relation(fields: [commercial_improvement_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "commercial_improvement_details_ibfk_1")
+  properties                properties              @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "commercial_improvement_details_ibfk_2")
+
+  @@index([commercial_improvement_id], map: "idx_commercial_improvement")
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model commercial_improvements {
+  id                             BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                            String                           @db.VarChar(30)
+  scraped_at                     DateTime                         @db.DateTime(0)
+  last_year_observed             Int?                             @db.UnsignedSmallInt
+  building_number                String?                          @db.VarChar(10)
+  building_card                  Int?                             @db.UnsignedSmallInt
+  year_built                     Int?                             @db.UnsignedSmallInt
+  effective_year_built           Int?                             @db.UnsignedSmallInt
+  improvement_name               String?                          @db.VarChar(255)
+  property_class                 String?                          @db.Text
+  structure_type                 String?                          @db.VarChar(100)
+  units                          Int?                             @db.UnsignedSmallInt
+  identical_units                Int?                             @db.UnsignedTinyInt
+  gross_building_description     String?                          @db.Text
+  building_square_footage        Int?                             @db.UnsignedInt
+  building_type                  String?                          @db.VarChar(100)
+  percent_complete               Int?                             @db.UnsignedTinyInt
+  structure                      String?                          @db.VarChar(100)
+  value                          BigInt?                          @db.UnsignedBigInt
+  commercial_improvement_details commercial_improvement_details[]
+  properties                     properties                       @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "commercial_improvements_ibfk_1")
+
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([tmk], map: "idx_tmk")
+  @@index([year_built], map: "idx_year_built")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model condominium_projects {
+  tmk                        String              @id @db.VarChar(30)
+  project_name               String?             @db.VarChar(255)
+  unit_count                 Int?                @db.UnsignedInt
+  dcca_link                  String?             @db.Text
+  zoning                     String?             @db.VarChar(50)
+  address                    String?             @db.Text
+  city                       String?             @db.VarChar(100)
+  developer                  String?             @db.VarChar(255)
+  project_number             String?             @db.VarChar(50)
+  commercial                 Int?                @db.UnsignedInt
+  tool_sheds                 Int?                @db.UnsignedInt
+  ohana                      String?             @db.VarChar(10)
+  residential                Int?                @db.UnsignedInt
+  parking                    Int?                @db.UnsignedInt
+  converted                  String?             @db.VarChar(10)
+  agricultural               Int?                @db.UnsignedInt
+  other                      Int?                @db.UnsignedInt
+  buildings                  Int?                @db.UnsignedInt
+  floors                     Int?                @db.UnsignedInt
+  land_ownership             String?             @db.VarChar(10)
+  preliminary_date           DateTime?           @db.Date
+  contingent_final_date      DateTime?           @db.Date
+  final_date                 DateTime?           @db.Date
+  biennial_registration_date DateTime?           @db.Date
+  created_at                 DateTime?           @default(now()) @db.Timestamp(0)
+  properties                 properties          @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "condominium_projects_ibfk_1")
+  condominium_units          condominium_units[]
+
+  @@index([project_name(length: 100)], map: "idx_project_name")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model condominium_units {
+  id                   BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                  String               @unique(map: "unique_unit") @db.VarChar(30)
+  parent_tmk           String               @db.VarChar(30)
+  unit_number          String?              @db.VarChar(50)
+  owner_name           String?              @db.VarChar(255)
+  created_at           DateTime?            @default(now()) @db.Timestamp(0)
+  properties           properties           @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "condominium_units_ibfk_1")
+  condominium_projects condominium_projects @relation(fields: [parent_tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "condominium_units_ibfk_2")
+
+  @@index([parent_tmk], map: "idx_parent")
+  @@index([unit_number], map: "idx_unit_number")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model current_tax_bills {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                String     @db.VarChar(30)
+  scraped_at         DateTime   @db.DateTime(0)
+  last_year_observed Int?       @db.UnsignedSmallInt
+  tax_period         String?    @db.VarChar(20)
+  description        String?    @db.VarChar(255)
+  original_due_date  DateTime?  @db.Date
+  taxes_assessment   Decimal?   @db.Decimal(12, 2)
+  tax_credits        Decimal?   @db.Decimal(12, 2)
+  net_tax            Decimal?   @db.Decimal(12, 2)
+  penalty            Decimal?   @db.Decimal(12, 2)
+  interest           Decimal?   @db.Decimal(12, 2)
+  other              Decimal?   @db.Decimal(12, 2)
+  amount_due         Decimal?   @db.Decimal(12, 2)
+  properties         properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "current_tax_bills_ibfk_1")
+
+  @@unique([tmk, tax_period, description], map: "unique_tax_bill")
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([tax_period], map: "idx_tax_period")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model dedications {
+  id                    BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                   String     @db.VarChar(30)
+  scraped_at            DateTime?  @db.DateTime(0)
+  tax_year              Int?       @db.UnsignedSmallInt
+  number_of_dedications String?    @db.VarChar(100)
+  properties            properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "dedications_ibfk_1")
+
+  @@unique([tmk, tax_year], map: "unique_dedication")
+  @@index([tax_year], map: "idx_tax_year")
+  @@index([tmk], map: "idx_tmk")
+}
+
+model freq_accessory_improvements {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_agricultural_assessments {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_appeals {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_assessments {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_commercial_improvement_details {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_commercial_improvements {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_condominium_projects {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_condominium_units {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_current_tax_bills {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_dedications {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_historical_tax_credits {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_historical_tax_details {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_historical_tax_payments {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_historical_tax_summary {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_home_exemptions {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_land_classifications {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_mls_listings {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_owners {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_parcels {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_permits {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model freq_properties {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_residential_additions {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_residential_improvements {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_sales {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model historical_tax_credits {
+  id                        BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  historical_tax_summary_id BigInt                 @db.UnsignedBigInt
+  tmk                       String                 @db.VarChar(30)
+  scraped_at                DateTime?              @db.DateTime(0)
+  period                    String?                @db.VarChar(20)
+  description               String?                @db.VarChar(255)
+  amount                    Decimal?               @db.Decimal(12, 2)
+  historical_tax_summary    historical_tax_summary @relation(fields: [historical_tax_summary_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "historical_tax_credits_ibfk_1")
+  properties                properties             @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "historical_tax_credits_ibfk_2")
+
+  @@index([historical_tax_summary_id], map: "idx_summary")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model historical_tax_details {
+  id                        BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  historical_tax_summary_id BigInt                 @db.UnsignedBigInt
+  tmk                       String                 @db.VarChar(30)
+  scraped_at                DateTime?              @db.DateTime(0)
+  tax_period                String?                @db.VarChar(20)
+  description               String?                @db.VarChar(255)
+  tax                       Decimal?               @db.Decimal(12, 2)
+  payments_credits          Decimal?               @db.Decimal(12, 2)
+  penalty                   Decimal?               @db.Decimal(12, 2)
+  interest                  Decimal?               @db.Decimal(12, 2)
+  other                     Decimal?               @db.Decimal(12, 2)
+  historical_tax_summary    historical_tax_summary @relation(fields: [historical_tax_summary_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "historical_tax_details_ibfk_1")
+  properties                properties             @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "historical_tax_details_ibfk_2")
+
+  @@index([historical_tax_summary_id], map: "idx_summary")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model historical_tax_payments {
+  id                        BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  historical_tax_summary_id BigInt                 @db.UnsignedBigInt
+  tmk                       String                 @db.VarChar(30)
+  scraped_at                DateTime?              @db.DateTime(0)
+  payment_sequence          Int?                   @db.UnsignedInt
+  effective_date            DateTime?              @db.Date
+  tax                       Decimal?               @db.Decimal(12, 2)
+  penalty                   Decimal?               @db.Decimal(12, 2)
+  interest                  Decimal?               @db.Decimal(12, 2)
+  other                     Decimal?               @db.Decimal(12, 2)
+  historical_tax_summary    historical_tax_summary @relation(fields: [historical_tax_summary_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "historical_tax_payments_ibfk_1")
+  properties                properties             @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "historical_tax_payments_ibfk_2")
+
+  @@index([payment_sequence], map: "idx_payment_sequence")
+  @@index([historical_tax_summary_id], map: "idx_summary")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model historical_tax_summary {
+  id                                 BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                                String                    @db.VarChar(30)
+  scraped_at                         DateTime?                 @db.DateTime(0)
+  year                               Int                       @db.UnsignedSmallInt
+  tax                                Decimal?                  @db.Decimal(12, 2)
+  payments_and_credits               Decimal?                  @db.Decimal(12, 2)
+  penalty                            Decimal?                  @db.Decimal(12, 2)
+  interest                           Decimal?                  @db.Decimal(12, 2)
+  other                              Decimal?                  @db.Decimal(12, 2)
+  amount_due                         Decimal?                  @db.Decimal(12, 2)
+  tax_details_total_tax              Decimal?                  @db.Decimal(12, 2)
+  tax_details_total_payments_credits Decimal?                  @db.Decimal(12, 2)
+  tax_details_total_penalty          Decimal?                  @db.Decimal(12, 2)
+  tax_details_total_interest         Decimal?                  @db.Decimal(12, 2)
+  tax_details_total_other            Decimal?                  @db.Decimal(12, 2)
+  tax_payments_total_tax             Decimal?                  @db.Decimal(12, 2)
+  tax_payments_total_penalty         Decimal?                  @db.Decimal(12, 2)
+  tax_payments_total_interest        Decimal?                  @db.Decimal(12, 2)
+  tax_payments_total_other           Decimal?                  @db.Decimal(12, 2)
+  tax_credits_total_amount           Decimal?                  @db.Decimal(12, 2)
+  historical_tax_credits             historical_tax_credits[]
+  historical_tax_details             historical_tax_details[]
+  historical_tax_payments            historical_tax_payments[]
+  properties                         properties                @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "historical_tax_summary_ibfk_1")
+
+  @@unique([tmk, year], map: "unique_year")
+  @@index([scraped_at], map: "idx_scraped_at")
+  @@index([tmk], map: "idx_tmk")
+  @@index([year], map: "idx_year")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model home_exemptions {
+  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk           String     @db.VarChar(30)
+  scraped_at    DateTime?  @db.DateTime(0)
+  claimant_name String?    @db.VarChar(255)
+  tax_year      Int?       @db.UnsignedSmallInt
+  properties    properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "home_exemptions_ibfk_1")
+
+  @@unique([tmk, tax_year, claimant_name], map: "unique_home_exemption")
+  @@index([claimant_name], map: "idx_claimant_name")
+  @@index([tax_year], map: "idx_tax_year")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model land_classifications {
+  id                         BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                        String     @db.VarChar(30)
+  scraped_at                 DateTime   @db.DateTime(0)
+  last_year_observed         Int?       @db.UnsignedSmallInt
+  land_classification        String?    @db.VarChar(100)
+  square_footage             BigInt?    @db.UnsignedBigInt
+  acreage                    Decimal?   @db.Decimal(12, 4)
+  agricultural_use_indicator String?    @db.VarChar(10)
+  properties                 properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "land_classifications_ibfk_1")
+
+  @@index([land_classification], map: "idx_classification")
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model mls_listing_history {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  mls_board   String   @db.VarChar(8)
+  mls_number  String   @db.VarChar(16)
+  observed_at DateTime @db.DateTime(0)
+  status      String   @db.VarChar(32)
+  list_price  BigInt?
+  sold_price  BigInt?
+  source_site String   @db.VarChar(32)
+  change_type String   @db.VarChar(32)
+
+  @@index([mls_board, mls_number, observed_at], map: "idx_board_number_observed")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model mls_listings {
+  id                   Int       @id @default(autoincrement()) @db.UnsignedInt
+  mls_board            String    @db.VarChar(8)
+  mls_number           String    @db.VarChar(16)
+  source_site          String    @db.VarChar(32)
+  source_priority      Int       @default(0) @db.SmallInt
+  source_url           String?   @db.VarChar(512)
+  status               String    @db.VarChar(32)
+  status_raw           String?   @db.VarChar(64)
+  list_price           BigInt?
+  sold_price           BigInt?
+  tenure               String?   @db.VarChar(2)
+  building_name        String?   @db.VarChar(255)
+  address              String?   @db.VarChar(255)
+  city                 String?   @db.VarChar(100)
+  state                String?   @db.VarChar(2)
+  zip                  String?   @db.VarChar(10)
+  remarks              String?   @db.Text
+  sale_conditions      String?   @db.VarChar(255)
+  listing_agent        String?   @db.VarChar(255)
+  listing_office       String?   @db.VarChar(255)
+  property_type        String?   @db.VarChar(50)
+  bedrooms             Int?
+  full_baths           Int?
+  half_baths           Int?
+  land_area_sf         Int?
+  living_sf            Int?
+  lanai_sf             Int?
+  other_sf             Int?
+  parking_stalls       Int?
+  parking_stalls_desc  String?   @db.VarChar(255)
+  island               String?   @db.VarChar(20)
+  region               String?   @db.VarChar(100)
+  neighborhood         String?   @db.VarChar(100)
+  tmk                  String?   @db.VarChar(18)
+  list_date            DateTime? @db.Date
+  date_sold            DateTime? @db.Date
+  zoning               String?   @db.VarChar(100)
+  furnished            String?   @db.VarChar(30)
+  year_built           Int?      @db.SmallInt
+  year_remodeled       Int?      @db.SmallInt
+  assd_val_land        BigInt?
+  assd_val_imprv       BigInt?
+  assd_val_total       BigInt?
+  tax_year             Int?      @db.SmallInt
+  monthly_taxes        BigInt?
+  home_exempt          String?   @db.VarChar(30)
+  maintenance_fees     BigInt?
+  association_fees     BigInt?
+  other_fees           BigInt?
+  land_tenure          String?   @db.VarChar(30)
+  fee_options          String?   @db.VarChar(50)
+  lessor               String?   @db.VarChar(255)
+  lease_rent           String?   @db.VarChar(50)
+  next_step_up         String?   @db.VarChar(50)
+  second_step_up       String?   @db.VarChar(50)
+  fee_purchase         String?   @db.VarChar(50)
+  reneg_date           String?   @db.VarChar(50)
+  lease_exp            String?   @db.VarChar(50)
+  elem_school          String?   @db.VarChar(100)
+  middle_school        String?   @db.VarChar(100)
+  high_school          String?   @db.VarChar(100)
+  frontage             String?   @db.Text
+  view                 String?   @db.Text
+  pool                 String?   @db.Text
+  amenities            String?   @db.Text
+  inclusions           String?   @db.Text
+  security             String?   @db.Text
+  assn_fee_inclusions  String?   @db.Text
+  other_fee_inclusions String?   @db.Text
+  lot_description      String?   @db.Text
+  topography           String?   @db.Text
+  number_of_stories    String?   @db.VarChar(50)
+  building_style       String?   @db.Text
+  property_condition   String?   @db.VarChar(100)
+  construction         String?   @db.Text
+  roofing              String?   @db.Text
+  floor_covering       String?   @db.Text
+  disclosures          String?   @db.Text
+  possession           String?   @db.Text
+  terms_accept         String?   @db.Text
+  land_recorded        String?   @db.VarChar(50)
+  exclusions           String?   @db.Text
+  easements            String?   @db.Text
+  set_backs            String?   @db.Text
+  studio_units         Int?
+  one_bed_units        Int?
+  two_bed_units        Int?
+  three_bed_units      Int?
+  open_house           String?   @db.Text
+  extra                String?   @db.LongText
+  html_path            String?   @db.VarChar(512)
+  first_seen_at        DateTime? @db.DateTime(0)
+  last_seen_at         DateTime? @db.DateTime(0)
+  fetched_at           DateTime? @db.DateTime(0)
+  parsed_at            DateTime? @db.DateTime(0)
+
+  @@unique([mls_board, mls_number], map: "uq_mls_board_number")
+  @@index([date_sold], map: "idx_date_sold")
+  @@index([island, status], map: "idx_island_status")
+  @@index([list_date], map: "idx_list_date")
+  @@index([status, last_seen_at], map: "idx_status_last_seen")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model owners {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                String     @db.VarChar(30)
+  scraped_at         DateTime   @db.DateTime(0)
+  last_year_observed Int?       @db.UnsignedSmallInt
+  owner_name         String     @db.VarChar(255)
+  owner_type         String?    @db.VarChar(50)
+  owner_address      String?    @db.Text
+  mailing_address    String?    @db.Text
+  mailing_city       String?    @db.VarChar(100)
+  mailing_state      String?    @db.VarChar(50)
+  mailing_zip        String?    @db.VarChar(10)
+  mailing_country    String?    @db.VarChar(100)
+  sequence_order     Int?       @db.UnsignedInt
+  created_at         DateTime?  @default(now()) @db.Timestamp(0)
+  properties         properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "owners_ibfk_1")
+
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([owner_name(length: 100)], map: "idx_owner_name")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model parcel_crosswalk {
+  parcel_tmk  String   @id @db.VarChar(13)
+  latitude    Decimal? @db.Decimal(10, 8)
+  longitude   Decimal? @db.Decimal(11, 8)
+  zcta20      String?  @db.Char(5)
+  countyfp    String?  @db.Char(3)
+  tractce     String?  @db.Char(6)
+  tract_geoid String?  @db.Char(11)
+  source_file String?  @db.VarChar(255)
+  loaded_at   DateTime @default(now()) @db.DateTime(0)
+
+  @@index([countyfp], map: "idx_countyfp")
+  @@index([tract_geoid], map: "idx_tract_geoid")
+  @@index([zcta20], map: "idx_zcta20")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model parcels {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                String     @db.VarChar(30)
+  scraped_at         DateTime   @db.DateTime(0)
+  last_year_observed Int?       @db.UnsignedSmallInt
+  parcel_number      String?    @db.VarChar(30)
+  location_address   String?    @db.VarChar(255)
+  address_other      String?    @db.Text
+  project_name       String?    @db.VarChar(255)
+  legal_information  String?    @db.Text
+  property_class     String?    @db.Text
+  land_area_sqft     BigInt?    @db.UnsignedBigInt
+  land_area_acres    Decimal?   @db.Decimal(12, 4)
+  neighborhood_code  String?    @db.VarChar(20)
+  zoning             String?    @db.VarChar(50)
+  parcel_note        String?    @db.Text
+  damage             String?    @db.VarChar(50)
+  reentry_zone       String?    @db.VarChar(50)
+  zone_color         String?    @db.VarChar(50)
+  non_taxable_status String?    @db.VarChar(255)
+  living_units       Int?       @db.UnsignedSmallInt
+  created_at         DateTime?  @default(now()) @db.Timestamp(0)
+  properties         properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "parcels_ibfk_1")
+
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([scraped_at], map: "idx_scraped_at")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model permits {
+  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk           String     @db.VarChar(30)
+  permit_date   DateTime?  @db.Date
+  permit_number String?    @db.VarChar(50)
+  reason        String?    @db.VarChar(255)
+  permit_amount BigInt?    @db.UnsignedBigInt
+  properties    properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "permits_ibfk_1")
+
+  @@index([permit_date], map: "idx_permit_date")
+  @@index([permit_number], map: "idx_permit_number")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model properties {
+  tmk                            String                           @id @db.VarChar(30)
+  island_code                    String                           @db.Char(1)
+  parcel_number                  String?                          @db.VarChar(30)
+  location_address               String?                          @db.VarChar(255)
+  address_other                  String?                          @db.Text
+  project_name                   String?                          @db.VarChar(255)
+  legal_information              String?                          @db.Text
+  property_class                 String?                          @db.Text
+  land_area_sqft                 BigInt?                          @db.UnsignedBigInt
+  land_area_acres                Decimal?                         @db.Decimal(12, 4)
+  neighborhood_code              String?                          @db.VarChar(20)
+  zoning                         String?                          @db.VarChar(50)
+  parcel_note                    String?                          @db.Text
+  damage                         String?                          @db.VarChar(50)
+  reentry_zone                   String?                          @db.VarChar(50)
+  zone_color                     String?                          @db.VarChar(50)
+  non_taxable_status             String?                          @db.VarChar(255)
+  living_units                   Int?                             @db.UnsignedSmallInt
+  map_url                        String?                          @db.Text
+  sketch_url                     String?                          @db.Text
+  zip                            String?                          @db.VarChar(10)
+  latitude                       Decimal?                         @db.Decimal(10, 8)
+  longitude                      Decimal?                         @db.Decimal(11, 8)
+  zcta20                         String?                          @db.Char(5)
+  countyfp                       String?                          @db.Char(3)
+  tractce                        String?                          @db.Char(6)
+  tract_geoid                    String?                          @db.Char(11)
+  in_parcel_list                 Boolean?
+  parcel_list_version            String?                          @db.VarChar(16)
+  parcel_list_checked_at         DateTime?                        @db.DateTime(0)
+  created_at                     DateTime?                        @default(now()) @db.Timestamp(0)
+  updated_at                     DateTime?                        @default(now()) @db.Timestamp(0)
+  accessory_improvements         accessory_improvements[]
+  agricultural_assessments       agricultural_assessments[]
+  appeals                        appeals[]
+  assessments                    assessments[]
+  commercial_improvement_details commercial_improvement_details[]
+  commercial_improvements        commercial_improvements[]
+  condominium_projects           condominium_projects?
+  condominium_units              condominium_units?
+  current_tax_bills              current_tax_bills[]
+  dedications                    dedications[]
+  historical_tax_credits         historical_tax_credits[]
+  historical_tax_details         historical_tax_details[]
+  historical_tax_payments        historical_tax_payments[]
+  historical_tax_summary         historical_tax_summary[]
+  home_exemptions                home_exemptions[]
+  land_classifications           land_classifications[]
+  owners                         owners[]
+  parcels                        parcels[]
+  permits                        permits[]
+  residential_additions          residential_additions[]
+  residential_improvements       residential_improvements[]
+  sales                          sales[]
+  scrape_status                  scrape_status?
+
+  @@index([countyfp], map: "idx_countyfp")
+  @@index([in_parcel_list], map: "idx_in_parcel_list")
+  @@index([island_code], map: "idx_island")
+  @@index([location_address(length: 100)], map: "idx_location")
+  @@index([property_class(length: 100)], map: "idx_property_class")
+  @@index([tract_geoid], map: "idx_tract_geoid")
+  @@index([zcta20], map: "idx_zcta20")
+  @@index([zip], map: "idx_zip")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model residential_additions {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                String     @db.VarChar(30)
+  scraped_at         DateTime   @db.DateTime(0)
+  last_year_observed Int?       @db.UnsignedSmallInt
+  card               Int?       @db.UnsignedSmallInt
+  line               Int?       @db.UnsignedTinyInt
+  lower              String?    @db.Text
+  first              String?    @db.Text
+  second             String?    @db.Text
+  third              String?    @db.Text
+  area               Int?       @db.UnsignedInt
+  properties         properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "residential_additions_ibfk_1")
+
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model residential_improvements {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                String     @db.VarChar(30)
+  scraped_at         DateTime   @db.DateTime(0)
+  last_year_observed Int?       @db.UnsignedSmallInt
+  building_number    Int?       @db.UnsignedSmallInt
+  year_built         Int?       @db.UnsignedSmallInt
+  eff_year_built     Int?       @db.UnsignedSmallInt
+  living_area        Int?       @db.UnsignedInt
+  bedrooms           Int?       @db.UnsignedSmallInt
+  full_bath          Int?       @db.UnsignedSmallInt
+  half_bath          Int?       @db.UnsignedSmallInt
+  occupancy          String?    @db.VarChar(50)
+  framing            String?    @db.VarChar(100)
+  percent_complete   Int?       @db.UnsignedTinyInt
+  heating_cooling    String?    @db.VarChar(100)
+  exterior_wall      String?    @db.VarChar(100)
+  roof_material      String?    @db.VarChar(100)
+  fireplace          String?    @db.VarChar(50)
+  grade              String?    @db.VarChar(50)
+  building_value     BigInt?    @db.UnsignedBigInt
+  total_room_count   Int?       @db.UnsignedTinyInt
+  condo_style        String?    @db.VarChar(50)
+  condo_type         String?    @db.VarChar(50)
+  condo_view         String?    @db.VarChar(50)
+  floor_level        Int?       @db.UnsignedSmallInt
+  parking_spaces     Decimal?   @db.Decimal(5, 2)
+  properties         properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "residential_improvements_ibfk_1")
+
+  @@index([last_year_observed], map: "idx_last_year_observed")
+  @@index([occupancy], map: "idx_occupancy")
+  @@index([tmk], map: "idx_tmk")
+  @@index([year_built], map: "idx_year_built")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sales {
+  id                         BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tmk                        String     @db.VarChar(30)
+  sale_date                  DateTime?  @db.Date
+  sale_amount                BigInt?    @db.UnsignedBigInt
+  instrument                 String?    @db.VarChar(50)
+  instrument_type            String?    @db.VarChar(100)
+  instrument_description     String?    @db.VarChar(255)
+  valid_sale                 String?    @db.VarChar(50)
+  date_of_recording          DateTime?  @db.Date
+  land_court_document_number String?    @db.VarChar(50)
+  cert                       String?    @db.VarChar(50)
+  book_page                  String?    @db.VarChar(50)
+  conveyance_tax             Decimal?   @db.Decimal(12, 2)
+  properties                 properties @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "sales_ibfk_1")
+
+  @@index([sale_amount], map: "idx_sale_amount")
+  @@index([sale_date], map: "idx_sale_date")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model scrape_status {
+  tmk                    String                      @id @db.VarChar(30)
+  scrape_status          scrape_status_scrape_status @default(pending)
+  scraped_at             DateTime?                   @db.DateTime(0)
+  parse_status           scrape_status_parse_status  @default(pending)
+  parsed_at              DateTime?                   @db.DateTime(0)
+  load_status            scrape_status_load_status   @default(pending)
+  loaded_at              DateTime?                   @db.DateTime(0)
+  retry_count            Int                         @default(0) @db.TinyInt
+  error                  String?                     @db.Text
+  created_at             DateTime                    @default(now()) @db.DateTime(0)
+  updated_at             DateTime                    @default(now()) @db.DateTime(0)
+  in_parcel_list         Boolean?
+  parcel_list_version    String?                     @db.VarChar(16)
+  parcel_list_checked_at DateTime?                   @db.DateTime(0)
+  no_results             Boolean?
+  no_results_at          DateTime?                   @db.DateTime(0)
+  properties             properties                  @relation(fields: [tmk], references: [tmk], onDelete: Cascade, onUpdate: Restrict, map: "scrape_status_ibfk_1")
+
+  @@index([in_parcel_list], map: "idx_in_parcel_list")
+  @@index([load_status], map: "idx_load_status")
+  @@index([no_results], map: "idx_no_results")
+  @@index([parse_status], map: "idx_parse_status")
+  @@index([scrape_status], map: "idx_scrape_status")
+  @@index([scraped_at], map: "idx_scraped_at")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model scraper_heartbeats {
+  id            String   @id @db.VarChar(120)
+  worker_name   String   @db.VarChar(100)
+  host          String   @db.VarChar(150)
+  pid           Int      @db.UnsignedInt
+  state         String   @default("starting") @db.VarChar(40)
+  detail        String?  @db.VarChar(255)
+  scraped_count Int      @default(0) @db.UnsignedInt
+  captcha_count Int      @default(0) @db.UnsignedInt
+  started_at    DateTime @default(now()) @db.DateTime(0)
+  last_seen_at  DateTime @default(now()) @db.DateTime(0)
+
+  @@index([last_seen_at], map: "idx_last_seen_at")
+}
+
+model tg_transactions {
+  id                         Int       @id
+  taxKey                     String?   @db.VarChar(13)
+  tmk                        String?   @db.VarChar(18)
+  recDate                    DateTime? @db.Date
+  docType                    String?   @db.VarChar(100)
+  firstPartyName             String?   @db.VarChar(255)
+  secondPartyName            String?   @db.VarChar(255)
+  conveyanceAmount           Int?
+  considerationAmount        BigInt?
+  condoName                  String?   @db.VarChar(255)
+  taxClass                   String?   @db.VarChar(50)
+  transactionType            String?   @db.VarChar(50)
+  neighborhood               String?   @db.VarChar(100)
+  region                     String?   @db.VarChar(100)
+  ownerName                  String?   @db.VarChar(255)
+  lessee                     String?   @db.VarChar(255)
+  mailingAddress             String?   @db.VarChar(255)
+  mailingApartmentNo         String?   @db.VarChar(70)
+  mailingCity                String?   @db.VarChar(100)
+  mailingState               String?   @db.VarChar(50)
+  mailingZipCode             String?   @db.VarChar(20)
+  mailingCountry             String?   @db.VarChar(100)
+  totalMarketValue           Int?
+  buildingMarketValue        Int?
+  landMarketValue            Int?
+  buildingValue              Int?
+  landValue                  Int?
+  totalAssessedValue         Int?
+  buildingExemption          Int?
+  landExemption              Int?
+  totalExemption             Int?
+  netValue                   Int?
+  totalNetValue              Int?
+  currentTotalMarketValue    Int?
+  currentBuildingMarketValue Int?
+  currentLandMarketValue     Int?
+  currentBuildingValue       Int?
+  currentLandValue           Int?
+  currentTotalAssessedValue  Int?
+  currentBuildingExemption   Int?
+  currentLandExemption       Int?
+  currentTotalExemption      Int?
+  currentNetValue            Int?
+  currentTotalNetValue       Int?
+  propertyAddress            String?   @db.VarChar(255)
+  zoning                     String?   @db.VarChar(50)
+  propertyArea               String?   @db.VarChar(50)
+  mortgageType               String?   @db.VarChar(100)
+  maturityDate               DateTime? @db.Date
+
+  @@index([mailingState], map: "idx_mailing_state")
+  @@index([mailingZipCode], map: "idx_mailing_zip")
+  @@index([neighborhood], map: "idx_neighborhood")
+  @@index([recDate], map: "idx_recDate")
+  @@index([taxKey], map: "idx_taxKey")
+  @@index([taxKey, docType, recDate, considerationAmount, taxClass, mailingState, mailingCountry], map: "idx_tg_loader_county")
+  @@index([docType, recDate, considerationAmount, taxClass, mailingState, mailingCountry, taxKey], map: "idx_tg_loader_state")
+  @@index([conveyanceAmount, recDate, mailingState, mailingZipCode, mailingCity], map: "idx_tg_out_of_state")
+  @@index([tmk], map: "idx_tmk")
+}
+
+model tg_transactions_bak {
+  id                         Int       @id
+  taxKey                     String?   @db.VarChar(13)
+  tmk                        String?   @db.VarChar(18)
+  recDate                    DateTime? @db.Date
+  docType                    String?   @db.VarChar(100)
+  firstPartyName             String?   @db.VarChar(255)
+  secondPartyName            String?   @db.VarChar(255)
+  conveyanceAmount           Int?
+  considerationAmount        Int?
+  condoName                  String?   @db.VarChar(255)
+  taxClass                   String?   @db.VarChar(50)
+  transactionType            String?   @db.VarChar(50)
+  neighborhood               String?   @db.VarChar(100)
+  region                     String?   @db.VarChar(100)
+  ownerName                  String?   @db.VarChar(255)
+  lessee                     String?   @db.VarChar(255)
+  mailingAddress             String?   @db.VarChar(255)
+  mailingApartmentNo         String?   @db.VarChar(50)
+  mailingCity                String?   @db.VarChar(100)
+  mailingState               String?   @db.VarChar(50)
+  mailingZipCode             String?   @db.VarChar(20)
+  mailingCountry             String?   @db.VarChar(100)
+  totalMarketValue           Int?
+  buildingMarketValue        Int?
+  landMarketValue            Int?
+  buildingValue              Int?
+  landValue                  Int?
+  totalAssessedValue         Int?
+  buildingExemption          Int?
+  landExemption              Int?
+  totalExemption             Int?
+  netValue                   Int?
+  totalNetValue              Int?
+  currentTotalMarketValue    Int?
+  currentBuildingMarketValue Int?
+  currentLandMarketValue     Int?
+  currentBuildingValue       Int?
+  currentLandValue           Int?
+  currentTotalAssessedValue  Int?
+  currentBuildingExemption   Int?
+  currentLandExemption       Int?
+  currentTotalExemption      Int?
+  currentNetValue            Int?
+  currentTotalNetValue       Int?
+  propertyAddress            String?   @db.VarChar(255)
+  zoning                     String?   @db.VarChar(50)
+  propertyArea               String?   @db.VarChar(50)
+  mortgageType               String?   @db.VarChar(100)
+  maturityDate               DateTime? @db.Date
+
+  @@index([neighborhood], map: "idx_neighborhood")
+  @@index([recDate], map: "idx_recDate")
+  @@index([taxKey], map: "idx_taxKey")
+  @@index([tmk], map: "idx_tmk")
+}
+
+
+enum scrape_status_scrape_status {
+  pending
+  success
+  failed
+}
+
+enum scrape_status_parse_status {
+  pending
+  success
+  failed
+}
+
+enum scrape_status_load_status {
+  pending
+  success
+  failed
+}

@@ -261,3 +261,58 @@ scoped to the rebuild database only.
 | Baseline uhero_db | `migrate resolve --applied` for every migration; verify the two 8/27 and 9/3 tables on prod first. |
 | Baseline hhdb | `db pull` from the NAS, `0_init`, resolve as applied. |
 | Runner on prod | `migrate deploy` only. Never `migrate dev`/`reset` there. |
+
+## 5. Implemented 2026-09-22: clients for both databases
+
+Done in the working tree (not committed):
+
+- `@prisma/adapter-mariadb@7.10.0` added. Prisma 7 refuses to construct a
+  client without a driver adapter.
+- uhero schema switched from `prisma-client-js` to `prisma-client` with
+  `output = "../../generated/prisma-uhero"`. The two files that imported row
+  types from `@prisma/client` now import from
+  `@/generated/prisma-uhero/client`.
+- hhdb gets its own Prisma setup under `src/lib/prisma/hhdb/`: a
+  `prisma.config.ts` that builds the datasource URL from the same `HH_DB_*`
+  variables the app uses, a `schema.prisma` introspected from the NAS
+  (54 models, 28 relations, 3 enums), and an empty migrations folder with a
+  lock file. The `src/lib/hhdb/migrations/` folder of hand SQL is untouched
+  and deliberately not Prisma's migrations path (Prisma would choke on
+  non-`migration.sql` files there).
+- Two lazy singleton modules, `src/lib/prisma/uhero-client.ts` and
+  `src/lib/prisma/hhdb-client.ts`, each with its own small pool and the
+  same `UDAMAN_READ_ONLY` write guard `db.ts` enforces.
+- `bun run db:generate` regenerates both; it runs on `postinstall`, so a
+  fresh `bun install` produces `src/generated/` (gitignored, eslint- and
+  prettier-ignored). `bun run db:pull:hhdb` re-introspects the NAS.
+- Root `prisma.config.ts` no longer throws when `DB_MYSQL_URL` is unset; it
+  falls back to the `DB_*` parts, so `prisma generate` works anywhere.
+
+Smoke-tested against the local copies: `universe.findMany`, `series.count`,
+`app_logs.findFirst`, `properties.count`, `tg_transactions.findFirst`,
+`parcels.findFirst` all return correct rows. `tsc --noEmit` and eslint are
+clean.
+
+### Things learned along the way
+
+- **The NAS view `v_properties_current` is a stand-in, not a view.** Its
+  definition is `SELECT 1 AS tmk, 1 AS island_code, ...` (every column an
+  int constant). That is the placeholder `mysqldump` emits before the real
+  `CREATE VIEW`, so a restore was interrupted or the real definition failed
+  to apply. Nothing in `src/` queries it, but anyone using it by hand gets
+  rows of 1s. The real definition is in `src/lib/hhdb/hhdb-views.sql`.
+  `v_condo_projects` exists locally but not on the NAS. Because the
+  introspected block was garbage, the hhdb schema has no `view` blocks and
+  the `views` preview flag is off; turn it back on after the NAS view is
+  recreated.
+- **Stored procedures are invisible to Prisma.** `sp_regenerate_freq_tables`
+  stays a hand-managed SQL object; call it with `$executeRaw` if needed.
+- **DateTime semantics match the HST convention.** For a stored
+  `2026-09-22 15:38:12`, Prisma returns a Date whose UTC fields are
+  `15:38:12`. On this HST-zoned Mac, Bun SQL returned the same row as
+  `01:38:12Z` (it applied the machine time zone), 10 hours apart from
+  Prisma. The `@catalog/utils/time` doc describes the Prisma behaviour as
+  the norm; worth checking which one production's Bun SQL actually does,
+  since the server's TZ decides.
+- `BigInt` shows up more than expected on the uhero side too:
+  `app_logs.id` is a `bigint` in the client.
