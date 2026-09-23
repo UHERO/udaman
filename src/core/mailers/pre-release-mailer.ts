@@ -217,6 +217,27 @@ export async function sendPreReleaseSubmitted(
   await Mailer.email({ to, subject, html });
 }
 
+const SLACK_COMMS_CHANNEL = "#uhero-comms";
+
+/** Post a new pre-release form submission to the comms Slack channel. */
+export async function notifyPreReleaseSubmittedSlack(input: {
+  approvalId: number;
+  universe: string;
+  name: string;
+  author: string;
+}): Promise<void> {
+  const url = `${BASE_URL}/${input.universe.toLowerCase()}/comms/pub-form/${input.approvalId}`;
+
+  log.info(
+    { approvalId: input.approvalId, channel: SLACK_COMMS_CHANNEL },
+    "Sending pre-release submitted Slack notification",
+  );
+  await Mailer.slack({
+    channel: SLACK_COMMS_CHANNEL,
+    text: `📝 *${input.author}* submitted a pre-release form: <${url}|${input.name}>`,
+  });
+}
+
 /**
  * Tell the lead author their form has collected the required number of
  * reviews. Sent once, when the count crosses the threshold.
@@ -260,44 +281,3 @@ export async function sendPreReleaseReviewed(input: {
   await Mailer.email({ to: [input.authorEmail], subject, html });
 }
 
-/**
- * Notify a reviewer that the author left them a message on their review
- * (e.g. asking for clarification). Reply-to is set to the sender so a reply
- * reaches them directly, even though it won't appear in-thread here.
- */
-export async function sendReviewMessage(input: {
-  approvalId: number;
-  approvalName: string;
-  senderName: string;
-  senderEmail: string;
-  reviewerEmail: string;
-  body: string;
-}): Promise<void> {
-  const url = `${BASE_URL}/comms/pub-form/${input.approvalId}`;
-  const subject = `Re: ${input.approvalName} — a message from ${input.senderName}`;
-
-  const html = shell(
-    subject,
-    `
-    <p>
-      <strong>${esc(input.senderName)}</strong> left you a message on your
-      review of <strong>${esc(input.approvalName)}</strong>:
-    </p>
-    <blockquote style="margin: 12px 0; padding: 8px 16px; border-left: 3px solid #ccc; white-space: pre-wrap;">${esc(
-      input.body,
-    )}</blockquote>
-    <p><a href="${esc(url)}">View and reply in udaman</a>.</p>
-    `,
-  );
-
-  log.info(
-    { approvalId: input.approvalId, to: input.reviewerEmail },
-    "Sending review message email",
-  );
-  await Mailer.email({
-    to: [input.reviewerEmail],
-    subject,
-    html,
-    replyTo: input.senderEmail,
-  });
-}
