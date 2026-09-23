@@ -934,7 +934,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "dcca_link",
       label: "DCCA Link",
-      description: "Link to the DCCA condominium registration page.",
+      description:
+        "Link to the project's page in the DCCA Real Estate Branch condo register (web3.dcca.hawaii.gov/reb/public/result2?reg=<project_number>). Rows last refreshed from the old DPR.Net site still carry a ShowPublic.aspx link. Written by `bun run dcca load`.",
       summary: ALL_VIEWS,
     },
     {
@@ -964,7 +965,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "project_number",
       label: "Project Number",
-      description: "DCCA-assigned project registration number.",
+      description:
+        "DCCA condominium registration number — the key of the project's page in the register and the prefix of its filed public reports (e.g. 6368B.pdf).",
       summary: ALL_VIEWS,
     },
     {
@@ -1033,31 +1035,36 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "land_ownership",
       label: "Land Ownership",
-      description: "Fee simple or leasehold ownership of the underlying land.",
+      description:
+        'Ownership of the underlying land as the DCCA register prints it ("FEE SIMPLE", "LEASEHOLD", …). Rows the current register does not match keep the old DPR.Net codes (FO, L, FC, P, PC, …).',
       summary: ALL_VIEWS,
     },
     {
       key: "preliminary_date",
       label: "Preliminary Date",
-      description: "Date of preliminary condo registration.",
+      description:
+        "Date of preliminary condo registration. From the old DPR.Net site only — the current DCCA register does not publish registration dates, so this is not refreshed and is NULL for projects registered since.",
       summary: ALL_VIEWS,
     },
     {
       key: "contingent_final_date",
       label: "Contingent Final Date",
-      description: "Contingent final registration date.",
+      description:
+        "Contingent final registration date. From the old DPR.Net site only; not published by the current register, so not refreshed.",
       summary: ALL_VIEWS,
     },
     {
       key: "final_date",
       label: "Final Date",
-      description: "Final condo registration date.",
+      description:
+        "Final condo registration date. From the old DPR.Net site only; not published by the current register, so not refreshed.",
       summary: ALL_VIEWS,
     },
     {
       key: "biennial_registration_date",
       label: "Biennial Registration",
-      description: "Most recent biennial registration date.",
+      description:
+        "Most recent biennial registration date. From the old DPR.Net site only; not published by the current register, so not refreshed.",
       summary: ALL_VIEWS,
     },
   ],
@@ -2023,7 +2030,7 @@ export const HHDB_TABLE_DOCS: Record<string, string> = {
   permits:
     "Building permits, accumulated by permit number per parcel (first-seen wins; county re-entries of the same permit number are skipped).",
   condominium_projects:
-    "Condo master records (the parent TMK listing all units), enriched with DCCA registration data (developer, project number, unit mix, registration dates) where matched.",
+    "Condo master records (the parent TMK listing all units) from qPublic, enriched from the DCCA Real Estate Branch condo register (developer, registration number, address, zoning, unit mix, land ownership) where a register entry matches — by the register's TMK, else by project name. `bun run dcca run` scrapes the register and re-applies the fields; rerun it after every qpub sync, which recreates this table without them. The register's TMK is not always right and its project names differ from the county's, so a run's report.csv lists the entries it could not place. The four registration-date columns are legacy (old DPR.Net site) and are no longer refreshed.",
   land_classifications:
     "Land-use classification rows, several per parcel — one per (classification, square footage, acreage) segment, versioned by change detection. A parcel routinely carries multiple segments of the same classification differing only in size.",
   current_tax_bills:

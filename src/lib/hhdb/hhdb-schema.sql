@@ -629,7 +629,7 @@ CREATE TABLE condominium_projects (
     other INT UNSIGNED COMMENT 'Number of other units',
     buildings INT UNSIGNED COMMENT 'Number of buildings',
     floors INT UNSIGNED COMMENT 'Number of floors',
-    land_ownership VARCHAR(10) COMMENT 'Land ownership type (FC, FO, L, PC, etc.)',
+    land_ownership VARCHAR(50) COMMENT 'Land ownership as the DCCA register prints it (FEE SIMPLE, LEASEHOLD, …); legacy DPR.Net codes (FC, FO, L, PC, …) on rows the current register does not match',
     preliminary_date DATE COMMENT 'Preliminary date',
     contingent_final_date DATE COMMENT 'Contingent final date',
     final_date DATE COMMENT 'Final date',

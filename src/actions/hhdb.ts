@@ -1,5 +1,7 @@
 "use server";
 
+import { QueryBuilderError } from "@catalog/collections/hhdb-query-builder-collection";
+import type { QueryResult } from "@catalog/collections/hhdb-query-builder-collection";
 import {
   getAccessoryImprovementsJSON as getAccessoryImprovementsCtrl,
   getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
@@ -46,6 +48,7 @@ import {
   getTgTransactionsJSON as getTgTransactionsCtrl,
   getTopOwners as getTopOwnersCtrl,
   getTotalAssessedByIsland as getTotalAssessedCtrl,
+  runQueryBuilder as runQueryBuilderCtrl,
 } from "@catalog/controllers/hhdb";
 import type {
   CategoricalDrilldown,
@@ -57,6 +60,7 @@ import type {
   TemporalDrilldown,
   TextDrilldown,
 } from "@catalog/types/hhdb";
+import { querySpecSchema } from "@catalog/utils/hhdb-query-builder/spec";
 
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -361,4 +365,31 @@ export async function getHhdbMlsExploration() {
 export async function getHhdbTableCount(table: string): Promise<number | null> {
   await requirePermission("hhdb", "read");
   return getTableCountCtrl(table);
+}
+
+export type QueryBuilderResponse =
+  { ok: true; result: QueryResult } | { ok: false; error: string };
+
+/**
+ * Query Builder: validate the spec here (it comes straight from the URL),
+ * then compile and run it. Errors the user can fix come back as `ok: false`;
+ * anything else is thrown so it is logged like any other action failure.
+ */
+export async function runHhdbQueryBuilder(
+  spec: unknown,
+): Promise<QueryBuilderResponse> {
+  await requirePermission("hhdb", "read");
+  const parsed = querySpecSchema.safeParse(spec);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "The query is malformed; reset it and try again.",
+    };
+  }
+  try {
+    return { ok: true, result: await runQueryBuilderCtrl(parsed.data) };
+  } catch (e) {
+    if (e instanceof QueryBuilderError) return { ok: false, error: e.message };
+    throw e;
+  }
 }

@@ -27,7 +27,9 @@
       "Bash(echo \"eslint exit=$?\")",
       "Bash(echo \"schema prettier exit=$?\")",
       "Bash(bunx prisma *)",
-      "Bash(echo \"validate exit=$?\")"
+      "Bash(echo \"validate exit=$?\")",
+      "Bash(awk '/<div id=\"wrapper\">/{f=1} /<div id=\"note\">/{f=0} f' dcca-notfound.html)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

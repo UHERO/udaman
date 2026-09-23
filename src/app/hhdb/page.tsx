@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Maximize2, Minimize2 } from "lucide-react";
 
@@ -164,6 +165,12 @@ export default function Page() {
 
           <h2 className="mt-4 text-lg font-bold">Tips</h2>
           <ul>
+            <li>
+              The <Link href="/hhdb/query">Query Builder</Link> joins any of
+              these tables on <code>tmk</code>, filters them, and groups or
+              totals the result, without writing SQL. It also shows the SQL it
+              ran, so you can take a query further in R or DBeaver.
+            </li>
             <li>
               Use the <strong>Summary</strong> tab on any table to quickly see
               the frequency counts for fields, broken down by island.

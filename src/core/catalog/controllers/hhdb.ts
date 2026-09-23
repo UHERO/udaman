@@ -23,6 +23,10 @@ import HhdbParcelCollection from "../collections/hhdb-parcel-collection";
 import HhdbPermitCollection from "../collections/hhdb-permit-collection";
 import HhdbProfileCollection from "../collections/hhdb-profile-collection";
 import HhdbPropertyCollection from "../collections/hhdb-property-collection";
+import {
+  runQuery as runQueryBuilderQuery,
+  type QueryResult,
+} from "../collections/hhdb-query-builder-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
@@ -37,6 +41,8 @@ import type {
   TemporalDrilldown,
   TextDrilldown,
 } from "../types/hhdb";
+import { getQueryBuilderSchema as buildQueryBuilderSchema } from "../utils/hhdb-query-builder/schema";
+import type { QuerySchema, QuerySpec } from "../utils/hhdb-query-builder/spec";
 
 const log = createLogger("hhdb");
 
@@ -573,3 +579,17 @@ export async function getMlsExploration() {
 }
 
 export type MlsExplorationData = Awaited<ReturnType<typeof getMlsExploration>>;
+
+// --- Query Builder ---
+
+export function getQueryBuilderSchema(): QuerySchema {
+  return buildQueryBuilderSchema();
+}
+
+export async function runQueryBuilder(spec: QuerySpec): Promise<QueryResult> {
+  log.info(
+    { primary: spec.primary, tables: spec.tables },
+    "running query builder",
+  );
+  return runQueryBuilderQuery(spec);
+}

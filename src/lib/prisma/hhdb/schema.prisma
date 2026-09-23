@@ -176,7 +176,7 @@ model condominium_projects {
   other                      Int?                @db.UnsignedInt
   buildings                  Int?                @db.UnsignedInt
   floors                     Int?                @db.UnsignedInt
-  land_ownership             String?             @db.VarChar(10)
+  land_ownership             String?             @db.VarChar(50)
   preliminary_date           DateTime?           @db.Date
   contingent_final_date      DateTime?           @db.Date
   final_date                 DateTime?           @db.Date

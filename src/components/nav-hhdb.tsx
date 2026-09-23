@@ -24,6 +24,7 @@ import {
   PlusSquare,
   Receipt,
   ScrollText,
+  SquareTerminal,
   Tag,
   TreePine,
   Users,
@@ -70,6 +71,7 @@ const SECTIONS: { label: string; entries: NavEntry[] }[] = [
     label: "qPublic",
     entries: [
       { title: "About", url: "/hhdb", icon: Info },
+      { title: "Query Builder", url: "/hhdb/query", icon: SquareTerminal },
       {
         title: "Property",
         icon: Home,
