@@ -37,9 +37,27 @@ export default async function Page({
   const currentUserId = parseInt(userId) || 0;
   const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
     ? status
-    : "all";
+    : "not_reviewed";
+
+  // No explicit ?view= yet: land wherever this user has something of their
+  // own to do — their publications, then their reviews, else everyone's list.
+  const defaultView: CommsView = approvals.some(
+    (a) => a.authorUserId === currentUserId,
+  )
+    ? "board"
+    : Object.values(reviews)
+          .flat()
+          .some((r) => r.reviewerUserId === currentUserId)
+      ? "reviewing"
+      : "list";
   const activeView: CommsView =
-    view === "board" ? "board" : view === "reviewing" ? "reviewing" : "list";
+    view === "board"
+      ? "board"
+      : view === "reviewing"
+        ? "reviewing"
+        : view === "list"
+          ? "list"
+          : defaultView;
   const visible = approvals.filter((a) => matches(a, active));
 
   return (
