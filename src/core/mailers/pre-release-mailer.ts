@@ -217,7 +217,7 @@ export async function sendPreReleaseSubmitted(
   await Mailer.email({ to, subject, html });
 }
 
-const SLACK_COMMS_CHANNEL = "#uhero-comms";
+const SLACK_COMMS_CHANNEL = "automation";
 
 /** Post a new pre-release form submission to the comms Slack channel. */
 export async function notifyPreReleaseSubmittedSlack(input: {
@@ -226,7 +226,7 @@ export async function notifyPreReleaseSubmittedSlack(input: {
   name: string;
   author: string;
 }): Promise<void> {
-  const url = `${BASE_URL}/${input.universe.toLowerCase()}/comms/pub-form/${input.approvalId}`;
+  const url = `${BASE_URL}/comms/pub-form/${input.approvalId}`;
 
   log.info(
     { approvalId: input.approvalId, channel: SLACK_COMMS_CHANNEL },
@@ -234,7 +234,7 @@ export async function notifyPreReleaseSubmittedSlack(input: {
   );
   await Mailer.slack({
     channel: SLACK_COMMS_CHANNEL,
-    text: `📝 *${input.author}* submitted a pre-release form: <${url}|${input.name}>`,
+    text: `*${input.author}* submitted a pre-release form: <${url}|${input.name}>`,
   });
 }
 
