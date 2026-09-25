@@ -215,11 +215,11 @@ export const REQUIRED_REVIEWS = 3;
  * reviewed = reviewCount >= REQUIRED_REVIEWS, released = releasedAt set.
  */
 export const APPROVAL_STATUS_FILTERS = [
-  "all",
-  "unreleased",
-  "released",
   "not_reviewed",
   "reviewed",
+  "unreleased",
+  "released",
+  "all",
 ] as const;
 export type ApprovalStatusFilter = (typeof APPROVAL_STATUS_FILTERS)[number];
 

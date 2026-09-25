@@ -9,10 +9,14 @@ export type CommsView = "list" | "board" | "reviewing";
  * cross-comm review board ("Your Publications"), and the reviewer's
  * cross-comm queue ("Your Reviews"). A separate axis from the status filter
  * tabs — kept out of PreReleaseStatusTabs so the two don't conflate.
+ *
+ * With no `?view=`, the page picks whichever of these the user actually has
+ * something in (see defaultView in page.tsx) rather than always landing on
+ * the all-forms list.
  */
 export function CommsViewToggle({ active }: { active: CommsView }) {
   const views: { key: CommsView; label: string; href: string }[] = [
-    { key: "list", label: "All forms", href: "/comms" },
+    { key: "list", label: "All forms", href: "/comms?view=list" },
     { key: "board", label: "Your Publications", href: "/comms?view=board" },
     {
       key: "reviewing",
