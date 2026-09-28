@@ -10,12 +10,13 @@ import { toast } from "sonner";
 import { setApprovalReleased } from "@/actions/approvals";
 import { Button } from "@/components/ui/button";
 
+import { ReviewKanbanBoard } from "./review-kanban-board";
 import { formatReviewTimestamp, ReviewTable } from "./review-table";
 
 /**
  * The review thread on a form's detail page plus, for eligible viewers, an
- * "Add review" form. Authors see the thread and the release toggle but
- * cannot review.
+ * "Add review" form. Authors may review their own form — forms are often
+ * filed on the author's behalf.
  */
 export function ReviewPanel({
   approval,
@@ -39,6 +40,7 @@ export function ReviewPanel({
   const canRelease = isAuthor || isAdmin;
   // Authors may review their own form — many are filed on their behalf.
   const canAdd = !mine;
+  const canModify = isAuthor || isAdmin;
 
   function handleRelease(released: boolean) {
     startTransition(async () => {
@@ -91,6 +93,19 @@ export function ReviewPanel({
         </div>
       </div>
 
+      <ReviewKanbanBoard
+        reviews={reviews}
+        approvals={{ [approval.id]: approval }}
+        canDrag={() => canModify}
+        currentUserId={currentUserId}
+        addReview={
+          canAdd
+            ? { approvalId: approval.id, currentUserName }
+            : undefined
+        }
+      />
+
+      {/* Temporarily hidden while iterating on the kanban board.
       <ReviewTable
         approvalId={approval.id}
         reviews={reviews}
@@ -99,6 +114,7 @@ export function ReviewPanel({
         isDev={isDev}
         canAdd={canAdd}
       />
+      */}
     </section>
   );
 }

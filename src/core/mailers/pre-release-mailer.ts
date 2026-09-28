@@ -25,9 +25,15 @@ const log = createLogger("mailer.pre-release");
  * Note the missing `/udaman` prefix — the deployed subdomain strips it from
  * browser URLs and rewrites internally (see src/proxy.ts), so an emailed link
  * must use the external form.
+ *
+ * Falls back to AUTH_URL (the app's own base URL, e.g. localhost in dev)
+ * before the hardcoded production default, so emailed links open the
+ * environment that actually sent them instead of always pointing at prod.
  */
 const BASE_URL =
-  process.env.UDAMAN_BASE_URL ?? "https://udaman.uhero.hawaii.edu";
+  process.env.UDAMAN_BASE_URL ??
+  process.env.AUTH_URL ??
+  "https://udaman.uhero.hawaii.edu";
 
 /** HTML escape so submitter-provided text is safe to embed. */
 function esc(s: string | number | null | undefined): string {
@@ -209,6 +215,27 @@ export async function sendPreReleaseSubmitted(
     "Sending pre-release submitted email",
   );
   await Mailer.email({ to, subject, html });
+}
+
+const SLACK_COMMS_CHANNEL = "automation";
+
+/** Post a new pre-release form submission to the comms Slack channel. */
+export async function notifyPreReleaseSubmittedSlack(input: {
+  approvalId: number;
+  universe: string;
+  name: string;
+  author: string;
+}): Promise<void> {
+  const url = `${BASE_URL}/comms/pub-form/${input.approvalId}`;
+
+  log.info(
+    { approvalId: input.approvalId, channel: SLACK_COMMS_CHANNEL },
+    "Sending pre-release submitted Slack notification",
+  );
+  await Mailer.slack({
+    channel: SLACK_COMMS_CHANNEL,
+    text: `*${input.author}* submitted a pre-release form: <${url}|${input.name}>`,
+  });
 }
 
 /**

@@ -4,8 +4,9 @@ import PermissionCollection from "@catalog/collections/permission-collection";
 
 import { AppLogCollection } from "@/core/catalog/collections/app-log-collection";
 
+import { getCurrentUserContext } from "@/lib/auth/dal";
+
 import { enforceAccessPolicy, PermissionDeniedError } from "./authorization";
-import { getCurrentUserContext } from "./dal";
 
 // Re-export so existing consumers that import from permissions.ts still work
 export { PermissionDeniedError };

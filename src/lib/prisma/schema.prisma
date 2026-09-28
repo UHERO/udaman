@@ -969,6 +969,7 @@ model approval_reviews {
   attested         Boolean   @default(true)
   reviewed_at      DateTime? @db.DateTime(0)
   notes            String?   @db.Text
+  board_status     String    @default("not_started") @db.VarChar(20)
   created_at       DateTime  @default(now()) @db.Timestamp(0)
   updated_at       DateTime  @default(now()) @db.DateTime(0)
   approval         approvals @relation(fields: [approval_id], references: [id], onDelete: Cascade, map: "fk_approval_reviews_approval")

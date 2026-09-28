@@ -65,6 +65,14 @@ function formatSegment(segment: string): string {
     .join(" ");
 }
 
+/**
+ * Path segments with no listing page of their own — only a redirect shim
+ * (e.g. /comms/pub-form redirects to /comms) or nothing at all. Their
+ * breadcrumb crumb should render as plain text instead of a link, since
+ * navigating there just bounces the user through a client-side redirect.
+ */
+const NON_NAVIGABLE_SEGMENTS = new Set(["pub-form"]);
+
 type AppPrefix = {
   rootLabel: string;
   rootHref: string;
@@ -157,6 +165,7 @@ export function NavBreadcrumb() {
   const crumbs = crumbSegments.map((segment, i) => ({
     label: segmentLabels[segment] ?? formatSegment(segment),
     href: `${basePath}/${crumbSegments.slice(0, i + 1).join("/")}`,
+    navigable: !NON_NAVIGABLE_SEGMENTS.has(segment),
   }));
 
   return (
@@ -179,7 +188,7 @@ export function NavBreadcrumb() {
                   isLast ? "min-w-0" : "hidden shrink-0 md:block md:shrink"
                 }
               >
-                {isLast ? (
+                {isLast || !crumb.navigable ? (
                   <BreadcrumbPage className="truncate">
                     {crumb.label}
                   </BreadcrumbPage>
