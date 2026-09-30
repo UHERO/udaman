@@ -12,7 +12,7 @@ import { usePortalConfig } from "../../lib/portal-context";
 import { seriesChartData, seriesUnits } from "../../lib/series";
 import type { ExpandedSeries, FreqCode, SeriesChartRow } from "../../lib/types";
 import { AnalyzerToggle } from "../analyzer/analyzer-toggle";
-import type { DisplayTransform } from "../selectors/transform-toggle";
+import type { TableTransform } from "../selectors/transform-toggle";
 import { MiniLineChart } from "../ui/mini-line-chart";
 import { PortalCard } from "../ui/portal-card";
 
@@ -34,10 +34,17 @@ export function secondaryLabel(
   return `Year/Year ${chg}`;
 }
 
-/** Last row inside [start, end] with a `key` value (highchart.findLastValue). */
+/**
+ * Hover affordance: a 6px theme-color bar grows from the bottom-center out
+ * to both edges. Drawn on ::after so nothing reflows and the Analyzer
+ * outline (inline style) is untouched.
+ */
+const HOVER_BAR =
+  "relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-1.5 after:origin-center after:scale-x-0 after:bg-(--portal-primary) after:transition-transform after:duration-200 after:ease-out after:content-[''] hover:after:scale-x-100";
+
+/** Last row inside [start, end] with a level value (highchart.findLastValue). */
 function lastInRange(
   rows: SeriesChartRow[],
-  key: DisplayTransform,
   start?: string,
   end?: string,
 ): SeriesChartRow | null {
@@ -45,7 +52,7 @@ function lastInRange(
     const r = rows[i];
     if (end && r.date > end) continue;
     if (start && r.date < start) break;
-    if (r[key] !== null) return r;
+    if (r.level !== null) return r;
   }
   return null;
 }
@@ -60,9 +67,9 @@ function lastInRange(
  * hovered point (no floating tooltip). Body: axis-less MiniLineChart over
  * [startDate, endDate]. Outlined in the brand color while in the Analyzer.
  *
- * `transform` picks what the line plots (chart-view Level/YOY/YTD toggle).
- * The header leads with that value; the second line shows level when a
- * transformation is plotted, else the configured companion change.
+ * The line is always level. `growth` (chart-view YOY/YTD toggle) adds that
+ * growth rate as gray bars behind it, and the header's second line shows it
+ * in place of the configured companion change.
  *
  * Props-driven — reusable by search results or the analyzer gallery:
  *   <CategoryChartCard series={s} href={…} startDate endDate />
@@ -77,7 +84,7 @@ export function CategoryChartCard({
   displayName,
   seasonalMessage,
   actions,
-  transform = "level",
+  growth = null,
   slot = 0,
   className,
 }: {
@@ -93,8 +100,8 @@ export function CategoryChartCard({
   /** When set, the card shows this message instead of the chart (SA toggle). */
   seasonalMessage?: string | null;
   actions?: React.ReactNode;
-  /** Value the chart plots (default level). */
-  transform?: DisplayTransform;
+  /** Growth rate drawn as bars behind the level line (null = none). */
+  growth?: TableTransform | null;
   slot?: number;
   className?: string;
 }) {
@@ -108,18 +115,16 @@ export function CategoryChartCard({
   const freq = series.frequencyShort;
   const decimals = seriesDecimals(series);
   const { miniChart } = config;
-  const secondary = miniChart.showSecondary ? miniChart.secondary : null;
+  const secondary =
+    growth ?? (miniChart.showSecondary ? miniChart.secondary : null);
 
   const data = useMemo(() => seriesChartData(series), [series]);
   const [hovered, setHovered] = useState<SeriesChartRow | null>(null);
-  const latest =
-    hovered ?? lastInRange(data.rows, transform, startDate, endDate);
+  const latest = hovered ?? lastInRange(data.rows, startDate, endDate);
   const units = seriesUnits(series);
   const secondaryValue = secondary && latest ? latest[secondary] : null;
-  const fmtChange = (
-    key: Exclude<DisplayTransform, "level">,
-    v: number | null,
-  ) => formatNum(v, key === "c5ma" ? decimals : GROWTH_DECIMALS, universe);
+  const fmtChange = (key: TableTransform, v: number | null) =>
+    formatNum(v, key === "c5ma" ? decimals : GROWTH_DECIMALS, universe);
   const levelLine = latest && (
     <>
       <span className="font-medium">
@@ -154,7 +159,7 @@ export function CategoryChartCard({
 
   return (
     <PortalCard
-      className={cn("flex flex-col", className)}
+      className={cn("flex flex-col", HOVER_BAR, className)}
       style={selectedStyle}
     >
       <header className="flex items-start justify-between gap-2 px-4 pt-3">
@@ -166,37 +171,17 @@ export function CategoryChartCard({
           </h3>
           {latest ? (
             <>
-              {transform === "level" ? (
-                <p className="text-foreground mt-1 tabular-nums">
-                  {formatTooltipDate(latest.date, freq)}: {levelLine}
+              <p className="text-foreground mt-1 tabular-nums">
+                {formatTooltipDate(latest.date, freq)}: {levelLine}
+              </p>
+              {secondary && secondaryValue !== null && (
+                <p className="text-muted-foreground tabular-nums">
+                  {secondaryLabel(secondary, series.percent, freq)}:{" "}
+                  <span className="text-foreground">
+                    {fmtChange(secondary, secondaryValue)}
+                  </span>
                 </p>
-              ) : (
-                <>
-                  <p className="text-foreground mt-1 tabular-nums">
-                    {formatTooltipDate(latest.date, freq)}{" "}
-                    <span className="text-muted-foreground">
-                      {secondaryLabel(transform, series.percent, freq)}
-                    </span>
-                    :{" "}
-                    <span className="font-medium">
-                      {fmtChange(transform, latest[transform])}
-                    </span>
-                  </p>
-                  <p className="text-muted-foreground tabular-nums">
-                    Level: <span className="text-foreground">{levelLine}</span>
-                  </p>
-                </>
               )}
-              {transform === "level" &&
-                secondary &&
-                secondaryValue !== null && (
-                  <p className="text-muted-foreground tabular-nums">
-                    {secondaryLabel(secondary, series.percent, freq)}:{" "}
-                    <span className="text-foreground">
-                      {fmtChange(secondary, secondaryValue)}
-                    </span>
-                  </p>
-                )}
             </>
           ) : (
             <p className="text-muted-foreground mt-1">
@@ -228,6 +213,7 @@ export function CategoryChartCard({
           slot={slot}
           levelLabel={units ? `Level (${units})` : "Level"}
           companion={secondary}
+          companionBars={!!growth}
           companionLabel={
             secondary
               ? secondaryLabel(secondary, series.percent, freq)
@@ -239,7 +225,6 @@ export function CategoryChartCard({
           pseudoZones={data.pseudoZones}
           height={130}
           showXAxis={false}
-          valueKey={transform}
           showYAxis={false}
           tooltip={false}
           onHoverRow={setHovered}

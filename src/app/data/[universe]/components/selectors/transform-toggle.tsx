@@ -38,14 +38,17 @@ export function availableTransforms(
   return out;
 }
 
-/** Parse the `transform` URL param against what's available (else level). */
-export function resolveDisplayTransform(
+/**
+ * Parse the `transform` URL param (chart-view growth bars) against what's
+ * available; null = level line only.
+ */
+export function resolveGrowthTransform(
   value: string | null | undefined,
   available: TableTransform[],
-): DisplayTransform {
+): TableTransform | null {
   return available.includes(value as TableTransform)
     ? (value as TableTransform)
-    : "level";
+    : null;
 }
 
 type SegmentProps<T extends string> = {
@@ -53,13 +56,16 @@ type SegmentProps<T extends string> = {
   className?: string;
 } & (
   | { mode: "single"; value: T; onChange: (value: T) => void }
+  /** At most one on; clicking the active option turns it off. */
+  | { mode: "optional"; value: T | null; onChange: (value: T | null) => void }
   | { mode: "multiple"; value: T[]; onChange: (value: T[]) => void }
 );
 
 /**
  * Segmented toggle matching the Chart/Table view toggle. Chart view uses
- * `mode="single"` (Level | YOY | YTD); table view uses `mode="multiple"` to
- * add transformation rows. Acronym labels, full names in a tooltip.
+ * `mode="optional"` (growth bars YOY | YTD behind the level line, or none);
+ * table view uses `mode="multiple"` to add transformation rows. Acronym
+ * labels, full names in a tooltip.
  */
 export function TransformToggle<T extends DisplayTransform>(
   props: SegmentProps<T>,
@@ -69,11 +75,13 @@ export function TransformToggle<T extends DisplayTransform>(
   if (!options.length) return null;
 
   const isOn = (o: T) =>
-    props.mode === "single" ? props.value === o : props.value.includes(o);
+    props.mode === "multiple" ? props.value.includes(o) : props.value === o;
 
   const toggle = (o: T) => {
     if (props.mode === "single") {
       if (props.value !== o) props.onChange(o);
+    } else if (props.mode === "optional") {
+      props.onChange(props.value === o ? null : o);
     } else {
       props.onChange(
         props.value.includes(o)
@@ -88,7 +96,7 @@ export function TransformToggle<T extends DisplayTransform>(
     <div
       role="group"
       aria-label={
-        props.mode === "single" ? "Chart values" : "Table transformations"
+        props.mode === "multiple" ? "Table transformations" : "Growth rate bars"
       }
       className={cn("border-input flex divide-x border", className)}
     >

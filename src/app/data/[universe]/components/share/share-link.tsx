@@ -12,6 +12,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 import { absolutePortalUrl } from "../../lib/links";
@@ -34,8 +39,14 @@ export type { ShareTarget } from "./share-urls";
  * URLs are computed when the dialog opens, so they reflect shallow
  * (history.replaceState) range changes too.
  */
-export function ShareLink(props: ShareTarget & { className?: string }) {
-  const { className, ...target } = props;
+export function ShareLink(
+  props: ShareTarget & {
+    className?: string;
+    /** Icon-only below 2xl (tooltip shows the label), full text at 2xl+. */
+    compact?: boolean;
+  },
+) {
+  const { className, compact, ...target } = props;
   const { config } = usePortalConfig();
   const [open, setOpen] = useState(false);
 
@@ -61,17 +72,27 @@ export function ShareLink(props: ShareTarget & { className?: string }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className={cn("h-7 rounded-none px-2.5 text-xs", className)}
-        >
-          <Share2 className="size-3.5" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-label="Share"
+              className={cn("h-7 rounded-none px-2.5 text-xs", className)}
+            >
+              <Share2 className="size-3.5" />
+              <span className={compact ? "hidden 2xl:inline" : undefined}>
+                Share
+              </span>
+            </Button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent className={compact ? "2xl:hidden" : "hidden"}>
           Share
-        </Button>
-      </DialogTrigger>
+        </TooltipContent>
+      </Tooltip>
       <DialogContent className="rounded-none sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-base">Share or Embed</DialogTitle>

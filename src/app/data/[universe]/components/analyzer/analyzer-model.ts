@@ -269,9 +269,11 @@ export function specPoints(
 export type AnalyzerChartRow = {
   ts: number;
   date: string;
-} & Record<`s${number}`, number | null>;
+} & Record<`s${number}` | `p${number}`, number | null>;
 
 export const specKey = (id: number) => `s${id}` as const;
+/** Pseudo-history values of a series, drawn dashed (level only). */
+export const pseudoKey = (id: number) => `p${id}` as const;
 
 /**
  * Chart rows over the union of the drawn series' dates, restricted to
@@ -296,7 +298,13 @@ export function analyzerChartRows(
         row = { ts: Date.parse(date), date } as AnalyzerChartRow;
         byDate.set(date, row);
       }
-      row[specKey(spec.id)] = p.values[i];
+      // Pseudo-history points go to the dashed pseudoKey; each run also
+      // takes its real neighbours so the dashed and solid lines join.
+      const ps = p.pseudo;
+      const isPseudo = !!ps?.[i];
+      const nearPseudo = isPseudo || !!ps?.[i - 1] || !!ps?.[i + 1];
+      row[specKey(spec.id)] = isPseudo ? null : p.values[i];
+      if (nearPseudo) row[pseudoKey(spec.id)] = p.values[i];
     });
   }
   const rows = [...byDate.values()].sort((a, b) => a.ts - b.ts);
@@ -344,12 +352,14 @@ export function axisExtent(
   let max = -Infinity;
   for (const spec of specs) {
     if (!spec.visible || spec.axis !== side) continue;
-    const k = specKey(spec.id);
+    const keys = [specKey(spec.id), pseudoKey(spec.id)] as const;
     for (const r of rows) {
-      const v = r[k];
-      if (v === null || v === undefined || !Number.isFinite(v)) continue;
-      if (v < min) min = v;
-      if (v > max) max = v;
+      for (const k of keys) {
+        const v = r[k];
+        if (v === null || v === undefined || !Number.isFinite(v)) continue;
+        if (v < min) min = v;
+        if (v > max) max = v;
+      }
     }
   }
   return Number.isFinite(min) ? [min, max] : null;

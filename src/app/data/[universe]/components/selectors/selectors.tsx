@@ -7,6 +7,11 @@
  * Shared by category (A), series (B), analyzer (C) and search (D) views.
  */
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -145,17 +150,23 @@ export function MeasurementSelector({
 export function CheckToggle({
   id,
   label,
+  shortLabel,
+  tooltip,
   checked,
   onChange,
   className,
 }: {
   id: string;
   label: React.ReactNode;
+  /** Compact label below the 2xl breakpoint (full label shows at 2xl+). */
+  shortLabel?: string;
+  /** Hover text while the short label is showing (defaults to `label`). */
+  tooltip?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   className?: string;
 }) {
-  return (
+  const control = (
     <label
       htmlFor={id}
       className={cn(
@@ -169,7 +180,24 @@ export function CheckToggle({
         onCheckedChange={(v) => onChange(v === true)}
         className="rounded-none data-[state=checked]:border-(--portal-primary) data-[state=checked]:bg-(--portal-primary) data-[state=checked]:text-white"
       />
-      {label}
+      {shortLabel ? (
+        <>
+          <span className="hidden 2xl:inline">{label}</span>
+          <span className="2xl:hidden">{shortLabel}</span>
+        </>
+      ) : (
+        label
+      )}
     </label>
+  );
+  if (!shortLabel) return control;
+  // Same tooltip as the Level/YOY/YTD toggle; hidden once the full label fits.
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{control}</TooltipTrigger>
+      <TooltipContent className="2xl:hidden">
+        {tooltip ?? (typeof label === "string" ? label : shortLabel)}
+      </TooltipContent>
+    </Tooltip>
   );
 }

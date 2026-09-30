@@ -68,27 +68,30 @@ export function buildWideTableCsv(opts: {
 }
 
 /**
- * Same wide table as `buildWideTableCsv`, tab-separated with no metadata
- * lines, for "Copy to Clipboard" — pastes into Excel/Sheets as cells.
+ * Tab-separated rows for "Copy to Clipboard" — pastes into Excel/Sheets as
+ * cells. Tabs/newlines inside cells collapse to spaces.
  */
-export function buildWideTableTsv(opts: {
-  columns: { key: string; label: string }[];
-  rows: CsvTableRow[];
-  firstColumnLabel?: string;
-}): string {
-  const { columns, rows, firstColumnLabel = "Series" } = opts;
+export function toTsv(rows: Cell[][]): string {
   const cell = (c: Cell) =>
     c === null ||
     c === undefined ||
     (typeof c === "number" && !Number.isFinite(c))
       ? ""
       : String(c).replace(/[\t\r\n]+/g, " ");
-  return [
+  return rows.map((r) => r.map(cell).join("\t")).join("\n");
+}
+
+/** Same wide table as `buildWideTableCsv`, as TSV with no metadata lines. */
+export function buildWideTableTsv(opts: {
+  columns: { key: string; label: string }[];
+  rows: CsvTableRow[];
+  firstColumnLabel?: string;
+}): string {
+  const { columns, rows, firstColumnLabel = "Series" } = opts;
+  return toTsv([
     [firstColumnLabel, ...columns.map((c) => c.label)],
     ...rows.map((r) => [r.label, ...columns.map((c) => r.values[c.key])]),
-  ]
-    .map((r) => r.map(cell).join("\t"))
-    .join("\n");
+  ]);
 }
 
 /**

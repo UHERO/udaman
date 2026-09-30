@@ -24,15 +24,18 @@ import type { FreqCode } from "../../lib/types";
 import {
   AXIS_PROPS,
   CHART_LINE_WIDTH,
+  CURVE_TYPE,
   formatTimeTick,
   GRID_PROPS,
   LINE_PROPS,
   timeTicks,
 } from "../ui/chart-theme";
+import { PSEUDO_DASH, PseudoHistoryNote } from "../ui/pseudo-history-note";
 import {
   analyzerChartRows,
   axisExtent,
   axisTitle,
+  pseudoKey,
   specKey,
   valueForPeriod,
 } from "./analyzer-model";
@@ -169,12 +172,30 @@ export const AnalyzerChart = forwardRef<
   );
 
   const legendSpecs = legendShowsHidden ? specs : visible;
+  // Specs with pseudo-history points in the visible rows (columns excluded:
+  // bars have no dashed form).
+  const pseudoIds = new Set(
+    visible
+      .filter(
+        (s) =>
+          s.type !== "column" &&
+          rows.some(
+            (r) => r[pseudoKey(s.id)] != null && r[specKey(s.id)] == null,
+          ),
+      )
+      .map((s) => s.id),
+  );
 
   return (
     <div className={cn("w-full", className)}>
-      {(leftTitle || rightTitle) && (
+      {(leftTitle || rightTitle || pseudoIds.size > 0) && (
         <div className="text-muted-foreground flex justify-between gap-4 pb-1 text-[11px]">
-          <span className="truncate">{hasLeft ? leftTitle : ""}</span>
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="truncate">{hasLeft ? leftTitle : ""}</span>
+            {pseudoIds.size > 0 && (
+              <PseudoHistoryNote color="var(--muted-foreground)" />
+            )}
+          </span>
           <span className="truncate text-right">
             {hasRight ? rightTitle : ""}
           </span>
@@ -264,12 +285,26 @@ export const AnalyzerChart = forwardRef<
                     />
                   );
                 }
+                const pseudo = pseudoIds.has(s.id) && (
+                  <Line
+                    key={`${key}-pseudo`}
+                    {...LINE_PROPS}
+                    yAxisId={s.axis}
+                    dataKey={pseudoKey(s.id)}
+                    name={`${s.name} (pseudo history)`}
+                    stroke={color}
+                    strokeDasharray={PSEUDO_DASH}
+                    activeDot={false}
+                    legendType="none"
+                  />
+                );
                 if (s.type === "area") {
-                  return (
+                  return [
+                    pseudo,
                     <Area
                       key={key}
                       yAxisId={s.axis}
-                      type="linear"
+                      type={CURVE_TYPE}
                       dataKey={key}
                       name={s.name}
                       stroke={color}
@@ -281,10 +316,11 @@ export const AnalyzerChart = forwardRef<
                       activeDot={{ r: 3, strokeWidth: 0 }}
                       isAnimationActive={false}
                       connectNulls={bridge}
-                    />
-                  );
+                    />,
+                  ];
                 }
-                return (
+                return [
+                  pseudo,
                   <Line
                     key={key}
                     {...LINE_PROPS}
@@ -294,8 +330,8 @@ export const AnalyzerChart = forwardRef<
                     stroke={color}
                     strokeDasharray={dash}
                     connectNulls={bridge}
-                  />
-                );
+                  />,
+                ];
               })}
               <ChartTooltip
                 cursor={{ stroke: "var(--border)", strokeWidth: 1 }}

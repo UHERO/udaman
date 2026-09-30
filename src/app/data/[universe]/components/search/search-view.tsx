@@ -36,7 +36,7 @@ import { endForFreqSwitch } from "../selectors/freq-switch";
 import { CheckToggle, FreqSelector, GeoSelector } from "../selectors/selectors";
 import {
   availableTransforms,
-  resolveDisplayTransform,
+  resolveGrowthTransform,
   TransformToggle,
 } from "../selectors/transform-toggle";
 import { CopyButton } from "../ui/copy-button";
@@ -118,7 +118,7 @@ export function SearchView({
     });
 
   const transforms = availableTransforms(config.transformations, f);
-  const chartTransform = resolveDisplayTransform(q.transform, transforms);
+  const chartGrowth = resolveGrowthTransform(q.transform, transforms);
 
   // ── Table rows ────────────────────────────────────────────────────
   const tableRows = useMemo(
@@ -196,18 +196,18 @@ export function SearchView({
             />
           ) : (
             <TransformToggle
-              mode="single"
-              options={["level", ...transforms]}
-              value={chartTransform}
-              onChange={(t) =>
-                setParams({ transform: t === "level" ? null : t })
-              }
+              mode="optional"
+              options={transforms}
+              value={chartGrowth}
+              onChange={(t) => setParams({ transform: t })}
             />
           )}
           {hasSeasonal && (
             <CheckToggle
               id="search-sa"
               label="Seasonally Adjusted"
+              shortLabel="SA"
+              tooltip="Seasonal Adjustment"
               checked={q.sa}
               onChange={(v) => setParams({ sa: v })}
             />
@@ -283,7 +283,7 @@ export function SearchView({
                 href={seriesHref(s)}
                 startDate={range.startDate || undefined}
                 endDate={range.endDate || undefined}
-                transform={chartTransform}
+                growth={chartGrowth}
                 seasonalMessage={msg ? seasonalMessage : null}
               />
             ))}

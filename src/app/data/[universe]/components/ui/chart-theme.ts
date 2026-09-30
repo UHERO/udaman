@@ -39,8 +39,14 @@ export const GRID_PROPS = {
 } as const;
 
 /** Spread onto <Line>. */
+/**
+ * Light smoothing: monotone cubic passes through every point and never
+ * overshoots (no invented peaks/troughs between observations).
+ */
+export const CURVE_TYPE = "monotone" as const;
+
 export const LINE_PROPS = {
-  type: "linear",
+  type: CURVE_TYPE,
   strokeWidth: CHART_LINE_WIDTH,
   dot: false,
   activeDot: { r: 3, strokeWidth: 0 },

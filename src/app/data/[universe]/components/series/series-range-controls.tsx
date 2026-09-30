@@ -79,9 +79,6 @@ export function SeriesRangeControls({
     >
       {presets.length > 0 ? (
         <div className="flex items-center gap-1" role="group" aria-label="Zoom">
-          <span className="text-muted-foreground mr-1 text-[11px] font-semibold tracking-wider uppercase">
-            Zoom
-          </span>
           {presets.map((p) => (
             <button
               key={p.key}
@@ -162,7 +159,10 @@ function DateField({
           if (e.key === "Enter") commit();
           if (e.key === "Escape") setDraft(null);
         }}
-        className="h-7 w-28 px-2 text-xs tabular-nums shadow-none"
+        className={cn(
+          "h-7 px-2 text-xs tabular-nums shadow-none",
+          freq === "W" || freq === "D" ? "w-24" : "w-20",
+        )}
       />
     </label>
   );

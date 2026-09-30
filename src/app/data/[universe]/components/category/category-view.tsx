@@ -40,7 +40,7 @@ import {
 } from "../selectors/selectors";
 import {
   availableTransforms,
-  resolveDisplayTransform,
+  resolveGrowthTransform,
   TransformToggle,
   type TableTransform,
 } from "../selectors/transform-toggle";
@@ -134,7 +134,7 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
   const view = q.view;
   const showYtd = transformations.ytd && freq !== "A";
   const transforms = availableTransforms(transformations, freq);
-  const chartTransform = resolveDisplayTransform(q.transform, transforms);
+  const chartGrowth = resolveGrowthTransform(q.transform, transforms);
   const tableTransforms = transforms.filter((t) => q[t]);
   const setTableTransforms = (on: TableTransform[]) =>
     shallow({
@@ -162,26 +162,14 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
   );
 
   const yDomain = useMemo<[number, number] | undefined>(() => {
-    // Shared range is computed on level; transformed lines scale per card.
-    if (
-      !config.miniChart.sharedYAxis ||
-      !range.startDate ||
-      chartTransform !== "level"
-    )
-      return undefined;
+    if (!config.miniChart.sharedYAxis || !range.startDate) return undefined;
     const ext = sharedLevelExtent(
       items.filter((i) => i.display).map((i) => i.series),
       range.startDate,
       range.endDate,
     );
     return ext ? [ext.min, ext.max] : undefined;
-  }, [
-    config.miniChart.sharedYAxis,
-    items,
-    range.startDate,
-    range.endDate,
-    chartTransform,
-  ]);
+  }, [config.miniChart.sharedYAxis, items, range.startDate, range.endDate]);
 
   const onExport = () => {
     const { fileName, csv } = buildCategoryCsv({
@@ -269,7 +257,7 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
       </div>
 
       {/* ── Toolbar (filters) ── */}
-      <PortalCard className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3">
+      <PortalCard className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 2xl:gap-x-5">
         {(config.selectors.includes("geography") ||
           config.selectors.includes("frequency") ||
           config.selectors.includes("forecast") ||
@@ -318,10 +306,10 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
 
         {view === "chart" ? (
           <TransformToggle
-            mode="single"
-            options={["level", ...transforms]}
-            value={chartTransform}
-            onChange={(t) => shallow({ transform: t === "level" ? null : t })}
+            mode="optional"
+            options={transforms}
+            value={chartGrowth}
+            onChange={(t) => shallow({ transform: t })}
           />
         ) : (
           <TransformToggle
@@ -336,6 +324,8 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
           <CheckToggle
             id="cat-sa"
             label="Seasonally Adjusted"
+            shortLabel="SA"
+            tooltip="Seasonal Adjustment"
             checked={q.sa}
             onChange={(v) => shallow({ sa: v })}
           />
@@ -343,7 +333,7 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
 
         {!noData && span.displayDateSlider && dates.length > 1 && (
           <DateRangeSlider
-            className="min-w-[18rem] flex-1 basis-80"
+            className="min-w-[15rem] flex-1 basis-60"
             dates={dates}
             freq={freq}
             startIndex={range.startIndex}
@@ -403,7 +393,7 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
               startDate={range.startDate}
               endDate={range.endDate}
               yDomain={yDomain}
-              transform={chartTransform}
+              growth={chartGrowth}
               seasonalMessage={item.seasonalMessage ? saMessage : null}
             />
           ))}

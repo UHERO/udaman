@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { getDefaultRange } from "../../lib/config";
-import { buildSeriesCsv, downloadCsv } from "../../lib/csv";
+import { buildSeriesCsv, downloadCsv, toTsv } from "../../lib/csv";
 import { rangeToParams, resolveDateRange } from "../../lib/dates";
 import { seriesDecimals } from "../../lib/format";
 import { usePortalConfig } from "../../lib/portal-context";
@@ -35,8 +39,10 @@ import { AnalyzerToggle } from "../analyzer/analyzer-toggle";
 import { exportChartImage, exportTablePdf } from "../analyzer/chart-export";
 import type { ImageFormat } from "../analyzer/chart-export";
 import { PortalSelect } from "../selectors/portal-select";
+import { CheckToggle } from "../selectors/selectors";
 import { ShareLink } from "../share/share-link";
 import { seriesColor } from "../ui/chart-theme";
+import { CopyButton } from "../ui/copy-button";
 import {
   PortalCard,
   PortalCardBody,
@@ -256,6 +262,19 @@ export function SeriesView({ pkg }: { pkg: SeriesPackage }) {
     downloadCsv(fileName, csv);
   };
 
+  /** Visible range as TSV (chronological, like the CSV) for the clipboard. */
+  const tableTsv = () =>
+    toTsv([
+      ["Date", "Level", ...companions.map((c) => companionLabel(c, percent))],
+      ...rows
+        .slice(lo, hi + 1)
+        .map((r, i) => [
+          dates[lo + i]?.tableDate ?? r.date,
+          r.level,
+          ...companions.map((c) => r[c]),
+        ]),
+    ]);
+
   const noSelectionMsg =
     noSelection && noSelection.id === series.id ? noSelection.msg : null;
   const seasonalText =
@@ -329,7 +348,7 @@ export function SeriesView({ pkg }: { pkg: SeriesPackage }) {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
-      {/* ── Title + selectors ─────────────────────────────────────── */}
+      {/* ── Title, toolbar, chart and source in one card ─────────── */}
       <PortalCard>
         <div className="px-4 pt-4 pb-3 md:px-5">
           <div className="flex items-start gap-2">
@@ -355,7 +374,7 @@ export function SeriesView({ pkg }: { pkg: SeriesPackage }) {
             </p>
           )}
         </div>
-        <div className="border-border flex flex-wrap items-center gap-2 border-t px-4 py-2.5 md:px-5">
+        <div className="border-border flex flex-wrap items-center gap-x-3 gap-y-2 border-t px-4 py-2.5 md:px-5">
           {geos.length > 0 && (
             <PortalSelect
               ariaLabel="Geography"
@@ -401,67 +420,48 @@ export function SeriesView({ pkg }: { pkg: SeriesPackage }) {
             />
           )}
           {saPair && (
-            <label className="flex items-center gap-2 px-1 text-sm">
-              <Checkbox
-                checked={isSa}
-                onCheckedChange={(v) =>
-                  goToSeries(freq, geo.handle, v === true, currentFc)
-                }
-                className="rounded-none data-[state=checked]:border-(--portal-primary) data-[state=checked]:bg-(--portal-primary) data-[state=checked]:text-white"
-              />
-              Seasonally Adjusted
-            </label>
-          )}
-          <div className="ml-auto">
-            <ShareLink
-              view="series"
-              seriesId={series.id}
-              seasonallyAdjusted={query.sa}
-              start={shareRange.start}
-              end={shareRange.end}
+            <CheckToggle
+              id="series-sa"
+              label="Seasonally Adjusted"
+              shortLabel="SA"
+              tooltip="Seasonal Adjustment"
+              checked={isSa}
+              onChange={(v) => goToSeries(freq, geo.handle, v, currentFc)}
             />
-          </div>
-        </div>
-        {noSelectionMsg && (
-          <p className="border-border text-destructive border-t px-4 py-2 text-sm md:px-5">
-            {noSelectionMsg}
-          </p>
-        )}
-      </PortalCard>
-
-      {!hasData ? (
-        <PortalCard>
-          <PortalCardBody className="text-muted-foreground py-10 text-center text-sm">
-            Data not available
-          </PortalCardBody>
-          <SourceBlock series={series} />
-        </PortalCard>
-      ) : noSelectionMsg ? null : (
-        <>
-          {/* ── Chart ─────────────────────────────────────────────── */}
-          <PortalCard>
-            <div className="flex flex-wrap items-center gap-3 px-4 pt-3 pb-2 md:px-5">
-              <SeriesRangeControls
-                className="min-w-0 flex-1"
-                dates={dates}
-                freq={freq}
-                buttons={config.seriesChart.rangeButtons}
-                startIndex={lo}
-                endIndex={hi}
-                onChange={changeRange}
-              />
+          )}
+          {hasData && !noSelectionMsg && (
+            <SeriesRangeControls
+              className="justify-start gap-x-3"
+              dates={dates}
+              freq={freq}
+              buttons={config.seriesChart.rangeButtons}
+              startIndex={lo}
+              endIndex={hi}
+              onChange={changeRange}
+            />
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            {hasData && !noSelectionMsg && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 rounded-none px-2.5 text-xs shadow-none"
-                  >
-                    <Download className="size-3.5" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        aria-label="Download"
+                        className="h-8 rounded-none px-2.5 text-xs shadow-none"
+                      >
+                        <Download className="size-3.5" />
+                        <span className="hidden 2xl:inline">Download</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent className="2xl:hidden">
                     Download
-                  </Button>
-                </DropdownMenuTrigger>
+                  </TooltipContent>
+                </Tooltip>
                 <DropdownMenuContent align="end" className="rounded-none">
                   <DropdownMenuItem onSelect={() => exportImage("png")}>
                     PNG image
@@ -481,26 +481,50 @@ export function SeriesView({ pkg }: { pkg: SeriesPackage }) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-            <PortalCardBody className="md:px-5">
-              <SeriesChart
-                rows={rows}
-                freq={freq}
-                decimals={decimals}
-                universe={series.universe}
-                percent={percent}
-                unitsLabel={units}
-                companions={companions}
-                pseudoZones={pseudoZones}
-                startIndex={lo}
-                endIndex={hi}
-                onRangeChange={changeRange}
-                plotRef={plotRef}
-              />
-            </PortalCardBody>
-            <SourceBlock series={series} />
-          </PortalCard>
+            )}
+            <ShareLink
+              compact
+              className="h-8"
+              view="series"
+              seriesId={series.id}
+              seasonallyAdjusted={query.sa}
+              start={shareRange.start}
+              end={shareRange.end}
+            />
+          </div>
+        </div>
+        {noSelectionMsg && (
+          <p className="border-border text-destructive border-t px-4 py-2 text-sm md:px-5">
+            {noSelectionMsg}
+          </p>
+        )}
+        {!hasData ? (
+          <PortalCardBody className="text-muted-foreground border-border border-t py-10 text-center text-sm">
+            Data not available
+          </PortalCardBody>
+        ) : noSelectionMsg ? null : (
+          <PortalCardBody className="pt-3 md:px-5">
+            <SeriesChart
+              rows={rows}
+              freq={freq}
+              decimals={decimals}
+              universe={series.universe}
+              percent={percent}
+              unitsLabel={units}
+              companions={companions}
+              pseudoZones={pseudoZones}
+              startIndex={lo}
+              endIndex={hi}
+              onRangeChange={changeRange}
+              plotRef={plotRef}
+            />
+          </PortalCardBody>
+        )}
+        {!noSelectionMsg && <SourceBlock series={series} />}
+      </PortalCard>
 
+      {hasData && !noSelectionMsg && (
+        <>
           {/* ── Summary statistics ───────────────────────────────── */}
           {stats && (
             <PortalCard>
@@ -520,6 +544,7 @@ export function SeriesView({ pkg }: { pkg: SeriesPackage }) {
             <PortalCardHeader
               title="Data"
               subtitle={`${seriesUnits(series)}${seriesUnits(series) ? " · " : ""}${dates[lo]?.tableDate ?? ""} – ${dates[hi]?.tableDate ?? ""}`}
+              actions={<CopyButton getText={tableTsv} />}
             />
             <PortalCardBody>
               <SeriesTable

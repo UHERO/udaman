@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import {
   Bar,
   Brush,
@@ -27,15 +27,15 @@ import {
   seriesColor,
   timeTicks,
 } from "../ui/chart-theme";
+import { PSEUDO_DASH, PseudoHistoryNote } from "../ui/pseudo-history-note";
 import { ChartZoomBar, useChartZoom } from "../ui/use-chart-zoom";
+import { timeBarLayout, useElementWidth } from "../ui/use-element-width";
 import { companionLabel } from "./series-labels";
 import type { SeriesCompanion } from "./series-labels";
 
 type Row = SeriesChartRow & { levelPseudo?: number | null };
 
 const Y_AXIS_WIDTH = 56;
-/** Companion bars fill this share of each period's horizontal slot. */
-const BAR_FILL = 0.75;
 const MAX_BAR_PX = 64;
 
 export interface SeriesChartProps {
@@ -157,27 +157,22 @@ export function SeriesChart({
     data.length > 1
       ? (data[data.length - 1].ts - data[0].ts) / (365.25 * 864e5)
       : 0;
-  // Bar width = BAR_FILL of one period's slot. Recharts can't derive a band
-  // on a numeric time axis, so measure the plot and size bars ourselves.
-  // X padding of half a bar keeps the first/last bars inside the plot:
-  //   plotW = (n - 1)·p + BAR_FILL·p + 4  →  p = (plotW - 4) / (n - 1 + BAR_FILL)
+  // Bars fill BAR_FILL of each period's slot (see timeBarLayout).
   const chartWidth = useElementWidth(target);
-  const plotWidth = chartWidth - (barKey ? 2 * Y_AXIS_WIDTH : Y_AXIS_WIDTH + 8);
-  const periodPx =
-    data.length && plotWidth > 0
-      ? (plotWidth - 4) / (data.length - 1 + BAR_FILL)
-      : 0;
-  const barSize = Math.max(
-    1,
-    Math.min(MAX_BAR_PX, Math.floor(periodPx * BAR_FILL)),
+  const { barSize, xPad } = timeBarLayout(
+    chartWidth - (barKey ? 2 * Y_AXIS_WIDTH : Y_AXIS_WIDTH + 8),
+    data.length,
+    MAX_BAR_PX,
   );
-  const xPad = Math.ceil(barSize / 2) + 2;
 
   const domain: [number, number] = data.length
     ? [data[0].ts, data[data.length - 1].ts]
     : [0, 1];
 
   const barLabel = barKey ? companionLabel(barKey, percent) : "";
+  // Note only when pseudo-history points are actually in the visible range.
+  const showPseudoNote =
+    !!pseudoBoundary && data.some((r) => r.date <= pseudoBoundary);
   const chartConfig = {
     level: { label: "Level", color: stroke },
     levelPseudo: { label: "Pseudo History", color: stroke },
@@ -218,6 +213,11 @@ export function SeriesChart({
               />
               <span className="truncate">{barLabel}</span>
             </>
+          )}
+          {showPseudoNote && (
+            <span className={barKey ? "ml-2" : undefined}>
+              <PseudoHistoryNote color={stroke} />
+            </span>
           )}
         </span>
         <span className="flex min-w-0 items-center gap-1.5">
@@ -313,7 +313,7 @@ export function SeriesChart({
                 yAxisId="level"
                 dataKey="levelPseudo"
                 stroke={stroke}
-                strokeDasharray="4 3"
+                strokeDasharray={PSEUDO_DASH}
               />
             )}
             <Line
@@ -486,19 +486,4 @@ function TooltipLine({
       <span className="text-foreground font-medium tabular-nums">{value}</span>
     </div>
   );
-}
-
-/** Live content width of a ref'd element (0 until measured). */
-function useElementWidth(ref: React.RefObject<HTMLElement | null>): number {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) =>
-      setWidth(Math.round(entry.contentRect.width)),
-    );
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ref]);
-  return width;
 }

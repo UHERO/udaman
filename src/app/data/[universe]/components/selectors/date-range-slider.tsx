@@ -66,7 +66,7 @@ export function DateRangeSlider({
   };
 
   return (
-    <div className={cn("flex min-w-0 items-center gap-3", className)}>
+    <div className={cn("flex min-w-0 items-center gap-2", className)}>
       <DateInput
         key={`s-${dates[s]?.date}-${freq}`}
         label="Start date"
@@ -84,7 +84,7 @@ export function DateRangeSlider({
         onValueChange={(v) => setDraft([v[0], v[1]])}
         onValueCommit={(v) => emit(v[0], v[1])}
         aria-label="Date range"
-        className="min-w-24 flex-1 **:data-[slot=slider-range]:bg-(--portal-primary) **:data-[slot=slider-thumb]:size-3.5 **:data-[slot=slider-thumb]:rounded-none **:data-[slot=slider-thumb]:border-(--portal-primary) **:data-[slot=slider-track]:h-1 **:data-[slot=slider-track]:rounded-none"
+        className="min-w-16 flex-1 **:data-[slot=slider-range]:bg-(--portal-primary) **:data-[slot=slider-thumb]:size-3.5 **:data-[slot=slider-thumb]:rounded-none **:data-[slot=slider-thumb]:border-(--portal-primary) **:data-[slot=slider-track]:h-1 **:data-[slot=slider-track]:rounded-none"
       />
       <DateInput
         key={`e-${dates[e]?.date}-${freq}`}

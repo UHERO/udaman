@@ -237,8 +237,9 @@ Booleans are only true for the literal `"true"`. Id lists are `-`-joined.
 **Landing/category** `parseCategoryParams` → `id` (number = category; string =
 search term), `data_list_id`, `geo`, `freq`, `fc` (FC), `m` (NTA measurement
 name), `sa` (**default true**), `yoy`, `ytd`, `c5ma` (table-view rows,
-multi-select), `transform` (chart-view line: `yoy`|`ytd`|`c5ma`, absent =
-level; single-select — new, not in Angular), `view` (`chart`|`table`,
+multi-select), `transform` (chart-view growth bars behind the level line:
+`yoy`|`ytd`|`c5ma`, absent = none; optional single-select — new, not in
+Angular), `view` (`chart`|`table`,
 default chart), `start`, `end`, `nocache`. Both toggles are
 `components/selectors/transform-toggle.tsx`.
 

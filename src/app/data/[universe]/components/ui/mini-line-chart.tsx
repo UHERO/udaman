@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bar,
   CartesianGrid,
@@ -28,6 +28,9 @@ import {
   seriesColor,
   timeTicks,
 } from "./chart-theme";
+import { GrowBar } from "./grow-bar";
+import { PSEUDO_DASH } from "./pseudo-history-note";
+import { timeBarLayout, useElementWidth } from "./use-element-width";
 
 type Companion = "yoy" | "ytd" | "c5ma" | "mom";
 
@@ -106,6 +109,15 @@ export function MiniLineChart({
 }) {
   const { config } = usePortalConfig();
   const stroke = color ?? seriesColor(config, slot);
+  const bars = !!companion && companionBars;
+
+  // Animate the line only after first paint: no draw-in on page load, but a
+  // later rescale (bars toggled, range or shared axis changed) morphs smoothly.
+  const [animate, setAnimate] = useState(false);
+  useEffect(() => setAnimate(true), []);
+
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const width = useElementWidth(wrapRef);
 
   const data = useMemo<Row[]>(() => {
     const visible = rows.filter(
@@ -133,6 +145,12 @@ export function MiniLineChart({
         return v !== null && v !== undefined && v < 0;
       }),
     [data, valueKey, yDomain],
+  );
+
+  const { barSize, xPad } = timeBarLayout(
+    width - (showYAxis ? 40 : 0) - 4,
+    data.length,
+    24,
   );
 
   const ticks = useMemo(
@@ -190,107 +208,126 @@ export function MiniLineChart({
   }
 
   return (
-    <ChartContainer
-      config={chartConfig}
-      className={cn("aspect-auto w-full", className)}
-      style={{ height }}
-    >
-      <ComposedChart
-        data={data}
-        margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-        onMouseMove={(state) => {
-          const i = state?.activeTooltipIndex;
-          reportHover(typeof i === "number" && i >= 0 ? i : null);
-        }}
-        onMouseLeave={() => reportHover(null)}
+    <div ref={wrapRef} className={cn("w-full", className)}>
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto w-full"
+        style={{ height }}
       >
-        {showGrid && <CartesianGrid {...GRID_PROPS} />}
-        <XAxis
-          {...AXIS_PROPS}
-          dataKey="ts"
-          hide={!showXAxis}
-          type="number"
-          scale="time"
-          domain={["dataMin", "dataMax"]}
-          ticks={ticks}
-          tickFormatter={(ts: number) => formatTimeTick(ts, freq, spanYears)}
-          axisLine={{ stroke: "var(--border)" }}
-        />
-        <YAxis
-          {...AXIS_PROPS}
-          yAxisId="level"
-          hide={!showYAxis}
-          width={40}
-          tickCount={3}
-          domain={yDomain ?? ["auto", "auto"]}
-          tickFormatter={formatAxisNumber}
-        />
-        {companion && companionBars && (
-          <YAxis yAxisId="companion" hide domain={["auto", "auto"]} />
-        )}
-        {companion && companionBars && (
-          <Bar
-            {...COMPANION_BAR_PROPS}
-            yAxisId="companion"
-            dataKey={companion}
-            fill={config.colors.chartMuted}
+        <ComposedChart
+          data={data}
+          margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+          onMouseMove={(state) => {
+            const i = state?.activeTooltipIndex;
+            reportHover(typeof i === "number" && i >= 0 ? i : null);
+          }}
+          onMouseLeave={() => reportHover(null)}
+        >
+          {showGrid && <CartesianGrid {...GRID_PROPS} />}
+          <XAxis
+            {...AXIS_PROPS}
+            dataKey="ts"
+            hide={!showXAxis}
+            type="number"
+            scale="time"
+            domain={["dataMin", "dataMax"]}
+            ticks={ticks}
+            tickFormatter={(ts: number) => formatTimeTick(ts, freq, spanYears)}
+            axisLine={{ stroke: "var(--border)" }}
+            padding={bars ? { left: xPad, right: xPad } : undefined}
           />
-        )}
-        {hasNegative && (
-          <ReferenceLine
+          <YAxis
+            {...AXIS_PROPS}
             yAxisId="level"
-            y={0}
-            stroke="var(--muted-foreground)"
-            strokeOpacity={0.35}
-            strokeWidth={1}
+            hide={!showYAxis}
+            width={40}
+            tickCount={3}
+            domain={yDomain ?? ["auto", "auto"]}
+            tickFormatter={formatAxisNumber}
           />
-        )}
-        {pseudoZones?.length && valueKey === "level" ? (
+          {bars && (
+            <YAxis
+              yAxisId="companion"
+              hide
+              domain={[
+                (min: number) => Math.min(0, min),
+                (max: number) => Math.max(0, max),
+              ]}
+            />
+          )}
+          {bars && (
+            // Keyed by measure so switching YOY ↔ YTD regrows from zero.
+            <Bar
+              key={companion}
+              {...COMPANION_BAR_PROPS}
+              shape={<GrowBar />}
+              barSize={barSize}
+              maxBarSize={24}
+              yAxisId="companion"
+              dataKey={companion}
+              fill={config.colors.chartMuted}
+            />
+          )}
+          {hasNegative && (
+            <ReferenceLine
+              yAxisId="level"
+              y={0}
+              stroke="var(--muted-foreground)"
+              strokeOpacity={0.35}
+              strokeWidth={1}
+            />
+          )}
+          {pseudoZones?.length && valueKey === "level" ? (
+            <Line
+              {...LINE_PROPS}
+              isAnimationActive={animate}
+              animationDuration={450}
+              yAxisId="level"
+              dataKey="levelPseudo"
+              stroke={stroke}
+              strokeDasharray={PSEUDO_DASH}
+            />
+          ) : null}
           <Line
             {...LINE_PROPS}
+            isAnimationActive={animate}
+            animationDuration={450}
             yAxisId="level"
-            dataKey="levelPseudo"
+            dataKey={valueKey}
             stroke={stroke}
-            strokeDasharray="4 3"
           />
-        ) : null}
-        <Line
-          {...LINE_PROPS}
-          yAxisId="level"
-          dataKey={valueKey}
-          stroke={stroke}
-        />
-        <ChartTooltip
-          cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
-          isAnimationActive={false}
-          content={({ active, payload }) => {
-            if (!tooltip || !active || !payload?.length) return null;
-            const row = payload[0].payload as Row;
-            const level = row.level ?? row.levelPseudo ?? null;
-            const comp = companion ? row[companion] : null;
-            return (
-              <div className="bg-card border-border min-w-32 border px-2.5 py-1.5 text-xs shadow-md">
-                <div className="text-foreground mb-1 font-medium">
-                  {formatTooltipDate(row.date, freq)}
-                </div>
-                <TooltipLine
-                  swatch={stroke}
-                  label={levelLabel}
-                  value={formatNum(level, decimals, universe) || "–"}
-                />
-                {companion && (
+          <ChartTooltip
+            cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+            isAnimationActive={false}
+            content={({ active, payload }) => {
+              if (!tooltip || !active || !payload?.length) return null;
+              const row = payload[0].payload as Row;
+              const level = row.level ?? row.levelPseudo ?? null;
+              const comp = companion ? row[companion] : null;
+              return (
+                <div className="bg-card border-border min-w-32 border px-2.5 py-1.5 text-xs shadow-md">
+                  <div className="text-foreground mb-1 font-medium">
+                    {formatTooltipDate(row.date, freq)}
+                  </div>
                   <TooltipLine
-                    swatch={config.colors.chartMuted}
-                    label={companionLabel ?? companion.toUpperCase()}
-                    value={formatNum(comp, GROWTH_DECIMALS, universe) || "–"}
+                    swatch={stroke}
+                    label={levelLabel}
+                    value={formatNum(level, decimals, universe) || "–"}
                   />
-                )}
-              </div>
-            );
-          }}
-        />
-      </ComposedChart>
-    </ChartContainer>
+                  {companion && (
+                    <TooltipLine
+                      swatch={config.colors.chartMuted}
+                      label={companionLabel ?? companion.toUpperCase()}
+                      value={formatNum(comp, GROWTH_DECIMALS, universe) || "–"}
+                    />
+                  )}
+                </div>
+              );
+            }}
+          />
+        </ComposedChart>
+      </ChartContainer>
+    </div>
   );
 }
 
