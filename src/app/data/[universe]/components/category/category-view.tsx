@@ -31,6 +31,7 @@ import type { ExpandedSeries } from "../../lib/types";
 import { usePortalParams } from "../../lib/use-portal-params";
 import { DateRangeSlider } from "../selectors/date-range-slider";
 import { endForFreqSwitch } from "../selectors/freq-switch";
+import { SegmentedToggle } from "../selectors/segmented-toggle";
 import {
   CheckToggle,
   ForecastSelector,
@@ -403,6 +404,7 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
   );
 }
 
+/** Chart / Table switch (category and search pages). */
 export function ViewToggle({
   view,
   onChange,
@@ -410,30 +412,15 @@ export function ViewToggle({
   view: "chart" | "table";
   onChange: (view: "chart" | "table") => void;
 }) {
-  const btn = (v: "chart" | "table", label: string, Icon: typeof ChartLine) => (
-    <button
-      type="button"
-      aria-pressed={view === v}
-      onClick={() => view !== v && onChange(v)}
-      className={cn(
-        "flex h-8 items-center gap-1.5 px-3 text-sm transition-colors",
-        view === v
-          ? "bg-(--portal-primary) text-white"
-          : "text-muted-foreground hover:text-foreground bg-white",
-      )}
-    >
-      <Icon className="size-4" />
-      {label}
-    </button>
-  );
   return (
-    <div
-      role="group"
-      aria-label="View"
-      className="border-input flex divide-x border"
-    >
-      {btn("chart", "Chart", ChartLine)}
-      {btn("table", "Table", Table2)}
-    </div>
+    <SegmentedToggle
+      ariaLabel="View"
+      value={view}
+      onChange={onChange}
+      options={[
+        { value: "chart", label: "Chart", icon: ChartLine },
+        { value: "table", label: "Table", icon: Table2 },
+      ]}
+    />
   );
 }

@@ -10,26 +10,31 @@ import { formatTooltipDate } from "../../lib/dates";
 import { formatNum, GROWTH_DECIMALS, seriesDecimals } from "../../lib/format";
 import { usePortalConfig } from "../../lib/portal-context";
 import { seriesChartData, seriesUnits } from "../../lib/series";
-import type { ExpandedSeries, FreqCode, SeriesChartRow } from "../../lib/types";
+import type {
+  ExpandedSeries,
+  FreqCode,
+  PseudoZone,
+  SeriesChartRow,
+} from "../../lib/types";
 import { AnalyzerToggle } from "../analyzer/analyzer-toggle";
 import type { TableTransform } from "../selectors/transform-toggle";
 import { MiniLineChart } from "../ui/mini-line-chart";
 import { PortalCard } from "../ui/portal-card";
 
-type Secondary = "yoy" | "ytd" | "c5ma";
-
 /**
  * Label for the companion value line (highchart.formatTransformLabel):
  * c5ma → "Annual % Chg", ytd at annual → "Year/Year % Chg", ytd →
- * "Year-to-Date % Chg"; percent series drop the "%".
+ * "Year-to-Date % Chg", mom → "Month/Month % Chg"; percent series drop
+ * the "%".
  */
 export function secondaryLabel(
-  key: Secondary,
+  key: TableTransform,
   percent: boolean | undefined,
   freq: FreqCode,
 ): string {
   const chg = percent ? "Chg" : "% Chg";
   if (key === "c5ma") return `Annual ${chg}`;
+  if (key === "mom") return `Month/Month ${chg}`;
   if (key === "ytd" && freq !== "A") return `Year-to-Date ${chg}`;
   return `Year/Year ${chg}`;
 }
@@ -58,22 +63,26 @@ function lastInRange(
 }
 
 /**
- * One small-multiple in the category chart grid (port of category-charts
- * cell + highchart mini chart).
+ * One small-multiple chart card — the category grid, search results and
+ * (with `detailed`) the Analyzer gallery all use it. Port of
+ * category-charts cell + highchart mini chart.
  *
- * Header: series name (link), "{period}: {latest level} ({units})", and the
- * companion change ("Year-to-Date % Chg: 4.3") — the values Angular pinned in
- * its always-visible tooltip. Hovering the chart swaps those numbers for the
- * hovered point (no floating tooltip). Body: axis-less MiniLineChart over
- * [startDate, endDate]. Outlined in the brand color while in the Analyzer.
+ * Compact (default): series name (link), "{period}: {level} ({units})" and
+ * the companion change ("Year-to-Date % Chg: 4.3") — the values Angular
+ * pinned in its always-visible tooltip — over an axis-less chart.
+ *
+ * Detailed (Analyzer gallery): two-line title, one subtitle line
+ * "geo · freq · value units (period)", and a taller chart labelled only at
+ * its extremes (first/last period, min/max value).
+ *
+ * Either way, hovering the chart swaps the header values for the hovered
+ * point (no floating tooltip; same lines, so nothing shifts), a theme bar
+ * grows along the bottom edge on hover, and the card is outlined in the
+ * theme color when `selected` (default: series is in the Analyzer).
  *
  * The line is always level. `growth` (chart-view YOY/YTD toggle) adds that
- * growth rate as gray bars behind it, and the header's second line shows it
- * in place of the configured companion change.
- *
- * Props-driven — reusable by search results or the analyzer gallery:
- *   <CategoryChartCard series={s} href={…} startDate endDate />
- * `actions` replaces the default AnalyzerToggle (analyzer passes a compare toggle).
+ * growth rate as gray bars behind it and shows it in the header.
+ * `actions` replaces the default AnalyzerToggle.
  */
 export function CategoryChartCard({
   series,
@@ -85,6 +94,11 @@ export function CategoryChartCard({
   seasonalMessage,
   actions,
   growth = null,
+  detailed = false,
+  chartData,
+  valueLabel,
+  emptyMessage,
+  selected,
   slot = 0,
   className,
 }: {
@@ -102,6 +116,16 @@ export function CategoryChartCard({
   actions?: React.ReactNode;
   /** Growth rate drawn as bars behind the level line (null = none). */
   growth?: TableTransform | null;
+  /** Analyzer-gallery layout: subtitle line, taller chart, edge-only axes. */
+  detailed?: boolean;
+  /** Pre-transformed rows (e.g. indexed values); default from `series`. */
+  chartData?: { rows: SeriesChartRow[]; pseudoZones: PseudoZone[] };
+  /** Units shown with the value (default series units; "Index" when indexed). */
+  valueLabel?: string;
+  /** Replaces the chart with this message (e.g. no data for the base year). */
+  emptyMessage?: string | null;
+  /** Theme outline; defaults to "series is in the Analyzer". */
+  selected?: boolean;
   slot?: number;
   className?: string;
 }) {
@@ -109,7 +133,7 @@ export function CategoryChartCard({
   const universe = config.universe;
   const name =
     displayName ??
-    (config.categoryMode === "measurement"
+    (config.categoryMode === "measurement" && !detailed
       ? series.geography.name
       : series.title);
   const freq = series.frequencyShort;
@@ -117,11 +141,29 @@ export function CategoryChartCard({
   const { miniChart } = config;
   const secondary =
     growth ?? (miniChart.showSecondary ? miniChart.secondary : null);
+  // Detailed lead line: geo · frequency · seasonal adjustment (wording from
+  // Angular analyzer.service; omitted when not applicable).
+  const saText =
+    series.seasonalAdjustment === "seasonally_adjusted"
+      ? "Seasonally Adjusted"
+      : series.seasonalAdjustment === "not_seasonally_adjusted"
+        ? "Not Seasonally Adjusted"
+        : null;
+  const leadLine = [series.geography.shortName, series.frequency, saText]
+    .filter(Boolean)
+    .join(" · ");
+  // Detailed header always shows a growth line: the selected one, else YOY.
+  const detailGrowth: TableTransform = growth ?? "yoy";
 
-  const data = useMemo(() => seriesChartData(series), [series]);
+  const ownData = useMemo(() => seriesChartData(series), [series]);
+  const rows = chartData?.rows ?? ownData.rows;
+  const pseudoZones = chartData?.pseudoZones ?? ownData.pseudoZones;
   const [hovered, setHovered] = useState<SeriesChartRow | null>(null);
-  const latest = hovered ?? lastInRange(data.rows, startDate, endDate);
-  const units = seriesUnits(series);
+  const latest =
+    hovered && hovered.level !== null
+      ? hovered
+      : lastInRange(rows, startDate, endDate);
+  const units = valueLabel ?? seriesUnits(series);
   const secondaryValue = secondary && latest ? latest[secondary] : null;
   const fmtChange = (key: TableTransform, v: number | null) =>
     formatNum(v, key === "c5ma" ? decimals : GROWTH_DECIMALS, universe);
@@ -136,9 +178,10 @@ export function CategoryChartCard({
 
   const actionSlot = actions ?? <AnalyzerToggle seriesId={series.id} />;
   const inAnalyzer = useAnalyzer().has(series.id);
-  const selectedStyle: React.CSSProperties | undefined = inAnalyzer
-    ? { outline: `1px solid ${config.colors.primary}`, outlineOffset: -1 }
-    : undefined;
+  const selectedStyle: React.CSSProperties | undefined =
+    (selected ?? inAnalyzer)
+      ? { outline: `1px solid ${config.colors.primary}`, outlineOffset: -1 }
+      : undefined;
 
   if (seasonalMessage) {
     return (
@@ -157,79 +200,140 @@ export function CategoryChartCard({
     );
   }
 
+  const chartHeight = detailed ? 150 : 130;
+  const title = (
+    <h3
+      className={cn(
+        "text-sm leading-tight font-semibold",
+        detailed && "line-clamp-2",
+      )}
+    >
+      <Link href={href} className="hover:underline" title={name}>
+        {name}
+      </Link>
+    </h3>
+  );
+
   return (
     <PortalCard
       className={cn("flex flex-col", HOVER_BAR, className)}
       style={selectedStyle}
     >
-      <header className="flex items-start justify-between gap-2 px-4 pt-3">
-        <div className="min-w-0 text-xs leading-snug">
-          <h3 className="text-sm leading-tight font-semibold">
-            <Link href={href} className="hover:underline">
-              {name}
-            </Link>
-          </h3>
-          {latest ? (
-            <>
-              <p className="text-foreground mt-1 tabular-nums">
-                {formatTooltipDate(latest.date, freq)}: {levelLine}
-              </p>
-              {secondary && secondaryValue !== null && (
-                <p className="text-muted-foreground tabular-nums">
-                  {secondaryLabel(secondary, series.percent, freq)}:{" "}
-                  <span className="text-foreground">
-                    {fmtChange(secondary, secondaryValue)}
-                  </span>
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="text-muted-foreground mt-1">
-              {data.dates.length
-                ? `Data available from ${formatTooltipDate(
-                    data.dates[0].date,
-                    freq,
-                  )} – ${formatTooltipDate(
-                    data.dates[data.dates.length - 1].date,
-                    freq,
-                  )}`
-                : "No data available"}
-            </p>
-          )}
-        </div>
-        <div className="-mt-1 -mr-2 shrink-0">{actionSlot}</div>
-      </header>
-      <Link
-        href={href}
-        tabIndex={-1}
-        aria-hidden
-        className="mt-auto block px-2 pt-2 pb-2"
+      <header
+        className={cn(
+          "flex items-start justify-between gap-2",
+          detailed ? "px-3 pt-3 pb-1" : "px-4 pt-3",
+        )}
       >
-        <MiniLineChart
-          rows={data.rows}
-          freq={freq}
-          decimals={decimals}
-          universe={universe}
-          slot={slot}
-          levelLabel={units ? `Level (${units})` : "Level"}
-          companion={secondary}
-          companionBars={!!growth}
-          companionLabel={
-            secondary
-              ? secondaryLabel(secondary, series.percent, freq)
-              : undefined
-          }
-          startDate={startDate}
-          endDate={endDate}
-          yDomain={yDomain}
-          pseudoZones={data.pseudoZones}
-          height={130}
-          showXAxis={false}
-          showYAxis={false}
-          tooltip={false}
-          onHoverRow={setHovered}
-        />
-      </Link>
+        {detailed ? (
+          <div className="min-w-0 flex-1">
+            {title}
+            {/* Attributes, then value + growth lines — always rendered (an
+                en dash when empty) so hovering never changes the height. */}
+            <div className="mt-0.5 text-xs leading-snug">
+              <p className="text-muted-foreground truncate" title={leadLine}>
+                {leadLine}
+              </p>
+              <p className="text-foreground truncate tabular-nums">
+                {latest ? (
+                  <>
+                    {formatTooltipDate(latest.date, freq)}: {levelLine}
+                  </>
+                ) : (
+                  "–"
+                )}
+              </p>
+              <p className="text-muted-foreground truncate tabular-nums">
+                {secondaryLabel(detailGrowth, series.percent, freq)}:{" "}
+                <span className="text-foreground">
+                  {(latest && fmtChange(detailGrowth, latest[detailGrowth])) ||
+                    "–"}
+                </span>
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="min-w-0 text-xs leading-snug">
+            {title}
+            {latest ? (
+              <>
+                <p className="text-foreground mt-1 tabular-nums">
+                  {formatTooltipDate(latest.date, freq)}: {levelLine}
+                </p>
+                {secondary && secondaryValue !== null && (
+                  <p className="text-muted-foreground tabular-nums">
+                    {secondaryLabel(secondary, series.percent, freq)}:{" "}
+                    <span className="text-foreground">
+                      {fmtChange(secondary, secondaryValue)}
+                    </span>
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground mt-1">
+                {ownData.dates.length
+                  ? `Data available from ${formatTooltipDate(
+                      ownData.dates[0].date,
+                      freq,
+                    )} – ${formatTooltipDate(
+                      ownData.dates[ownData.dates.length - 1].date,
+                      freq,
+                    )}`
+                  : "No data available"}
+              </p>
+            )}
+          </div>
+        )}
+        <div
+          className={cn(
+            "flex shrink-0 items-center",
+            !detailed && "-mt-1 -mr-2",
+          )}
+        >
+          {actionSlot}
+        </div>
+      </header>
+      {emptyMessage ? (
+        <div
+          className="text-muted-foreground mt-auto flex items-center justify-center px-2 pb-2 text-xs"
+          style={{ height: chartHeight }}
+        >
+          {emptyMessage}
+        </div>
+      ) : (
+        <Link
+          href={href}
+          tabIndex={-1}
+          aria-hidden
+          className="mt-auto block px-2 pt-2 pb-2"
+        >
+          <MiniLineChart
+            rows={rows}
+            freq={freq}
+            decimals={decimals}
+            universe={universe}
+            slot={slot}
+            levelLabel={units ? `Level (${units})` : "Level"}
+            companion={secondary}
+            companionBars={!!growth}
+            companionLabel={
+              secondary
+                ? secondaryLabel(secondary, series.percent, freq)
+                : undefined
+            }
+            startDate={startDate}
+            endDate={endDate}
+            yDomain={yDomain}
+            pseudoZones={pseudoZones}
+            height={chartHeight}
+            showXAxis={detailed}
+            showYAxis={detailed}
+            edgeTicks={detailed}
+            tooltip={false}
+            onHoverRow={setHovered}
+          />
+        </Link>
+      )}
     </PortalCard>
   );
 }

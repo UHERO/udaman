@@ -56,7 +56,7 @@ export interface PortalConfig {
      *
      * - `brand`: the Angular portal's Highcharts colors (app_colors.scss
      *   $analyzer-series0..4; slot 0 = $highstock-series0 = brand primary).
-     *   Default. Not colorblind-tuned (slot 1 is the series gray).
+     *   Default. Six line colors, no gray. Not colorblind-tuned.
      * - `accessible`: the earlier dataviz-validated palette (validate_palette.js
      *   vs #fff; slot 5 amber <3:1 contrast → keep a legend/table view).
      *   Kept for a future "colorblind-safe" settings toggle.
@@ -157,13 +157,38 @@ const UHERO_SERIES_TABLE: PortalConfig["seriesTable"] = [
 const MUTED = "#9E9E9E"; // $highstock-series1 (growth bars)
 const TEXT = "#505050";
 
-// Brand palettes — the Angular apps' Highcharts colors, in their order:
-// app_colors.scss $analyzer-series0..4 (series0 is also $highstock-series0 /
-// $highcharts-series0, the single-series + mini-chart line color).
-const SERIES_GRAY = "#9E9E9E"; // $series-gray / $highstock-series1
-const BRAND_UHERO = ["#1D667F", SERIES_GRAY, "#F6A01B", "#9BBB59", "#8064A2"];
-const BRAND_NTA = ["#0068B3", SERIES_GRAY, "#F6A01B", "#008b78", "#8064A2"];
-const BRAND_CCOM = ["#2d6c43", SERIES_GRAY, "#F6A01B", "#0279c0", "#8064A2"];
+// Brand palettes — six line colors per portal, no gray (gray reads as
+// "muted" and is reserved for growth bars). Built from the Angular apps'
+// app_colors.scss $analyzer-series0..4 minus $series-gray, plus red and aqua
+// from the same Office-theme family as UHERO's green/purple. Slot 0 is the
+// brand primary (single-series + mini-chart line). Charts with more series
+// reuse the six with a long dash (slots 6–11), then repeat (see lineStyle).
+const EXTRA_RED = "#C0504D";
+const EXTRA_AQUA = "#4BACC6";
+const BRAND_UHERO = [
+  "#1D667F",
+  "#F6A01B",
+  "#9BBB59",
+  "#8064A2",
+  EXTRA_RED,
+  EXTRA_AQUA,
+];
+const BRAND_NTA = [
+  "#0068B3",
+  "#F6A01B",
+  "#008b78",
+  "#8064A2",
+  EXTRA_RED,
+  EXTRA_AQUA,
+];
+const BRAND_CCOM = [
+  "#2d6c43",
+  "#F6A01B",
+  "#0279c0",
+  "#8064A2",
+  EXTRA_RED,
+  EXTRA_AQUA,
+];
 
 // Accessible palettes (validate_palette.js --mode light --surface #ffffff).
 const ACCESSIBLE_UHERO = [

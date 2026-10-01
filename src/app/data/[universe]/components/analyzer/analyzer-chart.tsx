@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useMemo } from "react";
+import { forwardRef, useMemo, useRef } from "react";
 import {
   Area,
   Bar,
@@ -18,9 +18,11 @@ import { cn } from "@/lib/utils";
 
 import { getChartPalette } from "../../lib/config";
 import { formatTooltipDate } from "../../lib/dates";
-import { formatAxisNumber, formatNum } from "../../lib/format";
+import { formatAxisNumber, formatNum, GROWTH_DECIMALS } from "../../lib/format";
 import { usePortalConfig } from "../../lib/portal-context";
+import { getTransformations } from "../../lib/series";
 import type { FreqCode } from "../../lib/types";
+import type { TableTransform } from "../selectors/transform-toggle";
 import {
   AXIS_PROPS,
   CHART_LINE_WIDTH,
@@ -30,11 +32,14 @@ import {
   LINE_PROPS,
   timeTicks,
 } from "../ui/chart-theme";
+import { GrowBar } from "../ui/grow-bar";
 import { PSEUDO_DASH, PseudoHistoryNote } from "../ui/pseudo-history-note";
+import { timeBarLayout, useElementWidth } from "../ui/use-element-width";
 import {
   analyzerChartRows,
   axisExtent,
   axisTitle,
+  growthKey,
   pseudoKey,
   specKey,
   valueForPeriod,
@@ -52,14 +57,17 @@ export interface AxisBounds {
   rightMax: number | null;
 }
 
-/** Stroke color + dash for a palette slot (dashed once the palette wraps). */
+/** Stroke color + dash for a palette slot (6 solid, 6 dashed, repeat). */
 export function specStroke(
   palette: string[],
   slot: number,
 ): { color: string; dash?: string } {
+  // Six solid colors, then the same six with a long dash, then repeat. The
+  // long dash stays distinct from the short pseudo-history dash.
+  const n = palette.length;
   return {
-    color: palette[slot % palette.length],
-    dash: slot >= palette.length ? "5 3" : undefined,
+    color: palette[slot % n],
+    dash: Math.floor(slot / n) % 2 === 1 ? "9 4" : undefined,
   };
 }
 
@@ -92,6 +100,8 @@ export const AnalyzerChart = forwardRef<
     /** List hidden (not in comparison) series in the legend, muted. */
     legendShowsHidden?: boolean;
     renderLegendControls?: (spec: AnalyzerSeriesSpec) => React.ReactNode;
+    /** Growth rate drawn as translucent bars behind each visible series. */
+    growth?: TableTransform | null;
     className?: string;
   }
 >(function AnalyzerChart(
@@ -105,6 +115,7 @@ export const AnalyzerChart = forwardRef<
     height = 360,
     legendShowsHidden = false,
     renderLegendControls,
+    growth = null,
     className,
   },
   ref,
@@ -113,11 +124,40 @@ export const AnalyzerChart = forwardRef<
   const palette = getChartPalette(config);
   const universe = config.universe;
 
-  const { rows, points } = useMemo(
-    () => analyzerChartRows(specs, baseDate, startDate, endDate),
-    [specs, baseDate, startDate, endDate],
-  );
   const visible = specs.filter((s) => s.visible);
+  const { rows, points } = useMemo(() => {
+    const out = analyzerChartRows(specs, baseDate, startDate, endDate);
+    if (!growth) return out;
+    // Growth bars: each visible series' growth value on its own dates.
+    for (const s of specs) {
+      if (!s.visible) continue;
+      const t = getTransformations(
+        s.series.seriesObservations.transformationResults,
+      )[growth];
+      if (!t?.dates) continue;
+      const byDate = new Map(t.dates.map((d, i) => [d, t.values?.[i]]));
+      for (const r of out.rows) {
+        const v = byDate.get(r.date);
+        if (v !== undefined && v !== null && v !== "")
+          r[growthKey(s.id)] = Number(v);
+      }
+    }
+    return out;
+  }, [specs, baseDate, startDate, endDate, growth]);
+  const barSpecs = growth
+    ? visible.filter((s) => rows.some((r) => r[growthKey(s.id)] != null))
+    : [];
+
+  // Bars share BAR_FILL of each period's slot (side by side per series).
+  const plotRef = useRef<HTMLDivElement>(null);
+  const plotWidth =
+    useElementWidth(plotRef) -
+    (visible.some((s) => s.axis === "left") ? 52 : 0) -
+    (visible.some((s) => s.axis === "right") ? 52 : 8);
+  const barLayout = timeBarLayout(plotWidth, rows.length, 48);
+  const growthBarSize = barSpecs.length
+    ? Math.max(1, Math.floor(barLayout.barSize / barSpecs.length))
+    : 0;
   const hasRight = visible.some((s) => s.axis === "right");
   const hasLeft = visible.some((s) => s.axis === "left");
   const leftTitle = axisTitle(specs, "left");
@@ -202,186 +242,226 @@ export const AnalyzerChart = forwardRef<
         </div>
       )}
       <div ref={ref}>
-        {rows.length === 0 ? (
-          <div
-            className="text-muted-foreground flex items-center justify-center text-sm"
-            style={{ height }}
-          >
-            {visible.length
-              ? "No data in the selected range."
-              : "Add a series to the comparison to draw it."}
-          </div>
-        ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto w-full"
-            style={{ height }}
-          >
-            <ComposedChart
-              data={rows}
-              margin={{ top: 6, right: hasRight ? 0 : 8, bottom: 0, left: 0 }}
-              barCategoryGap={1}
+        <div ref={plotRef}>
+          {rows.length === 0 ? (
+            <div
+              className="text-muted-foreground flex items-center justify-center text-sm"
+              style={{ height }}
             >
-              <CartesianGrid {...GRID_PROPS} />
-              <XAxis
-                {...AXIS_PROPS}
-                dataKey="ts"
-                type="number"
-                scale="time"
-                domain={["dataMin", "dataMax"]}
-                ticks={ticks}
-                tickFormatter={(ts: number) =>
-                  formatTimeTick(ts, freq, spanYears)
-                }
-                axisLine={{ stroke: "var(--border)" }}
-                padding={
-                  visible.some((s) => s.type === "column")
-                    ? { left: 8, right: 8 }
-                    : undefined
-                }
-              />
-              <YAxis
-                {...AXIS_PROPS}
-                yAxisId="left"
-                orientation="left"
-                hide={!hasLeft}
-                width={52}
-                tickCount={5}
-                tickFormatter={formatAxisNumber}
-                {...domain("left")}
-              />
-              <YAxis
-                {...AXIS_PROPS}
-                yAxisId="right"
-                orientation="right"
-                hide={!hasRight}
-                width={hasRight ? 52 : 0}
-                tickCount={5}
-                tickFormatter={formatAxisNumber}
-                {...domain("right")}
-              />
-              {zeroAxis && (
-                <ReferenceLine
-                  yAxisId={zeroAxis}
-                  y={0}
-                  stroke="var(--muted-foreground)"
-                  strokeOpacity={0.35}
+              {visible.length
+                ? "No data in the selected range."
+                : "Add a series to the comparison to draw it."}
+            </div>
+          ) : (
+            <ChartContainer
+              config={chartConfig}
+              className="aspect-auto w-full"
+              style={{ height }}
+            >
+              <ComposedChart
+                data={rows}
+                margin={{ top: 6, right: hasRight ? 0 : 8, bottom: 0, left: 0 }}
+                barCategoryGap={1}
+              >
+                <CartesianGrid {...GRID_PROPS} />
+                <XAxis
+                  {...AXIS_PROPS}
+                  dataKey="ts"
+                  type="number"
+                  scale="time"
+                  domain={["dataMin", "dataMax"]}
+                  ticks={ticks}
+                  tickFormatter={(ts: number) =>
+                    formatTimeTick(ts, freq, spanYears)
+                  }
+                  axisLine={{ stroke: "var(--border)" }}
+                  padding={
+                    barSpecs.length
+                      ? { left: barLayout.xPad, right: barLayout.xPad }
+                      : visible.some((s) => s.type === "column")
+                        ? { left: 8, right: 8 }
+                        : undefined
+                  }
                 />
-              )}
-              {visible.map((s) => {
-                const { color, dash } = specStroke(palette, s.slot);
-                const key = specKey(s.id);
-                const bridge = s.series.frequencyShort !== freq;
-                if (s.type === "column") {
-                  return (
-                    <Bar
-                      key={key}
-                      yAxisId={s.axis}
-                      dataKey={key}
-                      name={s.name}
-                      fill={color}
-                      maxBarSize={10}
-                      isAnimationActive={false}
-                    />
-                  );
-                }
-                const pseudo = pseudoIds.has(s.id) && (
-                  <Line
-                    key={`${key}-pseudo`}
-                    {...LINE_PROPS}
-                    yAxisId={s.axis}
-                    dataKey={pseudoKey(s.id)}
-                    name={`${s.name} (pseudo history)`}
-                    stroke={color}
-                    strokeDasharray={PSEUDO_DASH}
-                    activeDot={false}
+                <YAxis
+                  {...AXIS_PROPS}
+                  yAxisId="left"
+                  orientation="left"
+                  hide={!hasLeft}
+                  width={52}
+                  tickCount={5}
+                  tickFormatter={formatAxisNumber}
+                  {...domain("left")}
+                />
+                <YAxis
+                  {...AXIS_PROPS}
+                  yAxisId="right"
+                  orientation="right"
+                  hide={!hasRight}
+                  width={hasRight ? 52 : 0}
+                  tickCount={5}
+                  tickFormatter={formatAxisNumber}
+                  {...domain("right")}
+                />
+                {barSpecs.length > 0 && (
+                  <YAxis
+                    yAxisId="growth"
+                    hide
+                    domain={[
+                      (min: number) => Math.min(0, min),
+                      (max: number) => Math.max(0, max),
+                    ]}
+                  />
+                )}
+                {barSpecs.map((s) => (
+                  // Behind the lines (rendered first); keyed by measure so
+                  // switching YOY ↔ YTD regrows the bars from zero.
+                  <Bar
+                    key={`${growthKey(s.id)}-${growth}`}
+                    yAxisId="growth"
+                    dataKey={growthKey(s.id)}
+                    name={`${s.name} (${growth?.toUpperCase()})`}
+                    fill={specStroke(palette, s.slot).color}
+                    fillOpacity={0.28}
+                    barSize={growthBarSize}
+                    shape={<GrowBar />}
+                    isAnimationActive={false}
                     legendType="none"
                   />
-                );
-                if (s.type === "area") {
+                ))}
+                {zeroAxis && (
+                  <ReferenceLine
+                    yAxisId={zeroAxis}
+                    y={0}
+                    stroke="var(--muted-foreground)"
+                    strokeOpacity={0.35}
+                  />
+                )}
+                {visible.map((s) => {
+                  const { color, dash } = specStroke(palette, s.slot);
+                  const key = specKey(s.id);
+                  const bridge = s.series.frequencyShort !== freq;
+                  if (s.type === "column") {
+                    return (
+                      <Bar
+                        key={key}
+                        yAxisId={s.axis}
+                        dataKey={key}
+                        name={s.name}
+                        fill={color}
+                        maxBarSize={10}
+                        isAnimationActive={false}
+                      />
+                    );
+                  }
+                  const pseudo = pseudoIds.has(s.id) && (
+                    <Line
+                      key={`${key}-pseudo`}
+                      {...LINE_PROPS}
+                      yAxisId={s.axis}
+                      dataKey={pseudoKey(s.id)}
+                      name={`${s.name} (pseudo history)`}
+                      stroke={color}
+                      strokeDasharray={PSEUDO_DASH}
+                      activeDot={false}
+                      legendType="none"
+                    />
+                  );
+                  if (s.type === "area") {
+                    return [
+                      pseudo,
+                      <Area
+                        key={key}
+                        yAxisId={s.axis}
+                        type={CURVE_TYPE}
+                        dataKey={key}
+                        name={s.name}
+                        stroke={color}
+                        strokeWidth={CHART_LINE_WIDTH}
+                        strokeDasharray={dash}
+                        fill={color}
+                        fillOpacity={0.14}
+                        dot={false}
+                        activeDot={{ r: 3, strokeWidth: 0 }}
+                        isAnimationActive={false}
+                        connectNulls={bridge}
+                      />,
+                    ];
+                  }
                   return [
                     pseudo,
-                    <Area
+                    <Line
                       key={key}
+                      {...LINE_PROPS}
                       yAxisId={s.axis}
-                      type={CURVE_TYPE}
                       dataKey={key}
                       name={s.name}
                       stroke={color}
-                      strokeWidth={CHART_LINE_WIDTH}
                       strokeDasharray={dash}
-                      fill={color}
-                      fillOpacity={0.14}
-                      dot={false}
-                      activeDot={{ r: 3, strokeWidth: 0 }}
-                      isAnimationActive={false}
                       connectNulls={bridge}
                     />,
                   ];
-                }
-                return [
-                  pseudo,
-                  <Line
-                    key={key}
-                    {...LINE_PROPS}
-                    yAxisId={s.axis}
-                    dataKey={key}
-                    name={s.name}
-                    stroke={color}
-                    strokeDasharray={dash}
-                    connectNulls={bridge}
-                  />,
-                ];
-              })}
-              <ChartTooltip
-                cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
-                isAnimationActive={false}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const row = payload[0].payload as AnalyzerChartRow;
-                  const lines = visible.flatMap((s) => {
-                    const hit = valueForPeriod(s, points.get(s.id), row.date);
-                    if (!hit || hit.value === null) return [];
-                    return [{ s, hit }];
-                  });
-                  if (!lines.length) return null;
-                  return (
-                    <div className="bg-card border-border max-w-sm min-w-44 border px-2.5 py-1.5 text-xs shadow-md">
-                      {lines.map(({ s, hit }) => (
-                        <div
-                          key={s.id}
-                          className="flex items-start gap-2 py-0.5"
-                        >
-                          <span
-                            className="mt-1.5 h-0.5 w-3 shrink-0"
-                            style={{
-                              background: specStroke(palette, s.slot).color,
-                            }}
-                          />
-                          <span className="text-muted-foreground flex-1 leading-snug">
-                            {hit.pseudo && "Pseudo History "}
-                            {s.series.title} ({s.series.geography.name})
-                            {s.transformation !== "Level" &&
-                              ` · ${s.transformation}`}{" "}
-                            <span className="text-foreground/70">
-                              {formatTooltipDate(
-                                hit.date,
-                                s.series.frequencyShort,
+                })}
+                <ChartTooltip
+                  cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                  isAnimationActive={false}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const row = payload[0].payload as AnalyzerChartRow;
+                    const lines = visible.flatMap((s) => {
+                      const hit = valueForPeriod(s, points.get(s.id), row.date);
+                      if (!hit || hit.value === null) return [];
+                      return [{ s, hit }];
+                    });
+                    if (!lines.length) return null;
+                    return (
+                      <div className="bg-card border-border max-w-sm min-w-44 border px-2.5 py-1.5 text-xs shadow-md">
+                        {lines.map(({ s, hit }) => (
+                          <div
+                            key={s.id}
+                            className="flex items-start gap-2 py-0.5"
+                          >
+                            <span
+                              className="mt-1.5 h-0.5 w-3 shrink-0"
+                              style={{
+                                background: specStroke(palette, s.slot).color,
+                              }}
+                            />
+                            <span className="text-muted-foreground flex-1 leading-snug">
+                              {hit.pseudo && "Pseudo History "}
+                              {s.series.title} ({s.series.geography.name})
+                              {s.transformation !== "Level" &&
+                                ` · ${s.transformation}`}{" "}
+                              <span className="text-foreground/70">
+                                {formatTooltipDate(
+                                  hit.date,
+                                  s.series.frequencyShort,
+                                )}
+                              </span>
+                            </span>
+                            <span className="text-foreground text-right font-medium tabular-nums">
+                              {formatNum(hit.value, s.decimals, universe)}
+                              {growth && row[growthKey(s.id)] != null && (
+                                <span className="text-muted-foreground block text-[11px] font-normal">
+                                  {growth.toUpperCase()}{" "}
+                                  {formatNum(
+                                    row[growthKey(s.id)],
+                                    GROWTH_DECIMALS,
+                                    universe,
+                                  )}
+                                </span>
                               )}
                             </span>
-                          </span>
-                          <span className="text-foreground font-medium tabular-nums">
-                            {formatNum(hit.value, s.decimals, universe)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                }}
-              />
-            </ComposedChart>
-          </ChartContainer>
-        )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }}
+                />
+              </ComposedChart>
+            </ChartContainer>
+          )}
+        </div>
       </div>
       {legendSpecs.length > 0 && (
         <ul className="mt-3 space-y-1 text-xs">
@@ -445,7 +525,7 @@ function LegendSwatch({
         y2="4"
         stroke={color}
         strokeWidth={2}
-        strokeDasharray={dashed ? "4 2" : undefined}
+        strokeDasharray={dashed ? "7 3" : undefined}
       />
     </svg>
   );

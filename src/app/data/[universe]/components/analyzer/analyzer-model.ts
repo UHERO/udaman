@@ -269,11 +269,13 @@ export function specPoints(
 export type AnalyzerChartRow = {
   ts: number;
   date: string;
-} & Record<`s${number}` | `p${number}`, number | null>;
+} & Record<`s${number}` | `p${number}` | `g${number}`, number | null>;
 
 export const specKey = (id: number) => `s${id}` as const;
 /** Pseudo-history values of a series, drawn dashed (level only). */
 export const pseudoKey = (id: number) => `p${id}` as const;
+/** Growth-rate bar values of a series (global YOY/YTD/MOM toggle). */
+export const growthKey = (id: number) => `g${id}` as const;
 
 /**
  * Chart rows over the union of the drawn series' dates, restricted to

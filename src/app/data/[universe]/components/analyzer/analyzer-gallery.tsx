@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
-import { ChartColumn, ChartColumnBig, X } from "lucide-react";
+import { ChartColumnBig, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,27 +11,21 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-import { formatTooltipDate } from "../../lib/dates";
-import { formatNum, seriesDecimals } from "../../lib/format";
 import { portalHref } from "../../lib/links";
 import { usePortalConfig } from "../../lib/portal-context";
-import {
-  changeLabels,
-  getTransformations,
-  seriesChartData,
-  seriesUnits,
-} from "../../lib/series";
+import { getTransformations, seriesChartData } from "../../lib/series";
 import type { SeriesChartRow } from "../../lib/types";
-import { MiniLineChart } from "../ui/mini-line-chart";
-import { PortalCard } from "../ui/portal-card";
+import { CategoryChartCard } from "../category/category-chart-card";
+import type { TableTransform } from "../selectors/transform-toggle";
 import { transformationPoints } from "./analyzer-model";
 import type { AnalyzerSeriesSpec } from "./analyzer-model";
 import { saParam } from "./analyzer-table";
 
 /**
- * Gallery view (category-charts in analyzerView mode): one mini chart per
- * analyzer series with a compare toggle (add to / remove from the comparison
- * chart) and a remove-from-analyzer button.
+ * Gallery view (category-charts in analyzerView mode): one detailed
+ * CategoryChartCard per analyzer series, with a compare toggle (add to /
+ * remove from the Compare chart; outlined + filled while included) and a
+ * remove-from-analyzer button.
  */
 export function AnalyzerGallery({
   specs,
@@ -42,6 +35,7 @@ export function AnalyzerGallery({
   baseDate,
   onToggleCompare,
   onRemove,
+  growth = null,
 }: {
   specs: AnalyzerSeriesSpec[];
   startDate: string;
@@ -50,10 +44,12 @@ export function AnalyzerGallery({
   baseDate: string | null;
   onToggleCompare: (id: number) => void;
   onRemove: (id: number) => void;
+  /** Growth-rate bars behind each card's line. */
+  growth?: TableTransform | null;
 }) {
   const lastVisible = specs.filter((s) => s.visible).length <= 1;
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4">
       {specs.map((spec) => (
         <GalleryCard
           key={spec.id}
@@ -62,6 +58,7 @@ export function AnalyzerGallery({
           endDate={endDate}
           indexed={indexed}
           baseDate={baseDate}
+          growth={growth}
           disableRemoveCompare={spec.visible && lastVisible}
           onToggleCompare={() => onToggleCompare(spec.id)}
           onRemove={() => onRemove(spec.id)}
@@ -80,6 +77,7 @@ function GalleryCard({
   disableRemoveCompare,
   onToggleCompare,
   onRemove,
+  growth,
 }: {
   spec: AnalyzerSeriesSpec;
   startDate: string;
@@ -89,16 +87,13 @@ function GalleryCard({
   disableRemoveCompare: boolean;
   onToggleCompare: () => void;
   onRemove: () => void;
+  growth: TableTransform | null;
 }) {
   const { config } = usePortalConfig();
   const s = spec.series;
-  const decimals = seriesDecimals(s);
-  const secondary =
-    config.miniChart.showSecondary && !indexed
-      ? config.miniChart.secondary
-      : null;
 
-  const { rows, pseudoZones } = useMemo(() => {
+  // Index mode: level values rebased to 100 at the base date.
+  const chartData = useMemo(() => {
     const d = seriesChartData(s);
     if (!indexed || !baseDate) return d;
     const level = getTransformations(
@@ -115,53 +110,38 @@ function GalleryCard({
     };
   }, [s, indexed, baseDate]);
 
-  const inRange = rows.filter(
-    (r) => r.date >= startDate && r.date <= endDate && r.level !== null,
-  );
-  const latest = inRange[inRange.length - 1];
-  const labels = changeLabels(s.percent);
-  const companionLabel =
-    secondary === "yoy"
-      ? labels.yoy
-      : secondary === "ytd"
-        ? labels.ytd
-        : secondary === "c5ma"
-          ? "Annual Change"
-          : undefined;
+  const hasIndexedData =
+    !indexed ||
+    chartData.rows.some(
+      (r) => r.date >= startDate && r.date <= endDate && r.level !== null,
+    );
 
   const compareLabel = spec.visible
     ? "Remove from Comparison"
     : "Add to Comparison";
 
   return (
-    <PortalCard className="flex flex-col">
-      <header className="flex items-start gap-2 px-3 pt-3 pb-1">
-        <div className="min-w-0 flex-1">
-          <Link
-            href={portalHref(config.universe, "series", {
-              id: s.id,
-              sa: saParam(s),
-            })}
-            className="text-foreground line-clamp-2 text-sm leading-tight font-semibold hover:underline"
-            title={spec.name}
-          >
-            {indexed ? `${s.title} (Index)` : s.title}
-          </Link>
-          <p className="text-muted-foreground mt-0.5 truncate text-xs">
-            {s.geography.shortName} · {s.frequency}
-            {latest && (
-              <>
-                {" · "}
-                <span className="text-foreground tabular-nums">
-                  {formatNum(latest.level, decimals, config.universe)}
-                </span>{" "}
-                {indexed ? "Index" : seriesUnits(s)} (
-                {formatTooltipDate(latest.date, s.frequencyShort)})
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center">
+    <CategoryChartCard
+      detailed
+      series={s}
+      href={portalHref(config.universe, "series", { id: s.id, sa: saParam(s) })}
+      displayName={indexed ? `${s.title} (Index)` : s.title}
+      chartData={chartData}
+      valueLabel={indexed ? "Index" : undefined}
+      startDate={startDate}
+      endDate={endDate}
+      slot={spec.slot}
+      growth={growth}
+      selected={spec.visible}
+      emptyMessage={
+        !spec.hasData
+          ? "Data not available"
+          : !hasIndexedData
+            ? "Not available for current base year"
+            : null
+      }
+      actions={
+        <>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -176,14 +156,10 @@ function GalleryCard({
                   "size-7 rounded-none",
                   spec.visible
                     ? "bg-(--portal-primary) text-white hover:bg-(--portal-primary)/90 hover:text-white"
-                    : "text-muted-foreground",
+                    : "text-muted-foreground hover:text-(--portal-primary)",
                 )}
               >
-                {spec.visible ? (
-                  <ChartColumnBig className="size-4" />
-                ) : (
-                  <ChartColumn className="size-4" />
-                )}
+                <ChartColumnBig className="size-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -207,38 +183,8 @@ function GalleryCard({
             </TooltipTrigger>
             <TooltipContent>Remove from Analyzer</TooltipContent>
           </Tooltip>
-        </div>
-      </header>
-      <div className="px-2 pb-2">
-        {!spec.hasData ? (
-          <EmptyChart text="Data not available" />
-        ) : indexed && !inRange.length ? (
-          <EmptyChart text="Not available for current base year" />
-        ) : (
-          <MiniLineChart
-            rows={rows}
-            freq={s.frequencyShort}
-            decimals={decimals}
-            universe={config.universe}
-            slot={spec.slot}
-            levelLabel={indexed ? "Index" : "Level"}
-            companion={secondary}
-            companionLabel={companionLabel}
-            startDate={startDate}
-            endDate={endDate}
-            pseudoZones={pseudoZones}
-            height={150}
-          />
-        )}
-      </div>
-    </PortalCard>
-  );
-}
-
-function EmptyChart({ text }: { text: string }) {
-  return (
-    <div className="text-muted-foreground flex h-[150px] items-center justify-center text-xs">
-      {text}
-    </div>
+        </>
+      }
+    />
   );
 }

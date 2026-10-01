@@ -33,8 +33,14 @@ const STAT_COLUMNS: { key: keyof SummaryStats; label: string }[] = [
 /**
  * Summary statistics per analyzer series over the selected range
  * (analyzer-table summary grid + analyzer-stats-renderer). Level values,
- * indexed when Index is on. Series with gaps at the range ends get N/A and
- * are listed in a footnote.
+ * indexed when Index is on.
+ *
+ * Each series is measured over its own data within the selected range: the
+ * "All" range is the union of every series' dates, so a series that starts
+ * later or ends earlier is trimmed to the first/last period it has (its
+ * Date Range cell shows the trimmed span). Angular instead returned N/A for
+ * any series without a value exactly at the range ends. Series with no data
+ * in the range, or gaps inside it, still get N/A and the footnote.
  */
 export function AnalyzerStatsTable({
   series,
@@ -63,8 +69,15 @@ export function AnalyzerStatsTable({
           date,
           value: pts.values[i],
         }));
+        // Trim the range to this series' first/last value inside it.
+        const present = points.filter(
+          (pt) =>
+            pt.value !== null && pt.date >= startDate && pt.date <= endDate,
+        );
+        const from = present[0]?.date ?? startDate;
+        const to = present[present.length - 1]?.date ?? endDate;
         return {
-          ...calculateSummaryStats(s, points, startDate, endDate),
+          ...calculateSummaryStats(s, points, from, to),
           series: s,
           label: analyzerDisplayName(s, indexed),
         };
@@ -118,8 +131,8 @@ export function AnalyzerStatsTable({
           <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
           <div>
             <p>
-              The following series contain N/As due to missing values included
-              in the selected range:
+              The following series contain N/As due to missing values in the
+              selected range:
             </p>
             <ul className="mt-1 list-disc pl-4">
               {missing.map((r) => (

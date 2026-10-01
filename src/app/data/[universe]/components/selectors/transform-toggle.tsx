@@ -10,13 +10,16 @@ import { cn } from "@/lib/utils";
 import type { PortalConfig } from "../../lib/config";
 import type { FreqCode } from "../../lib/types";
 
-export type DisplayTransform = "level" | "yoy" | "ytd" | "c5ma";
+export type DisplayTransform = "level" | "yoy" | "ytd" | "c5ma" | "mom";
 export type TableTransform = Exclude<DisplayTransform, "level">;
+/** Transformations the category/search pages offer (MOM is Analyzer-only). */
+export type CategoryTransform = Exclude<TableTransform, "mom">;
 
 const OPTION_META: Record<DisplayTransform, { short: string; full: string }> = {
   level: { short: "Level", full: "Level" },
   yoy: { short: "YOY", full: "Year-over-Year % Change" },
   ytd: { short: "YTD", full: "Year-to-Date % Change" },
+  mom: { short: "MOM", full: "Month-over-Month % Change" },
   c5ma: {
     short: "C5MA",
     full: "Annual % Change (centered 5-year moving average)",
@@ -30,8 +33,8 @@ const OPTION_META: Record<DisplayTransform, { short: string; full: string }> = {
 export function availableTransforms(
   transformations: PortalConfig["transformations"],
   freq: FreqCode,
-): TableTransform[] {
-  const out: TableTransform[] = [];
+): CategoryTransform[] {
+  const out: CategoryTransform[] = [];
   if (transformations.yoy) out.push("yoy");
   if (transformations.ytd && freq !== "A") out.push("ytd");
   if (transformations.c5ma) out.push("c5ma");

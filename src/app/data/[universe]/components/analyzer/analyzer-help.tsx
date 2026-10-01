@@ -70,8 +70,10 @@ export function AnalyzerHelp() {
               been selected for the analyzer. If all the indicators in the
               analyzer are of the same frequency, the frequency selector
               switches every indicator to another frequency, and the Index
-              checkbox becomes available. The date slider controls the sample
-              and &lsquo;Remove All Series&rsquo; clears the analyzer.
+              checkbox becomes available. The 1Y/5Y/10Y/All buttons and the date
+              slider set the sample, YOY/YTD add growth-rate bars to the charts
+              and a growth row to the table, and &lsquo;Clear Series&rsquo;
+              empties the analyzer.
             </p>
             <p>
               The column-chart icon on each chart toggles whether an indicator
@@ -86,19 +88,18 @@ export function AnalyzerHelp() {
             <ScreenshotPlaceholder caption="Compare view" aspect={16 / 9} />
             <p>
               The Compare view draws every series added to the comparison in a
-              single chart. The Zoom buttons set the range to 1, 5 or 10 years
-              ending at the selected end date; &lsquo;All&rsquo; shows all
-              available data. Download exports PNG, JPEG or SVG images, or the
-              chart data as CSV. The Level/YOY/YTD buttons draw the same values
-              for every series.
+              single chart. Scroll or double-click on the chart to zoom; the
+              range buttons and date slider at the top reset it. Download (next
+              to Share) exports PNG, JPEG, SVG or PDF images of the chart, or
+              its data as CSV or a PDF table.
             </p>
             <p>
               The legend lists all indicators in the analyzer. The settings icon
               next to each name opens its options: draw it on the left or right
               y-axis, change the chart type (line, column, or area), change the
               values drawn (level or growth rates), and remove it from the
-              comparison or the analyzer. Below the chart, set a minimum and
-              maximum for each y-axis.
+              comparison or the analyzer. Each y-axis fits the visible range
+              automatically.
             </p>
             <p>
               The Share button opens a link that reproduces the analyzer as it

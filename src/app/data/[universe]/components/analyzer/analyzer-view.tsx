@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChartColumnBig, ChartLine, LayoutGrid, Trash2 } from "lucide-react";
 
@@ -8,6 +8,7 @@ import { fetchSeriesSiblings } from "@/actions/data-portal/portal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { allowMoM } from "../../lib/analyzer";
 import { useAnalyzer } from "../../lib/analyzer-context";
 import { getDefaultRange } from "../../lib/config";
 import { rangeToParams, resolveDateRange } from "../../lib/dates";
@@ -22,7 +23,14 @@ import type { AnalyzerParams } from "../../lib/url-params";
 import { usePortalParams } from "../../lib/use-portal-params";
 import { DateRangeSlider } from "../selectors/date-range-slider";
 import { endForFreqSwitch } from "../selectors/freq-switch";
+import { SegmentedToggle } from "../selectors/segmented-toggle";
 import { CheckToggle, FreqSelector } from "../selectors/selectors";
+import {
+  availableTransforms,
+  TransformToggle,
+  type TableTransform,
+} from "../selectors/transform-toggle";
+import { presetRange, rangePresets } from "../series/series-labels";
 import { ShareLink } from "../share/share-link";
 import {
   PortalCard,
@@ -33,6 +41,7 @@ import {
 import type { AxisBounds } from "./analyzer-chart";
 import { AnalyzerCompare } from "./analyzer-compare";
 import type { CompareActions } from "./analyzer-compare";
+import { AnalyzerDownload } from "./analyzer-download";
 import { AnalyzerGallery } from "./analyzer-gallery";
 import { AnalyzerHelp } from "./analyzer-help";
 import {
@@ -235,7 +244,32 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
     }
   };
 
-  const tableRows = { yoy: p.yoy, ytd: p.ytd, c5ma: p.c5ma, mom: p.mom };
+  // One growth rate (top YOY/YTD/MOM toggle) drives the table's extra row
+  // and the chart bars. Stored in the existing yoy/ytd/c5ma/mom flags so old
+  // links keep working (the first flag set wins).
+  const growthOptions: TableTransform[] = [
+    ...availableTransforms(config.transformations, freq),
+    ...(config.transformations.mom && allowMoM(freq) ? (["mom"] as const) : []),
+  ];
+  const growth = growthOptions.find((k) => p[k]) ?? null;
+  const setGrowth = (g: TableTransform | null) =>
+    write({
+      yoy: g === "yoy",
+      ytd: g === "ytd",
+      c5ma: g === "c5ma",
+      mom: g === "mom",
+    });
+  // Range presets (1Y/5Y/10Y/All) before the slider; same helpers as the
+  // series page.
+  const presets = rangePresets(config.seriesChart.rangeButtons, freq);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const tableRows = {
+    yoy: growth === "yoy",
+    ytd: growth === "ytd",
+    c5ma: growth === "c5ma",
+    mom: growth === "mom",
+  };
 
   if (!series.length) {
     return (
@@ -265,29 +299,33 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
     >
       <PortalCard>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3">
-          <h1 className="text-foreground text-lg font-semibold tracking-tight">
+          <h1
+            className="min-w-0 text-xl leading-tight font-semibold tracking-wide md:text-2xl"
+            style={{ color: "var(--portal-primary)" }}
+          >
             Analyzer
           </h1>
           <AnalyzerHelp />
           <div className="ml-auto flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 rounded-none px-2.5 text-xs"
-              onClick={() => write({ compare: !p.compare })}
-            >
-              {p.compare ? (
-                <>
-                  <LayoutGrid className="size-3.5" /> Gallery View
-                </>
-              ) : (
-                <>
-                  <ChartColumnBig className="size-3.5" /> Compare
-                </>
-              )}
-            </Button>
+            <SegmentedToggle
+              ariaLabel="Analyzer view"
+              value={p.compare ? "compare" : "gallery"}
+              onChange={(v) => write({ compare: v === "compare" })}
+              options={[
+                { value: "gallery", label: "Gallery", icon: LayoutGrid },
+                { value: "compare", label: "Compare", icon: ChartColumnBig },
+              ]}
+            />
+            <AnalyzerDownload
+              specs={specs}
+              baseDate={baseDate}
+              startDate={range.startDate}
+              endDate={range.endDate}
+              chartRef={chartRef}
+              chartShown={p.compare}
+            />
             <ShareLink
+              className="h-8"
               view="analyzer"
               analyzerParams={{
                 ...p,
@@ -297,6 +335,16 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
               start={p.start}
               end={p.end}
             />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clear}
+              className="text-destructive hover:text-destructive h-8 rounded-none px-2.5 text-xs"
+            >
+              <Trash2 className="size-3.5" />
+              Clear Series
+            </Button>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 pt-3 pb-3">
@@ -308,6 +356,12 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
               onChange={(f) => void changeFrequency(f)}
             />
           )}
+          <TransformToggle
+            mode="optional"
+            options={growthOptions}
+            value={growth}
+            onChange={setGrowth}
+          />
           <span
             title={
               base.singleFrequency
@@ -325,24 +379,55 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
               )}
             />
           </span>
-          <DateRangeSlider
-            dates={base.sliderDates}
-            freq={freq}
-            startIndex={range.startIndex}
-            endIndex={range.endIndex}
-            onChange={(r) => actions.onRange(r.startDate, r.endDate)}
-            className="min-w-[18rem] flex-1"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={clear}
-            className="text-destructive hover:text-destructive h-8 rounded-none px-2.5 text-xs"
-          >
-            <Trash2 className="size-3.5" />
-            Remove All Series
-          </Button>
+          <div className="flex min-w-[18rem] flex-1 items-center gap-3">
+            {presets.length > 0 && (
+              <div
+                className="flex items-center gap-1"
+                role="group"
+                aria-label="Zoom"
+              >
+                {presets.map((pr) => {
+                  const r = presetRange(
+                    base.sliderDates,
+                    range.endIndex,
+                    pr.years,
+                  );
+                  const active =
+                    r.startIndex === range.startIndex &&
+                    r.endIndex === range.endIndex;
+                  return (
+                    <button
+                      key={pr.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        actions.onRange(
+                          base.sliderDates[r.startIndex].date,
+                          base.sliderDates[r.endIndex].date,
+                        )
+                      }
+                      className={cn(
+                        "h-7 min-w-9 border px-2 text-xs tabular-nums transition-colors",
+                        active
+                          ? "border-foreground/70 text-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground border-transparent",
+                      )}
+                    >
+                      {pr.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <DateRangeSlider
+              dates={base.sliderDates}
+              freq={freq}
+              startIndex={range.startIndex}
+              endIndex={range.endIndex}
+              onChange={(r) => actions.onRange(r.startDate, r.endDate)}
+              className="min-w-[15rem] flex-1"
+            />
+          </div>
         </div>
         {selectionNA && (
           <p className="text-destructive px-4 pb-3 text-sm">
@@ -361,13 +446,9 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
               sliderDates={base.sliderDates}
               startDate={range.startDate}
               endDate={range.endDate}
-              bounds={{
-                leftMin: p.leftMin,
-                leftMax: p.leftMax,
-                rightMin: p.rightMin,
-                rightMax: p.rightMax,
-              }}
+              chartRef={chartRef}
               actions={actions}
+              growth={growth}
             />
           </PortalCardBody>
         </PortalCard>
@@ -378,6 +459,7 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
           endDate={range.endDate}
           indexed={indexed}
           baseDate={baseDate}
+          growth={growth}
           onToggleCompare={actions.onToggleCompare}
           onRemove={remove}
         />
@@ -388,13 +470,11 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
         <PortalCardBody>
           <AnalyzerTable
             series={series}
-            freq={freq}
             startDate={range.startDate}
             endDate={range.endDate}
             indexed={indexed}
             baseDate={baseDate}
             rows={tableRows}
-            onToggleRow={(k, v) => write({ [k]: v })}
           />
         </PortalCardBody>
       </PortalCard>

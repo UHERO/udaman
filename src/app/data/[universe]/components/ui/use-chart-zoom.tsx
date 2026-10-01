@@ -22,7 +22,6 @@
  * need to be passed in.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { RotateCcw } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -259,8 +258,8 @@ export function useChartZoom(
 }
 
 /**
- * Hint line + "Reset zoom" button shown under a zoomable chart. The hint is
- * muted and tiny; the button appears only while zoomed.
+ * Muted hint line under a zoomable chart. No reset button: the range
+ * presets and date slider already undo a zoom.
  */
 export function ChartZoomBar({
   zoom,
@@ -281,16 +280,6 @@ export function ChartZoomBar({
         Scroll (pause on chart) or ⌘/Ctrl+scroll to zoom · double-click to zoom
         in, shift+double-click out
       </span>
-      {zoom.zoomed && (
-        <button
-          type="button"
-          onClick={zoom.reset}
-          className="border-border text-foreground hover:bg-muted inline-flex h-6 items-center gap-1 border px-2 text-[11px]"
-        >
-          <RotateCcw className="size-3" />
-          Reset zoom
-        </button>
-      )}
     </div>
   );
 }

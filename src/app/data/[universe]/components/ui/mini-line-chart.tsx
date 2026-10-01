@@ -21,6 +21,7 @@ import { usePortalConfig } from "../../lib/portal-context";
 import type { FreqCode, PseudoZone, SeriesChartRow } from "../../lib/types";
 import {
   AXIS_PROPS,
+  AXIS_TICK,
   COMPANION_BAR_PROPS,
   formatTimeTick,
   GRID_PROPS,
@@ -71,6 +72,7 @@ export function MiniLineChart({
   showGrid = false,
   showYAxis = true,
   showXAxis = true,
+  edgeTicks = false,
   valueKey = "level",
   tooltip = true,
   onHoverRow,
@@ -99,6 +101,11 @@ export function MiniLineChart({
   showGrid?: boolean;
   showYAxis?: boolean;
   showXAxis?: boolean;
+  /**
+   * Label only the extremes: first/last period on x (anchored inward so
+   * they aren't clipped), min/max of the plotted values on y.
+   */
+  edgeTicks?: boolean;
   /** Which value the line plots (pseudo-history styling applies to level only). */
   valueKey?: "level" | "yoy" | "ytd" | "c5ma";
   /** Render the floating tooltip (the crosshair is always drawn). */
@@ -134,6 +141,28 @@ export function MiniLineChart({
       level: r.date >= boundary ? r.level : null,
     }));
   }, [rows, startDate, endDate, pseudoZones, valueKey]);
+
+  // Edge ticks: first/last period, min/max plotted value.
+  const edge = useMemo(() => {
+    if (!edgeTicks || !data.length) return null;
+    const first = data[0];
+    const last = data[data.length - 1];
+    let min = Infinity;
+    let max = -Infinity;
+    for (const r of data) {
+      const v = valueKey === "level" ? (r.level ?? r.levelPseudo) : r[valueKey];
+      if (v === null || v === undefined) continue;
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    const [lo, hi] = yDomain ?? [min, max];
+    return {
+      x: first.ts === last.ts ? [first.ts] : [first.ts, last.ts],
+      dateByTs: new Map(data.map((r) => [r.ts, r.date])),
+      y: Number.isFinite(lo) ? (lo === hi ? [lo] : [lo, hi]) : undefined,
+      domain: Number.isFinite(lo) ? ([lo, hi] as [number, number]) : undefined,
+    };
+  }, [edgeTicks, data, valueKey, yDomain]);
 
   // Faint zero line only when the plotted values dip below zero.
   const hasNegative = useMemo(
@@ -231,9 +260,15 @@ export function MiniLineChart({
             type="number"
             scale="time"
             domain={["dataMin", "dataMax"]}
-            ticks={ticks}
-            tickFormatter={(ts: number) => formatTimeTick(ts, freq, spanYears)}
-            axisLine={{ stroke: "var(--border)" }}
+            ticks={edge?.x ?? ticks}
+            tickFormatter={(ts: number) => {
+              const date = edge?.dateByTs.get(ts);
+              return date
+                ? formatTooltipDate(date, freq)
+                : formatTimeTick(ts, freq, spanYears);
+            }}
+            {...(edge && { tick: <EdgeXTick />, interval: 0 })}
+            axisLine={edge ? false : { stroke: "var(--border)" }}
             padding={bars ? { left: xPad, right: xPad } : undefined}
           />
           <YAxis
@@ -242,8 +277,13 @@ export function MiniLineChart({
             hide={!showYAxis}
             width={40}
             tickCount={3}
-            domain={yDomain ?? ["auto", "auto"]}
+            domain={edge?.domain ?? yDomain ?? ["auto", "auto"]}
             tickFormatter={formatAxisNumber}
+            {...(edge && {
+              ticks: edge.y,
+              interval: 0,
+              padding: { top: 6, bottom: 6 },
+            })}
           />
           {bars && (
             <YAxis
@@ -346,5 +386,32 @@ function TooltipLine({
       <span className="text-muted-foreground flex-1">{label}</span>
       <span className="text-foreground font-medium tabular-nums">{value}</span>
     </div>
+  );
+}
+
+/** X tick for `edgeTicks`: first label anchored start, last anchored end. */
+function EdgeXTick(props: {
+  x?: number;
+  y?: number;
+  index?: number;
+  visibleTicksCount?: number;
+  payload?: { value: number };
+  tickFormatter?: (value: number, index: number) => string;
+}) {
+  const { x = 0, y = 0, index = 0, visibleTicksCount = 1, payload } = props;
+  if (!payload) return null;
+  const anchor =
+    visibleTicksCount < 2 ? "middle" : index === 0 ? "start" : "end";
+  return (
+    <text
+      x={x}
+      y={y}
+      dy="0.71em"
+      textAnchor={anchor}
+      fontSize={AXIS_TICK.fontSize}
+      fill={AXIS_TICK.fill}
+    >
+      {props.tickFormatter?.(payload.value, index) ?? payload.value}
+    </text>
   );
 }

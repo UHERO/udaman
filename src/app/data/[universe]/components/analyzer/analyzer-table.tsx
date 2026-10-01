@@ -7,11 +7,7 @@ import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-import {
-  allowMoM,
-  analyzerDisplayName,
-  analyzerTableDates,
-} from "../../lib/analyzer";
+import { analyzerDisplayName, analyzerTableDates } from "../../lib/analyzer";
 import {
   buildAnalyzerCsv,
   buildWideTableTsv,
@@ -26,11 +22,9 @@ import { getTransformations, transformationRowLabel } from "../../lib/series";
 import type {
   DateEntry,
   ExpandedSeries,
-  FreqCode,
   TransformationKey,
 } from "../../lib/types";
 import { SeriesInfoPopover } from "../category/series-info-popover";
-import { CheckToggle } from "../selectors/selectors";
 import { CopyButton } from "../ui/copy-button";
 import { StatTable } from "../ui/stat-table";
 import { transformationDecimals, transformationPoints } from "./analyzer-model";
@@ -49,12 +43,6 @@ export interface AnalyzerTableRow {
 }
 
 const ROW_KEYS: RowKey[] = ["yoy", "ytd", "c5ma", "mom"];
-const TOGGLE_LABEL: Record<RowKey, string> = {
-  yoy: "Year/Year",
-  ytd: "Year-to-Date",
-  mom: "Month/Month",
-  c5ma: "Annual Change",
-};
 
 /** `sa` param for series links (analyzer.formatSeriesForAnalyzer saParam). */
 export const saParam = (s: ExpandedSeries) =>
@@ -120,22 +108,19 @@ export function buildAnalyzerTableRows(opts: {
  */
 export function AnalyzerTable({
   series,
-  freq,
   startDate,
   endDate,
   indexed,
   baseDate,
   rows,
-  onToggleRow,
 }: {
   series: ExpandedSeries[];
-  freq: FreqCode | null;
   startDate: string;
   endDate: string;
   indexed: boolean;
   baseDate: string | null;
+  /** Transformation rows to show (set by the page's YOY/YTD toggle). */
   rows: Record<RowKey, boolean>;
-  onToggleRow: (key: RowKey, checked: boolean) => void;
 }) {
   const { config } = usePortalConfig();
   const universe = config.universe;
@@ -203,26 +188,11 @@ export function AnalyzerTable({
     downloadCsv(fileName, csv);
   };
 
-  const toggles = ROW_KEYS.filter((k) =>
-    k === "mom"
-      ? config.transformations.mom && allowMoM(freq)
-      : config.transformations[k],
-  );
-
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        {toggles.map((k) => (
-          <CheckToggle
-            key={k}
-            id={`analyzer-table-${k}`}
-            label={TOGGLE_LABEL[k]}
-            checked={rows[k]}
-            onChange={(v) => onToggleRow(k, v)}
-          />
-        ))}
+      <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
         <CopyButton
-          className="ml-auto px-2 text-(--portal-primary)"
+          className="px-2 text-(--portal-primary)"
           getText={() =>
             buildWideTableTsv({
               columns: dates.map((d) => ({
