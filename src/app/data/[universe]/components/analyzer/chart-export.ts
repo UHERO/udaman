@@ -34,7 +34,12 @@ export interface ChartExportOptions {
   subtitle?: string;
   /** Source / portal lines printed under the chart in the PDF. */
   source?: string[];
+  /** Logo drawn bottom-left of the image (config.exportLogo; uhero only). */
+  logo?: { src: string; width: number; height: number };
 }
+
+/** Logo height in the exported image (px, before the 2× raster scale). */
+const LOGO_H = 18;
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PAINT_PROPS = [
@@ -71,6 +76,8 @@ const esc = (s: string) =>
 export function buildExportSvg(
   container: HTMLElement,
   opts: ChartExportOptions,
+  /** `opts.logo` already inlined as a data: URI (see exportChartImage). */
+  logoHref?: string,
 ): { svg: string; width: number; height: number } | null {
   const chart = container.querySelector<SVGSVGElement>("svg.recharts-surface");
   if (!chart) return null;
@@ -83,7 +90,8 @@ export function buildExportSvg(
   const headerH = opts.leftTitle || opts.rightTitle ? 20 : 4;
   const lineH = 16;
   const legendH = opts.legend.length * lineH + 8;
-  const creditsH = opts.credits ? 18 : 0;
+  const showLogo = !!(logoHref && opts.logo);
+  const creditsH = showLogo ? LOGO_H + 10 : opts.credits ? 18 : 0;
   const height = headerH + chartH + legendH + creditsH + pad;
   const font = `font-family="Helvetica, Arial, sans-serif" font-size="11"`;
 
@@ -111,6 +119,12 @@ export function buildExportSvg(
       `<text x="${pad + 22}" y="${y}" ${font} fill="#222">${esc(item.label)}</text>`,
     );
   });
+  if (showLogo && opts.logo) {
+    const logoW = (opts.logo.width / opts.logo.height) * LOGO_H;
+    parts.push(
+      `<image href="${logoHref}" x="${pad}" y="${height - pad / 2 - LOGO_H}" width="${logoW.toFixed(1)}" height="${LOGO_H}"/>`,
+    );
+  }
   if (opts.credits)
     parts.push(
       `<text x="${width - pad}" y="${height - 6}" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="#888">${esc(opts.credits)}</text>`,
@@ -118,6 +132,23 @@ export function buildExportSvg(
 
   const svg = `<svg xmlns="${SVG_NS}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${parts.join("")}</svg>`;
   return { svg, width, height };
+}
+
+/** Fetch an image and return it as a base64 data: URI (undefined on error). */
+async function inlineImage(src: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(src);
+    if (!res.ok) return undefined;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 async function rasterize(
@@ -161,7 +192,10 @@ export async function exportChartImage(
   fileName: string,
   opts: ChartExportOptions,
 ): Promise<void> {
-  const built = buildExportSvg(container, opts);
+  // An SVG drawn to a canvas can't load external files, so the logo is
+  // fetched and inlined as a data: URI first.
+  const logoHref = opts.logo ? await inlineImage(opts.logo.src) : undefined;
+  const built = buildExportSvg(container, opts, logoHref);
   if (!built) return;
   const { svg, width, height } = built;
   if (format === "svg") {

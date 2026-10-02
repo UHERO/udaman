@@ -117,6 +117,63 @@ export function timeTicks(timestamps: number[], count = 4): number[] {
   return ticks;
 }
 
+/**
+ * X ticks that always include the first and last point, plus at most
+ * `inner` evenly spaced year/period ticks between them (from timeTicks).
+ * Interior ticks too close to either end are dropped so labels don't
+ * collide. Pair with AnchoredTimeTick so the end labels aren't clipped.
+ */
+export function edgeTimeTicks(timestamps: number[], inner = 3): number[] {
+  if (timestamps.length < 2) return timestamps;
+  const first = timestamps[0];
+  const last = timestamps[timestamps.length - 1];
+  const gap = (last - first) * 0.15;
+  const candidates = timeTicks(timestamps, inner + 2).filter(
+    (t) => t > first + gap && t < last - gap,
+  );
+  let mid = candidates;
+  if (candidates.length > inner) {
+    const step = (candidates.length - 1) / Math.max(1, inner - 1);
+    mid = Array.from(
+      { length: inner },
+      (_, i) => candidates[Math.round(i * step)],
+    );
+  }
+  return [first, ...new Set(mid), last];
+}
+
+/**
+ * "Nice" evenly spaced ticks covering [lo, hi] (≈ `count` ticks, steps of
+ * 1/2/2.5/5 × 10ⁿ), e.g. 0 … 5,643 → 0, 2,000, 4,000, 6,000.
+ */
+export function niceTicks(lo: number, hi: number, count = 5): number[] {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return [];
+  if (lo === hi) {
+    const pad = Math.abs(lo) * 0.1 || 1;
+    lo -= pad;
+    hi += pad;
+  }
+  const raw = (hi - lo) / Math.max(1, count - 1);
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step =
+    [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? 10 * mag;
+  const start = Math.floor(lo / step) * step;
+  const end = Math.ceil(hi / step) * step;
+  const ticks: number[] = [];
+  for (let v = start; v <= end + step / 2; v += step)
+    ticks.push(Math.abs(v) < step / 1e6 ? 0 : +v.toPrecision(12));
+  return ticks;
+}
+
+/**
+ * Y-axis width (px) that fits the widest tick label at AXIS_TICK's 10px
+ * font (~6px per character) plus the tick margin.
+ */
+export function axisWidthFor(labels: string[], min = 36): number {
+  const chars = labels.reduce((m, l) => Math.max(m, l.length), 0);
+  return Math.max(min, Math.ceil(chars * 6 + 10));
+}
+
 /** X tick label for a UTC ms timestamp. */
 export function formatTimeTick(ts: number, freq: FreqCode, spanYears: number) {
   const d = new Date(ts);

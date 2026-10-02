@@ -23,7 +23,7 @@ import type {
   TransformationDisplayName,
 } from "../../lib/types";
 import type { TableTransform } from "../selectors/transform-toggle";
-import { ChartZoomBar, useChartZoom } from "../ui/use-chart-zoom";
+import { useChartZoom } from "../ui/use-chart-zoom";
 import { AnalyzerChart } from "./analyzer-chart";
 import type { AxisBounds } from "./analyzer-chart";
 import type {
@@ -110,7 +110,8 @@ export function AnalyzerCompare({
   };
   const indexOf = (d: string) =>
     Math.max(0, Math.min(lowerBound(list, d), list.length - 1));
-  const zoom = useChartZoom(chartRef, {
+  // Wheel / double-click zoom (no on-screen hint; presets + slider reset it).
+  useChartZoom(chartRef, {
     count: list.length,
     start: indexOf(startDate),
     end: indexOf(endDate),
@@ -121,7 +122,6 @@ export function AnalyzerCompare({
 
   return (
     <div className="space-y-3">
-      <ChartZoomBar zoom={zoom} className="-mb-2" />
       <AnalyzerChart
         ref={chartRef}
         specs={specs}

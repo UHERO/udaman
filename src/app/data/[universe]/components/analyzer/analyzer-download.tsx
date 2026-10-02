@@ -70,6 +70,7 @@ export function AnalyzerDownload({
         label: `${s.name} (${s.axis})`,
       })),
       credits: config.seriesChart.credits,
+      logo: config.exportLogo,
       title,
       subtitle,
       source: exportSource,

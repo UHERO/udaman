@@ -131,12 +131,18 @@ export function analyzerBase(series: ExpandedSeries[]): AnalyzerBase {
     freq = highestFrequency(series);
   }
   const tableDates = analyzerTableDates(series.filter(withData));
+  // One slider entry per date, labelled at the analyzer frequency. The union
+  // of mixed frequencies keeps whichever label sorts first per date ("1957"
+  // beats "1957 Q1"), so a range could read "1957 – 2026 Q2".
+  const sliderDates = analyzerSliderDates(tableDates).map((d) =>
+    freq ? { ...d, tableDate: formatTableDate(d.date, freq.freq) } : d,
+  );
   return {
     freq,
     singleFrequency,
     siblingFreqs,
     tableDates,
-    sliderDates: analyzerSliderDates(tableDates),
+    sliderDates,
   };
 }
 

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { categoryDateSpan, groupByMeasurement } from "../../lib/category";
 import { getDefaultRange } from "../../lib/config";
@@ -58,12 +59,15 @@ export function SearchView({
   freqs,
   geo,
   freq,
+  header,
 }: {
   series: ExpandedSeries[];
   geos: Geography[];
   freqs: Frequency[];
   geo: Geography;
   freq: Frequency;
+  /** Page title block, rendered at the top of the toolbar card. */
+  header?: React.ReactNode;
 }) {
   const { config } = usePortalConfig();
   const { category: q, searchParams, setParams } = usePortalParams();
@@ -155,7 +159,13 @@ export function SearchView({
   return (
     <>
       <PortalCard>
-        <PortalCardBody className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-4">
+        {header}
+        <PortalCardBody
+          className={cn(
+            "flex flex-wrap items-center gap-x-4 gap-y-3",
+            header ? "border-border border-t pt-3 md:px-5" : "pt-4",
+          )}
+        >
           <GeoSelector
             geos={geos}
             value={geo.handle}

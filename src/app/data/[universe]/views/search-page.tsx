@@ -114,32 +114,39 @@ export async function SearchPage({ universe, searchParams }: PortalPageProps) {
 
   const noResults = !error && !results.length && !series.length;
 
+  // Title block styled like the category / series / analyzer titles; it
+  // sits inside the toolbar card when there are results, else alone.
+  const header = (
+    <div className="px-4 pt-4 pb-3 md:px-5">
+      <h1
+        className="min-w-0 text-xl leading-tight font-semibold tracking-wide md:text-2xl"
+        style={{ color: "var(--portal-primary)" }}
+      >
+        Search: <span className="font-normal">{term}</span>
+      </h1>
+      <p className="text-muted-foreground mt-1 text-xs">
+        {error ??
+          (noResults
+            ? `No results found for ${term}`
+            : `${results.length}${results.length >= 50 ? "+" : ""} matching series`)}
+      </p>
+    </div>
+  );
+  const showView = !error && !noResults && !!geo && !!freq;
+
   return (
     <div className="flex flex-col gap-4">
-      <PortalCard>
-        <PortalCardHeader
-          title={
-            <span className="text-base">
-              Search: <span className="font-normal">{term}</span>
-            </span>
-          }
-          subtitle={
-            error ??
-            (noResults
-              ? `No results found for ${term}`
-              : `${results.length}${results.length >= 50 ? "+" : ""} matching series`)
-          }
-        />
-      </PortalCard>
-
-      {!error && !noResults && geo && freq && (
+      {showView ? (
         <SearchView
           series={series}
           geos={geos}
           freqs={freqs}
-          geo={geo}
-          freq={freq}
+          geo={geo!}
+          freq={freq!}
+          header={header}
         />
+      ) : (
+        <PortalCard>{header}</PortalCard>
       )}
 
       {!error && results.length > 0 && (

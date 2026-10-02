@@ -466,17 +466,14 @@ export function AnalyzerView({ series }: { series: ExpandedSeries[] }) {
       )}
 
       <PortalCard>
-        <PortalCardHeader title="Data" />
-        <PortalCardBody>
-          <AnalyzerTable
-            series={series}
-            startDate={range.startDate}
-            endDate={range.endDate}
-            indexed={indexed}
-            baseDate={baseDate}
-            rows={tableRows}
-          />
-        </PortalCardBody>
+        <AnalyzerTable
+          series={series}
+          startDate={range.startDate}
+          endDate={range.endDate}
+          indexed={indexed}
+          baseDate={baseDate}
+          rows={tableRows}
+        />
       </PortalCard>
 
       <PortalCard>

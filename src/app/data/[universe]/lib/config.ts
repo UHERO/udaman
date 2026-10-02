@@ -126,6 +126,11 @@ export interface PortalConfig {
    */
   sliderInteraction: boolean;
   otherDashboardLinks: { name: string; url: string }[];
+  /**
+   * Logo stamped on chart image/PDF exports (bottom-left). Only the base
+   * UHERO portal sets it; other universes export without a logo.
+   */
+  exportLogo?: { src: string; width: number; height: number };
   googleAnalyticsId?: string;
 }
 
@@ -260,6 +265,12 @@ export const PORTAL_CONFIGS: Record<string, PortalConfig> = {
         url: "https://uhero.hawaii.edu/analytics-dashboards/",
       },
     ],
+    // UHERO Analytics mark on chart exports.
+    exportLogo: {
+      src: "/data-portal/uhero/Analytics_Logo.svg",
+      width: 547,
+      height: 112,
+    },
     googleAnalyticsId: "G-RLVNRLYMP5",
   },
 
@@ -466,6 +477,7 @@ export function getPortalConfig(universe: string): PortalConfig {
       publicUrl: `${PORTAL_ORIGIN}/${slug}`,
     },
     otherDashboardLinks: [],
+    exportLogo: undefined,
     googleAnalyticsId: undefined,
   };
 }

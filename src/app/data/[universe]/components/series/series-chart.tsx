@@ -249,7 +249,7 @@ export function SeriesChart({
               tickFormatter={(ts: number) =>
                 formatTimeTick(ts, freq, spanYears)
               }
-              axisLine={{ stroke: "var(--border)" }}
+              axisLine={false}
               padding={barKey ? { left: xPad, right: xPad } : undefined}
             />
             {barKey && (

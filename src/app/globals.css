@@ -186,3 +186,28 @@
     transform: scaleY(1);
   }
 }
+
+/* Data portal scrollbars: thin, square, neutral — same as the sidebar nav,
+   for every scroll container in the portal (e.g. wide tables). WebKit/Blink
+   get the styled 6px bar; Firefox can't style the thumb, so it gets `thin`. */
+.data-portal ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.data-portal ::-webkit-scrollbar-track,
+.data-portal ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.data-portal ::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300, #d4d4d4);
+  border-radius: 0;
+}
+.data-portal ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400, #a3a3a3);
+}
+@supports not selector(::-webkit-scrollbar) {
+  .data-portal,
+  .data-portal * {
+    scrollbar-width: thin;
+  }
+}

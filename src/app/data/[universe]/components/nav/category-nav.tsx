@@ -18,7 +18,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +28,7 @@ import { usePortalConfig } from "../../lib/portal-context";
 import type { CategoryNode } from "../../lib/types";
 import { NAV_RESET_PARAMS } from "../../lib/url-params";
 import { usePortalParams } from "../../lib/use-portal-params";
+import { AnalyzerCountBadge } from "../analyzer/analyzer-count-badge";
 import { PortalDirectory } from "./portal-directory";
 
 /**
@@ -41,9 +41,8 @@ import { PortalDirectory } from "./portal-directory";
  * config.otherDashboardLinks.
  */
 export function CategoryNav({ onNavigate }: { onNavigate?: () => void }) {
-  const { config, categories } = usePortalConfig();
+  const { categories } = usePortalConfig();
   const { pathname, category: q, href } = usePortalParams();
-  const { count, analyzerHref } = useAnalyzer();
   const tree = categories.tree;
   const route = routeFromPathname(pathname);
   const onCategoryPage = route === "" || route === "category";
@@ -186,10 +185,23 @@ export function CategoryNav({ onNavigate }: { onNavigate?: () => void }) {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+    </>
+  );
+}
 
-      <SidebarSeparator className="mx-0" />
+/**
+ * Analyzer + dashboard directory links, pinned below the scrolling category
+ * list (rendered outside SidebarContent in portal-sidebar).
+ */
+export function PortalLinksNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { config } = usePortalConfig();
+  const { pathname } = usePortalParams();
+  const { analyzerHref } = useAnalyzer();
+  const route = routeFromPathname(pathname);
 
-      <SidebarGroup>
+  return (
+    <>
+      <SidebarGroup className="py-1">
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -200,7 +212,8 @@ export function CategoryNav({ onNavigate }: { onNavigate?: () => void }) {
               >
                 <Link href={analyzerHref} onClick={onNavigate}>
                   <ChartLine />
-                  <span>Analyzer ({count})</span>
+                  <span>Analyzer</span>
+                  <AnalyzerCountBadge className="ml-auto" />
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

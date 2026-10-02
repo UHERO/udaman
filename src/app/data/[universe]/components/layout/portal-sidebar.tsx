@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { usePortalConfig } from "../../lib/portal-context";
-import { CategoryNav } from "../nav/category-nav";
+import { CategoryNav, PortalLinksNav } from "../nav/category-nav";
 import { PortalLogo } from "./portal-logo";
 import { SearchBox } from "./search-box";
 
@@ -47,22 +47,29 @@ export function PortalSidebar() {
       <SidebarContent className="[scrollbar-gutter:stable] gap-0 bg-white py-1 supports-[not_selector(::-webkit-scrollbar)]:[scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-none [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb:hover]:bg-neutral-400 [&::-webkit-scrollbar-track]:bg-transparent">
         <CategoryNav onNavigate={close} />
       </SidebarContent>
+      {/* Pinned: stays at the bottom while the category list scrolls. */}
+      <div className="border-t border-neutral-200 bg-white">
+        <PortalLinksNav onNavigate={close} />
+      </div>
       {config.logo.analyticsSrc && (
         <SidebarFooter className="border-t border-neutral-200 bg-white px-4 py-3">
+          {/* "BUILT BY" sits on the logo's baseline: an <img>'s baseline is its
+              bottom edge, and the UHERO letters sit ~4% above the SVG's
+              bottom, hence the small nudge down. The pair spans the footer. */}
           <a
             href="https://uhero.hawaii.edu/uhero-analytics/"
-            className="flex items-end gap-2"
+            className="flex w-full items-baseline justify-evenly gap-3"
           >
-            <span className="text-muted-foreground text-[11px] tracking-wider uppercase">
+            <span className="text-muted-foreground text-[11px] leading-none tracking-wider uppercase">
               Built by
             </span>
             <Image
               src={config.logo.analyticsSrc}
               alt="UHERO Analytics"
-              width={141}
-              height={68}
-              sizes="50px"
-              className="h-6 w-auto"
+              width={547}
+              height={112}
+              sizes="140px"
+              className="h-7 w-auto translate-y-[4%]"
             />
           </a>
         </SidebarFooter>

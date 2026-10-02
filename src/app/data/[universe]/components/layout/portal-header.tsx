@@ -4,11 +4,11 @@ import Link from "next/link";
 import { ChartLine, MessageSquare } from "lucide-react";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
 
 import { useAnalyzer } from "../../lib/analyzer-context";
 import { portalHref } from "../../lib/links";
 import { usePortalConfig } from "../../lib/portal-context";
+import { AnalyzerCountBadge } from "../analyzer/analyzer-count-badge";
 import { PortalLogo } from "./portal-logo";
 import { SearchBox } from "./search-box";
 
@@ -26,7 +26,7 @@ const FEEDBACK_HREF =
  */
 export function PortalHeader() {
   const { config } = usePortalConfig();
-  const { count, analyzerHref } = useAnalyzer();
+  const { analyzerHref } = useAnalyzer();
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center border-b border-neutral-200 bg-white pr-3 md:pr-4">
@@ -59,17 +59,7 @@ export function PortalHeader() {
         >
           <ChartLine className="size-4" />
           <span className="hidden sm:inline">Analyzer</span>
-          <span
-            className={cn(
-              "min-w-5 px-1 text-center text-xs font-semibold tabular-nums",
-              count
-                ? "bg-(--portal-accent) text-neutral-900"
-                : "bg-neutral-100 text-neutral-500",
-            )}
-            aria-label={`${count} series selected`}
-          >
-            {count}
-          </span>
+          <AnalyzerCountBadge />
         </Link>
         {config.feedback && (
           <a

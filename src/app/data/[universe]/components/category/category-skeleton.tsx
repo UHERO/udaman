@@ -6,12 +6,16 @@ import { PortalCard } from "../ui/portal-card";
 export function CategorySkeleton({ cards = 8 }: { cards?: number }) {
   return (
     <div className="space-y-4" aria-busy="true" aria-label="Loading category">
-      <Skeleton className="h-7 w-64 rounded-none" />
-      <PortalCard className="flex flex-wrap items-center gap-3 px-4 py-3">
-        <Skeleton className="h-8 w-40 rounded-none" />
-        <Skeleton className="h-8 w-32 rounded-none" />
-        <Skeleton className="h-8 w-28 rounded-none" />
-        <Skeleton className="ml-auto h-8 w-80 max-w-full rounded-none" />
+      <PortalCard>
+        <div className="px-4 pt-4 pb-3 md:px-5">
+          <Skeleton className="h-7 w-64 rounded-none" />
+        </div>
+        <div className="border-border flex flex-wrap items-center gap-3 border-t px-4 py-3 md:px-5">
+          <Skeleton className="h-8 w-40 rounded-none" />
+          <Skeleton className="h-8 w-32 rounded-none" />
+          <Skeleton className="h-8 w-28 rounded-none" />
+          <Skeleton className="ml-auto h-8 w-80 max-w-full rounded-none" />
+        </div>
       </PortalCard>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4">
         {Array.from({ length: cards }, (_, i) => (

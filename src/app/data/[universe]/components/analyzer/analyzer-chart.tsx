@@ -4,7 +4,6 @@ import { forwardRef, useMemo, useRef } from "react";
 import {
   Area,
   Bar,
-  CartesianGrid,
   ComposedChart,
   Line,
   ReferenceLine,
@@ -17,20 +16,22 @@ import type { ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 
 import { getChartPalette } from "../../lib/config";
-import { formatTooltipDate } from "../../lib/dates";
+import { formatTableDate, formatTooltipDate } from "../../lib/dates";
 import { formatAxisNumber, formatNum, GROWTH_DECIMALS } from "../../lib/format";
 import { usePortalConfig } from "../../lib/portal-context";
 import { getTransformations } from "../../lib/series";
 import type { FreqCode } from "../../lib/types";
 import type { TableTransform } from "../selectors/transform-toggle";
+import { AnchoredTimeTick } from "../ui/anchored-time-tick";
 import {
   AXIS_PROPS,
+  axisWidthFor,
   CHART_LINE_WIDTH,
   CURVE_TYPE,
+  edgeTimeTicks,
   formatTimeTick,
-  GRID_PROPS,
   LINE_PROPS,
-  timeTicks,
+  niceTicks,
 } from "../ui/chart-theme";
 import { GrowBar } from "../ui/grow-bar";
 import { PSEUDO_DASH, PseudoHistoryNote } from "../ui/pseudo-history-note";
@@ -56,6 +57,16 @@ export interface AxisBounds {
   rightMin: number | null;
   rightMax: number | null;
 }
+
+const Y_AXIS_W = 52;
+
+/** Growth-axis labels (top-left, like the series chart's "YOY % Change"). */
+const GROWTH_AXIS_LABEL: Record<TableTransform, string> = {
+  yoy: "YOY % Chg",
+  ytd: "YTD % Chg",
+  mom: "MOM % Chg",
+  c5ma: "Annual % Chg",
+};
 
 /** Stroke color + dash for a palette slot (6 solid, 6 dashed, repeat). */
 export function specStroke(
@@ -148,27 +159,114 @@ export const AnalyzerChart = forwardRef<
     ? visible.filter((s) => rows.some((r) => r[growthKey(s.id)] != null))
     : [];
 
-  // Bars share BAR_FILL of each period's slot (side by side per series).
-  const plotRef = useRef<HTMLDivElement>(null);
-  const plotWidth =
-    useElementWidth(plotRef) -
-    (visible.some((s) => s.axis === "left") ? 52 : 0) -
-    (visible.some((s) => s.axis === "right") ? 52 : 8);
-  const barLayout = timeBarLayout(plotWidth, rows.length, 48);
-  const growthBarSize = barSpecs.length
-    ? Math.max(1, Math.floor(barLayout.barSize / barSpecs.length))
-    : 0;
   const hasRight = visible.some((s) => s.axis === "right");
   const hasLeft = visible.some((s) => s.axis === "left");
   const leftTitle = axisTitle(specs, "left");
   const rightTitle = axisTitle(specs, "right");
 
+  // Growth bars on → layout matches the series page: the labelled growth %
+  // axis takes the left side and the left-assigned lines' axis moves to the
+  // right (right-assigned lines keep their own, outer right axis).
+  const growthOn = barSpecs.length > 0;
+  const rightAxes = (growthOn && hasLeft ? 1 : 0) + (hasRight ? 1 : 0);
+  const titleLeft = growthOn
+    ? GROWTH_AXIS_LABEL[growth!]
+    : hasLeft
+      ? leftTitle
+      : "";
+  const titleRight = [
+    growthOn && hasLeft ? leftTitle : "",
+    hasRight ? rightTitle : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // ── Y axes (same approach as the series chart, made label-safe) ──────
+  // Nice ticks over the values in the visible range; each axis is as wide
+  // as its widest label (a 4-digit "5,643.3%" was clipped at a fixed 52px).
+  const growthFmt = (v: number) => `${formatAxisNumber(v)}%`;
+  let growthExt: [number, number] | null = null;
+  if (growthOn) {
+    let lo = 0;
+    let hi = 0;
+    for (const r of rows)
+      for (const s of barSpecs) {
+        const v = r[growthKey(s.id)];
+        if (v == null || !Number.isFinite(v)) continue;
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+      }
+    growthExt = [lo, hi];
+  }
+  const axisFor = (
+    ext: [number, number] | null,
+    fmt: (v: number) => string,
+    min?: number | null,
+    max?: number | null,
+  ) => {
+    if (min != null || max != null) {
+      // Explicit bounds (embed URLs): honor them as given.
+      const lo = min ?? ext?.[0] ?? 0;
+      const hi = max ?? ext?.[1] ?? 1;
+      return {
+        domain: [lo, hi] as [number, number],
+        ticks: undefined,
+        allowDataOverflow: true,
+        width: axisWidthFor(niceTicks(lo, hi).map(fmt)),
+      };
+    }
+    const ticks = ext ? niceTicks(ext[0], ext[1], 5) : [];
+    return ticks.length
+      ? {
+          domain: [ticks[0], ticks[ticks.length - 1]] as [number, number],
+          ticks,
+          allowDataOverflow: false,
+          width: axisWidthFor(ticks.map(fmt)),
+        }
+      : {
+          domain: ["auto", "auto"] as ["auto", "auto"],
+          ticks: undefined,
+          allowDataOverflow: false,
+          width: Y_AXIS_W,
+        };
+  };
+  const leftAxis = axisFor(
+    axisExtent(specs, rows, "left"),
+    formatAxisNumber,
+    bounds.leftMin,
+    bounds.leftMax,
+  );
+  const rightAxis = axisFor(
+    axisExtent(specs, rows, "right"),
+    formatAxisNumber,
+    bounds.rightMin,
+    bounds.rightMax,
+  );
+  const growthAxis = axisFor(growthExt, growthFmt);
+
+  // Bars share BAR_FILL of each period's slot (side by side per series).
+  const plotRef = useRef<HTMLDivElement>(null);
+  const leftAxesW = growthOn ? growthAxis.width : hasLeft ? leftAxis.width : 0;
+  const rightAxesW =
+    (growthOn && hasLeft ? leftAxis.width : 0) +
+    (hasRight ? rightAxis.width : 0);
+  const plotWidth = useElementWidth(plotRef) - leftAxesW - (rightAxesW || 8);
+  const barLayout = timeBarLayout(plotWidth, rows.length, 48);
+  const growthBarSize = growthOn
+    ? Math.max(1, Math.floor(barLayout.barSize / barSpecs.length))
+    : 0;
+
+  // X: always the first and last period (full label), ≤3 years between.
   const ticks = useMemo(
     () =>
-      timeTicks(
+      edgeTimeTicks(
         rows.map((r) => r.ts),
-        5,
+        3,
       ),
+    [rows],
+  );
+  const dateByTs = useMemo(
+    () => new Map(rows.map((r) => [r.ts, r.date])),
     [rows],
   );
   const spanYears =
@@ -176,29 +274,18 @@ export const AnalyzerChart = forwardRef<
       ? (rows[rows.length - 1].ts - rows[0].ts) / (365.25 * 864e5)
       : 0;
 
-  // One zero line, on the first drawn axis whose data goes negative (two
-  // zero lines on independent scales would read as a contradiction).
-  const zeroAxis = ([hasLeft && "left", hasRight && "right"] as const).find(
-    (side): side is AxisSide => {
-      if (!side) return false;
-      const ext = axisExtent(specs, rows, side);
-      return !!ext && ext[0] < 0;
-    },
-  );
-
-  const domain = (side: AxisSide) => {
-    const min = side === "left" ? bounds.leftMin : bounds.rightMin;
-    const max = side === "left" ? bounds.leftMax : bounds.rightMax;
-    const ext = axisExtent(specs, rows, side);
-    const autoMin = ext && ext[0] >= 0 ? 0 : "auto";
-    return {
-      domain: [min ?? autoMin, max ?? "auto"] as [
-        number | "auto",
-        number | "auto",
-      ],
-      allowDataOverflow: min != null || max != null,
-    };
-  };
+  // One zero line: the growth axis's when bars are on (like the series
+  // page), else the first line axis whose data goes negative (two zero lines
+  // on independent scales would read as a contradiction).
+  const zeroAxis = growthOn
+    ? undefined
+    : ([hasLeft && "left", hasRight && "right"] as const).find(
+        (side): side is AxisSide => {
+          if (!side) return false;
+          const ext = axisExtent(specs, rows, side);
+          return !!ext && ext[0] < 0;
+        },
+      );
 
   const chartConfig = useMemo(
     () =>
@@ -228,17 +315,15 @@ export const AnalyzerChart = forwardRef<
 
   return (
     <div className={cn("w-full", className)}>
-      {(leftTitle || rightTitle || pseudoIds.size > 0) && (
+      {(titleLeft || titleRight || pseudoIds.size > 0) && (
         <div className="text-muted-foreground flex justify-between gap-4 pb-1 text-[11px]">
           <span className="flex min-w-0 items-center gap-3">
-            <span className="truncate">{hasLeft ? leftTitle : ""}</span>
+            <span className="truncate">{titleLeft}</span>
             {pseudoIds.size > 0 && (
               <PseudoHistoryNote color="var(--muted-foreground)" />
             )}
           </span>
-          <span className="truncate text-right">
-            {hasRight ? rightTitle : ""}
-          </span>
+          <span className="truncate text-right">{titleRight}</span>
         </div>
       )}
       <div ref={ref}>
@@ -260,10 +345,14 @@ export const AnalyzerChart = forwardRef<
             >
               <ComposedChart
                 data={rows}
-                margin={{ top: 6, right: hasRight ? 0 : 8, bottom: 0, left: 0 }}
+                margin={{
+                  top: 6,
+                  right: rightAxes ? 0 : 8,
+                  bottom: 0,
+                  left: 0,
+                }}
                 barCategoryGap={1}
               >
-                <CartesianGrid {...GRID_PROPS} />
                 <XAxis
                   {...AXIS_PROPS}
                   dataKey="ts"
@@ -271,10 +360,14 @@ export const AnalyzerChart = forwardRef<
                   scale="time"
                   domain={["dataMin", "dataMax"]}
                   ticks={ticks}
-                  tickFormatter={(ts: number) =>
-                    formatTimeTick(ts, freq, spanYears)
+                  interval={0}
+                  tick={<AnchoredTimeTick />}
+                  tickFormatter={(ts: number, i: number) =>
+                    i === 0 || i === ticks.length - 1
+                      ? formatTableDate(dateByTs.get(ts) ?? "", freq)
+                      : formatTimeTick(ts, freq, spanYears)
                   }
-                  axisLine={{ stroke: "var(--border)" }}
+                  axisLine={false}
                   padding={
                     barSpecs.length
                       ? { left: barLayout.xPad, right: barLayout.xPad }
@@ -283,34 +376,50 @@ export const AnalyzerChart = forwardRef<
                         : undefined
                   }
                 />
+                {growthOn && (
+                  <YAxis
+                    {...AXIS_PROPS}
+                    yAxisId="growth"
+                    orientation="left"
+                    width={growthAxis.width}
+                    ticks={growthAxis.ticks}
+                    interval={0}
+                    tickFormatter={growthFmt}
+                    domain={growthAxis.domain}
+                  />
+                )}
                 <YAxis
                   {...AXIS_PROPS}
                   yAxisId="left"
-                  orientation="left"
+                  orientation={growthOn ? "right" : "left"}
                   hide={!hasLeft}
-                  width={52}
+                  width={hasLeft ? leftAxis.width : 0}
+                  ticks={leftAxis.ticks}
+                  interval={0}
                   tickCount={5}
                   tickFormatter={formatAxisNumber}
-                  {...domain("left")}
+                  domain={leftAxis.domain}
+                  allowDataOverflow={leftAxis.allowDataOverflow}
                 />
                 <YAxis
                   {...AXIS_PROPS}
                   yAxisId="right"
                   orientation="right"
                   hide={!hasRight}
-                  width={hasRight ? 52 : 0}
+                  width={hasRight ? rightAxis.width : 0}
+                  ticks={rightAxis.ticks}
+                  interval={0}
                   tickCount={5}
                   tickFormatter={formatAxisNumber}
-                  {...domain("right")}
+                  domain={rightAxis.domain}
+                  allowDataOverflow={rightAxis.allowDataOverflow}
                 />
-                {barSpecs.length > 0 && (
-                  <YAxis
+                {growthOn && (
+                  <ReferenceLine
                     yAxisId="growth"
-                    hide
-                    domain={[
-                      (min: number) => Math.min(0, min),
-                      (max: number) => Math.max(0, max),
-                    ]}
+                    y={0}
+                    stroke="var(--border)"
+                    ifOverflow="extendDomain"
                   />
                 )}
                 {barSpecs.map((s) => (

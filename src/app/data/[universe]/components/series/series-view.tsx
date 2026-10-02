@@ -326,6 +326,7 @@ export function SeriesView({ pkg }: { pkg: SeriesPackage }) {
           : []),
       ],
       credits: config.seriesChart.credits,
+      logo: config.exportLogo,
       title: series.title,
       subtitle: exportSubtitle,
       source: exportSource,

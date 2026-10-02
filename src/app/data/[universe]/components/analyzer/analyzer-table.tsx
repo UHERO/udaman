@@ -26,6 +26,7 @@ import type {
 } from "../../lib/types";
 import { SeriesInfoPopover } from "../category/series-info-popover";
 import { CopyButton } from "../ui/copy-button";
+import { PortalCardBody, PortalCardHeader } from "../ui/portal-card";
 import { StatTable } from "../ui/stat-table";
 import { transformationDecimals, transformationPoints } from "./analyzer-model";
 
@@ -113,6 +114,7 @@ export function AnalyzerTable({
   indexed,
   baseDate,
   rows,
+  title = "Data",
 }: {
   series: ExpandedSeries[];
   startDate: string;
@@ -121,6 +123,8 @@ export function AnalyzerTable({
   baseDate: string | null;
   /** Transformation rows to show (set by the page's YOY/YTD toggle). */
   rows: Record<RowKey, boolean>;
+  /** Card header title (the table renders its own header + body). */
+  title?: string;
 }) {
   const { config } = usePortalConfig();
   const universe = config.universe;
@@ -188,42 +192,51 @@ export function AnalyzerTable({
     downloadCsv(fileName, csv);
   };
 
+  // Card header and body: title + Copy / Download on one row (like the
+  // category table), table below.
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
-        <CopyButton
-          className="px-2 text-(--portal-primary)"
-          getText={() =>
-            buildWideTableTsv({
-              columns: dates.map((d) => ({
-                key: d.tableDate,
-                label: d.tableDate,
-              })),
-              rows: data.map((r) => ({ label: r.label, values: r.raw })),
-            })
-          }
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onExport}
-          className="h-7 rounded-none px-2 text-xs text-(--portal-primary)"
-        >
-          <Download className="size-3.5" />
-          Download CSV
-        </Button>
-      </div>
-      <StatTable
-        data={data}
-        columns={columns}
-        stickyFirstColumn
-        getRowId={(r) => r.id}
-        rowClassName={(row) =>
-          row.original.isLevel ? undefined : "text-muted-foreground text-xs"
+    <>
+      <PortalCardHeader
+        title={title}
+        actions={
+          <>
+            <CopyButton
+              className="px-2 text-(--portal-primary)"
+              getText={() =>
+                buildWideTableTsv({
+                  columns: dates.map((d) => ({
+                    key: d.tableDate,
+                    label: d.tableDate,
+                  })),
+                  rows: data.map((r) => ({ label: r.label, values: r.raw })),
+                })
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onExport}
+              className="h-7 rounded-none px-2 text-xs text-(--portal-primary)"
+            >
+              <Download className="size-3.5" />
+              Download CSV
+            </Button>
+          </>
         }
-        emptyMessage="No data in the selected range."
       />
-    </div>
+      <PortalCardBody>
+        <StatTable
+          data={data}
+          columns={columns}
+          stickyFirstColumn
+          getRowId={(r) => r.id}
+          rowClassName={(row) =>
+            row.original.isLevel ? undefined : "text-muted-foreground text-xs"
+          }
+          emptyMessage="No data in the selected range."
+        />
+      </PortalCardBody>
+    </>
   );
 }

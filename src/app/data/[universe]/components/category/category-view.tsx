@@ -209,139 +209,154 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
       )}
       aria-busy={isPending}
     >
-      <div>
-        <div className="flex items-center gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-(--portal-primary)">
-            {data.category.name}
-          </h1>
-          <CategoryHelp />
+      {/* ── Title, tabs and toolbar in one card (like series/analyzer) ── */}
+      <PortalCard>
+        <div className={cn("px-4 pt-4 md:px-5", !showTabs && "pb-3")}>
+          <div className="flex items-start gap-2">
+            <h1
+              className="min-w-0 text-xl leading-tight font-semibold tracking-wide md:text-2xl"
+              style={{ color: "var(--portal-primary)" }}
+            >
+              {data.category.name}
+            </h1>
+            <div className="shrink-0 pt-0.5">
+              <CategoryHelp />
+            </div>
+          </div>
+          {showTabs ? (
+            // Tabs sit on the toolbar's top rule; the active tab's underline
+            // overlaps it (-mb-px).
+            <nav
+              aria-label="Subcategories"
+              className="mt-2 flex flex-wrap gap-x-5"
+            >
+              {data.subcategories.map((sub) => {
+                const active = sub.id === activeTabId;
+                return (
+                  <Link
+                    key={sub.id}
+                    href={href(
+                      "category",
+                      {
+                        id: data.category.id,
+                        data_list_id: firstDataList(sub).id,
+                      },
+                      true,
+                    )}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "-mb-px border-b-2 py-2 text-sm whitespace-nowrap",
+                      active
+                        ? "text-foreground border-(--portal-primary) font-medium"
+                        : "text-muted-foreground hover:text-foreground border-transparent",
+                    )}
+                  >
+                    {sub.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : (
+            data.dataListPath &&
+            data.dataListPath !== data.category.name && (
+              <h2 className="text-muted-foreground mt-1 text-sm">
+                {data.dataListPath}
+              </h2>
+            )
+          )}
         </div>
-        {showTabs ? (
-          <nav
-            aria-label="Subcategories"
-            className="border-border mt-2 flex flex-wrap gap-x-5 border-b"
-          >
-            {data.subcategories.map((sub) => {
-              const active = sub.id === activeTabId;
-              return (
-                <Link
-                  key={sub.id}
-                  href={href(
-                    "category",
-                    {
-                      id: data.category.id,
-                      data_list_id: firstDataList(sub).id,
-                    },
-                    true,
-                  )}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "-mb-px border-b-2 py-2 text-sm whitespace-nowrap",
-                    active
-                      ? "text-foreground border-(--portal-primary) font-medium"
-                      : "text-muted-foreground hover:text-foreground border-transparent",
-                  )}
-                >
-                  {sub.name}
-                </Link>
-              );
-            })}
-          </nav>
-        ) : (
-          data.dataListPath &&
-          data.dataListPath !== data.category.name && (
-            <h2 className="text-muted-foreground mt-1 text-sm">
-              {data.dataListPath}
-            </h2>
-          )
-        )}
-      </div>
 
-      {/* ── Toolbar (filters) ── */}
-      <PortalCard className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 2xl:gap-x-5">
-        {(config.selectors.includes("geography") ||
-          config.selectors.includes("frequency") ||
-          config.selectors.includes("forecast") ||
-          data.measurements) && (
-          <div className="flex flex-wrap items-center gap-2">
-            {config.selectors.includes("geography") && data.geos.length > 0 && (
-              <GeoSelector
-                geos={data.geos}
-                value={data.geo?.handle}
-                onChange={(g) => navigate({ geo: g.handle, freq, fc: data.fc })}
-              />
-            )}
-            {config.selectors.includes("frequency") &&
-              data.freqs.length > 0 && (
-                <FreqSelector
-                  freqs={data.freqs}
-                  value={freq}
-                  onChange={(f) =>
-                    navigate({
-                      freq: f.freq,
-                      geo: data.geo?.handle,
-                      fc: data.fc,
-                      end: endForFreqSwitch(q.end, freq),
-                    })
+        {/* ── Toolbar (filters) ── */}
+        <div className="border-border flex flex-wrap items-center gap-x-4 gap-y-3 border-t px-4 py-3 md:px-5 2xl:gap-x-5">
+          {(config.selectors.includes("geography") ||
+            config.selectors.includes("frequency") ||
+            config.selectors.includes("forecast") ||
+            data.measurements) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {config.selectors.includes("geography") &&
+                data.geos.length > 0 && (
+                  <GeoSelector
+                    geos={data.geos}
+                    value={data.geo?.handle}
+                    onChange={(g) =>
+                      navigate({ geo: g.handle, freq, fc: data.fc })
+                    }
+                  />
+                )}
+              {config.selectors.includes("frequency") &&
+                data.freqs.length > 0 && (
+                  <FreqSelector
+                    freqs={data.freqs}
+                    value={freq}
+                    onChange={(f) =>
+                      navigate({
+                        freq: f.freq,
+                        geo: data.geo?.handle,
+                        fc: data.fc,
+                        end: endForFreqSwitch(q.end, freq),
+                      })
+                    }
+                  />
+                )}
+              {config.selectors.includes("forecast") && data.forecasts && (
+                <ForecastSelector
+                  forecasts={data.forecasts}
+                  value={data.fc}
+                  onChange={(fc) =>
+                    navigate({ fc, geo: data.geo?.handle, freq })
                   }
                 />
               )}
-            {config.selectors.includes("forecast") && data.forecasts && (
-              <ForecastSelector
-                forecasts={data.forecasts}
-                value={data.fc}
-                onChange={(fc) => navigate({ fc, geo: data.geo?.handle, freq })}
-              />
-            )}
-            {data.measurements && data.measurements.length > 0 && (
-              <MeasurementSelector
-                measurements={data.measurements}
-                value={data.measurement?.name}
-                onChange={(m) => navigate({ m: m.name })}
-              />
-            )}
-          </div>
-        )}
+              {data.measurements && data.measurements.length > 0 && (
+                <MeasurementSelector
+                  measurements={data.measurements}
+                  value={data.measurement?.name}
+                  onChange={(m) => navigate({ m: m.name })}
+                />
+              )}
+            </div>
+          )}
 
-        <ViewToggle view={view} onChange={(v) => shallow({ view: v })} />
+          <ViewToggle view={view} onChange={(v) => shallow({ view: v })} />
 
-        {view === "chart" ? (
-          <TransformToggle
-            mode="optional"
-            options={transforms}
-            value={chartGrowth}
-            onChange={(t) => shallow({ transform: t })}
-          />
-        ) : (
-          <TransformToggle
-            mode="multiple"
-            options={transforms}
-            value={tableTransforms}
-            onChange={setTableTransforms}
-          />
-        )}
+          {view === "chart" ? (
+            <TransformToggle
+              mode="optional"
+              options={transforms}
+              value={chartGrowth}
+              onChange={(t) => shallow({ transform: t })}
+            />
+          ) : (
+            <TransformToggle
+              mode="multiple"
+              options={transforms}
+              value={tableTransforms}
+              onChange={setTableTransforms}
+            />
+          )}
 
-        {hasSeasonal && (
-          <CheckToggle
-            id="cat-sa"
-            label="Seasonally Adjusted"
-            shortLabel="SA"
-            tooltip="Seasonal Adjustment"
-            checked={q.sa}
-            onChange={(v) => shallow({ sa: v })}
-          />
-        )}
+          {hasSeasonal && (
+            <CheckToggle
+              id="cat-sa"
+              label="Seasonally Adjusted"
+              shortLabel="SA"
+              tooltip="Seasonal Adjustment"
+              checked={q.sa}
+              onChange={(v) => shallow({ sa: v })}
+            />
+          )}
 
-        {!noData && span.displayDateSlider && dates.length > 1 && (
-          <DateRangeSlider
-            className="min-w-[15rem] flex-1 basis-60"
-            dates={dates}
-            freq={freq}
-            startIndex={range.startIndex}
-            endIndex={range.endIndex}
-            onChange={(r) => shallow(rangeToParams(r))}
-          />
-        )}
+          {!noData && span.displayDateSlider && dates.length > 1 && (
+            <DateRangeSlider
+              className="min-w-[15rem] flex-1 basis-60"
+              dates={dates}
+              freq={freq}
+              startIndex={range.startIndex}
+              endIndex={range.endIndex}
+              onChange={(r) => shallow(rangeToParams(r))}
+            />
+          )}
+        </div>
       </PortalCard>
 
       {/* ── Content ── */}
