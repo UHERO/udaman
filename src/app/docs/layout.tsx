@@ -6,6 +6,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { requireAuth } from "@/lib/auth/dal";
 import { getReadableResources } from "@/lib/auth/readable-resources";
 
+export const dynamic = "force-dynamic";
+
 export default async function DocsLayout({
   children,
 }: {

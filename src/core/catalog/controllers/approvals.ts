@@ -1,4 +1,5 @@
 import {
+  notifyPreReleaseSubmittedSlack,
   sendPreReleaseReviewed,
   sendPreReleaseSubmitted,
 } from "@/core/mailers/pre-release-mailer";
@@ -16,6 +17,7 @@ import ApprovalReviewCollection from "../collections/approval-review-collection"
 import type Approval from "../models/approval";
 import { REQUIRED_REVIEWS } from "../models/approval";
 import type { ApprovalType } from "../models/approval";
+import type { ReviewBoardStatus } from "../models/approval-review";
 import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.approvals");
@@ -193,6 +195,28 @@ export async function deleteReview({
   return { message: "Review withdrawn", approvalId: review.approvalId };
 }
 
+/**
+ * Move a review's kanban card. Only the parent approval's author (or an
+ * admin/dev) may set it — this is the author's own progress signal, separate
+ * from whatever the reviewer has attested/noted.
+ */
+export async function setReviewBoardStatus({
+  reviewId,
+  status,
+  actor,
+}: {
+  reviewId: number;
+  status: ReviewBoardStatus;
+  actor: Actor;
+}) {
+  const review = await ApprovalReviewCollection.getById(reviewId);
+  const approval = await ApprovalCollection.getById(review.approvalId);
+  assertCanModify(approval, actor);
+  const data = await ApprovalReviewCollection.setBoardStatus(reviewId, status);
+  log.info({ reviewId, status }, "review board status updated");
+  return { message: "Review status updated", data, approvalId: approval.id };
+}
+
 /** Mark a form released (or un-mark it). Author or admin only. */
 export async function setApprovalReleased({
   id,
@@ -231,7 +255,7 @@ export async function createApproval({
   });
   log.info({ id: data.id }, "approval created");
 
-  // Fire-and-forget: a mail failure must never lose a submitted form.
+  // Fire-and-forget: a notification failure must never lose a submitted form.
   sendPreReleaseSubmitted({
     approvalId: data.id,
     universe: data.universe,
@@ -245,6 +269,18 @@ export async function createApproval({
     log.error(
       { err: err instanceof Error ? err.message : String(err), id: data.id },
       "pre-release notification failed",
+    );
+  });
+
+  notifyPreReleaseSubmittedSlack({
+    approvalId: data.id,
+    universe: data.universe,
+    name: data.name,
+    author: data.author,
+  }).catch((err) => {
+    log.error(
+      { err: err instanceof Error ? err.message : String(err), id: data.id },
+      "pre-release slack notification failed",
     );
   });
 

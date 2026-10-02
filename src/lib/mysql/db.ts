@@ -16,29 +16,36 @@ function assertNotReadOnly(sql: string): void {
   }
 }
 
-const connection = new SQL({
-  adapter: "mysql",
-  hostname: process.env.DB_HOST ?? "localhost",
-  port: process.env.DB_PORT ?? 3306,
-  database: process.env.DB_NAME ?? "uhero_db_dev",
-  username: process.env.DB_USER ?? "root",
-  password: process.env.DB_PSWD ?? "",
-  // Pool size. The worker holds long-lived reservations (one per heavy
-  // lock holder) and, since reloads run RELOAD_CONCURRENCY series at a
-  // time, several per-loader transactions at once — Bun's default of 10
-  // left no headroom. MariaDB max_connections is 151; web + worker at 20
-  // each is well inside that.
-  max: Number(process.env.DB_POOL_MAX ?? 20),
-  // No idleTimeout, deliberately. Bun applies it to *reserved* connections
-  // too: one that sits idle past the timeout is closed underneath its
-  // holder and the next query on it fails ("Connection closed" /
-  // "connection must be a MySQLConnection"). The heavy-DB lock lives on a
-  // reserved connection that is idle for most of a job — and closing it
-  // releases the advisory lock server-side, silently. Pool and
-  // transaction connections reconnect transparently; reserved ones don't.
-  // Verified against Bun 1.4.0 on 2026-09-03 after the first production
-  // public sweep died this way.
-});
+let _connection: SQL | null = null;
+
+function getConnection(): SQL {
+  if (!_connection) {
+    _connection = new SQL({
+      adapter: "mysql",
+      hostname: process.env.DB_HOST ?? "localhost",
+      port: process.env.DB_PORT ?? 3306,
+      database: process.env.DB_NAME ?? "uhero_db_dev",
+      username: process.env.DB_USER ?? "root",
+      password: process.env.DB_PSWD ?? "",
+      // Pool size. The worker holds long-lived reservations (one per heavy
+      // lock holder) and, since reloads run RELOAD_CONCURRENCY series at a
+      // time, several per-loader transactions at once — Bun's default of 10
+      // left no headroom. MariaDB max_connections is 151; web + worker at 20
+      // each is well inside that.
+      max: Number(process.env.DB_POOL_MAX ?? 20),
+      // No idleTimeout, deliberately. Bun applies it to *reserved* connections
+      // too: one that sits idle past the timeout is closed underneath its
+      // holder and the next query on it fails ("Connection closed" /
+      // "connection must be a MySQLConnection"). The heavy-DB lock lives on a
+      // reserved connection that is idle for most of a job — and closing it
+      // releases the advisory lock server-side, silently. Pool and
+      // transaction connections reconnect transparently; reserved ones don't.
+      // Verified against Bun 1.4.0 on 2026-09-03 after the first production
+      // public sweep died this way.
+    });
+  }
+  return _connection;
+}
 
 function mysql<T = Record<string, unknown>>(
   strings: TemplateStringsArray,
@@ -52,7 +59,7 @@ function mysql(...args: unknown[]) {
   // Fragment helper: mysql([1, 2, 3]) or mysql(obj, "col1", "col2")
   if (!(first as TemplateStringsArray)?.raw) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (connection as any)(...args);
+    return (getConnection() as any)(...args);
   }
 
   // Tagged template: mysql`SELECT ...`
@@ -61,7 +68,7 @@ function mysql(...args: unknown[]) {
   const query = strings.join("?");
   assertNotReadOnly(query);
   const start = performance.now();
-  return (connection(strings, ...values) as Promise<unknown[]>).then(
+  return (getConnection()(strings, ...values) as Promise<unknown[]>).then(
     (result) => {
       const durationMs = +(performance.now() - start).toFixed(2);
       log.debug({ durationMs, rows: result.length }, query);
@@ -78,7 +85,7 @@ function rawQuery<T = Record<string, unknown>>(
   assertNotReadOnly(sql);
   const start = performance.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (connection as any).unsafe(sql, params).then((result: T[]) => {
+  return (getConnection() as any).unsafe(sql, params).then((result: T[]) => {
     const durationMs = +(performance.now() - start).toFixed(2);
     log.debug({ durationMs, rows: result.length }, sql);
     return result;
@@ -136,7 +143,7 @@ function makeTxExecutor(tx: any): TxExecutor {
 async function transaction<T>(fn: (tx: TxExecutor) => Promise<T>): Promise<T> {
   const start = performance.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [result] = await connection.begin(async (tx: any) => {
+  const [result] = await getConnection().begin(async (tx: any) => {
     const value = await fn(makeTxExecutor(tx));
     return [value];
   });
@@ -160,7 +167,7 @@ async function scopedConnection<T>(
 ): Promise<T> {
   const start = performance.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [result] = await connection.begin(async (tx: any) => {
+  const [result] = await getConnection().begin(async (tx: any) => {
     const exec = (sql: string, params: (string | number | Date)[] = []) => {
       const qStart = performance.now();
       return tx.unsafe(sql, params).then((rows: Record<string, unknown>[]) => {
@@ -188,7 +195,7 @@ async function insertAndGetId(
   assertNotReadOnly(sql);
   const start = performance.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [result] = await connection.begin(async (tx: any) => {
+  const [result] = await getConnection().begin(async (tx: any) => {
     await tx.unsafe(sql, params);
     const rows: { insertId: number }[] = await tx.unsafe(
       "SELECT LAST_INSERT_ID() as insertId",
@@ -206,7 +213,7 @@ async function insertAndGetId(
  * session variables) that must live on one connection.
  */
 function reserveConnection() {
-  return connection.reserve();
+  return getConnection().reserve();
 }
 
 export {

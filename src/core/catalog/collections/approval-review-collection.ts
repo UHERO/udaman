@@ -2,7 +2,10 @@ import { NotFoundError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 
 import ApprovalReview from "../models/approval-review";
-import type { ApprovalReviewAttrs } from "../models/approval-review";
+import type {
+  ApprovalReviewAttrs,
+  ReviewBoardStatus,
+} from "../models/approval-review";
 
 export type UpsertReviewPayload = {
   approvalId: number;
@@ -22,7 +25,7 @@ class ApprovalReviewCollection {
    */
   static async listForApproval(approvalId: number): Promise<ApprovalReview[]> {
     const rows = await mysql<ApprovalReviewAttrs>`
-      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer
+      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer_display
       FROM approval_reviews r
       LEFT JOIN users u ON u.id = r.reviewer_user_id
       WHERE r.approval_id = ${approvalId}
@@ -38,7 +41,7 @@ class ApprovalReviewCollection {
     const map = new Map<number, ApprovalReview[]>();
     if (!approvalIds.length) return map;
     const rows = await mysql<ApprovalReviewAttrs>`
-      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer
+      SELECT r.*, COALESCE(NULLIF(TRIM(u.name), ''), u.email, r.reviewer) AS reviewer_display
       FROM approval_reviews r
       LEFT JOIN users u ON u.id = r.reviewer_user_id
       WHERE r.approval_id IN ${mysql(approvalIds)}
@@ -77,21 +80,27 @@ class ApprovalReviewCollection {
    * is enforced by a unique key, so a second submit is an edit.
    *
    * `reviewed_at` is set the first time the box is checked and kept on later
-   * edits; unchecking clears it.
+   * edits; unchecking clears it. `board_status` moves in lockstep — checking
+   * the box is equivalent to dragging the kanban card to "Review Complete"
+   * (and back to "Not Started" on uncheck) — so the table and board always
+   * agree on whether a review is signed off, whether this is a brand-new
+   * review or an edit of an existing one.
    */
   static async upsert(payload: UpsertReviewPayload): Promise<ApprovalReview> {
     const attested = payload.attested ? 1 : 0;
     await mysql`
       INSERT INTO approval_reviews
-        (approval_id, reviewer_user_id, reviewer, attested, reviewed_at, notes, created_at, updated_at)
+        (approval_id, reviewer_user_id, reviewer, attested, reviewed_at, notes, board_status, created_at, updated_at)
       VALUES
         (${payload.approvalId}, ${payload.reviewerUserId}, ${payload.reviewer},
-         ${attested}, IF(${attested} = 1, NOW(), NULL), ${payload.notes}, NOW(), NOW())
+         ${attested}, IF(${attested} = 1, NOW(), NULL), ${payload.notes},
+         IF(${attested} = 1, 'reviewed', 'not_started'), NOW(), NOW())
       ON DUPLICATE KEY UPDATE
         reviewer = VALUES(reviewer),
         attested = VALUES(attested),
         reviewed_at = IF(VALUES(attested) = 1, COALESCE(reviewed_at, NOW()), NULL),
         notes = VALUES(notes),
+        board_status = IF(VALUES(attested) = 1, 'reviewed', IF(board_status = 'reviewed', 'not_started', board_status)),
         updated_at = NOW()
     `;
     const review = await this.findByReviewer(
@@ -104,6 +113,30 @@ class ApprovalReviewCollection {
 
   static async delete(id: number): Promise<void> {
     await mysql`DELETE FROM approval_reviews WHERE id = ${id}`;
+  }
+
+  /**
+   * Author-set kanban column for this review. See `ReviewBoardStatus`.
+   *
+   * The "Review Complete" column is the kanban's stand-in for the reviewer's
+   * own "Reviewed" checkbox: moving a card there stamps `reviewed_at` (same
+   * as ticking the box), and moving it back out clears it — so the table and
+   * board always agree on whether a review is signed off.
+   */
+  static async setBoardStatus(
+    id: number,
+    status: ReviewBoardStatus,
+  ): Promise<ApprovalReview> {
+    const attested = status === "reviewed" ? 1 : 0;
+    await mysql`
+      UPDATE approval_reviews
+      SET board_status = ${status},
+          attested = ${attested},
+          reviewed_at = IF(${attested} = 1, COALESCE(reviewed_at, NOW()), NULL),
+          updated_at = NOW()
+      WHERE id = ${id}
+    `;
+    return this.getById(id);
   }
 
   /** Signed-off reviews only — notes without the checkbox don't count. */

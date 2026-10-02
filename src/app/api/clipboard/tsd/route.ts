@@ -2,12 +2,14 @@ import ClipboardCollection from "@catalog/collections/clipboard-collection";
 import { seriesToTsd } from "@catalog/utils/tsd-generator";
 import type { TsdFrequency } from "@catalog/utils/tsd-generator";
 
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/auth/dal";
 import { requirePermission } from "@/lib/auth/permissions";
 import { scopedConnection } from "@/lib/mysql/db";
 
 const MAX_SERIES = 500;
 const BATCH_SIZE = 50;
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   await requirePermission("clipboard", "read");

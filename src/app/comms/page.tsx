@@ -13,26 +13,51 @@ import {
   getApprovalsWithReviews,
   currentUserName as getCurrentUserName,
 } from "@/actions/approvals";
+import { AuthorReviewBoard } from "@/components/comms/author-review-board";
+import { CommsViewToggle } from "@/components/comms/comms-view-toggle";
+import type { CommsView } from "@/components/comms/comms-view-toggle";
 import { PreReleaseList } from "@/components/comms/pre-release-list";
 import { PreReleaseStatusTabs } from "@/components/comms/pre-release-status-tabs";
+import { ReviewerBoard } from "@/components/comms/reviewer-board";
 import { Button } from "@/components/ui/button";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; view?: string }>;
 }) {
-  const [{ approvals, reviews }, { userId, role }, { status }] =
+  const [{ approvals, reviews }, { userId, role }, { status, view }] =
     await Promise.all([
       getApprovalsWithReviews(),
       getCurrentUserContext(),
       searchParams,
     ]);
   const currentUserName = await getCurrentUserName();
+  const currentUserId = parseInt(userId) || 0;
   const active: ApprovalStatusFilter = isApprovalStatusFilter(status)
     ? status
-    : "all";
+    : "not_reviewed";
+
+  // No explicit ?view= yet: land wherever this user has something of their
+  // own to do — their publications, then their reviews, else everyone's list.
+  const defaultView: CommsView = approvals.some(
+    (a) => a.authorUserId === currentUserId,
+  )
+    ? "board"
+    : Object.values(reviews)
+          .flat()
+          .some((r) => r.reviewerUserId === currentUserId)
+      ? "reviewing"
+      : "list";
+  const activeView: CommsView =
+    view === "board"
+      ? "board"
+      : view === "reviewing"
+        ? "reviewing"
+        : view === "list"
+          ? "list"
+          : defaultView;
   const visible = approvals.filter((a) => matches(a, active));
 
   return (
@@ -54,31 +79,50 @@ export default async function Page({
         </Button>
       </div>
 
-      <PreReleaseStatusTabs
-        active={active}
-        counts={
-          Object.fromEntries(
-            APPROVAL_STATUS_FILTERS.map((f) => [
-              f,
-              approvals.filter((a) => matches(a, f)).length,
-            ]),
-          ) as Record<ApprovalStatusFilter, number>
-        }
-      />
+      <CommsViewToggle active={activeView} />
 
-      <PreReleaseList
-        approvals={visible}
-        reviews={reviews}
-        currentUserId={parseInt(userId) || 0}
-        currentUserName={currentUserName}
-        isAdmin={role === "admin" || role === "dev"}
-        isDev={role === "dev"}
-        emptyMessage={
-          active === "all"
-            ? "No pre-release forms submitted yet."
-            : `No ${APPROVAL_STATUS_LABELS[active].toLowerCase()} forms.`
-        }
-      />
+      {activeView === "board" ? (
+        <AuthorReviewBoard
+          approvals={approvals}
+          reviews={reviews}
+          currentUserId={currentUserId}
+        />
+      ) : activeView === "reviewing" ? (
+        <ReviewerBoard
+          approvals={approvals}
+          reviews={reviews}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+        />
+      ) : (
+        <>
+          <PreReleaseStatusTabs
+            active={active}
+            counts={
+              Object.fromEntries(
+                APPROVAL_STATUS_FILTERS.map((f) => [
+                  f,
+                  approvals.filter((a) => matches(a, f)).length,
+                ]),
+              ) as Record<ApprovalStatusFilter, number>
+            }
+          />
+
+          <PreReleaseList
+            approvals={visible}
+            reviews={reviews}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            isAdmin={role === "admin" || role === "dev"}
+            isDev={role === "dev"}
+            emptyMessage={
+              active === "all"
+                ? "No pre-release forms submitted yet."
+                : `No ${APPROVAL_STATUS_LABELS[active].toLowerCase()} forms.`
+            }
+          />
+        </>
+      )}
     </div>
   );
 }

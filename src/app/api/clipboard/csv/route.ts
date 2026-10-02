@@ -1,11 +1,13 @@
 import ClipboardCollection from "@catalog/collections/clipboard-collection";
 
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/auth/dal";
 import { requirePermission } from "@/lib/auth/permissions";
 import { scopedConnection } from "@/lib/mysql/db";
 
 const MAX_SERIES = 500;
 const ROW_BATCH = 500;
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   await requirePermission("clipboard", "read");

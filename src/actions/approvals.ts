@@ -12,11 +12,13 @@ import {
   getReviewsForApprovals as fetchReviewsForApprovals,
   resendApprovalNotification as resendApprovalNotificationCtrl,
   setApprovalReleased as setApprovalReleasedCtrl,
+  setReviewBoardStatus as setReviewBoardStatusCtrl,
   submitReview as submitReviewCtrl,
   updateApproval as updateApprovalCtrl,
 } from "@catalog/controllers/approvals";
 import type { PreReleaseFormData } from "@catalog/models/approval";
 import type ApprovalReviewModel from "@catalog/models/approval-review";
+import type { ReviewBoardStatus } from "@catalog/models/approval-review";
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
@@ -249,6 +251,29 @@ export async function deleteReview(reviewId: number) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteReview failed");
     AppLogCollection.logError(err, { userId, name: "approval.review.delete" });
+    throw err;
+  }
+}
+
+export async function setReviewBoardStatus(
+  reviewId: number,
+  status: ReviewBoardStatus,
+) {
+  const { userId, role } = await requirePermission("approval", "update");
+  log.info({ reviewId, status }, "setReviewBoardStatus action called");
+  try {
+    const result = await setReviewBoardStatusCtrl({
+      reviewId,
+      status,
+      actor: { userId, role },
+    });
+    revalidatePath(REVALIDATE_PATH);
+    revalidatePath(`/comms/pub-form/${result.approvalId}`);
+    return { message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "setReviewBoardStatus failed");
+    AppLogCollection.logError(err, { userId, name: "approval.review.board" });
     throw err;
   }
 }
