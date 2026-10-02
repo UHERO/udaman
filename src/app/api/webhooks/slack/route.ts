@@ -1,8 +1,12 @@
 import crypto from "node:crypto";
 
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 
 import { createLogger } from "@/core/observability/logger";
+import {
+  unfurlSeriesLinks,
+  type LinkSharedEvent,
+} from "@/lib/slack/series-unfurl";
 
 const log = createLogger("webhook.slack");
 
@@ -70,6 +74,30 @@ function handleSlashCommand(params: URLSearchParams): NextResponse {
   });
 }
 
+/**
+ * `link_shared` (Events API): preview udaman series links. Slack wants an ack
+ * within 3s and retries otherwise, so the lookup runs after the response.
+ * Retries are acked and dropped — the first delivery's `after` is still
+ * running or already done, and a second chat.unfurl would be redundant.
+ */
+function handleLinkShared(
+  event: LinkSharedEvent,
+  retryNum: string | null,
+): NextResponse {
+  if (retryNum) {
+    log.info({ retryNum }, "Ignoring link_shared retry");
+    return NextResponse.json({ ok: true });
+  }
+  after(async () => {
+    try {
+      await unfurlSeriesLinks(event);
+    } catch (e) {
+      log.error({ err: e }, "Series unfurl failed");
+    }
+  });
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(request: NextRequest) {
   const signingSecret = process.env.SLACK_SIGNING_SECRET;
   if (!signingSecret) {
@@ -96,6 +124,15 @@ export async function POST(request: NextRequest) {
       const payload = JSON.parse(rawBody);
       if (payload.type === "url_verification") {
         return handleChallenge(payload);
+      }
+      if (
+        payload.type === "event_callback" &&
+        payload.event?.type === "link_shared"
+      ) {
+        return handleLinkShared(
+          payload.event,
+          request.headers.get("x-slack-retry-num"),
+        );
       }
       log.info({ type: payload.type }, "Unhandled Slack event type");
       return NextResponse.json({ ok: true });
