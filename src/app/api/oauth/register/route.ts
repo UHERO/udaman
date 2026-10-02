@@ -8,7 +8,6 @@
 
 import OAuthController from "@catalog/controllers/oauth";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type RegisterBody = {

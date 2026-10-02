@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { seriesMetadata, SeriesPage } from "../../views/series-page";
 
 /** /data/<universe>/series — thin wrapper; body in views/series-page.tsx. */
-export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ universe: string }>;

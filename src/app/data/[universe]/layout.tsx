@@ -19,7 +19,6 @@ import {
  * OWNER: foundation. Thin wrapper: validation here, body in
  * views/universe-layout.tsx.
  */
-export const dynamic = "force-dynamic";
 
 type Props = {
   children: React.ReactNode;

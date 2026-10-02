@@ -12,7 +12,6 @@ import {
  * universe fixed. These static segments shadow [universe] values of the same
  * name; /data/uhero/… redirects here (src/proxy.ts).
  */
-export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
   return universeLayoutMetadata("uhero");

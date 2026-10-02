@@ -6,7 +6,6 @@ import {
 } from "../../../[universe]/views/search-page";
 
 /** /data/search — UHERO at the portal root; body in [universe]/views/search-page.tsx. */
-export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

@@ -19,7 +19,6 @@ import { registerUheroTools } from "@/lib/mcp-tools";
 import { mysql } from "@/lib/mysql/db";
 import { getPublicOrigin } from "@/lib/oauth/origin";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type AuthContext = {

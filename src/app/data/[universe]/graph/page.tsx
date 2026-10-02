@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { graphMetadata, GraphPage } from "../views/graph-page";
 
 /** /data/<universe>/graph — thin wrapper; body in views/graph-page.tsx. */
-export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ universe: string }>;

@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { searchMetadata, SearchPage } from "../../views/search-page";
 
 /** /data/<universe>/search — thin wrapper; body in views/search-page.tsx. */
-export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ universe: string }>;

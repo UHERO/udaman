@@ -9,7 +9,6 @@
 
 import OAuthController, { type OAuthError } from "@catalog/controllers/oauth";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 function asString(value: FormDataEntryValue | null): string | null {
