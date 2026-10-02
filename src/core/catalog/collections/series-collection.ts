@@ -612,6 +612,80 @@ class SeriesCollection {
     return rows[0];
   }
 
+  /**
+   * Just enough for a link preview (Slack unfurl): labels plus the latest two
+   * current observations. Returns null for an unknown id. Several loaders can
+   * hold a current row for the same date, so dates are deduped newest-first
+   * the same way DataPointCollection.getBySeriesId does.
+   */
+  static async getLinkPreview(id: number): Promise<{
+    id: number;
+    name: string;
+    universe: string;
+    title: string | null;
+    frequency: string | null;
+    decimals: number | null;
+    percent: boolean;
+    unitsLabel: string | null;
+    geography: string | null;
+    latest: { date: Date | string; value: number }[];
+  } | null> {
+    const [meta] = await mysql<{
+      name: string;
+      universe: string;
+      dataPortalName: string | null;
+      description: string | null;
+      decimals: number | null;
+      xseries_id: number;
+      frequency: string | null;
+      percent: number | null;
+      units_short: string | null;
+      units_long: string | null;
+      geography: string | null;
+    }>`
+      SELECT s.name, s.universe, s.dataPortalName, s.description, s.decimals,
+        s.xseries_id, x.frequency, x.percent,
+        u.short_label AS units_short, u.long_label AS units_long,
+        g.display_name AS geography
+      FROM series s
+      JOIN xseries x ON s.xseries_id = x.id
+      LEFT JOIN units u ON s.unit_id = u.id
+      LEFT JOIN geographies g ON s.geography_id = g.id
+      WHERE s.id = ${id}
+    `;
+    if (!meta) return null;
+
+    const rows = await mysql<{ date: Date | string; value: number | null }>`
+      SELECT date, value FROM data_points
+      WHERE xseries_id = ${meta.xseries_id} AND current = 1
+      ORDER BY date DESC, updated_at DESC
+      LIMIT 10
+    `;
+    const latest: { date: Date | string; value: number }[] = [];
+    const seen = new Set<string>();
+    for (const r of rows) {
+      const key = String(r.date instanceof Date ? r.date.getTime() : r.date);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (r.value === null) continue;
+      latest.push({ date: r.date, value: Number(r.value) });
+      if (latest.length === 2) break;
+    }
+
+    return {
+      id,
+      name: meta.name,
+      universe: meta.universe,
+      title: meta.dataPortalName || meta.description || null,
+      frequency: meta.frequency,
+      decimals: meta.decimals,
+      percent: Boolean(meta.percent),
+      unitsLabel: meta.units_short || meta.units_long || null,
+      geography: meta.geography,
+      latest,
+    };
+  }
+
   /** Fetch the most recent 40 series for the homepage summary list */
   static async getSummaryList({
     offset: _offset,

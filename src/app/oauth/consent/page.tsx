@@ -19,8 +19,6 @@ import { H1, Lead } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth/dal";
 
-export const dynamic = "force-dynamic";
-
 type Query = {
   client_id?: string;
   redirect_uri?: string;

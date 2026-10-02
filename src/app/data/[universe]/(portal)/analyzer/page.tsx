@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { analyzerMetadata, AnalyzerPage } from "../../views/analyzer-page";
 
 /** /data/<universe>/analyzer — thin wrapper; body in views/analyzer-page.tsx. */
-export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ universe: string }>;

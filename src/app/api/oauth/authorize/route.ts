@@ -22,7 +22,6 @@ import { type OAuthError } from "@catalog/controllers/oauth";
 import { auth } from "@/lib/auth/index";
 import { getPublicOrigin } from "@/lib/oauth/origin";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**

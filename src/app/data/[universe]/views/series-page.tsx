@@ -2,10 +2,13 @@ import { cache } from "react";
 import type { Metadata } from "next";
 
 import { fetchSeriesPackage } from "@/actions/data-portal/portal";
+import { formatChange, formatLatestValue } from "@/lib/series-preview";
 
 import { SeriesView } from "../components/series/series-view";
 import { PortalCard, PortalCardBody } from "../components/ui/portal-card";
 import { getPortalConfig } from "../lib/config";
+import { formatTooltipDate } from "../lib/dates";
+import { seriesDecimals, toNumber } from "../lib/format";
 import { pageMetadata } from "../lib/metadata";
 import type { SeriesPackage } from "../lib/types";
 import { parseSeriesParams } from "../lib/url-params";
@@ -40,14 +43,44 @@ function packageFor(universe: string, searchParams: PortalSearchParams) {
   return loadPackage(universe, q.id, q.data_list_id, q.nocache);
 }
 
-/** Title = series title; description adds region, frequency and portal. */
+/**
+ * "Latest: 812,345.0 persons (Aug 2026), ▲ 2.1% from the prior period." for
+ * link previews, from the level series; "" when there is no data.
+ */
+function latestSentence(pkg: SeriesPackage): string {
+  const { series } = pkg;
+  const lvl = pkg.observations?.transformationResults?.find(
+    (t) => t.transformation === "lvl",
+  );
+  const dates = lvl?.dates ?? [];
+  const values = lvl?.values ?? [];
+  const value = toNumber(values.at(-1));
+  if (value === null || !dates.length) return "";
+  const obs = {
+    value,
+    prevValue: toNumber(values.at(-2)),
+    decimals: seriesDecimals(series),
+    percent: series.percent,
+    unitsLabel: series.unitsLabelShort,
+  };
+  const change = formatChange(obs);
+  return (
+    `Latest: ${formatLatestValue(obs)} (${formatTooltipDate(dates.at(-1)!, series.frequencyShort)})` +
+    (change ? `, ${change} from the prior period. ` : ". ")
+  );
+}
+
+/**
+ * Title = series title; description leads with the latest value (what a
+ * Slack/Teams/iMessage preview shows), then region, frequency and portal.
+ */
 export async function seriesMetadata(
   universe: string,
   searchParams: PortalSearchParams,
 ): Promise<Metadata> {
   const pkg = await packageFor(universe, searchParams);
   const series = pkg?.series;
-  if (!series)
+  if (!pkg || !series)
     return pageMetadata(universe, { title: "Series", route: "series" });
   const config = getPortalConfig(universe);
   const where = [series.geography?.name, series.frequency]
@@ -55,7 +88,7 @@ export async function seriesMetadata(
     .join(", ");
   return pageMetadata(universe, {
     title: series.title,
-    description: `${series.title}${where ? ` (${where})` : ""}: chart, table and download from the ${config.title}.`,
+    description: `${latestSentence(pkg)}${series.title}${where ? ` (${where})` : ""}: chart, table and download from the ${config.title}.`,
     route: "series",
     params: { id: series.id },
   });

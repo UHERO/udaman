@@ -145,6 +145,23 @@ A Slack slash command webhook at `/api/webhooks/slack` provides a 2-way integrat
 
 - `/udaman help` — List available notification channels
 
+## Series Link Previews (Slack unfurls)
+
+Series pages are behind login, so Slack's crawler can't read them. Instead the
+app receives `link_shared` events on the same webhook and replies with
+`chat.unfurl` (`src/lib/slack/series-unfurl.ts`): series title, name,
+geography, frequency, latest value and change vs the prior observation. Any
+link with `/series/<id>` in the path qualifies, including sub-pages.
+
+**Setup in Slack App dashboard** (then reinstall the app):
+
+1. Add Bot Token Scopes `links:read` and `links:write`
+2. **Event Subscriptions** → enable, Request URL
+   `https://udaman.uhero.hawaii.edu/api/webhooks/slack`, subscribe to bot event `link_shared`
+3. **App Unfurl Domains** → add `udaman.uhero.hawaii.edu` (and `stage-udaman.uhero.hawaii.edu` for staging)
+
+`SLACK_DISABLED=1` skips the `chat.unfurl` call (logged only).
+
 ## Architecture
 
 ```
@@ -161,14 +178,15 @@ Mailer.sms()            ← public API (src/core/mailers/mailer.ts)
   └── sendSms()         ← SMS layer (src/core/mailers/sms.ts)
        └── fetch        ← Twilio REST API
 
-/api/webhooks/slack     ← incoming Slack slash commands
-  └── signature verify  ← HMAC-SHA256 via SLACK_SIGNING_SECRET
+/api/webhooks/slack     ← incoming Slack slash commands + link_shared events
+  ├── signature verify  ← HMAC-SHA256 via SLACK_SIGNING_SECRET
+  └── unfurlSeriesLinks ← src/lib/slack/series-unfurl.ts → chat.unfurl
 ```
 
 - `mailer.ts` — validates options, logs, records the audit row, delegates to transport/slack/sms
 - `message-log.ts` — best-effort `messages` table writes (pending → sent / failed / skipped)
 - `transport.ts` — multi-sender transporter cache, dev-safety redirect, MAIL_DISABLED
-- `slack.ts` — Slack Bot Token posting, SLACK_DISABLED
+- `slack.ts` — Slack Bot Token posting and link unfurls, SLACK_DISABLED
 - `sms.ts` — Twilio REST API, SMS_DISABLED
 - `recipients.ts` — hardcoded recipient lists
 - `dbedt-upload-mailer.ts` — DBEDT upload notification templates

@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { landingMetadata, LandingPage } from "../../views/landing-page";
 
 /** /data/<universe>/category — thin wrapper; body in views/landing-page.tsx. */
-export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ universe: string }>;
