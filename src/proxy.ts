@@ -30,6 +30,30 @@ const APP_DEFAULTS: Record<string, string> = {
   analytics: "/",
 };
 
+/**
+ * Data portal universe segments that are not canonical URLs. The UHERO
+ * portal is served at the portal root (`/data/series`, not
+ * `/data/uhero/series`); the old Angular forecast app lived at `/forecast`.
+ * Keys are lowercase; values are the replacement prefix ("" = root).
+ */
+const DATA_PORTAL_ALIASES: Record<string, string> = {
+  uhero: "",
+  forecast: "/fc",
+};
+
+/**
+ * Canonical data-portal path for a path relative to the portal root
+ * (`/uhero/series` → `/series`, `/forecast` → `/fc`), or null when it is
+ * already canonical.
+ */
+function canonicalDataPortalPath(path: string): string | null {
+  const m = path.match(/^\/([^/]+)(\/.*)?$/);
+  if (!m) return null;
+  const prefix = DATA_PORTAL_ALIASES[m[1].toLowerCase()];
+  if (prefix === undefined) return null;
+  return `${prefix}${m[2] ?? ""}`.replace(/\/$/, "") || "/";
+}
+
 /** Top-level routes that live outside /udaman/{universe} */
 const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs", "/comms", "/data-registry"];
 
@@ -172,8 +196,22 @@ export async function proxy(request: NextRequest) {
     // links or redirects like `redirect("/udaman/uhero/series")`), strip it
     // so the browser URL stays clean.
     if (pathname.startsWith(`/${app}`)) {
-      const cleanPath = pathname.slice(app.length + 1) || "/";
+      let cleanPath = pathname.slice(app.length + 1) || "/";
+      // Collapse /data/uhero/… → /… in one hop (see below).
+      if (app === "data")
+        cleanPath = canonicalDataPortalPath(cleanPath) ?? cleanPath;
       return NextResponse.redirect(new URL(cleanPath + search, request.url));
+    }
+
+    // Data portal: /uhero/… → /… (UHERO lives at the root), /forecast → /fc.
+    if (app === "data") {
+      const canonical = canonicalDataPortalPath(pathname);
+      if (canonical) {
+        return NextResponse.redirect(
+          new URL(canonical + search, request.url),
+          308,
+        );
+      }
     }
 
     // ── App-specific logic (udaman: auth + universe normalization) ──
@@ -262,6 +300,22 @@ export async function proxy(request: NextRequest) {
   }
 
   // ── Direct access (no subdomain / localhost dev) ──────────────────
+
+  // Data portal: /data/uhero/… → /data/… (UHERO lives at the portal root),
+  // /data/forecast → /data/fc. Query string preserved; browsers keep any
+  // old `#/…` fragment across the redirect.
+  const dataMatch = pathname.match(/^\/data(\/.*)$/);
+  if (dataMatch) {
+    const canonical = canonicalDataPortalPath(dataMatch[1]);
+    if (canonical) {
+      const url = new URL(
+        `/data${canonical === "/" ? "" : canonical}`,
+        request.url,
+      );
+      url.search = search;
+      return NextResponse.redirect(url, 308);
+    }
+  }
   const protectedPrefixes = [
     "/udaman",
     "/admin",
