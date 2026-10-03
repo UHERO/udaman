@@ -211,3 +211,28 @@
     scrollbar-width: thin;
   }
 }
+
+html[data-app-env="local"] [data-slot="sidebar-wrapper"],
+html[data-app-env="staging"] [data-slot="sidebar-wrapper"] {
+  min-height: 100svh;
+  background-attachment: fixed;
+}
+
+html[data-app-env="local"] [data-slot="sidebar-wrapper"] {
+  background-color: #f8fbfd;
+  background-image: url("/patterns/dominos.svg");
+  background-repeat: repeat;
+}
+
+html[data-app-env="staging"] [data-slot="sidebar-wrapper"] {
+  background-color: #fbfaf7;
+  background-image: url("/patterns/topography.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+html[data-app-env="local"] [data-slot="sidebar-inset"],
+html[data-app-env="staging"] [data-slot="sidebar-inset"] {
+  background-color: transparent;
+}
