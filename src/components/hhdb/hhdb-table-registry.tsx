@@ -18,12 +18,15 @@ import {
   getHhdbHistoricalTaxPayments,
   getHhdbHistoricalTaxSummary,
   getHhdbHomeExemptions,
+  getHhdbInsuranceClaims,
+  getHhdbInsurancePolicies,
   getHhdbLandClassifications,
   getHhdbMlsListings,
   getHhdbOwners,
   getHhdbParcels,
   getHhdbPermits,
   getHhdbProperties,
+  getHhdbRenthubListings,
   getHhdbResidentialAdditions,
   getHhdbResidentialImprovements,
   getHhdbSales,
@@ -54,6 +57,11 @@ import { PermitsTable } from "@/components/hhdb/tables/permits-table";
 import { PropertiesTable } from "@/components/hhdb/tables/properties-table";
 import { ResidentialAdditionsTable } from "@/components/hhdb/tables/residential-additions-table";
 import { SalesTable } from "@/components/hhdb/tables/sales-table";
+import {
+  InsuranceClaimsTable,
+  InsurancePoliciesTable,
+  RentListingsTable,
+} from "@/components/hhdb/tables/spec-table";
 import { TgTransactionsTable } from "@/components/hhdb/tables/tg-transactions-table";
 
 type ActionFn = (
@@ -176,6 +184,18 @@ const REGISTRY: Record<string, TableEntry> = {
   transactions: {
     action: getHhdbTgTransactions,
     render: (p) => <TgTransactionsTable {...p} />,
+  },
+  "rent-listings": {
+    action: getHhdbRenthubListings,
+    render: (p) => <RentListingsTable {...p} />,
+  },
+  "insurance-policies": {
+    action: getHhdbInsurancePolicies,
+    render: (p) => <InsurancePoliciesTable {...p} />,
+  },
+  "insurance-claims": {
+    action: getHhdbInsuranceClaims,
+    render: (p) => <InsuranceClaimsTable {...p} />,
   },
 };
 

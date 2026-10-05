@@ -147,6 +147,26 @@ const EXPOSED_TABLES: Omit<TableMeta, "columns" | "docs">[] = [
     group: "MLS",
     onePerTmk: false,
   },
+  // tmk on these three is imputed, not supplied (see their table docs):
+  // rows without a match drop out of any join on tmk.
+  {
+    name: "renthub_listings",
+    title: "Rent Listings",
+    group: "RentHub",
+    onePerTmk: false,
+  },
+  {
+    name: "insurance_policies",
+    title: "Insurance Policies",
+    group: "FICOH Insurance",
+    onePerTmk: false,
+  },
+  {
+    name: "insurance_claims",
+    title: "Insurance Claims",
+    group: "FICOH Insurance",
+    onePerTmk: false,
+  },
 ];
 
 /** Columns that are internal plumbing or huge blobs; never useful in a result. */

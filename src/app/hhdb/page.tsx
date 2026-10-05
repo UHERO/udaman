@@ -120,6 +120,75 @@ export default function Page() {
             and <code>date_sold</code> for market timing.
           </p>
 
+          <h2 className="mt-4 text-lg font-bold">
+            Imputed TMKs: Rent Listings and Insurance
+          </h2>
+          <p>
+            Every other table gets its <code>tmk</code> from a parcel number in
+            the source, so effectively every row has one. The RentHub and FICOH
+            tables are different: neither source supplies a parcel, so{" "}
+            <code>tmk</code> there is <strong>imputed by us</strong> and can be
+            missing or wrong. Each row says how its TMK was found in{" "}
+            <code>tmk_match</code> (and, for address matches,{" "}
+            <code>tmk_address</code> shows the qPublic address it matched), so
+            filter on it to suit your analysis. On the Summary tab, county
+            columns count only rows with a TMK; the rest appear in the State
+            total.
+          </p>
+
+          <h2 className="mt-4 text-lg font-bold">Rent Listings</h2>
+          <p>
+            The <strong>RentHub &rarr; Rent Listings</strong> table (
+            <code>renthub_listings</code>) holds rental listings from the
+            RentHub vendor&apos;s scrape of listing sites (Zillow and others),
+            Hawaii only, from every delivery since 2014. There is one row per
+            scraped listing record: a unit listed again, or still listed in a
+            later scrape, appears again, so count distinct <code>unit_id</code>{" "}
+            (2023-07 on) or address for unit-level questions. Coverage before
+            2022 is thin.
+          </p>
+          <p>
+            RentHub gives a map point and a street address, not a parcel.{" "}
+            <code>tmk</code> is the parcel the point falls in, corrected by
+            matching the listing address to qPublic site addresses nearby. About
+            98% of rows have a TMK and ~83% are confirmed by address (
+            <code>tmk_match</code> = <code>within_addr</code> or{" "}
+            <code>address</code>). TMKs are parcel-level only (CPR always{" "}
+            <code>0000</code>): a condo rental resolves to its building, never
+            its unit. <code>coord_decimals</code> flags points too coarse to
+            trust.
+          </p>
+
+          <h2 className="mt-4 text-lg font-bold">
+            Insurance Policies and Claims
+          </h2>
+          <p>
+            The <strong>FICOH Insurance</strong> tables (
+            <code>insurance_policies</code>, <code>insurance_claims</code>) hold
+            FICOH homeowners policies (2018&ndash;2025 terms) and claims
+            (2020&ndash;2025 losses).{" "}
+            <strong>
+              This data is for approved researchers only, and results may be
+              reported only in aggregate.
+            </strong>{" "}
+            A policy row is one term at one insured location: a policy covering
+            several properties has several rows (<code>location_no</code>), and
+            renewals are linked by <code>policy_base</code>. Each claim is
+            linked to the policy row in force on its date of loss (
+            <code>policy_id</code>, ~96% linked).
+          </p>
+          <p>
+            FICOH gives a street address only &mdash; no parcel, no coordinates
+            &mdash; so <code>tmk</code> is our match of that address to qPublic
+            site addresses in the ZIP&apos;s county. About 93% of policies and
+            91% of claims have one. Where a condo unit&apos;s address matches
+            its own qPublic record, <code>tmk</code> is that unit&apos;s CPR (
+            <code>tmk_match</code> = <code>unit</code>, ~38% of policies);
+            otherwise it is the parcel (CPR <code>0000</code>). Addresses that
+            are missing, not in qPublic, or shared by several parcels get no
+            TMK.
+          </p>
+
           <h2 className="mt-4 text-lg font-bold">Connecting to the database</h2>
           <p>
             The housing database is a MariaDB instance. You can connect with any

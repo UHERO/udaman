@@ -6,6 +6,10 @@ import HhdbAppealCollection from "../collections/hhdb-appeal-collection";
 import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
 import HhdbCommercialDetailCollection from "../collections/hhdb-commercial-detail-collection";
 import HhdbCondoCollection from "../collections/hhdb-condo-collection";
+import HhdbCoverageCollection, {
+  isCoverageTable,
+  type CoverageResult,
+} from "../collections/hhdb-coverage-collection";
 import HhdbCurrentTaxBillCollection from "../collections/hhdb-current-tax-bill-collection";
 import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
 import HhdbDedicationCollection from "../collections/hhdb-dedication-collection";
@@ -29,8 +33,14 @@ import {
 } from "../collections/hhdb-query-builder-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
+import HhdbSpecTableCollection from "../collections/hhdb-spec-table-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
 import HhdbTgTransactionCollection from "../collections/hhdb-tg-transaction-collection";
+import {
+  INSURANCE_CLAIMS_LIST,
+  INSURANCE_POLICIES_LIST,
+  RENTHUB_LIST,
+} from "../models/hhdb-spec-table";
 import type {
   CategoricalDrilldown,
   FreqSummaryParams,
@@ -380,6 +390,29 @@ export async function getTgTransactionsJSON(params: HhdbListParams) {
   const result = await HhdbTgTransactionCollection.listJSON(params);
   log.info({ total: result.total }, "hhdb tg transactions fetched");
   return result;
+}
+
+export async function getRenthubListingsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb renthub listings");
+  return HhdbSpecTableCollection.listJSON(RENTHUB_LIST, params);
+}
+
+export async function getInsurancePoliciesJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb insurance policies");
+  return HhdbSpecTableCollection.listJSON(INSURANCE_POLICIES_LIST, params);
+}
+
+export async function getInsuranceClaimsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb insurance claims");
+  return HhdbSpecTableCollection.listJSON(INSURANCE_CLAIMS_LIST, params);
+}
+
+export async function getCoverageByYear(
+  table: string,
+): Promise<CoverageResult> {
+  if (!isCoverageTable(table))
+    throw new Error(`No coverage chart for ${table}`);
+  return HhdbCoverageCollection.byYear(table);
 }
 
 // --- Dashboard & Factor (no model instantiation, unchanged) ---

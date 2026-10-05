@@ -93,4 +93,34 @@ function closeLocalConnection(): void {
   }
 }
 
-export { localRawQuery, localInsertAndGetId, closeLocalConnection };
+/**
+ * Run a callback inside one transaction on one connection (Bun SQL's
+ * `begin`): committed if the callback resolves, rolled back if it throws.
+ * Only queries made through the executor it receives are part of the
+ * transaction — module-level queries inside the callback go to the pool.
+ */
+async function localTransaction<T>(
+  fn: (
+    query: <R = Record<string, unknown>>(
+      sql: string,
+      params?: (string | number | Date | null)[],
+    ) => Promise<R[]>,
+  ) => Promise<T>,
+): Promise<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [result] = await getConnection().begin(async (tx: any) => {
+    const query = (
+      sql: string,
+      params: (string | number | Date | null)[] = [],
+    ) => tx.unsafe(sql, params);
+    return [await fn(query)];
+  });
+  return result as T;
+}
+
+export {
+  localRawQuery,
+  localInsertAndGetId,
+  localTransaction,
+  closeLocalConnection,
+};

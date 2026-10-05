@@ -18,7 +18,9 @@
     "scraper": "bun run src/core/workers/scrape-runner.ts",
     "qpub": "bun run src/core/workers/qpub-cli.ts",
     "mls": "bun run src/core/workers/mls-cli.ts",
-    "dcca": "bun run src/core/workers/dcca-cli.ts"
+    "dcca": "bun run src/core/workers/dcca-cli.ts",
+    "renthub": "bun run src/core/workers/renthub-cli.ts",
+    "ficoh": "bun run src/core/workers/ficoh-cli.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

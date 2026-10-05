@@ -56,6 +56,9 @@ DROP TABLE IF EXISTS freq_condominium_projects;
 DROP TABLE IF EXISTS freq_condominium_units;
 DROP TABLE IF EXISTS freq_mls_listings;
 DROP TABLE IF EXISTS freq_tg_transactions;
+DROP TABLE IF EXISTS freq_renthub_listings;
+DROP TABLE IF EXISTS freq_insurance_policies;
+DROP TABLE IF EXISTS freq_insurance_claims;
 
 -- ============================================================================
 -- CREATE FREQ TABLES (uniform EAV structure)
@@ -306,6 +309,42 @@ CREATE TABLE freq_mls_listings (
 -- placeholder parcel and rows with no TMK count toward '0' (State) only.
 -- Dates are counted by year, as for the qPublic date columns.
 CREATE TABLE freq_tg_transactions (
+  county_code CHAR(1) NOT NULL,
+  column_name VARCHAR(100) NOT NULL,
+  column_value VARCHAR(500),
+  frequency BIGINT UNSIGNED NOT NULL,
+  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (county_code, column_name, column_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- RentHub rental listings (vendor scrape, not qPublic). Same shape as
+-- freq_mls_listings: per-county INSERTs skip listings with no TMK (those count
+-- toward '0' (State) only), and dates are counted by year. The counted columns
+-- are the `summary` flags on RENTHUB_COLUMNS (src/core/crawlers/renthub/columns.ts).
+CREATE TABLE freq_renthub_listings (
+  county_code CHAR(1) NOT NULL,
+  column_name VARCHAR(100) NOT NULL,
+  column_value VARCHAR(500),
+  frequency BIGINT UNSIGNED NOT NULL,
+  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (county_code, column_name, column_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- FICOH insurance policies / claims (restricted data: aggregate reporting
+-- only — these counts are aggregates and count no identifying column). Same
+-- shape as freq_mls_listings: per-county INSERTs skip rows with no TMK, dates
+-- are counted by year. Counted columns are the `summary` flags on
+-- POLICY_COLUMNS / CLAIM_COLUMNS (src/core/crawlers/ficoh/columns.ts).
+CREATE TABLE freq_insurance_policies (
+  county_code CHAR(1) NOT NULL,
+  column_name VARCHAR(100) NOT NULL,
+  column_value VARCHAR(500),
+  frequency BIGINT UNSIGNED NOT NULL,
+  generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (county_code, column_name, column_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE freq_insurance_claims (
   county_code CHAR(1) NOT NULL,
   column_name VARCHAR(100) NOT NULL,
   column_value VARCHAR(500),
@@ -3056,6 +3095,487 @@ BEGIN
   INSERT INTO freq_tg_transactions (county_code, column_name, column_value, frequency)
   SELECT '0', 'maturityDate', LEFT(COALESCE(CAST(YEAR(`maturityDate`) AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM tg_transactions GROUP BY LEFT(CAST(YEAR(`maturityDate`) AS CHAR), 500);
+
+  -- freq_renthub_listings
+  TRUNCATE TABLE freq_renthub_listings;
+
+  -- batch
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'batch', LEFT(COALESCE(CAST(`batch` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`batch` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'batch', LEFT(COALESCE(CAST(`batch` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`batch` AS CHAR), 500);
+
+  -- tmk_match
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'tmk_match', LEFT(COALESCE(CAST(`tmk_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`tmk_match` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'tmk_match', LEFT(COALESCE(CAST(`tmk_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`tmk_match` AS CHAR), 500);
+
+  -- coord_decimals
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'coord_decimals', LEFT(COALESCE(CAST(`coord_decimals` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`coord_decimals` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'coord_decimals', LEFT(COALESCE(CAST(`coord_decimals` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`coord_decimals` AS CHAR), 500);
+
+  -- scraped_at
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'scraped_at', LEFT(COALESCE(CAST(YEAR(`scraped_at`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(YEAR(`scraped_at`) AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'scraped_at', LEFT(COALESCE(CAST(YEAR(`scraped_at`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(YEAR(`scraped_at`) AS CHAR), 500);
+
+  -- city
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'city', LEFT(COALESCE(CAST(`city` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`city` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'city', LEFT(COALESCE(CAST(`city` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`city` AS CHAR), 500);
+
+  -- neighborhood
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'neighborhood', LEFT(COALESCE(CAST(`neighborhood` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`neighborhood` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'neighborhood', LEFT(COALESCE(CAST(`neighborhood` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`neighborhood` AS CHAR), 500);
+
+  -- zip
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'zip', LEFT(COALESCE(CAST(`zip` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`zip` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'zip', LEFT(COALESCE(CAST(`zip` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`zip` AS CHAR), 500);
+
+  -- company
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'company', LEFT(COALESCE(CAST(`company` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`company` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'company', LEFT(COALESCE(CAST(`company` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`company` AS CHAR), 500);
+
+  -- building_type
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'building_type', LEFT(COALESCE(CAST(`building_type` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`building_type` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'building_type', LEFT(COALESCE(CAST(`building_type` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`building_type` AS CHAR), 500);
+
+  -- beds
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'beds', LEFT(COALESCE(CAST(`beds` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`beds` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'beds', LEFT(COALESCE(CAST(`beds` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`beds` AS CHAR), 500);
+
+  -- baths
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'baths', LEFT(COALESCE(CAST(`baths` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`baths` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'baths', LEFT(COALESCE(CAST(`baths` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`baths` AS CHAR), 500);
+
+  -- sqft
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'sqft', LEFT(COALESCE(CAST(`sqft` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`sqft` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'sqft', LEFT(COALESCE(CAST(`sqft` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`sqft` AS CHAR), 500);
+
+  -- rent_price
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'rent_price', LEFT(COALESCE(CAST(`rent_price` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`rent_price` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'rent_price', LEFT(COALESCE(CAST(`rent_price` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`rent_price` AS CHAR), 500);
+
+  -- granite
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'granite', LEFT(COALESCE(CAST(`granite` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`granite` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'granite', LEFT(COALESCE(CAST(`granite` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`granite` AS CHAR), 500);
+
+  -- stainless
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'stainless', LEFT(COALESCE(CAST(`stainless` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`stainless` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'stainless', LEFT(COALESCE(CAST(`stainless` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`stainless` AS CHAR), 500);
+
+  -- pool
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'pool', LEFT(COALESCE(CAST(`pool` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`pool` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'pool', LEFT(COALESCE(CAST(`pool` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`pool` AS CHAR), 500);
+
+  -- gym
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'gym', LEFT(COALESCE(CAST(`gym` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`gym` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'gym', LEFT(COALESCE(CAST(`gym` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`gym` AS CHAR), 500);
+
+  -- doorman
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'doorman', LEFT(COALESCE(CAST(`doorman` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`doorman` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'doorman', LEFT(COALESCE(CAST(`doorman` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`doorman` AS CHAR), 500);
+
+  -- furnished
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'furnished', LEFT(COALESCE(CAST(`furnished` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`furnished` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'furnished', LEFT(COALESCE(CAST(`furnished` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`furnished` AS CHAR), 500);
+
+  -- laundry
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'laundry', LEFT(COALESCE(CAST(`laundry` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`laundry` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'laundry', LEFT(COALESCE(CAST(`laundry` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`laundry` AS CHAR), 500);
+
+  -- garage
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'garage', LEFT(COALESCE(CAST(`garage` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`garage` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'garage', LEFT(COALESCE(CAST(`garage` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`garage` AS CHAR), 500);
+
+  -- garage_count
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'garage_count', LEFT(COALESCE(CAST(`garage_count` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`garage_count` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'garage_count', LEFT(COALESCE(CAST(`garage_count` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`garage_count` AS CHAR), 500);
+
+  -- clubhouse
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'clubhouse', LEFT(COALESCE(CAST(`clubhouse` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`clubhouse` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'clubhouse', LEFT(COALESCE(CAST(`clubhouse` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`clubhouse` AS CHAR), 500);
+
+  -- date_posted
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'date_posted', LEFT(COALESCE(CAST(YEAR(`date_posted`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(YEAR(`date_posted`) AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'date_posted', LEFT(COALESCE(CAST(YEAR(`date_posted`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(YEAR(`date_posted`) AS CHAR), 500);
+
+  -- year_built
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'year_built', LEFT(COALESCE(CAST(`year_built` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`year_built` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'year_built', LEFT(COALESCE(CAST(`year_built` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`year_built` AS CHAR), 500);
+
+  -- available_at
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'available_at', LEFT(COALESCE(CAST(YEAR(`available_at`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(YEAR(`available_at`) AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'available_at', LEFT(COALESCE(CAST(YEAR(`available_at`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(YEAR(`available_at`) AS CHAR), 500);
+
+  -- availability_status
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'availability_status', LEFT(COALESCE(CAST(`availability_status` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`availability_status` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'availability_status', LEFT(COALESCE(CAST(`availability_status` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`availability_status` AS CHAR), 500);
+
+  -- freq_insurance_policies
+  TRUNCATE TABLE freq_insurance_policies;
+
+  -- location_no
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'location_no', LEFT(COALESCE(CAST(`location_no` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`location_no` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'location_no', LEFT(COALESCE(CAST(`location_no` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`location_no` AS CHAR), 500);
+
+  -- tmk_match
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'tmk_match', LEFT(COALESCE(CAST(`tmk_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`tmk_match` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'tmk_match', LEFT(COALESCE(CAST(`tmk_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`tmk_match` AS CHAR), 500);
+
+  -- effective_date
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'effective_date', LEFT(COALESCE(CAST(YEAR(`effective_date`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(YEAR(`effective_date`) AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'effective_date', LEFT(COALESCE(CAST(YEAR(`effective_date`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(YEAR(`effective_date`) AS CHAR), 500);
+
+  -- new_renewal
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'new_renewal', LEFT(COALESCE(CAST(`new_renewal` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`new_renewal` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'new_renewal', LEFT(COALESCE(CAST(`new_renewal` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`new_renewal` AS CHAR), 500);
+
+  -- form_type
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'form_type', LEFT(COALESCE(CAST(`form_type` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`form_type` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'form_type', LEFT(COALESCE(CAST(`form_type` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`form_type` AS CHAR), 500);
+
+  -- city
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'city', LEFT(COALESCE(CAST(`city` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`city` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'city', LEFT(COALESCE(CAST(`city` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`city` AS CHAR), 500);
+
+  -- zip
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'zip', LEFT(COALESCE(CAST(`zip` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`zip` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'zip', LEFT(COALESCE(CAST(`zip` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`zip` AS CHAR), 500);
+
+  -- cov_a_limit
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'cov_a_limit', LEFT(COALESCE(CAST(`cov_a_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`cov_a_limit` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'cov_a_limit', LEFT(COALESCE(CAST(`cov_a_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`cov_a_limit` AS CHAR), 500);
+
+  -- cov_b_limit
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'cov_b_limit', LEFT(COALESCE(CAST(`cov_b_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`cov_b_limit` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'cov_b_limit', LEFT(COALESCE(CAST(`cov_b_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`cov_b_limit` AS CHAR), 500);
+
+  -- cov_c_limit
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'cov_c_limit', LEFT(COALESCE(CAST(`cov_c_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`cov_c_limit` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'cov_c_limit', LEFT(COALESCE(CAST(`cov_c_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`cov_c_limit` AS CHAR), 500);
+
+  -- cov_d_limit
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'cov_d_limit', LEFT(COALESCE(CAST(`cov_d_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`cov_d_limit` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'cov_d_limit', LEFT(COALESCE(CAST(`cov_d_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`cov_d_limit` AS CHAR), 500);
+
+  -- cov_e_limit
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'cov_e_limit', LEFT(COALESCE(CAST(`cov_e_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`cov_e_limit` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'cov_e_limit', LEFT(COALESCE(CAST(`cov_e_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`cov_e_limit` AS CHAR), 500);
+
+  -- cov_f_limit
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'cov_f_limit', LEFT(COALESCE(CAST(`cov_f_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`cov_f_limit` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'cov_f_limit', LEFT(COALESCE(CAST(`cov_f_limit` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`cov_f_limit` AS CHAR), 500);
+
+  -- tiv
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'tiv', LEFT(COALESCE(CAST(`tiv` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`tiv` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'tiv', LEFT(COALESCE(CAST(`tiv` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`tiv` AS CHAR), 500);
+
+  -- deductible
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'deductible', LEFT(COALESCE(CAST(`deductible` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`deductible` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'deductible', LEFT(COALESCE(CAST(`deductible` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`deductible` AS CHAR), 500);
+
+  -- premium
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'premium', LEFT(COALESCE(CAST(`premium` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`premium` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'premium', LEFT(COALESCE(CAST(`premium` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`premium` AS CHAR), 500);
+
+  -- hurricane_premium
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'hurricane_premium', LEFT(COALESCE(CAST(`hurricane_premium` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`hurricane_premium` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'hurricane_premium', LEFT(COALESCE(CAST(`hurricane_premium` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`hurricane_premium` AS CHAR), 500);
+
+  -- company_code
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'company_code', LEFT(COALESCE(CAST(`company_code` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`company_code` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'company_code', LEFT(COALESCE(CAST(`company_code` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`company_code` AS CHAR), 500);
+
+  -- agency_number
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'agency_number', LEFT(COALESCE(CAST(`agency_number` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`agency_number` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'agency_number', LEFT(COALESCE(CAST(`agency_number` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`agency_number` AS CHAR), 500);
+
+  -- producer_key
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'producer_key', LEFT(COALESCE(CAST(`producer_key` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`producer_key` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'producer_key', LEFT(COALESCE(CAST(`producer_key` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`producer_key` AS CHAR), 500);
+
+  -- year_built
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'year_built', LEFT(COALESCE(CAST(`year_built` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`year_built` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'year_built', LEFT(COALESCE(CAST(`year_built` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`year_built` AS CHAR), 500);
+
+  -- construction_type
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'construction_type', LEFT(COALESCE(CAST(`construction_type` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`construction_type` AS CHAR), 500);
+  INSERT INTO freq_insurance_policies (county_code, column_name, column_value, frequency)
+  SELECT '0', 'construction_type', LEFT(COALESCE(CAST(`construction_type` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_policies GROUP BY LEFT(CAST(`construction_type` AS CHAR), 500);
+
+  -- freq_insurance_claims
+  TRUNCATE TABLE freq_insurance_claims;
+
+  -- policy_match
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'policy_match', LEFT(COALESCE(CAST(`policy_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`policy_match` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'policy_match', LEFT(COALESCE(CAST(`policy_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`policy_match` AS CHAR), 500);
+
+  -- tmk_match
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'tmk_match', LEFT(COALESCE(CAST(`tmk_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`tmk_match` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'tmk_match', LEFT(COALESCE(CAST(`tmk_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`tmk_match` AS CHAR), 500);
+
+  -- date_of_loss
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'date_of_loss', LEFT(COALESCE(CAST(YEAR(`date_of_loss`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(YEAR(`date_of_loss`) AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'date_of_loss', LEFT(COALESCE(CAST(YEAR(`date_of_loss`) AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(YEAR(`date_of_loss`) AS CHAR), 500);
+
+  -- loss_cause
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'loss_cause', LEFT(COALESCE(CAST(`loss_cause` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`loss_cause` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'loss_cause', LEFT(COALESCE(CAST(`loss_cause` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`loss_cause` AS CHAR), 500);
+
+  -- loss_city
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'loss_city', LEFT(COALESCE(CAST(`loss_city` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`loss_city` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'loss_city', LEFT(COALESCE(CAST(`loss_city` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`loss_city` AS CHAR), 500);
+
+  -- loss_state
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'loss_state', LEFT(COALESCE(CAST(`loss_state` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`loss_state` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'loss_state', LEFT(COALESCE(CAST(`loss_state` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`loss_state` AS CHAR), 500);
+
+  -- loss_zip
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'loss_zip', LEFT(COALESCE(CAST(`loss_zip` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`loss_zip` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'loss_zip', LEFT(COALESCE(CAST(`loss_zip` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`loss_zip` AS CHAR), 500);
+
+  -- paid_loss
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'paid_loss', LEFT(COALESCE(CAST(`paid_loss` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`paid_loss` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'paid_loss', LEFT(COALESCE(CAST(`paid_loss` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`paid_loss` AS CHAR), 500);
+
+  -- incurred_loss
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'incurred_loss', LEFT(COALESCE(CAST(`incurred_loss` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`incurred_loss` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'incurred_loss', LEFT(COALESCE(CAST(`incurred_loss` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`incurred_loss` AS CHAR), 500);
+
+  -- expense_paid
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'expense_paid', LEFT(COALESCE(CAST(`expense_paid` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`expense_paid` AS CHAR), 500);
+  INSERT INTO freq_insurance_claims (county_code, column_name, column_value, frequency)
+  SELECT '0', 'expense_paid', LEFT(COALESCE(CAST(`expense_paid` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM insurance_claims GROUP BY LEFT(CAST(`expense_paid` AS CHAR), 500);
 END //
 DELIMITER ;
 

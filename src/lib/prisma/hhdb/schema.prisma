@@ -391,6 +391,26 @@ model freq_home_exemptions {
   @@id([county_code, column_name, column_value])
 }
 
+model freq_insurance_claims {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_insurance_policies {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
 model freq_land_classifications {
   county_code  String    @db.Char(1)
   column_name  String    @db.VarChar(100)
@@ -443,6 +463,16 @@ model freq_permits {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model freq_properties {
+  county_code  String    @db.Char(1)
+  column_name  String    @db.VarChar(100)
+  column_value String    @db.VarChar(500)
+  frequency    BigInt    @db.UnsignedBigInt
+  generated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@id([county_code, column_name, column_value])
+}
+
+model freq_renthub_listings {
   county_code  String    @db.Char(1)
   column_name  String    @db.VarChar(100)
   column_value String    @db.VarChar(500)
@@ -584,6 +614,83 @@ model home_exemptions {
   @@index([claimant_name], map: "idx_claimant_name")
   @@index([tax_year], map: "idx_tax_year")
   @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model insurance_claims {
+  claim_number  String   @id @db.VarChar(16)
+  policy_id     Int?     @db.UnsignedInt
+  policy_match  String?  @db.VarChar(16)
+  tmk           String?  @db.VarChar(30)
+  tmk_match     String?  @db.VarChar(8)
+  tmk_address   String?  @db.VarChar(255)
+  policy_number String   @db.VarChar(15)
+  date_of_loss  DateTime @db.Date
+  loss_cause    String?  @db.VarChar(64)
+  loss_address  String?  @db.VarChar(255)
+  loss_city     String?  @db.VarChar(64)
+  loss_state    String?  @db.VarChar(8)
+  loss_zip      String?  @db.VarChar(10)
+  paid_loss     Decimal? @db.Decimal(12, 2)
+  incurred_loss Decimal? @db.Decimal(12, 2)
+  expense_paid  Decimal? @db.Decimal(12, 2)
+
+  @@index([date_of_loss], map: "idx_date_of_loss")
+  @@index([policy_id], map: "idx_policy_id")
+  @@index([policy_number], map: "idx_policy_number")
+  @@index([tmk], map: "idx_tmk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model insurance_loads {
+  id                Int      @id @default(autoincrement()) @db.UnsignedInt
+  file_name         String   @db.VarChar(255)
+  file_bytes        BigInt   @db.UnsignedBigInt
+  policies          Int      @db.UnsignedInt
+  claims            Int      @db.UnsignedInt
+  policies_geocoded Int      @db.UnsignedInt
+  claims_geocoded   Int      @db.UnsignedInt
+  claims_linked     Int      @db.UnsignedInt
+  loaded_at         DateTime @db.DateTime(0)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model insurance_policies {
+  id                Int      @id @db.UnsignedInt
+  policy_base       String?  @db.VarChar(13)
+  location_no       Int      @db.UnsignedSmallInt
+  tmk               String?  @db.VarChar(30)
+  tmk_match         String?  @db.VarChar(8)
+  tmk_address       String?  @db.VarChar(255)
+  policy_number     String   @db.VarChar(15)
+  effective_date    DateTime @db.Date
+  expiration_date   DateTime @db.Date
+  new_renewal       String?  @db.Char(1)
+  form_type         String?  @db.VarChar(16)
+  address           String?  @db.VarChar(255)
+  city              String?  @db.VarChar(64)
+  zip               String?  @db.VarChar(10)
+  cov_a_limit       Decimal? @db.Decimal(12, 2)
+  cov_b_limit       Decimal? @db.Decimal(12, 2)
+  cov_c_limit       Decimal? @db.Decimal(12, 2)
+  cov_d_limit       Decimal? @db.Decimal(12, 2)
+  cov_e_limit       Decimal? @db.Decimal(12, 2)
+  cov_f_limit       Decimal? @db.Decimal(12, 2)
+  tiv               Decimal? @db.Decimal(12, 2)
+  deductible        Int?
+  premium           Decimal? @db.Decimal(10, 2)
+  hurricane_premium Decimal? @db.Decimal(10, 2)
+  company_code      Int?     @db.UnsignedTinyInt
+  agency_number     Int?     @db.UnsignedSmallInt
+  producer_key      String?  @db.VarChar(8)
+  year_built        Int?     @db.UnsignedSmallInt
+  construction_type Int?     @db.UnsignedTinyInt
+
+  @@unique([policy_number, effective_date, location_no], map: "uq_policy_term_location")
+  @@index([effective_date], map: "idx_effective_date")
+  @@index([policy_base], map: "idx_policy_base")
+  @@index([tmk], map: "idx_tmk")
+  @@index([zip], map: "idx_zip")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -878,6 +985,74 @@ model properties {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model renthub_listings {
+  id                  Int       @id @db.UnsignedInt
+  batch               String    @db.VarChar(21)
+  tmk                 String?   @db.VarChar(18)
+  tmk_match           String?   @db.VarChar(16)
+  tmk_distance_m      Decimal?  @db.Decimal(6, 1)
+  tmk_address         String?   @db.VarChar(255)
+  coord_decimals      Int?      @db.UnsignedTinyInt
+  scraped_at          DateTime  @db.DateTime(3)
+  state               String    @db.Char(2)
+  city                String?   @db.VarChar(64)
+  neighborhood        String?   @db.VarChar(64)
+  zip                 String?   @db.VarChar(10)
+  address             String?   @db.VarChar(255)
+  company             String?   @db.VarChar(255)
+  building_type       String?   @db.VarChar(32)
+  beds                Int?      @db.UnsignedTinyInt
+  baths               Decimal?  @db.Decimal(3, 1)
+  sqft                Int?      @db.UnsignedInt
+  rent_price          Decimal   @db.Decimal(9, 2)
+  granite             Boolean?
+  stainless           Boolean?
+  pool                Boolean?
+  gym                 Boolean?
+  doorman             Boolean?
+  furnished           Boolean?
+  laundry             Boolean?
+  garage              Boolean?
+  garage_count        Int?      @db.UnsignedTinyInt
+  clubhouse           Boolean?
+  latitude            Decimal?  @db.Decimal(10, 7)
+  longitude           Decimal?  @db.Decimal(10, 7)
+  date_posted         DateTime? @db.Date
+  description         String?   @db.MediumText
+  year_built          Int?      @db.UnsignedSmallInt
+  available_at        DateTime? @db.DateTime(3)
+  availability_status String?   @db.VarChar(32)
+  unit_id             Int?      @db.UnsignedInt
+  property_id         Int?      @db.UnsignedInt
+
+  @@index([batch], map: "idx_batch")
+  @@index([date_posted], map: "idx_date_posted")
+  @@index([neighborhood], map: "idx_neighborhood")
+  @@index([property_id], map: "idx_property_id")
+  @@index([scraped_at], map: "idx_scraped_at")
+  @@index([tmk], map: "idx_tmk")
+  @@index([unit_id], map: "idx_unit_id")
+  @@index([zip], map: "idx_zip")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model renthub_loads {
+  batch            String   @id @db.VarChar(21)
+  file_name        String   @db.VarChar(64)
+  file_bytes       Int      @db.UnsignedInt
+  rows_in_file     Int      @db.UnsignedInt
+  rows_within_addr Int      @default(0) @db.UnsignedInt
+  rows_address     Int      @default(0) @db.UnsignedInt
+  rows_fuzzy       Int      @default(0) @db.UnsignedInt
+  rows_address_far Int      @default(0) @db.UnsignedInt
+  rows_within      Int      @default(0) @db.UnsignedInt
+  rows_nearest     Int      @default(0) @db.UnsignedInt
+  rows_unmatched   Int      @default(0) @db.UnsignedInt
+  parcel_layer     String?  @db.VarChar(255)
+  loaded_at        DateTime @db.DateTime(0)
+}
+
 model residential_additions {
   id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
   tmk                String     @db.VarChar(30)
@@ -1116,7 +1291,6 @@ model tg_transactions_bak {
   @@index([taxKey], map: "idx_taxKey")
   @@index([tmk], map: "idx_tmk")
 }
-
 
 enum scrape_status_scrape_status {
   pending

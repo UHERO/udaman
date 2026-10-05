@@ -1,4 +1,13 @@
+import {
+  CLAIM_COLUMNS,
+  POLICY_COLUMNS,
+  type FicohColumnSpec,
+} from "@/core/crawlers/ficoh/columns";
 import { MLS_COLUMNS, type MlsColumnKind } from "@/core/crawlers/mls/columns";
+import {
+  RENTHUB_COLUMNS,
+  type RenthubColumnSpec,
+} from "@/core/crawlers/renthub/columns";
 
 import {
   TG_TRANSACTION_COLUMNS,
@@ -152,6 +161,168 @@ const TG_TRANSACTIONS_FIELDS: DictionaryField[] = TG_TRANSACTION_COLUMNS.map(
     ...(col.summary ? { summary: ALL_VIEWS } : {}),
   }),
 );
+
+// ---------------------------------------------------------------------------
+// RentHub rental listings — generated from the loader's column spec
+// ---------------------------------------------------------------------------
+
+function renthubFormat(col: RenthubColumnSpec): DictionaryField["format"] {
+  if (col.column === "rent_price") return "dollar";
+  if (col.column === "year_built") return "year";
+  return col.kind === "int" || col.kind === "decimal" ? "number" : "text";
+}
+
+/**
+ * `renthub_listings`: hand-written entries for the loader-owned columns
+ * (delivery + parcel geocode), followed by one entry per RENTHUB_COLUMNS spec
+ * (shared with the DDL, the parser and freq_renthub_listings).
+ */
+const RENTHUB_LISTINGS_FIELDS: DictionaryField[] = [
+  {
+    key: "id",
+    label: "Vendor ID",
+    description:
+      "The vendor's record id, unique across deliveries. One row per scraped listing record; the same unit relisted gets a new id (see unit_id).",
+  },
+  {
+    key: "batch",
+    label: "Delivery",
+    description:
+      "Vendor delivery the row came from, named <start>_<end>: yearly through 2022, two halves in 2023, every two weeks from 2024.",
+    summary: ALL_VIEWS,
+  },
+  {
+    key: "tmk",
+    label: "TMK",
+    description:
+      "Parcel the listing was geocoded to, same format as the qPublic tables. Parcel level only (CPR always 0000): a condo rental resolves to its building's parcel, never its unit. How it was found is in tmk_match.",
+  },
+  {
+    key: "tmk_match",
+    label: "TMK Match",
+    description:
+      "How tmk was found, best evidence first: within_addr (point inside the parcel and its qPublic address agrees), address (a parcel within 300 m has the exact address), fuzzy (same house number, street spelled slightly differently), address_far (exact address on the only such parcel within 10 km; the vendor's point is off), within (point inside the parcel, address unconfirmed), nearest (opt-in). NULL when nothing matched.",
+    summary: ALL_VIEWS,
+  },
+  {
+    key: "tmk_distance_m",
+    label: "TMK Distance (m)",
+    description:
+      "Metres from the vendor's point to the matched parcel; 0 when the point is inside it.",
+    format: "number",
+  },
+  {
+    key: "tmk_address",
+    label: "TMK Address",
+    description:
+      "The qPublic site address the listing's address matched (address-based matches only), for checking fuzzy and far matches.",
+  },
+  {
+    key: "coord_decimals",
+    label: "Coordinate Decimals",
+    description:
+      "Decimal places of the vendor's latitude / longitude (the fewer of the two): 4 is ~11 m, 3 is ~110 m. Point-based matches below 4 are unreliable.",
+    format: "number",
+    summary: ALL_VIEWS,
+  },
+  ...RENTHUB_COLUMNS.map((col): DictionaryField => ({
+    key: col.column,
+    label: col.label,
+    description: col.description,
+    format: renthubFormat(col),
+    ...(col.summary ? { summary: ALL_VIEWS } : {}),
+  })),
+];
+
+// ---------------------------------------------------------------------------
+// FICOH insurance policies / claims — generated from the loader's column spec
+// ---------------------------------------------------------------------------
+
+function ficohField(col: FicohColumnSpec): DictionaryField {
+  return {
+    key: col.column,
+    label: col.label,
+    description: col.description,
+    format:
+      col.kind === "money"
+        ? "dollar"
+        : col.column === "year_built"
+          ? "year"
+          : col.kind === "int"
+            ? "number"
+            : "text",
+    ...(col.summary ? { summary: ALL_VIEWS } : {}),
+  };
+}
+
+const FICOH_TMK_FIELDS: DictionaryField[] = [
+  {
+    key: "tmk",
+    label: "TMK",
+    description:
+      "Geocoded from the address against qPublic site addresses in the ZIP's county — FICOH supplies no parcel. A condo unit gets its own CPR-level TMK when the unit number matches qPublic (tmk_match = unit); otherwise the parcel's TMK (CPR 0000). NULL when the address is missing, not found, or on several parcels.",
+  },
+  {
+    key: "tmk_match",
+    label: "TMK Match",
+    description:
+      "How tmk was found: unit (unit address matched a condo unit's own qPublic address), address (exact house number + street on exactly one parcel), fuzzy (same house number, street spelled slightly differently). NULL when not geocoded.",
+    summary: ALL_VIEWS,
+  },
+  {
+    key: "tmk_address",
+    label: "TMK Address",
+    description: "The qPublic site address that matched, for checking.",
+  },
+];
+
+/**
+ * `insurance_policies`: loader-owned columns, then one entry per
+ * POLICY_COLUMNS spec (shared with the DDL, parser and freq SQL).
+ */
+const INSURANCE_POLICIES_FIELDS: DictionaryField[] = [
+  {
+    key: "id",
+    label: "Row",
+    description: "Line of the row in the source sheet.",
+  },
+  {
+    key: "policy_base",
+    label: "Policy Base",
+    description:
+      "The policy across renewals: the first 13 characters of a 15-character policy number. NULL for the older 12-character numbers (2018–2020), which cannot be linked across terms.",
+  },
+  {
+    key: "location_no",
+    label: "Location #",
+    description:
+      "1, 2, ... for each insured location under one policy number and term (the extract dropped FICOH's own location number; these follow file order).",
+    format: "number",
+    summary: ALL_VIEWS,
+  },
+  ...FICOH_TMK_FIELDS,
+  ...POLICY_COLUMNS.map(ficohField),
+];
+
+/** `insurance_claims`: claim_number, loader-owned columns, then the rest of CLAIM_COLUMNS. */
+const INSURANCE_CLAIMS_FIELDS: DictionaryField[] = [
+  ficohField(CLAIM_COLUMNS[0]),
+  {
+    key: "policy_id",
+    label: "Policy Row",
+    description:
+      "insurance_policies.id of the policy row in force on the date of loss. NULL when the policy is not in the policy sheet (~4%) or the claim cannot be pinned to one location.",
+  },
+  {
+    key: "policy_match",
+    label: "Policy Match",
+    description:
+      "How policy_id was found: term (policy number + date of loss), term_address (one of the policy's several locations, chosen by the loss address), base / base_address (the same through the 13-character policy base, when the claim's term is missing from the policy sheet).",
+    summary: ALL_VIEWS,
+  },
+  ...FICOH_TMK_FIELDS,
+  ...CLAIM_COLUMNS.slice(1).map(ficohField),
+];
 
 // ---------------------------------------------------------------------------
 // Single source of truth for every column in every HHDB table.
@@ -1998,6 +2169,9 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
 
   // ── Title Guaranty transactions (generated above from TG_TRANSACTION_COLUMNS)
   tg_transactions: TG_TRANSACTIONS_FIELDS,
+  renthub_listings: RENTHUB_LISTINGS_FIELDS,
+  insurance_policies: INSURANCE_POLICIES_FIELDS,
+  insurance_claims: INSURANCE_CLAIMS_FIELDS,
 };
 
 // ---------------------------------------------------------------------------
@@ -2057,6 +2231,12 @@ export const HHDB_TABLE_DOCS: Record<string, string> = {
     "Residential additions/features by card and line (decks, lanais, garages attached to the main improvement), versioned by change detection.",
   mls_listings:
     "Residential MLS listings scraped daily from HiCentral, the Honolulu Board of REALTORS public property search — not a qPublic table. One row per listing, keyed by (mls_board, mls_number) and updated in place as status and price change; each change is recorded in mls_listing_history. Coverage is strongest for Oahu and thin for the neighbor islands. The initial backfill reaches back only to roughly 2024, because the site caps any one search at about 9,980 results. tmk uses the same format as the qPublic tables, so listings join to properties/parcels. first_seen_at / last_seen_at are our observation times, not MLS dates — use list_date and date_sold for market timing. County columns here are derived from the TMK's leading digit, so listings without a TMK count toward the State total only.",
+  renthub_listings:
+    "Rental listings from RentHub's scrape of listing sites (Zillow and others) — not a qPublic table. Only the vendor's Hawaii file is loaded, from every delivery since 2014. One row per scraped listing record: the same unit listed again, or still listed in a later scrape, appears again under a new id, so count distinct unit_id (2023-07-28 on) or address for unit-level questions. TMK IS IMPUTED: unlike the qPublic tables, whose TMK comes from a parcel number, RentHub gives only a point and an address; tmk is our geocode (the parcel the point falls in, corrected by address matching), parcel level only (CPR 0000). ~98% of rows have one, ~83% confirmed by address; tmk_match says how each was found — filter on it. Coverage before 2022 is thin (tens to a few thousand rows a year for 2018–2021). scraped_at and available_at are the vendor's clock, not Hawaii time. County columns are the TMK's leading digit; listings with no TMK count toward the State total only.",
+  insurance_policies:
+    "FICOH homeowners insurance policies, 2018-01 to 2025-06 effective dates — not a qPublic table. RESTRICTED: approved researchers only, and results may be reported only in aggregate (FICOH data guidelines). One row per policy term per insured location: a policy covering several properties has several rows with the same number and term (location_no). Renewals get a new number; policy_base links them for numbers from 2020 on. TMK IS IMPUTED: unlike the qPublic tables, whose TMK comes from a parcel number, FICOH gives only a street address; tmk is our match of it to qPublic site addresses (CPR-level for matched condo units, parcel-level otherwise; ~93% of policies have one). tmk_match says how each was found. Construction and company codes come without a decode. County columns are the TMK's leading digit; policies without a TMK count toward the State total only.",
+  insurance_claims:
+    "FICOH homeowners insurance claims, losses from 2020-08 to 2025-11 — not a qPublic table. RESTRICTED: approved researchers only, and results may be reported only in aggregate. One row per claim, linked to the policy row in force on the date of loss (policy_id, ~96% linked). 857 claims are dated 2023-08-08, the Lahaina fire. Amounts are as of the extract: incurred = paid + outstanding reserve. TMK IS IMPUTED from the loss address, as for insurance_policies (~91% of claims have one). County columns are the TMK's leading digit; claims without a TMK count toward the State total only.",
   tg_transactions:
     "Recorded real-property documents from the Title Guaranty (TG) API — not a qPublic table. One row per recorded instrument: mortgages and financing statements make up well over half, with deeds, apartment deeds, leases and agreements of sale the rest. Each row carries the parcel (tmk / taxKey, same format as qPublic so it joins to properties), the recording date, the parties, the declared amounts, the assessed owner's mailing address (the basis of the out-of-state buyer charts on the Exploration tab) and the parcel's valuation grid at the time of the record. Loaded in bulk from TG outside this app, so scraped_at-style columns do not exist; recDate is the only time axis. County columns are the TMK's leading digit; TG's placeholder 9-9-9-… parcel and rows with no TMK count toward the State total only.",
 };

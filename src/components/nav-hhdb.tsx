@@ -11,12 +11,14 @@ import {
   CreditCard,
   DollarSign,
   FileText,
+  FileWarning,
   Gavel,
   Hammer,
   History,
   Home,
   House,
   Info,
+  KeyRound,
   Landmark,
   Layers,
   ListOrdered,
@@ -24,6 +26,7 @@ import {
   PlusSquare,
   Receipt,
   ScrollText,
+  ShieldCheck,
   SquareTerminal,
   Tag,
   TreePine,
@@ -173,6 +176,19 @@ const SECTIONS: { label: string; entries: NavEntry[] }[] = [
   {
     label: "MLS",
     entries: [{ title: "Listings", url: `${T}/mls-listings`, icon: Tag }],
+  },
+  {
+    label: "RentHub",
+    entries: [
+      { title: "Rent Listings", url: `${T}/rent-listings`, icon: KeyRound },
+    ],
+  },
+  {
+    label: "FICOH Insurance",
+    entries: [
+      { title: "Policies", url: `${T}/insurance-policies`, icon: ShieldCheck },
+      { title: "Claims", url: `${T}/insurance-claims`, icon: FileWarning },
+    ],
   },
 ];
 

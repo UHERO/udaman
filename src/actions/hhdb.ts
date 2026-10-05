@@ -12,6 +12,7 @@ import {
   getCondoAreaByYearBuilt as getCondoAreaCtrl,
   getCondoProjectsJSON as getCondoProjectsCtrl,
   getCondoUnitsJSON as getCondoUnitsCtrl,
+  getCoverageByYear as getCoverageByYearCtrl,
   getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
   getDedicationsJSON as getDedicationsCtrl,
   getFreqSummary as getFreqSummaryCtrl,
@@ -21,6 +22,8 @@ import {
   getHistoricalTaxSummaryJSON as getHistoricalTaxSummaryCtrl,
   getHomeExemptionsJSON as getHomeExemptionsCtrl,
   getImprovementsJSON as getImprovementsCtrl,
+  getInsuranceClaimsJSON as getInsuranceClaimsCtrl,
+  getInsurancePoliciesJSON as getInsurancePoliciesCtrl,
   getLandClassificationsJSON as getLandClassificationsCtrl,
   getMedianAssessedByClass as getMedianAssessedCtrl,
   getMedianSalePriceByIsland as getMedianSalePriceCtrl,
@@ -42,6 +45,7 @@ import {
   getProfileTextDrilldown as getProfileTextDrilldownCtrl,
   getPropertiesJSON as getPropertiesCtrl,
   getPropertyCountByClass as getPropertyCountCtrl,
+  getRenthubListingsJSON as getRenthubListingsCtrl,
   getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
   getSalesJSON as getSalesCtrl,
   getTableCount as getTableCountCtrl,
@@ -242,6 +246,26 @@ export async function getHhdbMlsListings(params: HhdbListParams) {
 export async function getHhdbTgTransactions(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
   return getTgTransactionsCtrl(params);
+}
+
+export async function getHhdbRenthubListings(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getRenthubListingsCtrl(params);
+}
+
+export async function getHhdbInsurancePolicies(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getInsurancePoliciesCtrl(params);
+}
+
+export async function getHhdbInsuranceClaims(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getInsuranceClaimsCtrl(params);
+}
+
+export async function getHhdbCoverageByYear(table: string) {
+  await requirePermission("hhdb", "read");
+  return getCoverageByYearCtrl(table);
 }
 
 export async function getHhdbFreqSummary(
