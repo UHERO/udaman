@@ -366,18 +366,20 @@ describe("load", () => {
       policyGeocode: { unit: 2, address: 1 },
       claimLinks: { term_address: 1 },
     });
+    // Chunks come in ladder sizes (packet.ts): 3 policies → 2 + 1.
     const verbs = statements
-      .slice(0, 5)
+      .slice(0, 6)
       .map((s) => s.sql.split(" (")[0].trim());
     expect(verbs).toEqual([
       "DELETE FROM insurance_claims",
       "DELETE FROM insurance_policies",
       "INSERT INTO insurance_policies",
+      "INSERT INTO insurance_policies",
       "INSERT INTO insurance_claims",
       expect.stringContaining("INSERT INTO insurance_loads"),
     ]);
     // ids are sheet lines; the two locations under one number + term are 1, 2.
-    const p = statements[2].params;
+    const p = [...statements[2].params, ...statements[3].params];
     const width = p.length / 3;
     expect([
       p[0],
@@ -389,7 +391,7 @@ describe("load", () => {
     ]).toEqual([2, 1, 3, 2, 4, 1]);
     expect(p[3]).toBe("1-2-3-002-106-0412");
     // The claim links to sheet line 3 (the Hunalewa location).
-    expect(statements[3].params.slice(0, 3)).toEqual([
+    expect(statements[4].params.slice(0, 3)).toEqual([
       "202006194CC",
       3,
       "term_address",

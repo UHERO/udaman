@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  CHUNK_SIZES,
   chunkByBytes,
-  MAX_ROWS_PER_STATEMENT,
   maxAllowedPacket,
   rowBudget,
   valueBytes,
@@ -28,18 +28,27 @@ describe("packet", () => {
     expect(valueBytes(null)).toBeLessThan(valueBytes(12345));
   });
 
-  test("chunks stay under the budget and the row cap", () => {
-    const rows = Array.from({ length: 2500 }, (_, i) => i);
-    const byCap = chunkByBytes(rows, () => 1, 1e9);
-    expect(byCap.map((c) => c.length)).toEqual([
-      MAX_ROWS_PER_STATEMENT,
-      MAX_ROWS_PER_STATEMENT,
-      500,
-    ]);
-    const byBytes = chunkByBytes(rows, () => 1000, rowBudget(1024 * 1024));
-    for (const c of byBytes)
-      expect(c.length * 1000).toBeLessThanOrEqual(rowBudget(1024 * 1024));
-    expect(byBytes.flat()).toEqual(rows);
+  test("every chunk fits the budget AND has a ladder size (few distinct prepared statements)", () => {
+    // Row sizes that vary a lot, like listing descriptions.
+    const rows = Array.from({ length: 5000 }, (_, i) => i);
+    const bytes = (i: number) => 200 + ((i * 7919) % 40) * 900;
+    const budget = rowBudget(1024 * 1024);
+    const chunks = chunkByBytes(rows, bytes, budget);
+    expect(chunks.flat()).toEqual(rows);
+    const sizes = new Set(chunks.map((c) => c.length));
+    for (const n of sizes) expect(CHUNK_SIZES).toContain(n as never);
+    expect(sizes.size).toBeLessThanOrEqual(CHUNK_SIZES.length);
+    for (const c of chunks)
+      expect(c.reduce((n, r) => n + bytes(r), 0)).toBeLessThanOrEqual(budget);
+  });
+
+  test("small rows use full 256-row statements, and the remainder decomposes into ladder sizes", () => {
+    const chunks = chunkByBytes(
+      Array.from({ length: 600 }, (_, i) => i),
+      () => 10,
+      1e9,
+    );
+    expect(chunks.map((c) => c.length)).toEqual([256, 256, 64, 16, 8]);
   });
 
   test("a single row bigger than the budget is a clear error", () => {

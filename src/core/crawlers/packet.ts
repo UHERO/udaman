@@ -17,8 +17,18 @@ const log = createLogger("packet");
 const FALLBACK_MAX_PACKET = 1024 * 1024;
 /** Share of the packet the rows may use; the rest is headroom for the statement. */
 const BUDGET_SHARE = 0.75;
-/** Never more rows per statement than this, however roomy the packet. */
-export const MAX_ROWS_PER_STATEMENT = 1000;
+
+/**
+ * The only row counts a statement may have. Bun keeps every DISTINCT
+ * statement prepared on the server for the life of the connection (verified
+ * 2026-10-05: 50 distinct statements → Prepared_stmt_count 50; 50 repeats of
+ * one → 1). Chunks of arbitrary size made every INSERT a new prepared
+ * statement with tens of thousands of parameters — ~370 of them in one FICOH
+ * transaction — and the remote MariaDB was restarted mid-load (out of
+ * memory). With this ladder a table needs at most 9 prepared statements, each
+ * at most 256 rows.
+ */
+export const CHUNK_SIZES = [256, 128, 64, 32, 16, 8, 4, 2, 1] as const;
 
 /** The server's max_allowed_packet in bytes. */
 export async function maxAllowedPacket(db: Db): Promise<number> {
@@ -51,31 +61,34 @@ export function valueBytes(v: unknown): number {
   return overhead + 9;
 }
 
-/** Split rows into statements that each fit the byte budget. */
+/**
+ * Split rows into statements that each fit the byte budget AND have a row
+ * count from CHUNK_SIZES: at each point, the largest size whose rows fit.
+ * Order is preserved.
+ */
 export function chunkByBytes<T>(
   rows: readonly T[],
   rowBytes: (row: T) => number,
   budget: number,
-  maxRows = MAX_ROWS_PER_STATEMENT,
 ): T[][] {
-  const chunks: T[][] = [];
-  let cur: T[] = [];
-  let size = 0;
-  for (const row of rows) {
+  // prefix[i] = bytes of rows[0..i)
+  const prefix = new Float64Array(rows.length + 1);
+  rows.forEach((row, i) => {
     const bytes = rowBytes(row);
     if (bytes > budget)
       throw new Error(
-        `A single row needs ~${bytes} bytes, more than the ${budget}-byte budget ` +
+        `Row ${i} needs ~${bytes} bytes, more than the ${budget}-byte budget ` +
           `(server max_allowed_packet too small for this data)`,
       );
-    if (cur.length && (cur.length >= maxRows || size + bytes > budget)) {
-      chunks.push(cur);
-      cur = [];
-      size = 0;
-    }
-    cur.push(row);
-    size += bytes;
+    prefix[i + 1] = prefix[i] + bytes;
+  });
+  const chunks: T[][] = [];
+  for (let i = 0; i < rows.length;) {
+    const size = CHUNK_SIZES.find(
+      (n) => i + n <= rows.length && prefix[i + n] - prefix[i] <= budget,
+    )!; // 1 always fits: every row was checked above.
+    chunks.push(rows.slice(i, i + size));
+    i += size;
   }
-  if (cur.length) chunks.push(cur);
   return chunks;
 }
