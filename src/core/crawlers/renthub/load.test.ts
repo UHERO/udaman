@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { AddressIndex } from "../address";
 import { parseCsv } from "../csv";
+import { rowBudget, valueBytes } from "../packet";
 import {
   coordDecimals,
   mapHeader,
@@ -114,10 +115,24 @@ describe("renthub load", () => {
     );
   });
 
-  test("chunks by row count and by text size", () => {
-    const rows = Array.from({ length: 5 }, () => ["x".repeat(10)]);
-    expect(chunkRows(rows, 2, 1e9).map((c) => c.length)).toEqual([2, 2, 1]);
-    expect(chunkRows(rows, 100, 60).map((c) => c.length)).toEqual([2, 2, 1]);
+  test("chunks fit the server's packet budget, measured in UTF-8 bytes", () => {
+    // 600 rows with a ~3 KB multi-byte description: ~1.8 MB in all.
+    const row = parse(NEW_HEADER, NEW_ROW);
+    const big = RENTHUB_INSERT_COLUMNS.map((c) =>
+      c === "description" ? "ʻ".repeat(1500) : row[c],
+    );
+    const rows = Array.from({ length: 600 }, () => big);
+    const budget = rowBudget(1024 * 1024);
+    const chunks = chunkRows(rows, budget);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.flat()).toHaveLength(600);
+    for (const c of chunks) {
+      const bytes = c.reduce(
+        (n, r) => n + r.reduce<number>((m, v) => m + valueBytes(v), 0),
+        0,
+      );
+      expect(bytes).toBeLessThanOrEqual(budget);
+    }
   });
 });
 

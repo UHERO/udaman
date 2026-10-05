@@ -30,6 +30,12 @@ import { parseCsv } from "../csv";
 import { refreshFreqTables, type Tx } from "../freq-refresh";
 import { resilient } from "../mls/db-retry";
 import {
+  chunkByBytes,
+  maxAllowedPacket,
+  rowBudget,
+  valueBytes,
+} from "../packet";
+import {
   colIndex,
   mapHeader,
   parseRecord,
@@ -49,11 +55,6 @@ export const DEFAULT_RENTHUB_ROOT =
 const STATE = "HI";
 /** Delivery directory name: <start>_<end>, both ISO dates. */
 const BATCH_DIR = /^\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}$/;
-
-/** Rows per INSERT; ~38 params each stays far under the 65,535 limit. */
-const CHUNK_ROWS = 1000;
-/** Also flush once a chunk's text passes this, to stay under max_allowed_packet. */
-const CHUNK_BYTES = 4 * 1024 * 1024;
 
 /**
  * How far outside every parcel a point may sit and still take the nearest
@@ -262,29 +263,13 @@ export function upsertSql(rowCount: number): string {
 }
 
 /** Split rows into INSERT-sized chunks by count and by text size. */
-export function chunkRows(
-  rows: SqlValue[][],
-  maxRows = CHUNK_ROWS,
-  maxBytes = CHUNK_BYTES,
-): SqlValue[][][] {
-  const chunks: SqlValue[][][] = [];
-  let cur: SqlValue[][] = [];
-  let size = 0;
-  for (const row of rows) {
-    const rowSize = row.reduce<number>(
-      (n, v) => n + (typeof v === "string" ? v.length * 3 : 8),
-      0,
-    );
-    if (cur.length && (cur.length >= maxRows || size + rowSize > maxBytes)) {
-      chunks.push(cur);
-      cur = [];
-      size = 0;
-    }
-    cur.push(row);
-    size += rowSize;
-  }
-  if (cur.length) chunks.push(cur);
-  return chunks;
+/** Split rows into INSERT statements that fit the packet budget. */
+export function chunkRows(rows: SqlValue[][], budget: number): SqlValue[][][] {
+  return chunkByBytes(
+    rows,
+    (row) => row.reduce<number>((n, v) => n + valueBytes(v), 0),
+    budget,
+  );
 }
 
 async function upsertChunk(db: Db, rows: SqlValue[][]): Promise<number> {
@@ -380,6 +365,8 @@ export async function load(opts: RenthubOptions = {}) {
   // 400 MB layer or the ~560k properties addresses.
   let parcels = opts.parcelIndex;
   let addresses = opts.addressIndex ?? null;
+  // Statement size limit, read once from the target server (packet.ts).
+  let budget: number | null = null;
 
   const results: RenthubBatchResult[] = [];
   for (const b of batches) {
@@ -409,7 +396,8 @@ export async function load(opts: RenthubOptions = {}) {
       continue;
     }
     let affectedRows = 0;
-    for (const chunk of chunkRows(rows))
+    budget ??= rowBudget(await maxAllowedPacket(query));
+    for (const chunk of chunkRows(rows, budget))
       affectedRows += await upsertChunk(query, chunk);
     await recordLoad(query, b, rows.length, geo, parcelsPath);
     const ms = Math.round(performance.now() - start);

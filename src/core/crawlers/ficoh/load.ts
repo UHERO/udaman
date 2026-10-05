@@ -36,6 +36,12 @@ import {
 import { refreshFreqTables, type Tx } from "../freq-refresh";
 import { zipCounty } from "../hawaii-zips";
 import {
+  chunkByBytes,
+  maxAllowedPacket,
+  rowBudget,
+  valueBytes,
+} from "../packet";
+import {
   CLAIM_COLUMNS,
   CLAIM_IGNORED,
   CLAIM_INSERT_COLUMNS,
@@ -55,9 +61,6 @@ export const DEFAULT_FICOH_FILE =
 export const POLICY_SHEET = "Policy Data Set";
 /** Sic — the delivered workbook's spelling. */
 export const CLAIM_SHEET = "Cmail Data Set";
-
-/** Rows per INSERT; ~30 params each stays far under the 65,535 limit. */
-const CHUNK_ROWS = 1000;
 
 type Row = Record<string, SqlValue>;
 
@@ -393,9 +396,11 @@ async function insertAll(
   table: string,
   columns: string[],
   rows: Row[],
+  budget: number,
 ): Promise<void> {
-  for (let i = 0; i < rows.length; i += CHUNK_ROWS) {
-    const chunk = rows.slice(i, i + CHUNK_ROWS);
+  const rowBytes = (r: Row) =>
+    columns.reduce((n, c) => n + valueBytes(r[c]), 0);
+  for (const chunk of chunkByBytes(rows, rowBytes, budget)) {
     await query(
       insertSql(table, columns, chunk.length),
       chunk.flatMap((r) => columns.map((c) => r[c] ?? null)),
@@ -442,6 +447,7 @@ export async function load(opts: FicohOptions = {}) {
   const links = linkClaims(policies, claims);
 
   if (!opts.dryRun) {
+    const budget = rowBudget(await maxAllowedPacket(db));
     await tx(async (query) => {
       await query("DELETE FROM insurance_claims");
       await query("DELETE FROM insurance_policies");
@@ -450,8 +456,15 @@ export async function load(opts: FicohOptions = {}) {
         "insurance_policies",
         POLICY_INSERT_COLUMNS,
         policies,
+        budget,
       );
-      await insertAll(query, "insurance_claims", CLAIM_INSERT_COLUMNS, claims);
+      await insertAll(
+        query,
+        "insurance_claims",
+        CLAIM_INSERT_COLUMNS,
+        claims,
+        budget,
+      );
       await query(
         `INSERT INTO insurance_loads (file_name, file_bytes, policies, claims,
            policies_geocoded, claims_geocoded, claims_linked, loaded_at)
