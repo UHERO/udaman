@@ -1,14 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 
+import { toHstSql } from "@catalog/utils/time";
+
 import {
   getHtmlPath,
   getIslandCode,
   getJsonPath,
   tmkFromParcelNumber,
 } from "@/core/crawlers/qpub/config";
-import { toHstSql } from "@catalog/utils/time";
-
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { condoUnitRows, parsePropertyHTML } from "@/core/crawlers/qpub/parse";
 import { parseDollarValue } from "@/core/crawlers/qpub/parse-utils";
@@ -1121,7 +1121,9 @@ export async function loadPermits(
  */
 export function isTaxBillRollupRow(row: Row): boolean {
   const period = row.tax_period;
-  return period === null || period === undefined || String(period).trim() === "";
+  return (
+    period === null || period === undefined || String(period).trim() === ""
+  );
 }
 
 /** The real per-period bills, with the rollup line removed. */
@@ -1728,23 +1730,25 @@ export function splitHomesteadInformation(value: unknown): {
  * dedications' number_of_dedications is prose ("RESIDENTIAL USE(1)") and must
  * NOT be added; the same goes for home_exemptions' claimant_name.
  */
-export const COLUMN_VALUE_PARSERS: Record<string, (v: unknown) => number | null> =
-  {
-    area: int,
-    // accessory_improvements.value is BIGINT; strings arrive comma-formatted from
-    // the repositioned GROSS BUILDING VALUE rows and dollar-formatted from
-    // Big Island's own column.
-    value: int,
-    percent_complete: parsePercent,
-    building_number: int,
-    card: int,
-    line: int,
-    quantity: dec,
-    // Maui's bare "Acres" resolves here via FIELD_ALIASES before parsing.
-    acres_in_production: dec,
-    tax_payer_opinion_of_property_class: int,
-    tax_year: int,
-  };
+export const COLUMN_VALUE_PARSERS: Record<
+  string,
+  (v: unknown) => number | null
+> = {
+  area: int,
+  // accessory_improvements.value is BIGINT; strings arrive comma-formatted from
+  // the repositioned GROSS BUILDING VALUE rows and dollar-formatted from
+  // Big Island's own column.
+  value: int,
+  percent_complete: parsePercent,
+  building_number: int,
+  card: int,
+  line: int,
+  quantity: dec,
+  // Maui's bare "Acres" resolves here via FIELD_ALIASES before parsing.
+  acres_in_production: dec,
+  tax_payer_opinion_of_property_class: int,
+  tax_year: int,
+};
 
 /**
  * Per-section row rewrites applied before columns are matched.
@@ -1862,7 +1866,9 @@ export async function loadGenericForTable(
   scrapedAt: Date = new Date(),
   observedYear?: number,
 ): Promise<void> {
-  for (const [sectionName, mappedTable] of Object.entries(GENERIC_SECTION_MAP)) {
+  for (const [sectionName, mappedTable] of Object.entries(
+    GENERIC_SECTION_MAP,
+  )) {
     if (mappedTable !== tableName) continue;
 
     const sectionData = data[sectionName] as Row | undefined;
@@ -1916,8 +1922,7 @@ export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
     loadGenericForTable(tmk, data, "residential_additions", s, y),
   agricultural_assessments: (tmk, data, s, y) =>
     loadGenericForTable(tmk, data, "agricultural_assessments", s, y),
-  appeals: (tmk, data, s, y) =>
-    loadGenericForTable(tmk, data, "appeals", s, y),
+  appeals: (tmk, data, s, y) => loadGenericForTable(tmk, data, "appeals", s, y),
   dedications: (tmk, data, s, y) =>
     loadGenericForTable(tmk, data, "dedications", s, y),
   home_exemptions: (tmk, data, s, y) =>

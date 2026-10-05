@@ -17,8 +17,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 type RegistryResult = { success: true } | { success: false; error: string };
 
 type FetchResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 function isAdminOrAuthor(
   user: Session,

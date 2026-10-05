@@ -1,6 +1,5 @@
 import { OctagonAlert } from "lucide-react";
 
-import { auth } from "@/lib/auth/index";
 import { getRegistryList } from "@/actions/data-registry";
 import {
   Card,
@@ -8,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { auth } from "@/lib/auth/index";
 
 import DataRegistry from "./data-registry";
 

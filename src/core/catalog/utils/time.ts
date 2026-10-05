@@ -217,7 +217,10 @@ function hstToInstant(dbValue: Date | string): Date {
  *  Milliseconds are included; columns without fractional precision truncate. */
 function toHstSql(instant: Date | number): string {
   const ms = typeof instant === "number" ? instant : instant.getTime();
-  return new Date(ms - HST_OFFSET_MS).toISOString().slice(0, 23).replace("T", " ");
+  return new Date(ms - HST_OFFSET_MS)
+    .toISOString()
+    .slice(0, 23)
+    .replace("T", " ");
 }
 
 /** Current Hawaii calendar date as "YYYY-MM-DD". */

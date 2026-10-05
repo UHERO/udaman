@@ -36,14 +36,20 @@ import { mysql } from "@database/mysql";
 const EXECUTE = process.argv.includes("--execute");
 const NO_DEPS = process.argv.includes("--no-deps");
 const argVal = (name: string) =>
-  process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
+  process.argv
+    .find((a) => a.startsWith(`--${name}=`))
+    ?.split("=")
+    .slice(1)
+    .join("=");
 const SEARCH = argVal("search") ?? "#const_hon@ha";
 const AFTER = argVal("after") ?? "2026-09-01";
 const UNIVERSE = (argVal("universe") ?? "UHERO") as Universe;
 const EXPECT = Number(argVal("expect") ?? 4);
 
 if (!/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/.test(AFTER)) {
-  console.error(`--after must be YYYY-MM-DD or "YYYY-MM-DD HH:MM:SS", got "${AFTER}"`);
+  console.error(
+    `--after must be YYYY-MM-DD or "YYYY-MM-DD HH:MM:SS", got "${AFTER}"`,
+  );
   process.exit(1);
 }
 
@@ -56,7 +62,11 @@ type Row = {
 };
 
 const fmt = (v: Date | string | null) =>
-  v == null ? "-" : v instanceof Date ? v.toISOString().replace("T", " ").slice(0, 19) : String(v);
+  v == null
+    ? "-"
+    : v instanceof Date
+      ? v.toISOString().replace("T", " ").slice(0, 19)
+      : String(v);
 
 async function main() {
   console.log(
@@ -64,9 +74,13 @@ async function main() {
   );
 
   // 1. Base series from the search
-  const base = await SeriesCollection.search({ text: SEARCH, universe: UNIVERSE });
+  const base = await SeriesCollection.search({
+    text: SEARCH,
+    universe: UNIVERSE,
+  });
   console.log(`\nBase series (${base.length}):`);
-  for (const s of base) console.log(`  ${s.id}\t${s.name}\txseries=${s.xseriesId}`);
+  for (const s of base)
+    console.log(`  ${s.id}\t${s.name}\txseries=${s.xseriesId}`);
 
   if (base.length === 0) {
     console.log("Nothing matched. Exiting.");
@@ -82,14 +96,17 @@ async function main() {
 
   // 2. Expand to transitive dependents
   const baseIds = base.map((s) => s.id!).filter((id) => id != null);
-  const allIds = NO_DEPS ? baseIds : await SeriesCollection.getAllDependencies(baseIds);
+  const allIds = NO_DEPS
+    ? baseIds
+    : await SeriesCollection.getAllDependencies(baseIds);
   const depIds = allIds.filter((id) => !baseIds.includes(id));
 
   const dependents = [];
   for (const id of depIds) dependents.push(await SeriesCollection.getById(id));
   dependents.sort((a, b) => a.name.localeCompare(b.name));
   console.log(`\nDependent series (${dependents.length}):`);
-  for (const s of dependents) console.log(`  ${s.id}\t${s.name}\txseries=${s.xseriesId}`);
+  for (const s of dependents)
+    console.log(`  ${s.id}\t${s.name}\txseries=${s.xseriesId}`);
 
   const targets = [...base, ...dependents];
 
@@ -146,10 +163,16 @@ async function main() {
         WHERE xseries_id = ${xid} AND created_at > ${AFTER} AND current = 1
       `;
       const affectedDates = affected.map((r) =>
-        r.date instanceof Date ? r.date.toISOString().slice(0, 10) : String(r.date),
+        r.date instanceof Date
+          ? r.date.toISOString().slice(0, 10)
+          : String(r.date),
       );
 
-      await SeriesCollection.deleteDataPointsByVintage({ id: xid, u: UNIVERSE, date: AFTER });
+      await SeriesCollection.deleteDataPointsByVintage({
+        id: xid,
+        u: UNIVERSE,
+        date: AFTER,
+      });
       await SeriesCollection.repairDataPoints({ id: xid });
 
       if (affectedDates.length > 0) {
@@ -161,10 +184,14 @@ async function main() {
         console.log(
           `       ${promoted.length} dates fell back to an older vintage, ${gone} dates now have no data`,
         );
-        if (promoted.length > 0) promotedReport.push(`${s.name}: ${promoted.length} dates`);
+        if (promoted.length > 0)
+          promotedReport.push(`${s.name}: ${promoted.length} dates`);
       }
 
-      await DataPointCollection.updatePublicDataPointsForSeries(s.id, s.universe);
+      await DataPointCollection.updatePublicDataPointsForSeries(
+        s.id,
+        s.universe,
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`  ERR  ${s.name}: ${msg}`);

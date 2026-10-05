@@ -1084,9 +1084,7 @@ function CompareTooltip({
                 opacity: 0.7,
               }}
             >
-              {seriesNames.length > 1
-                ? `${seriesNames[v.seriesIndex]}: `
-                : ""}
+              {seriesNames.length > 1 ? `${seriesNames[v.seriesIndex]}: ` : ""}
               {v.value.toFixed(decimals)}
               <span className="ml-1 text-slate-400">pub. {v.publishedAt}</span>
             </p>

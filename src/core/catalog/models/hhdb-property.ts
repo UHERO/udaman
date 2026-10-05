@@ -171,8 +171,7 @@ export function hhdbPropertyRowToJSON(
     reentryZone: attrs.reentry_zone ?? null,
     zoneColor: attrs.zone_color ?? null,
     nonTaxableStatus: attrs.non_taxable_status ?? null,
-    livingUnits:
-      attrs.living_units != null ? Number(attrs.living_units) : null,
+    livingUnits: attrs.living_units != null ? Number(attrs.living_units) : null,
     zip: attrs.zip ?? null,
     latitude: attrs.latitude != null ? Number(attrs.latitude) : null,
     longitude: attrs.longitude != null ? Number(attrs.longitude) : null,

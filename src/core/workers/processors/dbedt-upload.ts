@@ -6,15 +6,15 @@ import {
   wipeDbedtUniverse,
 } from "@catalog/controllers/dbedt-upload";
 import {
-  type DbedtStagedMeta,
-  readAllStagedRows,
-  readStagedMeta,
-  removeStagedUpload,
-} from "@catalog/controllers/upload-session-store";
-import {
   executeUpload,
   type UploadHandlers,
 } from "@catalog/controllers/universe-upload";
+import {
+  readAllStagedRows,
+  readStagedMeta,
+  removeStagedUpload,
+  type DbedtStagedMeta,
+} from "@catalog/controllers/upload-session-store";
 import type {
   DbedtDataRow,
   DbedtMetaRow,

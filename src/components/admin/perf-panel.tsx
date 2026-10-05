@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import {
@@ -213,15 +213,14 @@ function Figure({
 }
 
 /** Legend: square swatches, monospace labels, no box. */
-function Legend({
-  items,
-}: {
-  items: { key: string; label: string }[];
-}) {
+function Legend({ items }: { items: { key: string; label: string }[] }) {
   return (
     <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
       {items.map((it) => (
-        <li key={it.key} className="flex items-center gap-1.5 font-mono text-[11px]">
+        <li
+          key={it.key}
+          className="flex items-center gap-1.5 font-mono text-[11px]"
+        >
           <span
             className="inline-block h-2.5 w-2.5"
             style={{ background: `var(--color-${it.key})` }}
@@ -257,7 +256,7 @@ function Tbl({
         <Cap>Table {no}</Cap>
         <span className="text-sm font-medium">{title}</span>
       </div>
-      <table className="border-foreground w-full border-t-2 border-b-2 border-collapse text-xs">
+      <table className="border-foreground w-full border-collapse border-t-2 border-b-2 text-xs">
         <thead>
           <tr className="border-foreground border-b">
             {cols.map((c) => (
@@ -343,7 +342,11 @@ function FailDot(props: {
   );
 }
 
-function HoverDot(props: { cx?: number; cy?: number; payload?: { status?: string } }) {
+function HoverDot(props: {
+  cx?: number;
+  cy?: number;
+  payload?: { status?: string };
+}) {
   const { cx, cy, payload } = props;
   if (cx == null || cy == null) return null;
   return (
@@ -403,8 +406,14 @@ function JobDurationFigure({
         </>
       }
     >
-      <ChartContainer config={runConfig} className="h-[150px] w-full font-mono text-[10px]">
-        <LineChart data={data} margin={{ left: 0, right: 8, top: 6, bottom: 0 }}>
+      <ChartContainer
+        config={runConfig}
+        className="h-[150px] w-full font-mono text-[10px]"
+      >
+        <LineChart
+          data={data}
+          margin={{ left: 0, right: 8, top: 6, bottom: 0 }}
+        >
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey="t"
@@ -415,20 +424,29 @@ function JobDurationFigure({
             minTickGap={40}
             {...axisProps}
           />
-          <YAxis tickFormatter={(v: number) => fmtDur(v)} width={52} {...axisProps} />
+          <YAxis
+            tickFormatter={(v: number) => fmtDur(v)}
+            width={52}
+            {...axisProps}
+          />
           <ChartTooltip
             content={
               <ChartTooltipContent
                 className={tooltipClass}
-                labelFormatter={(_, p) => (p?.[0] ? fmtStamp(p[0].payload.t) : "")}
+                labelFormatter={(_, p) =>
+                  p?.[0] ? fmtStamp(p[0].payload.t) : ""
+                }
                 formatter={(v, _name, item) => (
                   <div className="flex w-full justify-between gap-4">
                     <span className="text-muted-foreground">
-                      {item.payload.status === "failed" ? "failed after" : "duration"}
+                      {item.payload.status === "failed"
+                        ? "failed after"
+                        : "duration"}
                     </span>
                     <span>
                       {fmtDur(Number(v))}
-                      {item.payload.waitMs != null && ` · waited ${fmtDur(item.payload.waitMs)}`}
+                      {item.payload.waitMs != null &&
+                        ` · waited ${fmtDur(item.payload.waitMs)}`}
                     </span>
                   </div>
                 )}
@@ -469,10 +487,16 @@ function NightlyFigure({ nightly }: { nightly: NightlyRun[] }) {
     () =>
       rows.map((r) => {
         const byDepth: Record<(typeof DEPTH_KEYS)[number], number> = {
-          d0: 0, d1: 0, d2: 0, d3: 0, d4: 0, d5: 0,
+          d0: 0,
+          d1: 0,
+          d2: 0,
+          d3: 0,
+          d4: 0,
+          d5: 0,
         };
         for (const d of r.perDepth) {
-          byDepth[DEPTH_KEYS[Math.min(Math.max(d.depth, 0), 5)]] += d.seconds * 1000;
+          byDepth[DEPTH_KEYS[Math.min(Math.max(d.depth, 0), 5)]] +=
+            d.seconds * 1000;
         }
         return { label: fmtDate(r.at), ...byDepth };
       }),
@@ -482,16 +506,33 @@ function NightlyFigure({ nightly }: { nightly: NightlyRun[] }) {
 
   return (
     <div className="bg-border grid gap-px lg:grid-cols-[3fr_2fr]">
-      <Figure no="2.1" title="Nightly reload, seconds per depth level" meta={`${rows.length} nights`}>
+      <Figure
+        no="2.1"
+        title="Nightly reload, seconds per depth level"
+        meta={`${rows.length} nights`}
+      >
         {data.length === 0 ? (
-          <p className="text-muted-foreground font-mono text-[11px]">no nightly runs in period</p>
+          <p className="text-muted-foreground font-mono text-[11px]">
+            no nightly runs in period
+          </p>
         ) : (
           <>
-            <ChartContainer config={nightlyConfig} className="h-[220px] w-full font-mono text-[10px]">
-              <BarChart data={data} margin={{ left: 0, right: 8, top: 6, bottom: 0 }} barCategoryGap={3}>
+            <ChartContainer
+              config={nightlyConfig}
+              className="h-[220px] w-full font-mono text-[10px]"
+            >
+              <BarChart
+                data={data}
+                margin={{ left: 0, right: 8, top: 6, bottom: 0 }}
+                barCategoryGap={3}
+              >
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="label" minTickGap={24} {...axisProps} />
-                <YAxis tickFormatter={(v: number) => fmtDur(v)} width={52} {...axisProps} />
+                <YAxis
+                  tickFormatter={(v: number) => fmtDur(v)}
+                  width={52}
+                  {...axisProps}
+                />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
@@ -499,7 +540,8 @@ function NightlyFigure({ nightly }: { nightly: NightlyRun[] }) {
                       formatter={(v, name) => (
                         <div className="flex w-full justify-between gap-4">
                           <span className="text-muted-foreground">
-                            {nightlyConfig[name as keyof typeof nightlyConfig]?.label ?? String(name)}
+                            {nightlyConfig[name as keyof typeof nightlyConfig]
+                              ?.label ?? String(name)}
                           </span>
                           <span>{fmtDur(Number(v))}</span>
                         </div>
@@ -521,7 +563,12 @@ function NightlyFigure({ nightly }: { nightly: NightlyRun[] }) {
               </BarChart>
             </ChartContainer>
             {usedKeys.length > 1 && (
-              <Legend items={usedKeys.map((k) => ({ key: k, label: nightlyConfig[k].label }))} />
+              <Legend
+                items={usedKeys.map((k) => ({
+                  key: k,
+                  label: nightlyConfig[k].label,
+                }))}
+              />
             )}
           </>
         )}
@@ -574,7 +621,11 @@ function QueueWaitFigure({ runs }: { runs: JobRun[] }) {
   const { data, table } = useMemo(() => {
     const byDay = new Map<string, Record<string, number[]>>();
     for (const r of runs) {
-      if (r.waitMs == null || !QUEUES.includes(r.queue as (typeof QUEUES)[number])) continue;
+      if (
+        r.waitMs == null ||
+        !QUEUES.includes(r.queue as (typeof QUEUES)[number])
+      )
+        continue;
       const day = hstDay(r.at);
       const bucket = byDay.get(day) ?? {};
       (bucket[r.queue] ??= []).push(r.waitMs);
@@ -582,7 +633,9 @@ function QueueWaitFigure({ runs }: { runs: JobRun[] }) {
     }
     const days = [...byDay.keys()].sort();
     const data = days.map((day) => {
-      const row: Record<string, number | string> = { label: fmtDate(`${day}T12:00:00`) };
+      const row: Record<string, number | string> = {
+        label: fmtDate(`${day}T12:00:00`),
+      };
       for (const q of QUEUES) {
         const xs = byDay.get(day)?.[q];
         if (xs?.length) row[q] = Math.max(...xs);
@@ -590,26 +643,49 @@ function QueueWaitFigure({ runs }: { runs: JobRun[] }) {
       return row;
     });
     const table = QUEUES.map((q) => {
-      const xs = runs.filter((r) => r.queue === q && r.waitMs != null).map((r) => r.waitMs!);
-      return { queue: q, jobs: xs.length, median: median(xs), max: xs.length ? Math.max(...xs) : null };
+      const xs = runs
+        .filter((r) => r.queue === q && r.waitMs != null)
+        .map((r) => r.waitMs!);
+      return {
+        queue: q,
+        jobs: xs.length,
+        median: median(xs),
+        max: xs.length ? Math.max(...xs) : null,
+      };
     });
     return { data, table };
   }, [runs]);
 
   return (
-    <Figure no="3.1" title="Longest queue wait per day" meta="enqueue → pickup, max per day">
-      <ChartContainer config={queueConfig} className="h-[200px] w-full font-mono text-[10px]">
-        <LineChart data={data} margin={{ left: 0, right: 8, top: 6, bottom: 0 }}>
+    <Figure
+      no="3.1"
+      title="Longest queue wait per day"
+      meta="enqueue → pickup, max per day"
+    >
+      <ChartContainer
+        config={queueConfig}
+        className="h-[200px] w-full font-mono text-[10px]"
+      >
+        <LineChart
+          data={data}
+          margin={{ left: 0, right: 8, top: 6, bottom: 0 }}
+        >
           <CartesianGrid vertical={false} />
           <XAxis dataKey="label" minTickGap={24} {...axisProps} />
-          <YAxis tickFormatter={(v: number) => fmtDur(v)} width={52} {...axisProps} />
+          <YAxis
+            tickFormatter={(v: number) => fmtDur(v)}
+            width={52}
+            {...axisProps}
+          />
           <ChartTooltip
             content={
               <ChartTooltipContent
                 className={tooltipClass}
                 formatter={(v, name) => (
                   <div className="flex w-full justify-between gap-4">
-                    <span className="text-muted-foreground">{String(name)}</span>
+                    <span className="text-muted-foreground">
+                      {String(name)}
+                    </span>
                     <span>{fmtDur(Number(v))}</span>
                   </div>
                 )}
@@ -660,7 +736,9 @@ function QueueWaitFigure({ runs }: { runs: JobRun[] }) {
 
 function MemoryFigure({ runs }: { runs: JobRun[] }) {
   const { data, workers, config } = useMemo(() => {
-    const names = [...new Set(runs.map((r) => r.worker ?? "worker"))].sort().slice(0, 4);
+    const names = [...new Set(runs.map((r) => r.worker ?? "worker"))]
+      .sort()
+      .slice(0, 4);
     const keyOf = (w: string) => `w${names.indexOf(w)}`;
     const config: ChartConfig = {};
     names.forEach((w, i) => {
@@ -678,7 +756,9 @@ function MemoryFigure({ runs }: { runs: JobRun[] }) {
   }, [runs]);
 
   const summary = workers.map((w) => {
-    const rs = runs.filter((r) => (r.worker ?? "worker") === w && r.rssMB != null);
+    const rs = runs.filter(
+      (r) => (r.worker ?? "worker") === w && r.rssMB != null,
+    );
     const last = rs[0]; // newest first from the action
     const peak = rs.length ? Math.max(...rs.map((r) => r.rssMB!)) : null;
     return { worker: w, last: last?.rssMB ?? null, peak, at: last?.at ?? null };
@@ -686,8 +766,14 @@ function MemoryFigure({ runs }: { runs: JobRun[] }) {
 
   return (
     <Figure no="3.2" title="Worker RSS after each job" meta="MB · host 8 192">
-      <ChartContainer config={config} className="h-[200px] w-full font-mono text-[10px]">
-        <LineChart data={data} margin={{ left: 0, right: 8, top: 6, bottom: 0 }}>
+      <ChartContainer
+        config={config}
+        className="h-[200px] w-full font-mono text-[10px]"
+      >
+        <LineChart
+          data={data}
+          margin={{ left: 0, right: 8, top: 6, bottom: 0 }}
+        >
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey="t"
@@ -698,13 +784,19 @@ function MemoryFigure({ runs }: { runs: JobRun[] }) {
             minTickGap={40}
             {...axisProps}
           />
-          <YAxis tickFormatter={(v: number) => n(Math.round(v))} width={52} {...axisProps} />
+          <YAxis
+            tickFormatter={(v: number) => n(Math.round(v))}
+            width={52}
+            {...axisProps}
+          />
           <ChartTooltip
             content={
               <ChartTooltipContent
                 className={tooltipClass}
                 labelFormatter={(_, p) =>
-                  p?.[0] ? `${fmtStamp(p[0].payload.t)} · ${p[0].payload.job}` : ""
+                  p?.[0]
+                    ? `${fmtStamp(p[0].payload.t)} · ${p[0].payload.job}`
+                    : ""
                 }
                 formatter={(v, name) => (
                   <div className="flex w-full justify-between gap-4">
@@ -813,19 +905,31 @@ export default function PerfPanel({
 
   const runsByName = useMemo(() => {
     const m = new Map<string, JobRun[]>();
-    for (const r of data.jobRuns) (m.get(r.name) ?? m.set(r.name, []).get(r.name)!).push(r);
+    for (const r of data.jobRuns)
+      (m.get(r.name) ?? m.set(r.name, []).get(r.name)!).push(r);
     return m;
   }, [data.jobRuns]);
 
   const lastNightly = data.nightly[0];
   const failedRuns = data.jobRuns.filter((r) => r.status === "failed");
   const lastUheroSweep = data.sweeps.find((s) => s.universe === "UHERO");
-  const jobFigures = JOBS.filter((j) => (runsByName.get(j.name)?.length ?? 0) > 0);
-  const otherNames = [...runsByName.keys()].filter((j) => !JOBS.some((x) => x.name === j));
+  const jobFigures = JOBS.filter(
+    (j) => (runsByName.get(j.name)?.length ?? 0) > 0,
+  );
+  const otherNames = [...runsByName.keys()].filter(
+    (j) => !JOBS.some((x) => x.name === j),
+  );
 
-  const seriesLink = (id: number | null, name: string | null, fallback: string) =>
+  const seriesLink = (
+    id: number | null,
+    name: string | null,
+    fallback: string,
+  ) =>
     id != null ? (
-      <Link href={`/udaman/UHERO/series/${id}`} className="underline-offset-2 hover:underline">
+      <Link
+        href={`/udaman/UHERO/series/${id}`}
+        className="underline-offset-2 hover:underline"
+      >
         {name ?? `#${id}`}
       </Link>
     ) : (
@@ -863,7 +967,9 @@ export default function PerfPanel({
       <div className="divide-border grid divide-x sm:grid-cols-3 lg:grid-cols-5">
         <Tile
           label="Last nightly"
-          value={lastNightly ? fmtDur((lastNightly.elapsedSec ?? 0) * 1000) : "—"}
+          value={
+            lastNightly ? fmtDur((lastNightly.elapsedSec ?? 0) * 1000) : "—"
+          }
           detail={
             lastNightly
               ? `${fmtStamp(lastNightly.at)} · lock ${fmtDur(lastNightly.lockWaitMs)}`
@@ -872,7 +978,9 @@ export default function PerfPanel({
         />
         <Tile
           label="Last UHERO sweep"
-          value={lastUheroSweep ? fmtDur(lastUheroSweep.elapsedSec * 1000) : "—"}
+          value={
+            lastUheroSweep ? fmtDur(lastUheroSweep.elapsedSec * 1000) : "—"
+          }
           detail={
             lastUheroSweep
               ? `${lastUheroSweep.mode} · ${n(lastUheroSweep.updated + lastUheroSweep.inserted)} rows`
@@ -882,7 +990,11 @@ export default function PerfPanel({
         <Tile
           label={`Failed jobs ${days}d`}
           value={String(failedRuns.length)}
-          detail={failedRuns[0] ? `${failedRuns[0].name} ${fmtStamp(failedRuns[0].at)}` : "none"}
+          detail={
+            failedRuns[0]
+              ? `${failedRuns[0].name} ${fmtStamp(failedRuns[0].at)}`
+              : "none"
+          }
           alert={failedRuns.length > 0}
         />
         <Tile
@@ -906,7 +1018,8 @@ export default function PerfPanel({
       >
         {jobFigures.length === 0 ? (
           <p className="text-muted-foreground font-mono text-[11px]">
-            no job records yet — they appear once the worker has finished a job on this build
+            no job records yet — they appear once the worker has finished a job
+            on this build
           </p>
         ) : (
           <div className="bg-border grid gap-px md:grid-cols-2 xl:grid-cols-3">
@@ -923,12 +1036,18 @@ export default function PerfPanel({
         {otherNames.length > 0 && (
           <p className="text-muted-foreground mt-3 font-mono text-[11px]">
             also recorded, not charted:{" "}
-            {otherNames.map((x) => `${x} ×${runsByName.get(x)!.length}`).join(", ")}
+            {otherNames
+              .map((x) => `${x} ×${runsByName.get(x)!.length}`)
+              .join(", ")}
           </p>
         )}
       </Section>
 
-      <Section no="2" title="Nightly reload" description="Where the night goes, level by level.">
+      <Section
+        no="2"
+        title="Nightly reload"
+        description="Where the night goes, level by level."
+      >
         <NightlyFigure nightly={data.nightly} />
       </Section>
 
@@ -961,11 +1080,15 @@ export default function PerfPanel({
           >
             {data.sweeps.slice(0, 15).map((s, i) => (
               <tr key={`${s.at}-${s.universe}-${i}`}>
-                <Td className="font-mono whitespace-nowrap">{fmtStamp(s.at)}</Td>
+                <Td className="font-mono whitespace-nowrap">
+                  {fmtStamp(s.at)}
+                </Td>
                 <Td className="font-mono">{s.universe}</Td>
                 <Td className="font-mono">{s.mode}</Td>
                 <Td num>{fmtDur(s.elapsedSec * 1000)}</Td>
-                <Td num>{`${n(s.updated)} / ${n(s.inserted)} / ${n(s.deleted)}`}</Td>
+                <Td
+                  num
+                >{`${n(s.updated)} / ${n(s.inserted)} / ${n(s.deleted)}`}</Td>
                 <Td num>{n(s.skipped)}</Td>
               </tr>
             ))}
@@ -974,13 +1097,20 @@ export default function PerfPanel({
           <Tbl
             no="4.2"
             title="Failed jobs, latest 15"
-            cols={[{ label: "When" }, { label: "Job" }, { label: "Queue" }, { label: "Error" }]}
+            cols={[
+              { label: "When" },
+              { label: "Job" },
+              { label: "Queue" },
+              { label: "Error" },
+            ]}
             rows={failedRuns.length}
             empty="none in period"
           >
             {failedRuns.slice(0, 15).map((r, i) => (
               <tr key={`${r.at}-${i}`}>
-                <Td className="font-mono whitespace-nowrap">{fmtStamp(r.at)}</Td>
+                <Td className="font-mono whitespace-nowrap">
+                  {fmtStamp(r.at)}
+                </Td>
                 <Td className="font-mono">{r.name}</Td>
                 <Td className="font-mono">{r.queue}</Td>
                 <Td className="max-w-[24rem] truncate" title={r.err ?? ""}>
@@ -993,13 +1123,19 @@ export default function PerfPanel({
           <Tbl
             no="4.3"
             title="Slowest loaders, last run"
-            cols={[{ label: "Series" }, { label: "Runtime", num: true }, { label: "Last run", num: true }]}
+            cols={[
+              { label: "Series" },
+              { label: "Runtime", num: true },
+              { label: "Last run", num: true },
+            ]}
             rows={data.slowestLoaders.length}
             empty="no data"
           >
             {data.slowestLoaders.map((l) => (
               <tr key={l.id}>
-                <Td className="font-mono">{seriesLink(l.seriesId, l.seriesName, `loader #${l.id}`)}</Td>
+                <Td className="font-mono">
+                  {seriesLink(l.seriesId, l.seriesName, `loader #${l.id}`)}
+                </Td>
                 <Td num>{fmtDur((l.runtime ?? 0) * 1000)}</Td>
                 <Td num>{l.lastRunAt ? fmtStamp(l.lastRunAt) : "—"}</Td>
               </tr>
@@ -1009,15 +1145,24 @@ export default function PerfPanel({
           <Tbl
             no="4.4"
             title="Loader errors, 24h, latest 20"
-            cols={[{ label: "Series" }, { label: "When", num: true }, { label: "Error" }]}
+            cols={[
+              { label: "Series" },
+              { label: "When", num: true },
+              { label: "Error" },
+            ]}
             rows={data.loaderErrors.length}
             empty="none"
           >
             {data.loaderErrors.map((l) => (
               <tr key={l.id}>
-                <Td className="font-mono">{seriesLink(l.seriesId, l.seriesName, `loader #${l.id}`)}</Td>
+                <Td className="font-mono">
+                  {seriesLink(l.seriesId, l.seriesName, `loader #${l.id}`)}
+                </Td>
                 <Td num>{l.lastErrorAt ? fmtStamp(l.lastErrorAt) : "—"}</Td>
-                <Td className="max-w-[20rem] truncate" title={l.lastError ?? ""}>
+                <Td
+                  className="max-w-[20rem] truncate"
+                  title={l.lastError ?? ""}
+                >
                   {l.lastError ?? "—"}
                 </Td>
               </tr>
@@ -1028,22 +1173,32 @@ export default function PerfPanel({
             <Tbl
               no="4.5"
               title="Downloads with no successful fetch in 24h, oldest 20"
-              cols={[{ label: "Handle" }, { label: "URL" }, { label: "Last 200", num: true }]}
+              cols={[
+                { label: "Handle" },
+                { label: "URL" },
+                { label: "Last 200", num: true },
+              ]}
               rows={data.staleDownloads.length}
               empty="none"
             >
               {data.staleDownloads.map((d) => (
                 <tr key={d.handle}>
                   <Td className="font-mono">{d.handle}</Td>
-                  <Td className="max-w-[36rem] truncate font-mono" title={d.url}>
+                  <Td
+                    className="max-w-[36rem] truncate font-mono"
+                    title={d.url}
+                  >
                     {d.url}
                   </Td>
-                  <Td num>{d.lastDownloadAt ? fmtStamp(d.lastDownloadAt) : "never"}</Td>
+                  <Td num>
+                    {d.lastDownloadAt ? fmtStamp(d.lastDownloadAt) : "never"}
+                  </Td>
                 </tr>
               ))}
             </Tbl>
             <p className="text-muted-foreground mt-2 font-mono text-[11px]">
-              every loader naming one of these re-attempts it once an hour per process; a moved URL should be updated on the download.
+              every loader naming one of these re-attempts it once an hour per
+              process; a moved URL should be updated on the download.
             </p>
           </div>
         </div>

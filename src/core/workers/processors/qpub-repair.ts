@@ -19,23 +19,24 @@
  * so a few can be eyeballed before anything is removed.
  */
 
-import fs from "fs/promises";
 import { statSync } from "fs";
+import fs from "fs/promises";
 import path from "path";
 
+import { toHstSql } from "@catalog/utils/time";
+
+import {
+  latestPeriod,
+  listHtmlFiles,
+  tmkFromFilePath,
+} from "@/core/crawlers/qpub/config";
 import { NO_RECORD_TAIL_BYTES } from "@/core/crawlers/qpub/parse-utils";
 import {
   CLASSIFY_HEAD_BYTES,
   classifySavedHtml,
   type SavedFileVerdict,
 } from "@/core/crawlers/qpub/scrape";
-import {
-  latestPeriod,
-  listHtmlFiles,
-  tmkFromFilePath,
-} from "@/core/crawlers/qpub/config";
 import { createLogger } from "@/core/observability/logger";
-import { toHstSql } from "@catalog/utils/time";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 const log = createLogger("qpub-repair");
@@ -163,7 +164,10 @@ async function classifyAll(filePaths: string[]): Promise<Classified[]> {
   };
 
   await Promise.all(
-    Array.from({ length: Math.min(READ_CONCURRENCY, filePaths.length) }, worker),
+    Array.from(
+      { length: Math.min(READ_CONCURRENCY, filePaths.length) },
+      worker,
+    ),
   );
   return out;
 }
@@ -172,7 +176,8 @@ async function classifyAll(filePaths: string[]): Promise<Classified[]> {
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size));
   return out;
 }
 
@@ -362,9 +367,7 @@ export async function runRepair(opts: RepairOptions = {}): Promise<string> {
   // 3. Which of those TMKs the table actually knows about. Files whose TMK has
   //    no row can't be repaired — scrape_status is FK'd to properties, so
   //    there's nothing to insert against. They get reported instead.
-  const rows = await rawQuery<{ tmk: string }>(
-    `SELECT tmk FROM scrape_status`,
-  );
+  const rows = await rawQuery<{ tmk: string }>(`SELECT tmk FROM scrape_status`);
   const knownTmks = new Set(rows.map((r) => r.tmk));
 
   const orphans = classified.filter((c) => !knownTmks.has(c.tmk));

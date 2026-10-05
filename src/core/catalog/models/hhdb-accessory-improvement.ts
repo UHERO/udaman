@@ -32,7 +32,9 @@ export class HhdbAccessoryImprovement {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.lastYearObserved =
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null;
     this.buildingNumber =
       attrs.building_number != null ? Number(attrs.building_number) : null;
     this.description = attrs.description ?? null;
@@ -63,7 +65,9 @@ export class HhdbAccessoryImprovement {
   }
 }
 
-export type HhdbAccessoryImprovementJSON = ReturnType<HhdbAccessoryImprovement["toJSON"]>;
+export type HhdbAccessoryImprovementJSON = ReturnType<
+  HhdbAccessoryImprovement["toJSON"]
+>;
 
 export function hhdbAccessoryImprovementRowToJSON(
   attrs: HhdbAccessoryImprovementAttrs,
@@ -75,7 +79,9 @@ export function hhdbAccessoryImprovementRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     lastYearObserved:
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null,
     buildingNumber:
       attrs.building_number != null ? Number(attrs.building_number) : null,
     description: attrs.description ?? null,

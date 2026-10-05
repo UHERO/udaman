@@ -108,87 +108,95 @@ export async function getPerfData(days = 30): Promise<PerfData> {
     throw new AuthorizationError("Unauthorized: admin or dev role required");
   }
 
-  const [jobRows, nightlyRows, sweepRows, slowest, errors, errorCount, stale, staleCount] =
-    await Promise.all([
-      rawQuery<LogRow>(
-        `SELECT name, level, created_at, metadata
+  const [
+    jobRows,
+    nightlyRows,
+    sweepRows,
+    slowest,
+    errors,
+    errorCount,
+    stale,
+    staleCount,
+  ] = await Promise.all([
+    rawQuery<LogRow>(
+      `SELECT name, level, created_at, metadata
          FROM app_logs
          WHERE category = 'worker'
            AND created_at >= NOW() - INTERVAL ? DAY
          ORDER BY created_at DESC
          LIMIT 5000`,
-        [days],
-      ),
-      rawQuery<LogRow>(
-        `SELECT name, level, created_at, metadata
+      [days],
+    ),
+    rawQuery<LogRow>(
+      `SELECT name, level, created_at, metadata
          FROM app_logs
          WHERE category = 'loader' AND name = 'loader.batch_reload'
            AND created_at >= NOW() - INTERVAL ? DAY
          ORDER BY created_at DESC
          LIMIT 200`,
-        [days],
-      ),
-      rawQuery<LogRow>(
-        `SELECT name, level, created_at, metadata
+      [days],
+    ),
+    rawQuery<LogRow>(
+      `SELECT name, level, created_at, metadata
          FROM app_logs
          WHERE category = 'loader' AND name = 'loader.public_sweep'
            AND created_at >= NOW() - INTERVAL ? DAY
          ORDER BY created_at DESC
          LIMIT 1000`,
-        [days],
-      ),
-      rawQuery<{
-        id: number;
-        series_id: number | null;
-        series_name: string | null;
-        runtime: number | null;
-        last_run_at: Date | null;
-        last_error: string | null;
-        last_error_at: Date | null;
-      }>(
-        `SELECT ds.id, ds.series_id, s.name AS series_name, ds.runtime,
+      [days],
+    ),
+    rawQuery<{
+      id: number;
+      series_id: number | null;
+      series_name: string | null;
+      runtime: number | null;
+      last_run_at: Date | null;
+      last_error: string | null;
+      last_error_at: Date | null;
+    }>(
+      `SELECT ds.id, ds.series_id, s.name AS series_name, ds.runtime,
                 ds.last_run_at, ds.last_error, ds.last_error_at
          FROM data_sources ds
          LEFT JOIN series s ON s.id = ds.series_id
          WHERE ds.disabled = 0 AND ds.runtime IS NOT NULL
          ORDER BY ds.runtime DESC
          LIMIT 20`,
-      ),
-      rawQuery<{
-        id: number;
-        series_id: number | null;
-        series_name: string | null;
-        runtime: number | null;
-        last_run_at: Date | null;
-        last_error: string | null;
-        last_error_at: Date | null;
-      }>(
-        `SELECT ds.id, ds.series_id, s.name AS series_name, ds.runtime,
+    ),
+    rawQuery<{
+      id: number;
+      series_id: number | null;
+      series_name: string | null;
+      runtime: number | null;
+      last_run_at: Date | null;
+      last_error: string | null;
+      last_error_at: Date | null;
+    }>(
+      `SELECT ds.id, ds.series_id, s.name AS series_name, ds.runtime,
                 ds.last_run_at, ds.last_error, ds.last_error_at
          FROM data_sources ds
          LEFT JOIN series s ON s.id = ds.series_id
          WHERE ds.disabled = 0 AND ds.last_error_at >= NOW() - INTERVAL 1 DAY
          ORDER BY ds.last_error_at DESC
          LIMIT 20`,
-      ),
-      rawQuery<{ cnt: number }>(
-        `SELECT COUNT(*) AS cnt FROM data_sources
+    ),
+    rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM data_sources
          WHERE disabled = 0 AND last_error_at >= NOW() - INTERVAL 1 DAY`,
-      ),
-      rawQuery<{ handle: string; url: string; last_download_at: Date | null }>(
-        `SELECT handle, url, last_download_at
+    ),
+    rawQuery<{ handle: string; url: string; last_download_at: Date | null }>(
+      `SELECT handle, url, last_download_at
          FROM downloads
          WHERE url IS NOT NULL AND url <> '' AND freeze_file = 0
            AND (last_download_at IS NULL OR last_download_at < NOW() - INTERVAL 1 DAY)
          ORDER BY last_download_at
          LIMIT 20`,
-      ),
-      rawQuery<{ cnt: number }>(
-        `SELECT COUNT(*) AS cnt FROM downloads
+    ),
+    rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM downloads
          WHERE url IS NOT NULL AND url <> '' AND freeze_file = 0
            AND (last_download_at IS NULL OR last_download_at < NOW() - INTERVAL 1 DAY)`,
-      ),
-    ]);
+    ),
+  ]);
 
   const jobRuns: JobRun[] = jobRows.map((r) => {
     const m = meta(r);
@@ -199,7 +207,8 @@ export async function getPerfData(days = 30): Promise<PerfData> {
       at: iso(r.created_at)!,
       waitMs: num(m.waitMs),
       runMs: num(m.runMs) ?? 0,
-      status: m.status === "failed" || r.level === "error" ? "failed" : "completed",
+      status:
+        m.status === "failed" || r.level === "error" ? "failed" : "completed",
       rssMB: num(m.rssMB),
       heapMB: num(m.heapMB),
       err: m.err == null ? null : String(m.err),

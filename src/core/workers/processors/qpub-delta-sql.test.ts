@@ -114,18 +114,16 @@ describe("scd apply", () => {
   // would let a superseded value re-match and extend a dead row.
   it("ranks to the latest version per tmk + identity", () => {
     const create = sql.find((s) => s.includes("ROW_NUMBER()"))!;
-    expect(create).toContain(
-      "PARTITION BY `tmk`, `land_classification`",
-    );
-    expect(create).toContain(
-      "ORDER BY t.last_year_observed DESC, t.id DESC",
-    );
+    expect(create).toContain("PARTITION BY `tmk`, `land_classification`");
+    expect(create).toContain("ORDER BY t.last_year_observed DESC, t.id DESC");
     expect(create).toContain("WHERE rn = 1");
   });
 
   it("scopes the ranking to the staged parcels", () => {
     const create = sql.find((s) => s.includes("ROW_NUMBER()"))!;
-    expect(create).toContain("SELECT DISTINCT tmk FROM `_qpub_stg_land_classifications`");
+    expect(create).toContain(
+      "SELECT DISTINCT tmk FROM `_qpub_stg_land_classifications`",
+    );
   });
 
   it("extends the span when nothing changed", () => {

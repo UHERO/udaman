@@ -50,7 +50,9 @@ export class HhdbParcel {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.lastYearObserved =
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null;
     this.parcelNumber = attrs.parcel_number ?? null;
     this.locationAddress = attrs.location_address ?? null;
     this.addressOther = attrs.address_other ?? null;
@@ -110,7 +112,9 @@ export function hhdbParcelRowToJSON(attrs: HhdbParcelAttrs): HhdbParcelJSON {
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     lastYearObserved:
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null,
     parcelNumber: attrs.parcel_number ?? null,
     locationAddress: attrs.location_address ?? null,
     addressOther: attrs.address_other ?? null,
@@ -128,8 +132,7 @@ export function hhdbParcelRowToJSON(attrs: HhdbParcelAttrs): HhdbParcelJSON {
     reentryZone: attrs.reentry_zone ?? null,
     zoneColor: attrs.zone_color ?? null,
     nonTaxableStatus: attrs.non_taxable_status ?? null,
-    livingUnits:
-      attrs.living_units != null ? Number(attrs.living_units) : null,
+    livingUnits: attrs.living_units != null ? Number(attrs.living_units) : null,
     createdAt: attrs.created_at
       ? new Date(attrs.created_at).toISOString()
       : null,

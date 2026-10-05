@@ -718,9 +718,7 @@ class DataPointCollection {
         { universe: universes[i], progress: `${i + 1}/${universes.length}` },
         `Public update: universe ${i + 1}/${universes.length} — ${universes[i]}`,
       );
-      opts.logLine?.(
-        `Universe ${i + 1}/${universes.length}: ${universes[i]}`,
-      );
+      opts.logLine?.(`Universe ${i + 1}/${universes.length}: ${universes[i]}`);
       await this.updatePublicDataPoints(universes[i], opts);
     }
     const elapsedSec = Math.round((Date.now() - t0) / 1000);
@@ -728,7 +726,9 @@ class DataPointCollection {
       { universes, elapsedSec },
       `Public update: completed all universes in ${elapsedSec}s`,
     );
-    opts.logLine?.(`All ${universes.length} universes completed in ${elapsedSec}s`);
+    opts.logLine?.(
+      `All ${universes.length} universes completed in ${elapsedSec}s`,
+    );
   }
 }
 

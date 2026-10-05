@@ -23,7 +23,7 @@ the reasoning; **where they disagree with "As built" below, "As built" wins.** C
 - **`off_market` status.** The site answers a removed listing with HTTP 200 and a "no longer
   available" page; `parseDetail` returns `null` for it and the daily run marks the row `off_market`.
 - **Page cap is 499**, and the site 302s to an error page past it (the handoff's "498 / empty page
-  at 499" did not reproduce with newest-first sort). The walk stops on a redirect *or* an empty page.
+  at 499" did not reproduce with newest-first sort). The walk stops on a redirect _or_ an empty page.
 - **Backfill keeps HTML; daily doesn't (2026-09-20).** `mls backfill` saves every list and detail
   page to the NAS (`<NAS>/work/scrapes/mls/<site>/…`) — that corpus is what the parsers are tuned
   against, replayed with `mls reparse`, and it refuses to start if the NAS isn't mounted rather than
@@ -42,7 +42,7 @@ the reasoning; **where they disagree with "As built" below, "As built" wins.** C
   periodic refresh. `hres` never reports sales, so a departed listing there is marked `off_market`
   without a request. `mls reparse` keeps the stored status and list price for open listings, since
   those can be newer than the saved page.
-- **Politeness:** one request in flight, 1.5 s + 0–1 s jitter after the previous one *finishes*,
+- **Politeness:** one request in flight, 1.5 s + 0–1 s jitter after the previous one _finishes_,
   30 s timeout, 5 s → 20 s → 60 s backoff on 429/5xx (honours `Retry-After`), and a circuit breaker
   that aborts the run after 5 consecutive failed URLs. Cache hits cost nothing.
 - **Summary tab** reads `freq_mls_listings`, the same pre-computed EAV table every other hhdb table
@@ -57,7 +57,7 @@ the reasoning; **where they disagree with "As built" below, "As built" wins.** C
   (`freq-mls-listings.test.ts`) fails if the Summary fields in the data dictionary and the INSERTs
   drift apart.
 - List-page cache dirs are named by status set (`active` / `any`), not `s128`.
-- Sold rows on list pages show the *sold* price, so `ListRow.listPrice` is null for them.
+- Sold rows on list pages show the _sold_ price, so `ListRow.listPrice` is null for them.
 - Agent phone/email and open-house access notes are deliberately not captured.
 
 ## Runbook
@@ -158,15 +158,15 @@ src/lib/hhdb/migrations/2026-09-18-create-mls-listings.sql
 
 ```ts
 interface SiteAdapter {
-  site: string;                       // "hicentral" — NAS dir name + source_site value
-  priority: number;                   // tie-break when two sites carry the same listing
+  site: string; // "hicentral" — NAS dir name + source_site value
+  priority: number; // tie-break when two sites carry the same listing
   islands: IslandKey[];
   statuses: { active: StatusSet; backfill: StatusSet };
-  maxPage: number;                    // 498 for hicentral
+  maxPage: number; // 498 for hicentral
   listUrl(q: { island; status; page; sort }): string;
   detailUrl(mlsNumber: string): string;
-  parseList(html: string): ListPageResult;       // pure
-  parseDetail(html: string): NormalizedListing;  // pure; must set mlsBoard + mlsNumber
+  parseList(html: string): ListPageResult; // pure
+  parseDetail(html: string): NormalizedListing; // pure; must set mlsBoard + mlsNumber
 }
 ```
 
@@ -189,7 +189,7 @@ Information Service (Hawaii Island, Kauai, Molokai; 6-digit), and Realtors Assoc
   `HBR`; a multi-board aggregator would read it off the page).
 
 When two sites carry the same key, `priority` decides whose field values win; `source_site`
-records who wrote the row. A property dual-listed on two *boards* legitimately has two MLS numbers
+records who wrote the row. A property dual-listed on two _boards_ legitimately has two MLS numbers
 and stays two rows — `tmk` is the join for anyone who wants to collapse those analytically. I would
 not enforce that in the table.
 
@@ -217,20 +217,20 @@ standalone `.sql`, and deliberately **not** in `hhdb-schema.sql` or `ALL_DATA_TA
 is never dropped by a qpub rebuild.
 
 `mls_listings` — typed columns for everything analytically useful, from a real detail page I pulled
-(MLS 202426768, 52 `dt`/`dd` pairs, plus header fields that are *not* in the `dl`s):
+(MLS 202426768, 52 `dt`/`dd` pairs, plus header fields that are _not_ in the `dl`s):
 
-| group | columns |
-|---|---|
-| identity | `id` PK, `mls_board`, `mls_number`, UNIQUE(`mls_board`,`mls_number`), `source_site`, `source_url` |
-| header (not in `dl`) | `status` (from `#…divListStatus`), `list_price`, `sold_price`, `tenure` (FS/LH, split out of `"$18,500,000 (FS)"`), `address`, `city`, `state`, `zip`, `remarks` TEXT |
-| location | `island`, `region`, `neighborhood`, `tmk` (indexed — same `1-3-5-059-010-0000` format as qpub, so it joins to `properties`/`parcels`) |
-| dates | `list_date`, `sold_date` |
-| property | `property_type`, `bedrooms`, `full_baths`, `half_baths`, `land_area_sf`, `living_sf`, `lanai_sf`, `other_sf`, `parking_stalls` (int, from `"8 - 3 Car+, …"`), `parking_desc`, `year_built`, `year_remodeled`, `zoning`, `furnished`, `stories`, `building_style`, `property_condition` |
-| financial | `assessed_land`, `assessed_improvements`, `assessed_total`, `tax_year`, `monthly_taxes`, `home_exemption`, plus condo fee fields as they turn up in the key survey (see below) |
-| schools | `elem_school`, `middle_school`, `high_school` |
-| multi-value text | `frontage`, `view`, `pool`, `amenities`, `inclusions`, `security`, `construction`, `roofing`, `floor_covering`, `lot_description`, `topography`, `easements`, `land_recorded` |
-| catch-all | `extra` JSON — any key the parser has no column for, verbatim |
-| bookkeeping | `first_seen_at`, `last_seen_at`, `fetched_at`, `parsed_at`, `html_path` (HST wall-clock per house convention) |
+| group                | columns                                                                                                                                                                                                                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| identity             | `id` PK, `mls_board`, `mls_number`, UNIQUE(`mls_board`,`mls_number`), `source_site`, `source_url`                                                                                                                                                                                      |
+| header (not in `dl`) | `status` (from `#…divListStatus`), `list_price`, `sold_price`, `tenure` (FS/LH, split out of `"$18,500,000 (FS)"`), `address`, `city`, `state`, `zip`, `remarks` TEXT                                                                                                                  |
+| location             | `island`, `region`, `neighborhood`, `tmk` (indexed — same `1-3-5-059-010-0000` format as qpub, so it joins to `properties`/`parcels`)                                                                                                                                                  |
+| dates                | `list_date`, `sold_date`                                                                                                                                                                                                                                                               |
+| property             | `property_type`, `bedrooms`, `full_baths`, `half_baths`, `land_area_sf`, `living_sf`, `lanai_sf`, `other_sf`, `parking_stalls` (int, from `"8 - 3 Car+, …"`), `parking_desc`, `year_built`, `year_remodeled`, `zoning`, `furnished`, `stories`, `building_style`, `property_condition` |
+| financial            | `assessed_land`, `assessed_improvements`, `assessed_total`, `tax_year`, `monthly_taxes`, `home_exemption`, plus condo fee fields as they turn up in the key survey (see below)                                                                                                         |
+| schools              | `elem_school`, `middle_school`, `high_school`                                                                                                                                                                                                                                          |
+| multi-value text     | `frontage`, `view`, `pool`, `amenities`, `inclusions`, `security`, `construction`, `roofing`, `floor_covering`, `lot_description`, `topography`, `easements`, `land_recorded`                                                                                                          |
+| catch-all            | `extra` JSON — any key the parser has no column for, verbatim                                                                                                                                                                                                                          |
+| bookkeeping          | `first_seen_at`, `last_seen_at`, `fetched_at`, `parsed_at`, `html_path` (HST wall-clock per house convention)                                                                                                                                                                          |
 
 Low-value keys (`Disclosures`, `Possession`, `Terms Accept.`, `Set-Backs`, `Exclusions`, fee
 inclusions) go to `extra` rather than getting columns. Indexes: the unique key, `tmk`,
@@ -276,7 +276,7 @@ Resumable for free — a rerun skips anything already on the NAS.
 
 **Daily (`bun run mls daily`).**
 
-1. Walk all *active* (`128`) list pages per island (~182 for Oahu, ~3 min).
+1. Walk all _active_ (`128`) list pages per island (~182 for Oahu, ~3 min).
 2. **New** MLS numbers → fetch detail, insert.
 3. **Still active, already known** → bump `last_seen_at`; refetch detail only if the list row's
    price differs from the stored one, or the row hasn't been refetched in N days (default 14) as a
@@ -297,7 +297,7 @@ never throw.
 
 ## 8. Scheduling — needs your call
 
-The job needs the NAS mounted *and* hhdb access. Per the README that describes **scraper-worker**,
+The job needs the NAS mounted _and_ hhdb access. Per the README that describes **scraper-worker**,
 not the BullMQ worker box (which reaches the NAS by rsync, not a mount). Options:
 
 - **A (recommended): launchd/cron on scraper-worker** running `bun run mls daily` at a fixed HST

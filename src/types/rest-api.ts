@@ -65,6 +65,4 @@ type C5MAChange = "c5mach1";
 type MOMChange = "momch1";
 
 type SeasonalAdjustment =
-  | "seasonally_adjusted"
-  | "not_seasonally_adjusted"
-  | "not_applicable";
+  "seasonally_adjusted" | "not_seasonally_adjusted" | "not_applicable";

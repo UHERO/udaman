@@ -82,9 +82,7 @@ type AreaFilter = SqlPart & {
 
 const EMPTY_PART: SqlPart = { sql: "", params: [] };
 
-export async function fetchSeries(
-  filters: TgFilters = {},
-): Promise<{
+export async function fetchSeries(filters: TgFilters = {}): Promise<{
   data: Map<string, number>;
   frequency: "A" | "M";
   name: string;
@@ -100,7 +98,7 @@ export async function fetchSeries(
   const taxClass = normalizeTaxClass(filters);
   const docTypes = [...SALE_DOC_TYPES];
 
-  /* 
+  /*
    * building out the query
    * added a consideration amount minimum of 50k
    */
@@ -139,10 +137,11 @@ export async function fetchSeries(
   };
 }
 
-function normalizeAggregate(value: FilterValue): (typeof AGGREGATES)[keyof typeof AGGREGATES] {
-  const aggregate = AGGREGATES[
-    clean(value)?.toLowerCase() as keyof typeof AGGREGATES
-  ];
+function normalizeAggregate(
+  value: FilterValue,
+): (typeof AGGREGATES)[keyof typeof AGGREGATES] {
+  const aggregate =
+    AGGREGATES[clean(value)?.toLowerCase() as keyof typeof AGGREGATES];
   if (aggregate) {
     return aggregate;
   }
@@ -150,7 +149,9 @@ function normalizeAggregate(value: FilterValue): (typeof AGGREGATES)[keyof typeo
 }
 
 function normalizeArea(value: FilterValue): AreaFilter {
-  const raw = String(value ?? "").trim().toUpperCase();
+  const raw = String(value ?? "")
+    .trim()
+    .toUpperCase();
   /* zip code */
   if (/^\d{5}$/.test(raw)) {
     return area(
@@ -162,7 +163,12 @@ function normalizeArea(value: FilterValue): AreaFilter {
   }
 
   if (raw === "HI") {
-    return area("", [], "HI", "tg_transactions t USE INDEX (idx_tg_loader_state)");
+    return area(
+      "",
+      [],
+      "HI",
+      "tg_transactions t USE INDEX (idx_tg_loader_state)",
+    );
   }
 
   if (raw in COUNTY_DIGITS) {

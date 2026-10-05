@@ -4,20 +4,20 @@
 // ─── Island config (from config.ts) ────────────────────────────────────
 
 const ISLANDS = {
-  "1": "Oahu",
-  "2": "Maui",
-  "3": "Hawaii",
-  "4": "Kauai",
+  1: "Oahu",
+  2: "Maui",
+  3: "Hawaii",
+  4: "Kauai",
 };
 
 const BASE_URLS = {
-  "1": (parcel) =>
+  1: (parcel) =>
     `https://qpublic.schneidercorp.com/Application.aspx?AppID=1045&LayerID=23342&PageTypeID=4&PageID=9746&KeyValue=${parcel}`,
-  "2": (parcel) =>
+  2: (parcel) =>
     `https://qpublic.schneidercorp.com/Application.aspx?AppID=1029&LayerID=21689&PageTypeID=4&PageID=9251&Q=665264273&KeyValue=${parcel}`,
-  "3": (parcel) =>
+  3: (parcel) =>
     `https://qpublic.schneidercorp.com/Application.aspx?AppID=1048&LayerID=23618&PageTypeID=4&PageID=9878&Q=252788940&KeyValue=${parcel}`,
-  "4": (parcel) =>
+  4: (parcel) =>
     `https://qpublic.schneidercorp.com/Application.aspx?AppID=986&LayerID=20101&PageTypeID=4&PageID=8744&Q=1302490479&KeyValue=${parcel}`,
 };
 
@@ -269,7 +269,9 @@ async function processNextItem() {
   // Validate parcel number — zone (second segment) should never start with 0
   const parcel = tmkToParcelNumber(tmk);
   if (parcel.startsWith("0")) {
-    console.warn(`[scraper] Invalid parcel number ${parcel} for ${tmk} — skipping`);
+    console.warn(
+      `[scraper] Invalid parcel number ${parcel} for ${tmk} — skipping`,
+    );
     await apiStatus(state, tmk, "error", `invalid parcel number: ${parcel}`);
     state = await setState({
       totalErrors: state.totalErrors + 1,
@@ -322,7 +324,10 @@ async function handlePageStatus(message) {
           currentTmk: null,
         });
       } catch (e) {
-        console.error(`[scraper] Download/status failed for ${tmk}:`, e.message);
+        console.error(
+          `[scraper] Download/status failed for ${tmk}:`,
+          e.message,
+        );
         await apiStatus(state, tmk, "error", e.message);
         state = await setState({
           totalErrors: state.totalErrors + 1,
@@ -362,14 +367,19 @@ async function handlePageStatus(message) {
     }
 
     case "unknown": {
-      console.warn(`[scraper] Unknown page status for ${tmk} — saving HTML for debugging`);
+      console.warn(
+        `[scraper] Unknown page status for ${tmk} — saving HTML for debugging`,
+      );
 
       // Still download what we got (mirrors scrape.ts no_data behavior)
       if (message.html) {
         try {
           await downloadHtml(tmk, message.html, state);
         } catch (e) {
-          console.warn(`[scraper] Debug download failed for ${tmk}:`, e.message);
+          console.warn(
+            `[scraper] Debug download failed for ${tmk}:`,
+            e.message,
+          );
         }
       }
 
@@ -453,7 +463,10 @@ function broadcastState(state) {
 (async () => {
   const state = await getState();
   if (state.running) {
-    console.log("[scraper] Service worker restarted — resuming from batch index", state.batchIndex);
+    console.log(
+      "[scraper] Service worker restarted — resuming from batch index",
+      state.batchIndex,
+    );
     await processNextItem();
   }
 })();

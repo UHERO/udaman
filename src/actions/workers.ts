@@ -13,11 +13,7 @@ const QUEUE_NAMES = ["default", "heavy", "critical", "light"] as const;
 const PREFIX = "udaman";
 
 export type JobState =
-  | "active"
-  | "waiting"
-  | "delayed"
-  | "completed"
-  | "failed";
+  "active" | "waiting" | "delayed" | "completed" | "failed";
 
 export type SerializedJob = {
   id: string;

@@ -439,7 +439,6 @@ class UniverseCollection {
     let totalRows = 0;
     let headerWritten = false;
 
-     
     while (true) {
       const sql = `${baseSql} LIMIT ${ARCHIVE_BATCH} OFFSET ${offset}`;
       const rows = await rawQuery<Record<string, unknown>>(sql, params);

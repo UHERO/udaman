@@ -54,11 +54,7 @@ export function latestTable(table: string): string {
  * Text uses TRIM + COALESCE so it agrees with normalizeForCompare(), which
  * treats NULL, "" and " " as the same value. Anything else uses `<=>`.
  */
-function columnsEqual(
-  left: string,
-  right: string,
-  col: ColumnMeta,
-): string {
+function columnsEqual(left: string, right: string, col: ColumnMeta): string {
   const l = `${left}.${q(col.name)}`;
   const r = `${right}.${q(col.name)}`;
   return col.isText
@@ -66,11 +62,7 @@ function columnsEqual(
     : `${l} <=> ${r}`;
 }
 
-function allEqual(
-  left: string,
-  right: string,
-  cols: ColumnMeta[],
-): string {
+function allEqual(left: string, right: string, cols: ColumnMeta[]): string {
   if (cols.length === 0) return "1=1";
   return cols.map((c) => columnsEqual(left, right, c)).join("\n       AND ");
 }
@@ -90,10 +82,7 @@ export function stagingColumns(meta: TableMeta): ColumnMeta[] {
  * Columns that participate in change detection: everything that isn't a
  * surrogate key, a DB-managed timestamp, or part of the identity.
  */
-export function dataColumns(
-  meta: TableMeta,
-  identity: string[],
-): ColumnMeta[] {
+export function dataColumns(meta: TableMeta, identity: string[]): ColumnMeta[] {
   const ident = new Set(identity);
   return meta.columns.filter(
     (c) => !NON_COMPARED_COLUMNS.has(c.name) && !ident.has(c.name),

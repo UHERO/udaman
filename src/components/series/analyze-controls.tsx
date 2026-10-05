@@ -78,6 +78,9 @@ import {
   type Transformation,
   type VintageChartPoint,
 } from "./analyze-chart";
+import { AnalyzeDataTable } from "./analyze-data-table";
+import { AnalyzerSeriesRow } from "./analyzer/analyzer-series-row";
+import type { AnalyzerEntry } from "./analyzer/types";
 
 /** When a transform changes what the values mean, the axis "unit" is the
  *  transform itself (%, index, z-score) rather than the source unit.
@@ -100,9 +103,6 @@ function transformUnitLabel(t: Transformation | null): string | null {
       return null;
   }
 }
-import { AnalyzeDataTable } from "./analyze-data-table";
-import { AnalyzerSeriesRow } from "./analyzer/analyzer-series-row";
-import type { AnalyzerEntry } from "./analyzer/types";
 
 /* ------------------------------------------------------------------ */
 /*  Toggle item with built-in tooltip                                  */
@@ -1202,8 +1202,7 @@ const PRIMARY_TRANSFORMS: Array<{
       <span>
         y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100,
         <br />
-        where x<sub>base</sub> = value at the selected base period (index =
-        100)
+        where x<sub>base</sub> = value at the selected base period (index = 100)
       </span>
     ),
     description:

@@ -26,9 +26,7 @@ export const REVIEW_BOARD_STATUS_LABELS: Record<ReviewBoardStatus, string> = {
   reviewed: "Review Complete",
 };
 
-export function isReviewBoardStatus(
-  value: string,
-): value is ReviewBoardStatus {
+export function isReviewBoardStatus(value: string): value is ReviewBoardStatus {
   return (REVIEW_BOARD_STATUSES as readonly string[]).includes(value);
 }
 

@@ -58,7 +58,9 @@ describe("extractCommercialImprovements condo-info rows", () => {
           {
             building_number: "0001",
             structure_type: "OFFICES - M-3",
-            floor_details: [{ card: "1", section: "1", floor: "06", area: "1,540" }],
+            floor_details: [
+              { card: "1", section: "1", floor: "06", area: "1,540" },
+            ],
           },
         ],
         condo_info: [

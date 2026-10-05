@@ -1,3 +1,5 @@
+import type { Page } from "playwright-core";
+
 import {
   BrowserUnavailableError,
   getPage,
@@ -7,10 +9,7 @@ import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 import { tagWithWorker } from "../worker-identity";
-
 import { enqueueCondoUnits } from "./qpub-enqueue";
-
-import type { Page } from "playwright-core";
 
 export type ScrapeResult = {
   status: "success" | "captcha" | "blocked" | "error";

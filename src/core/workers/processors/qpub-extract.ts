@@ -19,13 +19,14 @@ import path from "path";
 import { getIslandCode } from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { condoUnitRows } from "@/core/crawlers/qpub/parse";
+
 import {
+  COLUMN_VALUE_PARSERS,
   dec,
   GENERIC_SECTION_MAP,
   getAssessmentPropertyClass,
   int,
   parseDateValue,
-  COLUMN_VALUE_PARSERS,
   parsePercent,
   realTaxBillRows,
   resolveColumnName,
@@ -1035,10 +1036,7 @@ export function extractBatch(items: ExtractItem[], stagingDir: string): void {
   // Maui commercial "Other Features" accessory rows share the
   // accessory_improvements file with the generic-section rows below —
   // appendRows appends, so both sources coexist.
-  appendRows(
-    tablePath(stagingDir, "accessory_improvements"),
-    ci.otherFeatures,
-  );
+  appendRows(tablePath(stagingDir, "accessory_improvements"), ci.otherFeatures);
 
   // Historical tax (parent-child with sequential IDs)
   const ht = extractHistoricalTax(items);

@@ -9,15 +9,15 @@ prod backup, latest `app_logs` row 2026-09-19) and `hawaii_housing_database`
 
 **Schema + migration files only. The client is never instantiated.**
 
-| Piece | State |
-|---|---|
-| `prisma.config.ts` | Prisma 7 config. Schema at `src/lib/prisma/schema.prisma`, migrations at `src/lib/prisma/migrations`, datasource from `DB_MYSQL_URL`. |
-| `src/lib/prisma/schema.prisma` | 981 lines, 52 models + 15 enums. **Models the UHERO catalog DB only.** Nothing for hhdb. |
-| `src/lib/prisma/migrations/` | `0_init` (introspected Rails baseline) + 22 dated migrations + two seed folders. **No `migration_lock.toml`.** |
-| `@prisma/client` imports | 2 files, types only: `src/core/catalog/types/shared.ts` and `series-metadata.ts` import the generated row types (`series`, `xseries`, `data_points`, …). Zero `new PrismaClient(...)` anywhere. |
-| Runtime DB access | `src/lib/mysql/db.ts` (Bun `SQL`, mysql adapter, pool of 20) for uhero_db, `src/lib/mysql/hhdb.ts` (Bun `SQL`, single lazy connection) for hhdb, plus `hhdb-local.ts` and `dvw-db.ts`. Auth.js uses a hand-written raw-SQL adapter in `src/lib/auth/mysql-adapter.ts`, not `@auth/prisma-adapter`. |
-| hhdb schema management | Plain SQL: `src/lib/hhdb/hhdb-schema.sql` (full rebuild, DROPs everything), `hhdb-views.sql`, `hhdb-freq-tables.sql`, and 22 dated files in `src/lib/hhdb/migrations/` each applied by hand with `mariadb ... < file.sql`. No tracking table. |
-| Generated client | `node_modules/.prisma/client` last generated 2026-08-26. It does know `approval_reviews`, `DataRegistry`, `series_dependencies`, so it is only slightly stale. |
+| Piece                          | State                                                                                                                                                                                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prisma.config.ts`             | Prisma 7 config. Schema at `src/lib/prisma/schema.prisma`, migrations at `src/lib/prisma/migrations`, datasource from `DB_MYSQL_URL`.                                                                                                                                                              |
+| `src/lib/prisma/schema.prisma` | 981 lines, 52 models + 15 enums. **Models the UHERO catalog DB only.** Nothing for hhdb.                                                                                                                                                                                                           |
+| `src/lib/prisma/migrations/`   | `0_init` (introspected Rails baseline) + 22 dated migrations + two seed folders. **No `migration_lock.toml`.**                                                                                                                                                                                     |
+| `@prisma/client` imports       | 2 files, types only: `src/core/catalog/types/shared.ts` and `series-metadata.ts` import the generated row types (`series`, `xseries`, `data_points`, …). Zero `new PrismaClient(...)` anywhere.                                                                                                    |
+| Runtime DB access              | `src/lib/mysql/db.ts` (Bun `SQL`, mysql adapter, pool of 20) for uhero_db, `src/lib/mysql/hhdb.ts` (Bun `SQL`, single lazy connection) for hhdb, plus `hhdb-local.ts` and `dvw-db.ts`. Auth.js uses a hand-written raw-SQL adapter in `src/lib/auth/mysql-adapter.ts`, not `@auth/prisma-adapter`. |
+| hhdb schema management         | Plain SQL: `src/lib/hhdb/hhdb-schema.sql` (full rebuild, DROPs everything), `hhdb-views.sql`, `hhdb-freq-tables.sql`, and 22 dated files in `src/lib/hhdb/migrations/` each applied by hand with `mariadb ... < file.sql`. No tracking table.                                                      |
+| Generated client               | `node_modules/.prisma/client` last generated 2026-08-26. It does know `approval_reviews`, `DataRegistry`, `series_dependencies`, so it is only slightly stale.                                                                                                                                     |
 
 Loose ends spotted along the way:
 
@@ -33,7 +33,7 @@ Loose ends spotted along the way:
 
 **Yes for both, with two prerequisites. Neither is in place today.**
 
-### Prerequisite A: a driver adapter (blocks *any* client use)
+### Prerequisite A: a driver adapter (blocks _any_ client use)
 
 Prisma 7 removed the built-in Rust query engine from the client. The runtime
 throws on construction unless you pass an adapter:
@@ -75,7 +75,7 @@ What came back (scratch file, not committed):
 - The two views (`v_condo_projects`, `v_properties_current`) were skipped.
   Introspecting views needs `previewFeatures = ["views"]`.
 - One warning: 26 tables carry column/table comments, which Prisma "does not
-  yet fully support" for *migrations*. Harmless for the client; it means a
+  yet fully support" for _migrations_. Harmless for the client; it means a
   Prisma-generated migration would not carry comments through.
 - `freq_*` tables are `utf8mb4_general_ci` while everything else is
   `utf8mb4_unicode_ci`. Prisma preserves that per-table, no problem.
@@ -166,7 +166,7 @@ and dropped locally during this survey). Result:
 
 Prisma checksums migration files, so the `IF EXISTS` edit changes that
 migration's checksum. That is fine as long as the baseline step (3d) is run
-*after* the edit, since `migrate resolve --applied` records the checksum of
+_after_ the edit, since `migrate resolve --applied` records the checksum of
 the file as it is at that moment.
 
 ### 3c. The MariaDB JSON wrinkle (permanent, cosmetic, decide once)
@@ -215,13 +215,13 @@ Nothing here drops or rewrites a table. The only writes are to a new
    That creates `_prisma_migrations` and writes 23 rows with checksums. It
    never executes SQL from the files. On prod, the two missing tables from
    3a(1) are the exception: leave those two out of the loop and let step 3
-   create them, *after* confirming on the VPS that they really are absent.
+   create them, _after_ confirming on the VPS that they really are absent.
 3. `bunx prisma migrate status` should report "Database schema is up to
    date" (or exactly two pending). Then `bunx prisma migrate deploy` applies
    whatever is pending, in order, recording each.
 4. Going forward, each schema change is: edit `schema.prisma`, generate the
    SQL with `migrate diff --from-config-datasource --to-schema ... --script`
-   (or `migrate dev --create-only` against a *local copy*), review the
+   (or `migrate dev --create-only` against a _local copy_), review the
    file, commit, `migrate deploy` on each environment. `migrate deploy` has
    no drift detection and no shadow DB, so it is the right tool for the VPS.
 
@@ -253,14 +253,14 @@ scoped to the rebuild database only.
 
 ## 4. Summary of decisions to make
 
-| Decision | Default I'd suggest |
-|---|---|
+| Decision                 | Default I'd suggest                                                                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Adopt the client at all? | Optional. Raw SQL layer is solid; the client mainly buys typed queries for new code and hhdb. Needs `@prisma/adapter-mariadb` either way. |
-| JSON fields | `String @db.LongText`, since the client is unused. |
-| Seed folders | Move to `src/lib/prisma/seeds/`. |
-| Baseline uhero_db | `migrate resolve --applied` for every migration; verify the two 8/27 and 9/3 tables on prod first. |
-| Baseline hhdb | `db pull` from the NAS, `0_init`, resolve as applied. |
-| Runner on prod | `migrate deploy` only. Never `migrate dev`/`reset` there. |
+| JSON fields              | `String @db.LongText`, since the client is unused.                                                                                        |
+| Seed folders             | Move to `src/lib/prisma/seeds/`.                                                                                                          |
+| Baseline uhero_db        | `migrate resolve --applied` for every migration; verify the two 8/27 and 9/3 tables on prod first.                                        |
+| Baseline hhdb            | `db pull` from the NAS, `0_init`, resolve as applied.                                                                                     |
+| Runner on prod           | `migrate deploy` only. Never `migrate dev`/`reset` there.                                                                                 |
 
 ## 5. Implemented 2026-09-22: clients for both databases
 

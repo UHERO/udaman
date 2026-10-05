@@ -1,13 +1,14 @@
 import { describe, expect, it } from "bun:test";
 
+import { TABLE_CONFIGS } from "@/core/crawlers/qpub/table-config";
+
+import { DELTA_STRATEGY } from "./qpub-delta-strategy";
 import {
   GENERIC_IDENTITY_FIELDS,
   GENERIC_MATCH_UPDATE,
   groupRowsByKey,
   pairSnapshotGroup,
 } from "./qpub-load";
-import { DELTA_STRATEGY } from "./qpub-delta-strategy";
-import { TABLE_CONFIGS } from "@/core/crawlers/qpub/table-config";
 
 // ─── groupRowsByKey ─────────────────────────────────────────────────
 
@@ -74,13 +75,15 @@ describe("pairSnapshotGroup", () => {
   });
 
   it("k=1: changed data inserts a new version", () => {
-    expect(pairSnapshotGroup([{ value: 200 }], [{ id: 10, value: "100" }])).toEqual([
-      { kind: "insert" },
-    ]);
+    expect(
+      pairSnapshotGroup([{ value: 200 }], [{ id: 10, value: "100" }]),
+    ).toEqual([{ kind: "insert" }]);
   });
 
   it("k=1: no existing row inserts", () => {
-    expect(pairSnapshotGroup([{ value: 100 }], [])).toEqual([{ kind: "insert" }]);
+    expect(pairSnapshotGroup([{ value: 100 }], [])).toEqual([
+      { kind: "insert" },
+    ]);
   });
 
   // The verified real case: two identical "FRAME UTILITY SHED / 1927"
@@ -120,7 +123,10 @@ describe("pairSnapshotGroup", () => {
       { id: 31, value: "B" }, // most recent (inserted second)
       { id: 30, value: "A" },
     ];
-    const actions = pairSnapshotGroup([{ value: "A" }, { value: "B" }], existing);
+    const actions = pairSnapshotGroup(
+      [{ value: "A" }, { value: "B" }],
+      existing,
+    );
     expect(actions).toEqual([
       { kind: "update", row: existing[1] },
       { kind: "update", row: existing[0] },
@@ -129,7 +135,10 @@ describe("pairSnapshotGroup", () => {
 
   it("does not let two incoming rows claim the same existing row", () => {
     const existing = [{ id: 40, value: "X" }];
-    const actions = pairSnapshotGroup([{ value: "X" }, { value: "X" }], existing);
+    const actions = pairSnapshotGroup(
+      [{ value: "X" }, { value: "X" }],
+      existing,
+    );
     expect(actions).toEqual([
       { kind: "update", row: existing[0] },
       { kind: "insert" },

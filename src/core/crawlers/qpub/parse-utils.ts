@@ -33,7 +33,9 @@ export const NO_RECORD_TAIL_BYTES = 32 * 1024;
  * serves these at 170–190 KB, larger than plenty of real profiles.
  */
 export function hasNoParcelRecord(text: string): boolean {
-  const marker = text.lastIndexOf("No data available for the following modules");
+  const marker = text.lastIndexOf(
+    "No data available for the following modules",
+  );
   if (marker === -1) return false;
 
   // Bound the scan to the notice itself — "Parcel Information" appears

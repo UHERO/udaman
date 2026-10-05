@@ -20,7 +20,7 @@ import { unitParcelToTmk } from "@/core/workers/processors/qpub-load";
 import { tmkFromParcelNumber, tmkToParcelNumber } from "./config";
 import { parsePropertyHTML } from "./parse";
 import { NO_RECORD_TAIL_BYTES } from "./parse-utils";
-import { classifySavedHtml, CLASSIFY_HEAD_BYTES } from "./scrape";
+import { CLASSIFY_HEAD_BYTES, classifySavedHtml } from "./scrape";
 
 const FIXTURES = path.join(__dirname, "__fixtures__");
 
@@ -52,15 +52,15 @@ describe('double-spaced "Parcel  Number" label', () => {
     `<body><table><tr><th><strong>${label}</strong></th><td>110030590037</td></tr></table>${PADDING}</body></html>`;
 
   it("accepts the double-spaced label", () => {
-    expect(parsePropertyHTML(page("Parcel  Number"), "1-1-1-003-059-0037").status).toBe(
-      "success",
-    );
+    expect(
+      parsePropertyHTML(page("Parcel  Number"), "1-1-1-003-059-0037").status,
+    ).toBe("success");
   });
 
   it("still accepts the ordinary single-spaced label", () => {
-    expect(parsePropertyHTML(page("Parcel Number"), "1-1-1-003-059-0037").status).toBe(
-      "success",
-    );
+    expect(
+      parsePropertyHTML(page("Parcel Number"), "1-1-1-003-059-0037").status,
+    ).toBe("success");
   });
 
   // Newlines and tabs between the words are the same failure in another coat.
@@ -126,9 +126,12 @@ describe("TMK qPublic cannot resolve at all", () => {
   // Without the tail the marker is out of reach; guessing here would retire a
   // real parcel, so the classifier must fall through instead.
   it("classifySavedHtml does not guess no-results from the head alone", () => {
-    expect(classifySavedHtml(noResults.slice(0, CLASSIFY_HEAD_BYTES), noResults.length)).not.toBe(
-      "no-results",
-    );
+    expect(
+      classifySavedHtml(
+        noResults.slice(0, CLASSIFY_HEAD_BYTES),
+        noResults.length,
+      ),
+    ).not.toBe("no-results");
   });
 });
 

@@ -240,9 +240,7 @@ export async function backfillCondoUnits(
     // have stopped mid-document — and mid-roster — so re-read it properly.
     const parentTmk = tmkFromFilePath(filePath);
     const html =
-      bytesRead < SCAN_HEAD_BYTES
-        ? text
-        : await fs.readFile(filePath, "utf-8");
+      bytesRead < SCAN_HEAD_BYTES ? text : await fs.readFile(filePath, "utf-8");
     return condoUnitTmksFromHtml(html, parentTmk);
   };
 
@@ -281,7 +279,10 @@ export async function backfillCondoUnits(
   };
 
   await Promise.all(
-    Array.from({ length: Math.min(READ_CONCURRENCY, filePaths.length) }, worker),
+    Array.from(
+      { length: Math.min(READ_CONCURRENCY, filePaths.length) },
+      worker,
+    ),
   );
   await flush();
 

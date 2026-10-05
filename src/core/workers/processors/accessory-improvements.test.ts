@@ -3,8 +3,8 @@ import { describe, expect, it } from "bun:test";
 import {
   COLUMN_VALUE_PARSERS,
   GENERIC_SECTION_MAP,
-  parsePercent,
   parseDimensionsUnits,
+  parsePercent,
   repositionGrossBuildingValue,
   resolveColumnName,
   SECTION_ROW_TRANSFORMS,
@@ -124,7 +124,9 @@ describe("gross_building_value alias", () => {
   const columns = new Set(["description", "area", "quantity", "value"]);
 
   it("maps Oahu's heading onto the shared value column", () => {
-    expect(resolveColumnName("gross_building_value", columns, [])).toBe("value");
+    expect(resolveColumnName("gross_building_value", columns, [])).toBe(
+      "value",
+    );
   });
 
   it("leaves Maui's own spelling alone", () => {

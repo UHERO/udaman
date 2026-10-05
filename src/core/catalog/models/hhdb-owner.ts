@@ -36,7 +36,9 @@ export class HhdbOwner {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.lastYearObserved =
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null;
     this.ownerName = attrs.owner_name ?? null;
     this.ownerType = attrs.owner_type ?? null;
     this.ownerAddress = attrs.owner_address ?? null;
@@ -80,7 +82,9 @@ export function hhdbOwnerRowToJSON(attrs: HhdbOwnerAttrs): HhdbOwnerJSON {
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     lastYearObserved:
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null,
     ownerName: attrs.owner_name ?? null,
     ownerType: attrs.owner_type ?? null,
     ownerAddress: attrs.owner_address ?? null,

@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 import path from "path";
 
 import { describe, expect, it } from "bun:test";
-
 import { parse } from "node-html-parser";
 
 import { parsePropertyHTML } from "./parse";
@@ -688,7 +687,10 @@ describe("commercial_improvement_information", () => {
 
     it("maps a bare Construction header onto construction", () => {
       const table = parse(
-        floorTable(["Floor", "Area", "Construction"], ["01", "1,540", "WOOD FRAME"]),
+        floorTable(
+          ["Floor", "Area", "Construction"],
+          ["01", "1,540", "WOOD FRAME"],
+        ),
       ).querySelector("table")!;
       const details = parseFloorDetailTable(table);
       expect(details).toHaveLength(1);

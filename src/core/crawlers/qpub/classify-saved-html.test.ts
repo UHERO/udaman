@@ -1,4 +1,4 @@
-import { openSync, readSync, closeSync, statSync } from "fs";
+import { closeSync, openSync, readSync, statSync } from "fs";
 import path from "path";
 
 import { describe, expect, it } from "bun:test";
@@ -19,7 +19,10 @@ function classifyFixture(name: string) {
   try {
     const buf = Buffer.alloc(CLASSIFY_HEAD_BYTES);
     const bytesRead = readSync(fd, buf, 0, CLASSIFY_HEAD_BYTES, 0);
-    return classifySavedHtml(buf.subarray(0, bytesRead).toString("utf-8"), size);
+    return classifySavedHtml(
+      buf.subarray(0, bytesRead).toString("utf-8"),
+      size,
+    );
   } finally {
     closeSync(fd);
   }

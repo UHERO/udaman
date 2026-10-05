@@ -62,13 +62,13 @@ Angular source under `tmp/data-portal` broke `bun run check-types`).
 
 UHERO is served at the portal root; every other universe keeps its segment.
 
-| Angular (hash)        | UHERO path                    | Other universes (`/data/{u}`) | Notes |
-|-----------------------|-------------------------------|-------------------------------|-------|
-| `#/` `#/category`     | `/data` `/data/category`      | `/data/{u}` `/data/{u}/category` | same page |
-| `#/search?id=term`    | `/data/search?id=term`        | `/data/{u}/search?id=term`    | `q=` also accepted. `/category?id=<non-numeric>` redirects to search |
-| `#/series?id=`        | `/data/series?id=`            | `/data/{u}/series?id=`        | |
-| `#/analyzer?…`        | `/data/analyzer?…`            | `/data/{u}/analyzer?…`        | |
-| `#/graph?…`           | `/data/graph?…`               | `/data/{u}/graph?…`           | embed, no header/sidebar |
+| Angular (hash)     | UHERO path               | Other universes (`/data/{u}`)    | Notes                                                                |
+| ------------------ | ------------------------ | -------------------------------- | -------------------------------------------------------------------- |
+| `#/` `#/category`  | `/data` `/data/category` | `/data/{u}` `/data/{u}/category` | same page                                                            |
+| `#/search?id=term` | `/data/search?id=term`   | `/data/{u}/search?id=term`       | `q=` also accepted. `/category?id=<non-numeric>` redirects to search |
+| `#/series?id=`     | `/data/series?id=`       | `/data/{u}/series?id=`           |                                                                      |
+| `#/analyzer?…`     | `/data/analyzer?…`       | `/data/{u}/analyzer?…`           |                                                                      |
+| `#/graph?…`        | `/data/graph?…`          | `/data/{u}/graph?…`              | embed, no header/sidebar                                             |
 
 On `data.uhero.hawaii.edu` drop the `/data` prefix (the proxy rewrites
 `/foo` → `/data/foo`): `/`, `/series?id=1`, `/nta/series?id=1`.
@@ -92,7 +92,7 @@ On `data.uhero.hawaii.edu` drop the `/data` prefix (the proxy rewrites
   (`ROOT_UNIVERSE`, `portalPath` in lib/links.ts). On the subdomain the proxy
   redirects `/data/...` to the clean path, so these links work on both hosts.
   Share/embed links use `publicPortalUrl(config.exportLabels.publicUrl, route,
-  params)`; UHERO's `publicUrl` is `https://data.uhero.hawaii.edu` (no
+params)`; UHERO's `publicUrl` is `https://data.uhero.hawaii.edu` (no
   segment), others `https://data.uhero.hawaii.edu/<u>`.
 - Current route from a pathname: `routeFromPathname(pathname)` (last segment;
   works for `/data/series`, `/data/nta/series`, subdomain `/series`). Used by
@@ -114,24 +114,24 @@ components. They return the API's `data` payload and **throw**
 `data: null` to `[]`. `noCache` adds the API's `nocache` flag. Responses are
 cached by Next for 60 s (`fetchFromRestApi`).
 
-| Function | Endpoint | Returns |
-|---|---|---|
-| `fetchCategoriesFlat(universe)` | `GET /category?u=` | `ApiCategory[]` |
-| `fetchPortalCategories(universe, rootOverride?)` | same, + `buildCategoryTree` | `PortalCategories {tree, rootId, flat}` |
-| `fetchCategoryGeos(id)` | `/category/geo?id=` | `Geography[]` |
-| `fetchCategoryFreqs(id)` | `/category/freq?id=` | `Frequency[]` |
-| `fetchCategoryForecasts(id)` | `/category/fc?id=` | `string[]` (e.g. `"26Q1FF"`) |
-| `fetchCategorySeries({universe,id,geo,freq,fc?,noCache?})` | `/category/series?…&expand=true` | `ExpandedSeries[]` |
-| `fetchCategoryMeasurements(id, noCache?)` | `/category/measurements?id=` | `Measurement[]` (NTA) |
-| `fetchMeasurementSeries(id, noCache?)` | `/measurement/series?id=&expand=true` | `ExpandedSeries[]` (NTA) |
-| `fetchSeriesPackage({universe,id,categoryId?,noCache?})` | `/package/series?id=&u=&cat=` | `SeriesPackage` |
-| `fetchSeriesSiblings({universe,id,geo})` | `/series/siblings?id=&geo=&u=` | `PortalSeries[]` |
-| `fetchSeriesObservations(id, noCache?)` | `/series/observations?id=` | `SeriesObservations` |
-| `fetchSearchSummary({universe,q})` | `/search?q=&u=` | `SearchSummary \| null` |
-| `fetchSearchSeries({universe,q})` | `/search/series?q=&u=` | `PortalSeries[]` (≤50, no obs) |
-| `fetchPackageSearch({universe,q,geo,freq})` | `/package/search?…` | `PackageSearch \| null` |
-| `fetchAnalyzerPackage({universe,ids})` | `/package/analyzer?ids=1,2&u=` | `AnalyzerPackage` |
-| `fetchAnalyzerMom({universe,ids})` | `/package/analyzermom?ids=&u=` | `AnalyzerPackage` (mom only) |
+| Function                                                   | Endpoint                              | Returns                                 |
+| ---------------------------------------------------------- | ------------------------------------- | --------------------------------------- |
+| `fetchCategoriesFlat(universe)`                            | `GET /category?u=`                    | `ApiCategory[]`                         |
+| `fetchPortalCategories(universe, rootOverride?)`           | same, + `buildCategoryTree`           | `PortalCategories {tree, rootId, flat}` |
+| `fetchCategoryGeos(id)`                                    | `/category/geo?id=`                   | `Geography[]`                           |
+| `fetchCategoryFreqs(id)`                                   | `/category/freq?id=`                  | `Frequency[]`                           |
+| `fetchCategoryForecasts(id)`                               | `/category/fc?id=`                    | `string[]` (e.g. `"26Q1FF"`)            |
+| `fetchCategorySeries({universe,id,geo,freq,fc?,noCache?})` | `/category/series?…&expand=true`      | `ExpandedSeries[]`                      |
+| `fetchCategoryMeasurements(id, noCache?)`                  | `/category/measurements?id=`          | `Measurement[]` (NTA)                   |
+| `fetchMeasurementSeries(id, noCache?)`                     | `/measurement/series?id=&expand=true` | `ExpandedSeries[]` (NTA)                |
+| `fetchSeriesPackage({universe,id,categoryId?,noCache?})`   | `/package/series?id=&u=&cat=`         | `SeriesPackage`                         |
+| `fetchSeriesSiblings({universe,id,geo})`                   | `/series/siblings?id=&geo=&u=`        | `PortalSeries[]`                        |
+| `fetchSeriesObservations(id, noCache?)`                    | `/series/observations?id=`            | `SeriesObservations`                    |
+| `fetchSearchSummary({universe,q})`                         | `/search?q=&u=`                       | `SearchSummary \| null`                 |
+| `fetchSearchSeries({universe,q})`                          | `/search/series?q=&u=`                | `PortalSeries[]` (≤50, no obs)          |
+| `fetchPackageSearch({universe,q,geo,freq})`                | `/package/search?…`                   | `PackageSearch \| null`                 |
+| `fetchAnalyzerPackage({universe,ids})`                     | `/package/analyzer?ids=1,2&u=`        | `AnalyzerPackage`                       |
+| `fetchAnalyzerMom({universe,ids})`                         | `/package/analyzermom?ids=&u=`        | `AnalyzerPackage` (mom only)            |
 
 ### Real API shapes (verified 2026-09-25) — surprises
 
@@ -170,22 +170,22 @@ recharts row shape), `PseudoZone`, `SeriesTableRow`, `SummaryStats`,
 `nta`, `ccom`, `fc`; any other DB universe gets UHERO behavior with a generic
 title. Fields:
 
-| Field | Meaning (Angular source) |
-|---|---|
-| `universe`, `dbUniverse`, `title`, `shortTitle` | |
-| `logo {src, alt, analyticsSrc?}` | main.ts `logo` (files in `public/data-portal/<u>/`; ccom's is a 700 KB JPEG) |
+| Field                                                                       | Meaning (Angular source)                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `universe`, `dbUniverse`, `title`, `shortTitle`                             |                                                                                                                                                                                                                                                                                                              |
+| `logo {src, alt, analyticsSrc?}`                                            | main.ts `logo` (files in `public/data-portal/<u>/`; ccom's is a 700 KB JPEG)                                                                                                                                                                                                                                 |
 | `colors {primary, accent, text, palettes {brand, accessible?}, chartMuted}` | app_colors.scss. `palettes.brand` = Angular `$analyzer-series0..4` (default); `accessible` = the old dataviz-validated palette, kept for a future settings toggle. **Read only via `getChartPalette(config, mode = "brand")`** (or chart-theme `seriesColor`). `chartMuted` = `$highstock-series1` `#9E9E9E` |
-| `rootCategory?` | main.ts `rootCategory` (override only; derivation is the default) |
-| `defaultRange[]` | main.ts `defaultRange` (NTA: 40 years ending 2040) |
-| `feedback`, `categoryTabs` | main.ts `portal` |
-| `categoryMode` | `"measurement"` for NTA (measurement lists instead of geo/freq) |
-| `selectors` | which selectors show (`forecast` = FC) |
-| `transformations {yoy,ytd,mom,c5ma}` | settings.transformations |
-| `seriesTable[] {key,label,percentLabel}` | settings.seriesTable |
-| `miniChart {secondary, showSecondary, sharedYAxis}` | settings.highcharts (NTA: level only, shared y-range) |
-| `seriesChart {companions, rangeButtons, credits}` | settings.highstock |
-| `exportLabels {portalSource, portal, portalLink, publicUrl}` | catTable/highstock.labels |
-| `sliderInteraction`, `otherDashboardLinks`, `googleAnalyticsId` | settings / main.ts |
+| `rootCategory?`                                                             | main.ts `rootCategory` (override only; derivation is the default)                                                                                                                                                                                                                                            |
+| `defaultRange[]`                                                            | main.ts `defaultRange` (NTA: 40 years ending 2040)                                                                                                                                                                                                                                                           |
+| `feedback`, `categoryTabs`                                                  | main.ts `portal`                                                                                                                                                                                                                                                                                             |
+| `categoryMode`                                                              | `"measurement"` for NTA (measurement lists instead of geo/freq)                                                                                                                                                                                                                                              |
+| `selectors`                                                                 | which selectors show (`forecast` = FC)                                                                                                                                                                                                                                                                       |
+| `transformations {yoy,ytd,mom,c5ma}`                                        | settings.transformations                                                                                                                                                                                                                                                                                     |
+| `seriesTable[] {key,label,percentLabel}`                                    | settings.seriesTable                                                                                                                                                                                                                                                                                         |
+| `miniChart {secondary, showSecondary, sharedYAxis}`                         | settings.highcharts (NTA: level only, shared y-range)                                                                                                                                                                                                                                                        |
+| `seriesChart {companions, rangeButtons, credits}`                           | settings.highstock                                                                                                                                                                                                                                                                                           |
+| `exportLabels {portalSource, portal, portalLink, publicUrl}`                | catTable/highstock.labels                                                                                                                                                                                                                                                                                    |
+| `sliderInteraction`, `otherDashboardLinks`, `googleAnalyticsId`             | settings / main.ts                                                                                                                                                                                                                                                                                           |
 
 `sliderInteraction` was defined but unused in Angular. `feedback` was not
 used by shared components either (app shell only); the header's feedback link
@@ -197,7 +197,7 @@ intrinsic size (SVG viewBox / JPEG pixels) for `next/image`.
 - **Google Analytics (GA4)**: `UniverseLayout` renders
   `<GoogleAnalytics gaId={config.googleAnalyticsId}>` (`@next/third-parties`)
   for the universe being viewed only, and only when `NODE_ENV ===
-  "production"`. Ids from the Angular apps: uhero `G-RLVNRLYMP5`, nta
+"production"`. Ids from the Angular apps: uhero `G-RLVNRLYMP5`, nta
   `G-7QVQLFEEDE`, ccom `G-B2RGGWN98L`; **fc has none** (Angular's was
   commented out) — add `googleAnalyticsId` to the fc config if wanted. The
   `/graph` embed reports too (Angular's gtag loaded for every route). SPA
@@ -214,7 +214,7 @@ intrinsic size (SVG viewBox / JPEG pixels) for `next/image`.
   universes: DB `universe.description`, then a generic line), favicon /
   apple icon, and Open Graph (siteName, title, url, 512px icon as image).
   Pages call `pageMetadata(universe, {title, description?, route, params,
-  noindex?})`, which adds the canonical URL (public, absolute) and a full
+noindex?})`, which adds the canonical URL (public, absolute) and a full
   Open Graph block (OG isn't merged across segments). Layouts set no
   canonical (it would be inherited by every page). Titles: category = data
   list – category (none without `id`), series = `series.title` (+
@@ -342,7 +342,7 @@ frequency change fixed; Infinity sentinels replaced by `null`.
 - Brand palettes (user decision, overrides dataviz): Angular Highcharts
   colors per portal — UHERO/FC `#1D667F #9E9E9E #F6A01B #9BBB59 #8064A2`,
   NTA `#0068B3 #9E9E9E #F6A01B #008b78 #8064A2`, CCOM `#2d6c43 #9E9E9E
-  #F6A01B #0279c0 #8064A2`. They FAIL validate_palette.js (gray slot 1,
+#F6A01B #0279c0 #8064A2`. They FAIL validate_palette.js (gray slot 1,
   low-contrast amber/green, weak CVD pairs) → keep legends + table views;
   `accessible` palettes are stored for a future toggle.
 - Series chart (`SeriesChart`, user decision: dual axis like Angular
@@ -375,12 +375,14 @@ frequency change fixed; Infinity sentinels replaced by `null`.
 ## Workstream inventory
 
 ### A — shell, header, sidebar, landing/category
+
 Angular: primeng-menu-nav, header, geo-selector, freq-selector,
 forecast-selector, measurement-selector, date-slider, landing-page,
 category-charts, highchart (mini), category-table-view, category-table-render.
 Slots (now): `views/portal-chrome.tsx`, `views/landing-page.tsx`.
 
 Must not miss:
+
 - Flow (non-NTA): categories → `resolveCategorySelection` (no id → first category;
   no data_list_id → first leaf) → `fetchCategoryGeos/Freqs` (+`fetchCategoryForecasts` on FC)
   → `resolveGeoFreq` (route geo/freq used only if **both** exist) → `resolveForecast`
@@ -406,6 +408,7 @@ Must not miss:
 - Help dialogs: copy lives in the Angular `*.component.html` templates.
 
 Built (A) — reusable exports:
+
 - `components/selectors/selectors.tsx`: `GeoSelector`, `FreqSelector` (`placeholder` for the analyzer mixed-freq case), `ForecastSelector`, `MeasurementSelector`, `CheckToggle`, `geoLabel`; `portal-select.tsx` (`PortalSelect`).
 - `components/selectors/date-range-slider.tsx`: `DateRangeSlider({dates, freq, startIndex, endIndex, onChange})` — feed it `resolveDateRange(...)`; `onChange` gets a `DateRange` → `setParams(rangeToParams(r), {mode: "shallow"})`.
 - `components/selectors/freq-switch.ts`: `endForFreqSwitch(end, previousFreq)` — call when switching freq and write the result as `end`; replaces carrying `previousFreq` across the server re-render (the category page uses this instead of `usePreviousFreq`).
@@ -415,6 +418,7 @@ Built (A) — reusable exports:
 - Header search submits `search?q=<term>` (merged params, `id` cleared, `SEARCH_RESET_PARAMS`).
 
 ### B — single series
+
 Angular: single-series, highstock, single-series-table, summary-statistics.
 
 - `fetchSeriesPackage({id, categoryId: data_list_id})`; no data when
@@ -436,6 +440,7 @@ Angular: single-series, highstock, single-series-table, summary-statistics.
 - Share link + embed (D's component) and the analyzer star.
 
 ### C — analyzer
+
 Angular: analyzer, analyzer-highstock, analyzer-table, analyzer-table-renderer,
 analyzer-stats-renderer.
 
@@ -461,6 +466,7 @@ analyzer-stats-renderer.
   visible series is assigned to it.
 
 ### D — search, share, embed
+
 Angular: search-bar, search-results, share-link, embed-graph.
 
 - Search: `fetchSearchSeries({q})`; table columns Series / Region (`geography.shortName`)

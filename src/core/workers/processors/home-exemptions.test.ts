@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
+import { DELTA_STRATEGY } from "./qpub-delta-strategy";
+import { TABLE_COLUMNS } from "./qpub-extract";
 import {
   COLUMN_VALUE_PARSERS,
   GENERIC_MATCH_UPDATE,
@@ -7,8 +9,6 @@ import {
   SECTION_ROW_TRANSFORMS,
   splitHomesteadInformation,
 } from "./qpub-load";
-import { TABLE_COLUMNS } from "./qpub-extract";
-import { DELTA_STRATEGY } from "./qpub-delta-strategy";
 
 // ─── splitHomesteadInformation ──────────────────────────────────────
 
@@ -76,9 +76,10 @@ describe("home_exemption_information routing", () => {
 
   it("transform unpacks the row and drops the packed field", () => {
     const transform = SECTION_ROW_TRANSFORMS.home_exemption_information;
-    expect(
-      transform({ homestead_information: "DAVIS,JOAN M 2026" }),
-    ).toEqual({ claimant_name: "DAVIS,JOAN M", tax_year: 2026 });
+    expect(transform({ homestead_information: "DAVIS,JOAN M 2026" })).toEqual({
+      claimant_name: "DAVIS,JOAN M",
+      tax_year: 2026,
+    });
   });
 
   it("transform leaves rows without the packed field untouched", () => {

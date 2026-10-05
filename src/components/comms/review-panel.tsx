@@ -99,9 +99,7 @@ export function ReviewPanel({
         canDrag={() => canModify}
         currentUserId={currentUserId}
         addReview={
-          canAdd
-            ? { approvalId: approval.id, currentUserName }
-            : undefined
+          canAdd ? { approvalId: approval.id, currentUserName } : undefined
         }
       />
 

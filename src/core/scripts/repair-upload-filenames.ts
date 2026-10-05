@@ -49,7 +49,9 @@ async function repairTable(table: string, subdir: string) {
   const referenced = new Set(
     rows.map((r) => r.filename).filter((f): f is string => !!f),
   );
-  const orphans = disk.filter((d) => !referenced.has(d) && filenameTs(d) !== null);
+  const orphans = disk.filter(
+    (d) => !referenced.has(d) && filenameTs(d) !== null,
+  );
 
   for (const r of rows) {
     if (!r.filename) continue;

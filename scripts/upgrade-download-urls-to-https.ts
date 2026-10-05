@@ -43,14 +43,12 @@ const CONCURRENCY = Number(argVal("concurrency") ?? 10);
 const TIMEOUT_MS = Number(argVal("timeout") ?? 20_000);
 
 /** Same UA DownloadCollection.downloadToServer sends, so probes match reality. */
-const USER_AGENT =
-  "Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)";
+const USER_AGENT = "Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)";
 
 type Row = { id: number; handle: string; url: string };
 
 type Probe =
-  | { ok: true; status: number }
-  | { ok: false; status?: number; error: string };
+  { ok: true; status: number } | { ok: false; status?: number; error: string };
 
 /**
  * Does the https variant answer? Any non-5xx status counts as reachable — a
@@ -63,7 +61,8 @@ async function probeHttps(url: string): Promise<Probe> {
       headers: { "User-Agent": USER_AGENT },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (resp.status >= 500) return { ok: false, status: resp.status, error: `HTTP ${resp.status}` };
+    if (resp.status >= 500)
+      return { ok: false, status: resp.status, error: `HTTP ${resp.status}` };
     return { ok: true, status: resp.status };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -109,7 +108,9 @@ async function main() {
         // Safe to rewrite (https answers, so the row stops hanging on port 80)
         // but the download itself is still broken — the URL is wrong, not the
         // scheme. Call that out rather than filing it under "ok".
-        stillBroken.push(`${row.handle} (id ${row.id}) — https: HTTP ${probe.status}`);
+        stillBroken.push(
+          `${row.handle} (id ${row.id}) — https: HTTP ${probe.status}`,
+        );
         console.log(`  WRITABLE, STILL ${probe.status}  ${row.handle}`);
       } else {
         serving++;

@@ -47,13 +47,19 @@ function candidateDateStrings(created: Date): Record<string, string> {
 }
 
 const disk = readdirSync(TSD_DIR);
-const rows = await mysql<Record<string, unknown>>`SELECT * FROM forecast_snapshots`;
+const rows = await mysql<
+  Record<string, unknown>
+>`SELECT * FROM forecast_snapshots`;
 const snapshots = rows.map((r) => new ForecastSnapshot(r as never));
 
 // Every disk name that resolves correctly today
 const referenced = new Set<string>();
 for (const s of snapshots) {
-  for (const f of [s.newForecastTsdFilename, s.oldForecastTsdFilename, s.historyTsdFilename]) {
+  for (const f of [
+    s.newForecastTsdFilename,
+    s.oldForecastTsdFilename,
+    s.historyTsdFilename,
+  ]) {
     if (f) referenced.add(s.filePath(f).split("/").pop()!);
   }
 }
@@ -63,7 +69,11 @@ let planned = 0;
 let unresolved = 0;
 
 for (const s of snapshots) {
-  const files = [s.newForecastTsdFilename, s.oldForecastTsdFilename, s.historyTsdFilename];
+  const files = [
+    s.newForecastTsdFilename,
+    s.oldForecastTsdFilename,
+    s.historyTsdFilename,
+  ];
   for (const filename of files) {
     if (!filename) continue;
     const correctPath = s.filePath(filename);
@@ -74,8 +84,12 @@ for (const s of snapshots) {
     let source: string | null = null;
     let how = "";
     if (s.createdAt) {
-      for (const [variant, dateStr] of Object.entries(candidateDateStrings(s.createdAt))) {
-        const h = createHash("md5").update(`${dateStr}_${s.id}_${filename}`).digest("hex");
+      for (const [variant, dateStr] of Object.entries(
+        candidateDateStrings(s.createdAt),
+      )) {
+        const h = createHash("md5")
+          .update(`${dateStr}_${s.id}_${filename}`)
+          .digest("hex");
         const hit = orphans.find((o) => o === `${h}_${filename}`);
         if (hit) {
           source = hit;
@@ -87,7 +101,9 @@ for (const s of snapshots) {
     // Fall back: an orphan carrying the same original filename (same uploaded
     // content — the suffix IS the original filename)
     if (!source) {
-      const suffixMatches = orphans.filter((o) => o.replace(/^[0-9a-f]{32}_/, "") === filename);
+      const suffixMatches = orphans.filter(
+        (o) => o.replace(/^[0-9a-f]{32}_/, "") === filename,
+      );
       if (suffixMatches.length >= 1) {
         source = suffixMatches[0];
         how = `filename suffix (${suffixMatches.length} candidate${suffixMatches.length > 1 ? "s" : ""})`;
@@ -104,13 +120,17 @@ for (const s of snapshots) {
       }
     } else {
       unresolved++;
-      console.log(`snapshot ${s.id} (${s.name} ${s.version}) — ${filename}: NO candidate on disk`);
+      console.log(
+        `snapshot ${s.id} (${s.name} ${s.version}) — ${filename}: NO candidate on disk`,
+      );
     }
   }
 }
 
 console.log(
   `\n${EXECUTE ? "Applied" : "Dry run —"} ${planned} repair(s), ${unresolved} unresolved.` +
-    (EXECUTE ? " Originals left in place (copies, not moves)." : " Re-run with --execute to apply."),
+    (EXECUTE
+      ? " Originals left in place (copies, not moves)."
+      : " Re-run with --execute to apply."),
 );
 process.exit(0);

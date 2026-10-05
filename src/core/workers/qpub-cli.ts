@@ -1,13 +1,12 @@
 import { createLogger } from "@/core/observability/logger";
 
+import { runCrosswalk } from "./processors/qpub-crosswalk";
+import { runDumpCsv } from "./processors/qpub-dump-csv";
+import { backfillCondoUnits } from "./processors/qpub-enqueue";
 import { errorMessage, TABLE_LOADERS } from "./processors/qpub-load";
 import { processNightly } from "./processors/qpub-nightly";
-import { backfillCondoUnits } from "./processors/qpub-enqueue";
-import { runDumpCsv } from "./processors/qpub-dump-csv";
-import { runCrosswalk } from "./processors/qpub-crosswalk";
 import { runParcelList } from "./processors/qpub-parcel-list";
 import { runParseAudit } from "./processors/qpub-parse-audit";
-import { runRepair } from "./processors/qpub-repair";
 import {
   rebuildAll,
   rebuildTable,
@@ -15,6 +14,7 @@ import {
   runParseAndExtract,
   runSync,
 } from "./processors/qpub-rebuild";
+import { runRepair } from "./processors/qpub-repair";
 
 // Ensure all date operations use Hawaii Standard Time.
 process.env.TZ = "Pacific/Honolulu";
@@ -119,7 +119,12 @@ function parseArgs() {
   let sample: number | undefined;
   let out: string | undefined;
 
-  const tableCommands = ["rebuild-table", "load-table", "sync-table", "dump-csv"];
+  const tableCommands = [
+    "rebuild-table",
+    "load-table",
+    "sync-table",
+    "dump-csv",
+  ];
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "--island" && args[i + 1]) {
@@ -330,8 +335,12 @@ function reportFatal(label: string, err: unknown): never {
   process.exit(1);
 }
 
-process.on("uncaughtException", (err) => reportFatal("Uncaught exception", err));
-process.on("unhandledRejection", (err) => reportFatal("Unhandled rejection", err));
+process.on("uncaughtException", (err) =>
+  reportFatal("Uncaught exception", err),
+);
+process.on("unhandledRejection", (err) =>
+  reportFatal("Unhandled rejection", err),
+);
 
 // Awaited at top level on purpose: a fire-and-forget `run().catch(...)` leaves
 // nothing pending in module scope, and Bun has been seen to exit 0 mid-command

@@ -24,7 +24,9 @@ export class HhdbLandClassification {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.lastYearObserved =
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null;
     this.landClassification = attrs.land_classification ?? null;
     this.squareFootage =
       attrs.square_footage != null ? Number(attrs.square_footage) : null;
@@ -60,7 +62,9 @@ export function hhdbLandClassificationRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     lastYearObserved:
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null,
     landClassification: attrs.land_classification ?? null,
     squareFootage:
       attrs.square_footage != null ? Number(attrs.square_footage) : null,

@@ -1,6 +1,3 @@
-// Ensure all date operations use Hawaii Standard Time.
-process.env.TZ = "Pacific/Honolulu";
-
 import { closeBrowser } from "@/core/crawlers/qpub/browser";
 import {
   buildUrl,
@@ -17,14 +14,17 @@ import { rawQuery } from "@/lib/mysql/hhdb";
 import { processScrape, type ScrapeResult } from "./processors/qpub-scrape";
 import {
   flushHeartbeat,
-  type ScraperState,
   recordCaptcha,
   recordScraped,
   setScraperState,
   startHeartbeat,
   stopHeartbeat,
+  type ScraperState,
 } from "./scraper-heartbeat";
 import { tagWithWorker, WORKER_NAME, workerBindings } from "./worker-identity";
+
+// Ensure all date operations use Hawaii Standard Time.
+process.env.TZ = "Pacific/Honolulu";
 
 const log = createLogger("scrape-runner", workerBindings());
 

@@ -133,7 +133,11 @@ export function setDateArray(
     : quarterSelected
       ? +startQuarter
       : 1;
-  const maxMonth = monthSelected ? +endMonth : quarterSelected ? +endQuarter : 1;
+  const maxMonth = monthSelected
+    ? +endMonth
+    : quarterSelected
+      ? +endQuarter
+      : 1;
   while (`${minYear}-${m[minMonth]}-01` <= `${endYear}-${m[maxMonth]}-01`) {
     // Frequency display order: M, Q, A
     if (monthSelected) {

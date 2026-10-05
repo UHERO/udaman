@@ -34,14 +34,14 @@ https://propertysearch.hicentral.com/HBR/ForSale/?/Results/Neighborhood///7//401
 
 Split the part after `?` on `/`. Meaningful indices confirmed by experiment:
 
-| index | meaning | values seen |
-|---|---|---|
-| 1 | page type | `Results` |
-| 2 | search type | `Neighborhood` |
-| 3 | sort | `""` = Price (High), `pl` = Price (Low), `d` = Date (Newest) |
-| 4 | **page number** | `""` for page 1, else `2`, `3`, … |
-| 5 | (island/region related) | `7` |
-| 7 | **status bitmask** | see below |
+| index | meaning                 | values seen                                                  |
+| ----- | ----------------------- | ------------------------------------------------------------ |
+| 1     | page type               | `Results`                                                    |
+| 2     | search type             | `Neighborhood`                                               |
+| 3     | sort                    | `""` = Price (High), `pl` = Price (Low), `d` = Date (Newest) |
+| 4     | **page number**         | `""` for page 1, else `2`, `3`, …                            |
+| 5     | (island/region related) | `7`                                                          |
+| 7     | **status bitmask**      | see below                                                    |
 
 Everything else is empty padding in these particular URLs. **Do not assume the trailing slash
 count is significant** — the site's own "Next" link emits a different number of trailing slashes
@@ -51,19 +51,20 @@ than the seed URLs and both work.
 
 Read straight off the page's `<select name="ctl00$main$ctl00$ddlStatus">`:
 
-| value | status | Oahu count |
-|---|---|---|
-| 128 | Active | 3,626 |
-| 16 | Active Under Contract | 870 |
-| 1 | Pending | 170 |
-| 256 | Sold | 15,960 |
-| **401** | Any (128+256+16+1) | 20,626 |
+| value   | status                | Oahu count |
+| ------- | --------------------- | ---------- |
+| 128     | Active                | 3,626      |
+| 16      | Active Under Contract | 870        |
+| 1       | Pending               | 170        |
+| 256     | Sold                  | 15,960     |
+| **401** | Any (128+256+16+1)    | 20,626     |
 
 The seed URLs in `index.json` all use `401` (everything, including 15,960 sold listings).
 **Setting segment 7 to `128` gives active-only**, verified: 3,626 results. OR the values together
 for any combination.
 
 URL for each island's list page
+
 ```
  {
     "oahu": "https://propertysearch.hicentral.com/HBR/ForSale/?/Results/Neighborhood///7//401////////1////////////////////////////",
@@ -108,6 +109,7 @@ https://propertysearch.hicentral.com/HBR/ForSale/?/<MLS#>
 ```
 
 Result count comes from:
+
 ```html
 <b>Results:</b> &nbsp;Showing <b>1 - 20</b> of <b>20626</b>
 ```
@@ -122,7 +124,7 @@ It's **definition lists** — 14 `<dl>`, 52 `<dt>`/`<dd>` pairs:
 ```html
 <dt>Property Type:</dt>
 <dd><strong>Single Family</strong></dd>
-<dt>Land Area (sf): </dt>
+<dt>Land Area (sf):</dt>
 <dd>33,018</dd>
 ```
 
@@ -134,6 +136,7 @@ A `dt`/`dd` pair-walk yields ~51–54 clean key/value fields per listing. Observ
 `Home Exempt.`, `Elem. School`, `Middle School`, `High School`, `Frontage`, `View`.
 
 Notes for the schema work:
+
 - **Field count varies per listing** (51–54 observed) — treat as a sparse key/value bag, not a
   fixed-width row. Don't assume every key is present.
 - Missing values come through as the literal string `"--"`, not empty. Normalize these to NULL.

@@ -322,7 +322,9 @@ export async function runCrosswalk(
 
   log.info(
     { file, execute },
-    execute ? "Crosswalk load started (EXECUTE)" : "Crosswalk load started (dry run)",
+    execute
+      ? "Crosswalk load started (EXECUTE)"
+      : "Crosswalk load started (dry run)",
   );
 
   // 1. The crosswalk

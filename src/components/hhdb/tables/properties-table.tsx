@@ -66,7 +66,11 @@ const columns: ColumnDef<HhdbPropertyJSON, unknown>[] = [
   { accessorKey: "tractGeoid", header: "Tract GEOID", enableSorting: true },
   { accessorKey: "mapUrl", header: "Map URL", enableSorting: false },
   { accessorKey: "sketchUrl", header: "Sketch URL", enableSorting: false },
-  { accessorKey: "inParcelList", header: "In Parcel List", enableSorting: true },
+  {
+    accessorKey: "inParcelList",
+    header: "In Parcel List",
+    enableSorting: true,
+  },
   {
     accessorKey: "parcelListVersion",
     header: "Parcel List Version",

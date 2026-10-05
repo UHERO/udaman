@@ -99,9 +99,7 @@ export function ExportListTable({ data }: Props) {
                   <TableCell className="font-medium">{exp.name}</TableCell>
                   <TableCell>{exp.seriesCount}</TableCell>
                   <TableCell>
-                    {exp.updatedAt
-                      ? formatHst(exp.updatedAt, "M/d/yyyy")
-                      : "-"}
+                    {exp.updatedAt ? formatHst(exp.updatedAt, "M/d/yyyy") : "-"}
                   </TableCell>
                   <TableCell>
                     <div

@@ -11,13 +11,13 @@ the NAS.
 Prisma is used for schema files, migrations, and (since 2026-09-22) optional
 typed clients. Most queries are still raw SQL through `src/lib/mysql/`.
 
-| | uhero_db | hhdb |
-|---|---|---|
-| Schema | `src/lib/prisma/schema.prisma` | `src/lib/prisma/hhdb/schema.prisma` (introspected from the NAS) |
-| Config | `prisma.config.ts` (root) | `src/lib/prisma/hhdb/prisma.config.ts` (pass with `--config`) |
-| Migrations | `src/lib/prisma/migrations/` | `src/lib/prisma/hhdb/migrations/` (empty, lock file only) |
-| Generated client | `src/generated/prisma-uhero/` | `src/generated/prisma-hhdb/` |
-| App module | `src/lib/prisma/uhero-client.ts` → `getUheroPrisma()` | `src/lib/prisma/hhdb-client.ts` → `getHhdbPrisma()` |
+|                  | uhero_db                                              | hhdb                                                            |
+| ---------------- | ----------------------------------------------------- | --------------------------------------------------------------- |
+| Schema           | `src/lib/prisma/schema.prisma`                        | `src/lib/prisma/hhdb/schema.prisma` (introspected from the NAS) |
+| Config           | `prisma.config.ts` (root)                             | `src/lib/prisma/hhdb/prisma.config.ts` (pass with `--config`)   |
+| Migrations       | `src/lib/prisma/migrations/`                          | `src/lib/prisma/hhdb/migrations/` (empty, lock file only)       |
+| Generated client | `src/generated/prisma-uhero/`                         | `src/generated/prisma-hhdb/`                                    |
+| App module       | `src/lib/prisma/uhero-client.ts` → `getUheroPrisma()` | `src/lib/prisma/hhdb-client.ts` → `getHhdbPrisma()`             |
 
 Generated code is gitignored and rebuilt by `bun run db:generate`, which also
 runs on `postinstall`. `bun run db:pull:hhdb` re-introspects the NAS after a

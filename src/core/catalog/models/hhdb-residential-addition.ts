@@ -30,7 +30,9 @@ export class HhdbResidentialAddition {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.lastYearObserved =
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null;
     this.card = attrs.card != null ? Number(attrs.card) : null;
     this.line = attrs.line != null ? Number(attrs.line) : null;
     this.lower = attrs.lower ?? null;
@@ -71,7 +73,9 @@ export function hhdbResidentialAdditionRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     lastYearObserved:
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null,
     card: attrs.card != null ? Number(attrs.card) : null,
     line: attrs.line != null ? Number(attrs.line) : null,
     lower: attrs.lower ?? null,

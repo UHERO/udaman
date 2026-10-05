@@ -6,7 +6,7 @@ machine, so nothing below is confirmed against live timings — see
 
 ## Summary
 
-Nothing in the last two weeks made a single loader's *work* dramatically
+Nothing in the last two weeks made a single loader's _work_ dramatically
 slower. What changed is (1) one new per-loader cost that is unbounded on
 loaders touching moved HTA handles, (2) global serialization of every
 reload behind a MySQL advisory lock, so wall-clock now includes waiting
@@ -43,15 +43,15 @@ strictly sequential `for series → for loader → LoaderCollection.reload`.
 
 Per loader (`loader-collection.ts:353-452`, `series-collection.ts:1580-1782`):
 
-| Step | Cost | New in window? |
-|---|---|---|
-| `getEnabledBySeriesId` | 1 SELECT | no |
-| `ensureFresh(handle)` | `getByHandle` (or `REGEXP` scan for `%` handles) + HTTP fetch if `last_download_at` > 1 h old | fetch behaviour changed 09/01 (item 1) |
-| `getData` → `getCachedSheet` | `statSync`; full `XLSX.read` on miss | LRU added 09/02 |
-| each `"NAME".ts` reference in the eval | `getByName` + `loadCurrentData`, 2 SELECTs, no memo | no |
-| `updateData` read phase | `SELECT priority`; **all vintages ever written by this loader** with filesort; current points join | no |
-| `updateData` write phase | `BEGIN` + batched demote/insert + `repairDataPoints` (anti-join SELECT + 1 UPDATE per orphan) + `COMMIT`, **always**, even with nothing to write | 08/27 |
-| `finally` → `LoaderCollection.update` | UPDATE `data_sources` + full `getById` SELECT | no |
+| Step                                   | Cost                                                                                                                                             | New in window?                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| `getEnabledBySeriesId`                 | 1 SELECT                                                                                                                                         | no                                     |
+| `ensureFresh(handle)`                  | `getByHandle` (or `REGEXP` scan for `%` handles) + HTTP fetch if `last_download_at` > 1 h old                                                    | fetch behaviour changed 09/01 (item 1) |
+| `getData` → `getCachedSheet`           | `statSync`; full `XLSX.read` on miss                                                                                                             | LRU added 09/02                        |
+| each `"NAME".ts` reference in the eval | `getByName` + `loadCurrentData`, 2 SELECTs, no memo                                                                                              | no                                     |
+| `updateData` read phase                | `SELECT priority`; **all vintages ever written by this loader** with filesort; current points join                                               | no                                     |
+| `updateData` write phase               | `BEGIN` + batched demote/insert + `repairDataPoints` (anti-join SELECT + 1 UPDATE per orphan) + `COMMIT`, **always**, even with nothing to write | 08/27                                  |
+| `finally` → `LoaderCollection.update`  | UPDATE `data_sources` + full `getById` SELECT                                                                                                    | no                                     |
 
 Public data points are **not** synced per loader or per series; the job
 enqueues one `public.update` at the end (`batch-reload.ts:75`). That
@@ -178,7 +178,7 @@ Worker log (`journalctl -u udaman-worker`):
 grep '"name":"database.lock"' | grep -E 'reload\.batch#|reload\.(bls|bea|sa)#' | grep -E 'acquired|released'
 
 # Item 1: one line per soft-404 fetch. Count per night.
-grep -c 'got an HTML page instead of a' 
+grep -c 'got an HTML page instead of a'
 grep 'got an HTML page instead of a' | sed 's/.*\[download\] \([^:]*\):.*/\1/' | sort | uniq -c | sort -rn
 
 # Item 2: dependency reset overrunning 19:44
@@ -224,8 +224,8 @@ Ordered by payoff / risk.
    is almost never contended, and a waiting heavy job no longer eats a
    `default` slot or a pool connection. Keep `default` for downloads and
    exports, `light` for interactive. Consider `udaman/sweep` (concurrency
-   1) for `public.update` so sweeps never sit ahead of a reload in the
-   same queue.
+   1. for `public.update` so sweeps never sit ahead of a reload in the
+      same queue.
 3. **Pass `yieldPoint` into `batchReload`** and call it between groups, so
    a priority upload at night gets the lock within a minute instead of
    failing at 30 min.
@@ -261,14 +261,14 @@ The TS port kept the wave ordering and dropped the fan-out.
 Small changes only; parallelism within a depth level is deferred until
 these have been observed for a few nights.
 
-| Change | Where |
-|---|---|
-| `ensureFresh` remembers each download it *attempted* in this process (any outcome) and won't retry it for an hour. A 404 or soft-404 handle is now fetched once per hour per process instead of once per loader (and per monthly file). Mirrors Rails' `DownloadsCache` memo. `last_download_at` semantics unchanged: still only written on a real 200. | `collections/download-collection.ts` |
-| New `udaman/heavy` queue, worker concurrency 1. Every `heavy()` job (batch + targeted reloads, `public.update`, dependency reset, `reload-job.process`, api-dvw reload, universe archive/purge) enqueues and schedules there. BullMQ now serializes them FIFO; the MySQL lock is only contended by uploads (priority) and the web process. Waiting heavies no longer occupy `default` slots or pool connections. Scheduler removes the moved keys from `default` on startup so the old copies can't double-fire. | `workers/queues.ts`, `enqueue.ts`, `scheduler.ts`, `worker.ts` |
-| `heavy()` passes the lock context through; `batchReload` takes a `yieldPoint` and calls it between groups, so an upload arriving during a multi-hour reload gets the lock within one group instead of failing at 30 min. `reload-job.process` yields per series and passes `yieldPoint` into its inline sweep. | `processors/index.ts`, `batch-reload.ts`, `targeted-reload.ts`, `reload-job.ts`, `series-collection.ts` |
-| `updateData` skips `BEGIN`/`COMMIT` and the pool checkout when there is nothing to demote, promote or insert (the common nightly case). The repair pass still runs. | `series-collection.ts` |
-| CSV files are read once, not twice. Sheet cache key includes the month for `sheet_name:M3` specs, which resolve to a different sheet per date. `getData` memoises sheets per call so the LRU's `statSync` validation runs once per file per loader rather than once per date — `DATA_DIR` is a network mount in prod, so each of those was a metadata round trip. | `utils/download-processor.ts` |
-| Admin worker panel lists all four queues (it was missing `light` too). Loader "reload" status poll now checks `light`, where the job actually goes, then `default`. | `actions/workers.ts`, `actions/data-loaders.tsx` |
+| Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Where                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `ensureFresh` remembers each download it _attempted_ in this process (any outcome) and won't retry it for an hour. A 404 or soft-404 handle is now fetched once per hour per process instead of once per loader (and per monthly file). Mirrors Rails' `DownloadsCache` memo. `last_download_at` semantics unchanged: still only written on a real 200.                                                                                                                                                          | `collections/download-collection.ts`                                                                    |
+| New `udaman/heavy` queue, worker concurrency 1. Every `heavy()` job (batch + targeted reloads, `public.update`, dependency reset, `reload-job.process`, api-dvw reload, universe archive/purge) enqueues and schedules there. BullMQ now serializes them FIFO; the MySQL lock is only contended by uploads (priority) and the web process. Waiting heavies no longer occupy `default` slots or pool connections. Scheduler removes the moved keys from `default` on startup so the old copies can't double-fire. | `workers/queues.ts`, `enqueue.ts`, `scheduler.ts`, `worker.ts`                                          |
+| `heavy()` passes the lock context through; `batchReload` takes a `yieldPoint` and calls it between groups, so an upload arriving during a multi-hour reload gets the lock within one group instead of failing at 30 min. `reload-job.process` yields per series and passes `yieldPoint` into its inline sweep.                                                                                                                                                                                                   | `processors/index.ts`, `batch-reload.ts`, `targeted-reload.ts`, `reload-job.ts`, `series-collection.ts` |
+| `updateData` skips `BEGIN`/`COMMIT` and the pool checkout when there is nothing to demote, promote or insert (the common nightly case). The repair pass still runs.                                                                                                                                                                                                                                                                                                                                              | `series-collection.ts`                                                                                  |
+| CSV files are read once, not twice. Sheet cache key includes the month for `sheet_name:M3` specs, which resolve to a different sheet per date. `getData` memoises sheets per call so the LRU's `statSync` validation runs once per file per loader rather than once per date — `DATA_DIR` is a network mount in prod, so each of those was a metadata round trip.                                                                                                                                                | `utils/download-processor.ts`                                                                           |
+| Admin worker panel lists all four queues (it was missing `light` too). Loader "reload" status poll now checks `light`, where the job actually goes, then `default`.                                                                                                                                                                                                                                                                                                                                              | `actions/workers.ts`, `actions/data-loaders.tsx`                                                        |
 
 Not changed, on purpose: the 32-entry sheet LRU (memory pressure is the
 open risk; revisit with RSS numbers), the dependency-depth `LIKE` loop
@@ -312,7 +312,7 @@ the structural change worth making regardless; D and E wait on numbers.
 
 1. **Record durations.** `batch-reload` already writes one `app_logs`
    row at completion; add `{ waitMs, heldMs, perDepth: [{depth, count,
-   seconds}] }` to its metadata and write one row per depth level. Every
+seconds}] }` to its metadata and write one row per depth level. Every
    decision below needs a trend line, and today the only timing is the
    BullMQ job pane in Redis.
 2. **Stamp `data_sources.updated_at` only when data changed.** The
@@ -331,7 +331,7 @@ the structural change worth making regardless; D and E wait on numbers.
 
 Series in one depth level are independent by construction (every input
 lives at a higher depth and has already been reloaded), so this is safe
-to parallelize *across series*. Two rules keep it correct:
+to parallelize _across series_. Two rules keep it correct:
 
 - **Sequential within a series.** A series' loaders are ordered by
   priority and `updateData` depends on that order. Run one series'
@@ -396,15 +396,15 @@ real graph. Medium change; touches the 18:09 job and two collections.
 
 ## What shipped — 2026-09-03, second round (A–D)
 
-| # | Change | Where |
-|---|---|---|
-| A1 | Batch reload writes durations to `app_logs`: the `loader.batch_reload` row now carries `lockWaitMs`, `elapsedSec`, `failed`, `perDepth[]`; plus one `loader.batch_reload.depth` row per level. `withHeavyDbLock` exposes `ctx.waitMs`. | `batch-reload.ts`, `db-lock.ts`, `series-collection.ts` |
-| A2 | `data_sources.updated_at` is stamped only when a reload changed data points (insert, demote, promote, or a clear). `updateData` returns `changed`; `LoaderCollection.updateFields` takes `touchUpdatedAt`. The post-nightly sweep is now incremental for real. | `loader-collection.ts`, `series-collection.ts` |
-| A3 | The reload's `finally` no longer re-SELECTs the loader row (`updateFields` instead of `update`). | `loader-collection.ts` |
-| A4 | Pool: `max` 20 (`DB_POOL_MAX`), `idleTimeout` 300 s (`DB_POOL_IDLE_SEC`). | `db.ts` |
-| B | `batchReload` runs `RELOAD_CONCURRENCY` (default 4) series at a time within a depth level; a series' own loaders stay sequential. Heartbeat and `yieldPoint` still per group. `ensureFresh` dedups in-flight fetches per download id so two loaders sharing a handle can't race a half-written file on the mount. | `series-collection.ts`, `download-collection.ts` |
-| C | `WORKER_QUEUES` selects which queues a worker process consumes (default: all). `WORKER_SCHEDULES=0/1` overrides where cron schedules register (default: the process consuming `default`). Upload-row reconciliation runs only where `critical` is consumed. | `worker.ts` |
-| D | New `series_dependencies` table (loader → dependency *name*, keyed by name across universes as before). Rebuilt atomically by `setAllDependencies` for all universes; maintained on loader create / recompute / delete (best-effort). `assignDependencyDepth` joins it via a temp snapshot instead of the correlated `LIKE`; `getAllDependencies` reads it, falling back to the JSON scan until it has rows. `setAllDependencies` rewrites the `dependencies` column only when it changed and no longer touches `updated_at`. | `loader-collection.ts`, `series-collection.ts`, `prisma/migrations/20260903120000_series_dependencies`, `schema.prisma` |
+| #   | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Where                                                                                                                   |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| A1  | Batch reload writes durations to `app_logs`: the `loader.batch_reload` row now carries `lockWaitMs`, `elapsedSec`, `failed`, `perDepth[]`; plus one `loader.batch_reload.depth` row per level. `withHeavyDbLock` exposes `ctx.waitMs`.                                                                                                                                                                                                                                                                                        | `batch-reload.ts`, `db-lock.ts`, `series-collection.ts`                                                                 |
+| A2  | `data_sources.updated_at` is stamped only when a reload changed data points (insert, demote, promote, or a clear). `updateData` returns `changed`; `LoaderCollection.updateFields` takes `touchUpdatedAt`. The post-nightly sweep is now incremental for real.                                                                                                                                                                                                                                                                | `loader-collection.ts`, `series-collection.ts`                                                                          |
+| A3  | The reload's `finally` no longer re-SELECTs the loader row (`updateFields` instead of `update`).                                                                                                                                                                                                                                                                                                                                                                                                                              | `loader-collection.ts`                                                                                                  |
+| A4  | Pool: `max` 20 (`DB_POOL_MAX`), `idleTimeout` 300 s (`DB_POOL_IDLE_SEC`).                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `db.ts`                                                                                                                 |
+| B   | `batchReload` runs `RELOAD_CONCURRENCY` (default 4) series at a time within a depth level; a series' own loaders stay sequential. Heartbeat and `yieldPoint` still per group. `ensureFresh` dedups in-flight fetches per download id so two loaders sharing a handle can't race a half-written file on the mount.                                                                                                                                                                                                             | `series-collection.ts`, `download-collection.ts`                                                                        |
+| C   | `WORKER_QUEUES` selects which queues a worker process consumes (default: all). `WORKER_SCHEDULES=0/1` overrides where cron schedules register (default: the process consuming `default`). Upload-row reconciliation runs only where `critical` is consumed.                                                                                                                                                                                                                                                                   | `worker.ts`                                                                                                             |
+| D   | New `series_dependencies` table (loader → dependency _name_, keyed by name across universes as before). Rebuilt atomically by `setAllDependencies` for all universes; maintained on loader create / recompute / delete (best-effort). `assignDependencyDepth` joins it via a temp snapshot instead of the correlated `LIKE`; `getAllDependencies` reads it, falling back to the JSON scan until it has rows. `setAllDependencies` rewrites the `dependencies` column only when it changed and no longer touches `updated_at`. | `loader-collection.ts`, `series-collection.ts`, `prisma/migrations/20260903120000_series_dependencies`, `schema.prisma` |
 
 ### Deploy (in this order)
 
@@ -482,7 +482,7 @@ it comes from rows the app already writes plus two new ones:
 
 - **`app_logs` category `worker`** — one row per finished job from
   `worker.ts` (`completed` / `failed` events): `{queue, jobId, worker,
-  status, waitMs, runMs, rssMB, heapMB, result|err}`. `waitMs` is BullMQ
+status, waitMs, runMs, rssMB, heapMB, result|err}`. `waitMs` is BullMQ
   enqueue → pickup; `runMs` is pickup → finish. This is the backbone.
 - **`app_logs` name `loader.public_sweep`** — one row per universe per
   sweep: `{universe, mode, elapsedSec, updated, inserted, deleted, skipped}`.

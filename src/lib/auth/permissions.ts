@@ -3,7 +3,6 @@ import "server-only";
 import PermissionCollection from "@catalog/collections/permission-collection";
 
 import { AppLogCollection } from "@/core/catalog/collections/app-log-collection";
-
 import { getCurrentUserContext } from "@/lib/auth/dal";
 
 import { enforceAccessPolicy, PermissionDeniedError } from "./authorization";

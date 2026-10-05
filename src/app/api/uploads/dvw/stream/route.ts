@@ -4,10 +4,10 @@ import { dvwUploadConfig } from "@catalog/controllers/dvw-upload";
 import {
   appendStagedChunk,
   createStagedUpload,
-  type DvwStagedMeta,
   removeStagedUpload,
   stagingDir,
   stagingExists,
+  type DvwStagedMeta,
 } from "@catalog/controllers/upload-session-store";
 import type { DvwDimensionRowParsed } from "@catalog/utils/dvw-xlsx-parser";
 import type {
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
 }
 
 async function failUpload(uploadId: number, message: string) {
-  await DvwUploadCollection.updateStatus(uploadId, "fail", message).catch(
-    (e) => log.error({ err: e }, "Failed to mark upload as failed"),
+  await DvwUploadCollection.updateStatus(uploadId, "fail", message).catch((e) =>
+    log.error({ err: e }, "Failed to mark upload as failed"),
   );
   await removeStagedUpload(stagingDir(dvwUploadConfig, uploadId)).catch(
     () => {},

@@ -121,11 +121,7 @@ export async function getLoaderJobStatus(jobId: string): Promise<{
       const state = await job.getState();
       return {
         state: state as
-          | "active"
-          | "waiting"
-          | "completed"
-          | "failed"
-          | "unknown",
+          "active" | "waiting" | "completed" | "failed" | "unknown",
         result: job.returnvalue ? String(job.returnvalue) : undefined,
         failedReason: job.failedReason ?? undefined,
       };

@@ -5,9 +5,9 @@
  * collection on first use to prevent replay.
  */
 
-import { hstToInstant } from "../utils/time";
-
 import { verifyPkceChallenge } from "@/lib/oauth/pkce";
+
+import { hstToInstant } from "../utils/time";
 
 export type OAuthAuthorizationCodeAttrs = {
   id: number;

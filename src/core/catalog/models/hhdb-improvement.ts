@@ -92,7 +92,9 @@ export class HhdbImprovement {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.lastYearObserved =
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null;
     this.buildingNumber = attrs.building_number ?? null;
     this.yearBuilt = attrs.year_built != null ? Number(attrs.year_built) : null;
     // Residential
@@ -202,7 +204,9 @@ export function hhdbImprovementRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     lastYearObserved:
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null,
     buildingNumber: attrs.building_number ?? null,
     yearBuilt: attrs.year_built != null ? Number(attrs.year_built) : null,
     effYearBuilt:

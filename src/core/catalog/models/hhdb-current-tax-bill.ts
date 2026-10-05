@@ -36,7 +36,9 @@ export class HhdbCurrentTaxBill {
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.lastYearObserved =
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null;
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null;
     this.taxPeriod = attrs.tax_period ?? null;
     this.description = attrs.description ?? null;
     this.originalDueDate = attrs.original_due_date
@@ -85,7 +87,9 @@ export function hhdbCurrentTaxBillRowToJSON(
       ? new Date(attrs.scraped_at).toISOString()
       : null,
     lastYearObserved:
-      attrs.last_year_observed != null ? Number(attrs.last_year_observed) : null,
+      attrs.last_year_observed != null
+        ? Number(attrs.last_year_observed)
+        : null,
     taxPeriod: attrs.tax_period ?? null,
     description: attrs.description ?? null,
     originalDueDate: attrs.original_due_date

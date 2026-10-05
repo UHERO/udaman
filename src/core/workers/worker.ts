@@ -145,7 +145,10 @@ const workers = new Map<QueueName, Worker>();
 for (const name of QUEUES) {
   workers.set(
     name,
-    new Worker(name, dispatch, { ...workerOpts, concurrency: CONCURRENCY[name] }),
+    new Worker(name, dispatch, {
+      ...workerOpts,
+      concurrency: CONCURRENCY[name],
+    }),
   );
 }
 

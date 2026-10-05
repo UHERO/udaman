@@ -132,7 +132,9 @@ export async function executeUpload(
     if (!config.skipPublicDataPoints) {
       log.info({ universe }, "Updating public data points");
       // Upload rewrote the whole universe — bypass the incremental watermark.
-      await DataPointCollection.updatePublicDataPoints(universe, { full: true });
+      await DataPointCollection.updatePublicDataPoints(universe, {
+        full: true,
+      });
     }
 
     // Clear cache (non-fatal)

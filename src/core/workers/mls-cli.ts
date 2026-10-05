@@ -77,7 +77,8 @@ function parseArgs(argv: string[]): { command: string; opts: CliOpts } {
     else if (arg === "--sold-only") opts.soldOnly = true;
     else if (arg === "--csv") opts.csv = rest[++i] ?? usage();
     else if (arg === "--pages-dir") opts.pagesDir = rest[++i] ?? usage();
-    else if (arg === "--max-fetches") opts.maxFetches = intArg(arg, rest[++i], 0);
+    else if (arg === "--max-fetches")
+      opts.maxFetches = intArg(arg, rest[++i], 0);
     else if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--refetch") opts.refetch = true;
     else {

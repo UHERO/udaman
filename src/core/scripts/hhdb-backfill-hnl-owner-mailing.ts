@@ -222,14 +222,18 @@ function buildStreetAddress(row: OwnerDatRow): string | null {
   }
   if (row.addrunit) {
     const label = row.unitdesc || "UNIT";
-    street = street ? `${street} ${label} ${row.addrunit}` : `${label} ${row.addrunit}`;
+    street = street
+      ? `${street} ${label} ${row.addrunit}`
+      : `${label} ${row.addrunit}`;
   }
   return street.trim() || null;
 }
 
 function buildZip(row: OwnerDatRow): string | null {
   if (!row.taxbillzip5) return null;
-  return row.taxbillzip4 ? `${row.taxbillzip5}-${row.taxbillzip4}` : row.taxbillzip5;
+  return row.taxbillzip4
+    ? `${row.taxbillzip5}-${row.taxbillzip4}`
+    : row.taxbillzip5;
 }
 
 function synthesizeOwnerAddress(
@@ -276,7 +280,9 @@ type PlannedUpdate = {
 };
 
 async function main() {
-  console.log(`=== HNL owner mailing-address backfill (${EXECUTE ? "EXECUTE" : "DRY RUN"}) ===`);
+  console.log(
+    `=== HNL owner mailing-address backfill (${EXECUTE ? "EXECUTE" : "DRY RUN"}) ===`,
+  );
   console.log(`File: ${FILE_PATH}\n`);
 
   const text = await Bun.file(FILE_PATH).text();
@@ -306,8 +312,17 @@ async function main() {
   let noNameMatch = 0;
 
   const updates: PlannedUpdate[] = [];
-  const unmatchedSamples: Array<{ parid: string; taxbillowner: string; own2: string; candidates: string[] }> = [];
-  const nonFirstSamples: Array<{ parid: string; matchedName: string; candidates: string[] }> = [];
+  const unmatchedSamples: Array<{
+    parid: string;
+    taxbillowner: string;
+    own2: string;
+    candidates: string[];
+  }> = [];
+  const nonFirstSamples: Array<{
+    parid: string;
+    matchedName: string;
+    candidates: string[];
+  }> = [];
 
   for (const row of csvRows) {
     const owners = ownersByKey.get(row.parid);
@@ -321,7 +336,9 @@ async function main() {
     // sides, so token overlap alone can never fire even on an exact string
     // match — check literal normalized equality first as an unambiguous
     // match, then fall back to fuzzy token overlap.
-    function findBestMatch(candidateName: string): { owner: DbOwnerRow; overlap: number } | null {
+    function findBestMatch(
+      candidateName: string,
+    ): { owner: DbOwnerRow; overlap: number } | null {
       const norm = normalize(candidateName);
       if (norm) {
         const exact = owners!.find((o) => normalize(o.owner_name) === norm);
@@ -336,7 +353,8 @@ async function main() {
           (!best ||
             score > best.overlap ||
             (score === best.overlap &&
-              (owner.sequence_order ?? Infinity) < (best.owner.sequence_order ?? Infinity)))
+              (owner.sequence_order ?? Infinity) <
+                (best.owner.sequence_order ?? Infinity)))
         ) {
           best = { owner, overlap: score };
         }
@@ -344,7 +362,11 @@ async function main() {
       return best;
     }
 
-    let best: { owner: DbOwnerRow; overlap: number; via: "taxbillowner" | "own2" } | null = null;
+    let best: {
+      owner: DbOwnerRow;
+      overlap: number;
+      via: "taxbillowner" | "own2";
+    } | null = null;
     const tbMatch = findBestMatch(row.taxbillowner);
     if (tbMatch) best = { ...tbMatch, via: "taxbillowner" };
     if (!best && row.own2) {
@@ -387,7 +409,13 @@ async function main() {
     const state = row.taxbillstate || null;
     const zip = buildZip(row);
     const country = row.taxbillcountry || null;
-    const ownerAddress = synthesizeOwnerAddress(street, city, state, zip, country);
+    const ownerAddress = synthesizeOwnerAddress(
+      street,
+      city,
+      state,
+      zip,
+      country,
+    );
 
     updates.push({
       ownerId: best.owner.id,
@@ -409,7 +437,9 @@ async function main() {
   console.log(`Total OWNERDAT rows: ${csvRows.length}`);
   console.log(`No property/owner rows found for parid: ${noPropertyMatch}`);
   console.log(`Matched to first-listed owner: ${matchedFirst}`);
-  console.log(`Matched to a non-first owner: ${matchedNonFirst} (via own2: ${matchedViaOwn2})`);
+  console.log(
+    `Matched to a non-first owner: ${matchedNonFirst} (via own2: ${matchedViaOwn2})`,
+  );
   console.log(`No name match among candidate owners: ${noNameMatch}`);
   const attempted = csvRows.length - noPropertyMatch;
   const matched = matchedFirst + matchedNonFirst;
@@ -419,7 +449,9 @@ async function main() {
 
   console.log(`=== Sample: matched a non-first owner ===`);
   for (const s of nonFirstSamples) {
-    console.log(`  ${s.parid}: matched "${s.matchedName}" among [${s.candidates.join(" | ")}]`);
+    console.log(
+      `  ${s.parid}: matched "${s.matchedName}" among [${s.candidates.join(" | ")}]`,
+    );
   }
   console.log(`\n=== Sample: no name match ===`);
   for (const s of unmatchedSamples) {
@@ -429,7 +461,9 @@ async function main() {
   }
 
   if (!EXECUTE) {
-    console.log(`\n${updates.length} owner rows would be updated. (dry run — pass --execute to write)`);
+    console.log(
+      `\n${updates.length} owner rows would be updated. (dry run — pass --execute to write)`,
+    );
     process.exit(0);
   }
 

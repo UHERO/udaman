@@ -248,7 +248,9 @@ async function beaPass(): Promise<void> {
           AND date IN ${mysql(falseZeroDates)}
       `;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      totalDeleted += Number((del as any).affectedRows ?? falseZeroDates.length);
+      totalDeleted += Number(
+        (del as any).affectedRows ?? falseZeroDates.length,
+      );
     }
 
     await finalizeLoader(loader, [
@@ -400,7 +402,9 @@ if (DERIVED) {
       console.log(`═══ Derived pass, round ${round} ═══`);
       const deleted = await derivedPass();
       if (deleted === 0) {
-        console.log(`Converged after ${round} round(s) — nothing deleted this round.`);
+        console.log(
+          `Converged after ${round} round(s) — nothing deleted this round.`,
+        );
         break;
       }
       if (round === MAX_ROUNDS) {

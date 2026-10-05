@@ -374,9 +374,7 @@ export function condoUnitRows(
 ): Record<string, unknown>[] {
   for (const key of CONDO_UNIT_SECTIONS) {
     const section = parsed[key] as
-      | { table_data?: unknown[] }
-      | undefined
-      | null;
+      { table_data?: unknown[] } | undefined | null;
     const rows = section?.table_data;
     if (Array.isArray(rows) && rows.length > 0) {
       return rows as Record<string, unknown>[];

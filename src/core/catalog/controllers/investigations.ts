@@ -7,8 +7,8 @@
 import LoaderCollection from "@catalog/collections/loader-collection";
 import ReloadJobCollection from "@catalog/collections/reload-job-collection";
 import type {
-  AdminActionOptions,
   AdminAction,
+  AdminActionOptions,
   EnrichedReloadJob,
 } from "@catalog/collections/reload-job-collection";
 import type { Universe } from "@catalog/types/shared";

@@ -228,8 +228,7 @@ function ScraperInstances({
           <code className="rounded bg-red-100 px-1 py-0.5 text-xs">
             bunx playwright install
           </code>{" "}
-          on{" "}
-          {browserStuck.length === 1 ? "that machine" : "those machines"} and
+          on {browserStuck.length === 1 ? "that machine" : "those machines"} and
           restart the scraper.
         </div>
       )}

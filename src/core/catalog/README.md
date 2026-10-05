@@ -50,7 +50,7 @@ xseries is the parent. Multiple series rows can belong to one xseries. The struc
 xseries (1)
 ├── series A ← primary (xseries.primary_series_id = A.id)
 ├── series B ← alias  
- └── series C ← alias
+└── series C ← alias
 
 - xseries holds the data-level metadata: frequency, seasonal adjustment, base year, factors, restricted/quarantined flags. It also owns the data_points (has_many :data_points). All series sharing an xseries share the same underlying data.
 - series holds the catalog/presentation metadata: name, universe, geography, unit, source, description, decimals. Every series has exactly one xseries_id FK.
@@ -66,13 +66,13 @@ as if they were its own.
 How Series and TimeSeries relate in practice
 
 ┌─────────────────────────────────────┐  
- │ TimeSeries (xseries) │ Owns: data_points, frequency,  
- │ id: 5001 │ SA, base_year, factors, etc.
+│ TimeSeries (xseries) │ Owns: data_points, frequency,  
+│ id: 5001 │ SA, base_year, factors, etc.
 │ frequency: "month" │  
- │ seasonal_adjustment: "not_sa" │
+│ seasonal_adjustment: "not_sa" │
 │ primary_series_id: 42 |  
- └──────────┬──────────────────────────┘  
- │ has many
+└──────────┬──────────────────────────┘  
+│ has many
 ┌──────┴──────────────┐
 │ │
 ┌───┴────┐ ┌────┴───┐

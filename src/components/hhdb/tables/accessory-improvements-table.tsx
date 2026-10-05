@@ -53,7 +53,9 @@ interface AccessoryImprovementsTableProps {
   order: "asc" | "desc";
 }
 
-export function AccessoryImprovementsTable(props: AccessoryImprovementsTableProps) {
+export function AccessoryImprovementsTable(
+  props: AccessoryImprovementsTableProps,
+) {
   return (
     <HhdbDataTable
       columns={columns}

@@ -42,7 +42,10 @@ function hstLocalToIso(local: string): string {
   return new Date(local + ":00-10:00").toISOString();
 }
 
-export function UniverseActions({ name, universes: _universes }: UniverseActionsProps) {
+export function UniverseActions({
+  name,
+  universes: _universes,
+}: UniverseActionsProps) {
   const router = useRouter();
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveTime, setArchiveTime] = useState(defaultHstDatetime);

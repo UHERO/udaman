@@ -277,11 +277,7 @@ export function ForecastSnapshotCharts({
   const oldPctKey =
     calcMode === "yoy" ? "oldYoy" : calcMode === "qoq" ? "oldQoq" : "oldAgr";
   const histPctKey =
-    calcMode === "yoy"
-      ? "histYoy"
-      : calcMode === "qoq"
-        ? "histQoq"
-        : "histAgr";
+    calcMode === "yoy" ? "histYoy" : calcMode === "qoq" ? "histQoq" : "histAgr";
   const calcLabel =
     calcMode === "yoy" ? "YoY %" : calcMode === "qoq" ? "QoQ %" : "AGR %";
 

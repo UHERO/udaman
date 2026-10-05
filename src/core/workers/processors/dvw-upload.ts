@@ -1,22 +1,22 @@
 import {
-  type DvwDimensionMaps,
   dvwUploadConfig,
   dvwUploadHandlers,
   generateDvwDataToc,
   insertDvwDataChunk,
   loadDvwMetadata,
   wipeDvwUniverse,
+  type DvwDimensionMaps,
 } from "@catalog/controllers/dvw-upload";
-import {
-  type DvwStagedMeta,
-  iterStagedChunks,
-  readStagedMeta,
-  removeStagedUpload,
-} from "@catalog/controllers/upload-session-store";
 import {
   executeUpload,
   type UploadHandlers,
 } from "@catalog/controllers/universe-upload";
+import {
+  iterStagedChunks,
+  readStagedMeta,
+  removeStagedUpload,
+  type DvwStagedMeta,
+} from "@catalog/controllers/upload-session-store";
 import type { DvwDataRow } from "@catalog/utils/dvw-xlsx-validator";
 import type { Job } from "bullmq";
 

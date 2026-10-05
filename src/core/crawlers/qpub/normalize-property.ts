@@ -93,8 +93,7 @@ function normalizePropertyClass(parsed: ParsedProperty): void {
   if (!ai) return;
 
   const assessments = (ai.current_assessments ?? ai.assessments) as
-    | Row[]
-    | undefined;
+    Row[] | undefined;
   if (!assessments || assessments.length === 0) return;
 
   // Find the most recent assessment with a property_class value

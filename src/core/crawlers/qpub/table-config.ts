@@ -9,10 +9,7 @@
  */
 
 export type DedupeCategory =
-  | "upsert"
-  | "snapshot"
-  | "year-partitioned"
-  | "accumulative";
+  "upsert" | "snapshot" | "year-partitioned" | "accumulative";
 
 export interface TableConfig {
   category: DedupeCategory;

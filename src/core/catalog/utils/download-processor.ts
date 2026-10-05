@@ -978,7 +978,9 @@ function getCachedSheet(
   // the first month parsed would be served for every later date. Every
   // other spec resolves independently of `date`.
   const monthKey =
-    date && /^sheet_name:m3$/i.test(sheetSpec ?? "") ? `|${date.slice(0, 7)}` : "";
+    date && /^sheet_name:m3$/i.test(sheetSpec ?? "")
+      ? `|${date.slice(0, 7)}`
+      : "";
   const cacheKey = `${filePath}|${sheetSpec ?? ""}${monthKey}`;
 
   // Per-call memo: getData asks for the same sheet once per date, and
@@ -987,7 +989,13 @@ function getCachedSheet(
   // against the file once per loader, not once per date.
   const held = local?.get(cacheKey);
   if (held) return held;
-  const sheet = getCachedSheetGlobal(cacheKey, filePath, fileType, sheetSpec, date);
+  const sheet = getCachedSheetGlobal(
+    cacheKey,
+    filePath,
+    fileType,
+    sheetSpec,
+    date,
+  );
   local?.set(cacheKey, sheet);
   return sheet;
 }

@@ -128,7 +128,8 @@ export async function withHeavyDbLock<T>(
     for (;;) {
       const waitedMs = performance.now() - t0;
       const remainingSec = Math.ceil((budgetMs - waitedMs) / 1000);
-      if (remainingSec <= 0) throw new HeavyDbLockTimeoutError(holder, waitedMs);
+      if (remainingSec <= 0)
+        throw new HeavyDbLockTimeoutError(holder, waitedMs);
 
       const slice = Math.min(WAIT_SLICE_SEC, remainingSec);
       const got = await getLock(HEAVY_DB_LOCK_NAME, slice);
@@ -214,9 +215,7 @@ export async function withHeavyDbLock<T>(
   } finally {
     try {
       if (holdsYieldFlag) {
-        await conn.unsafe("SELECT RELEASE_LOCK(?)", [
-          HEAVY_DB_LOCK_YIELD_NAME,
-        ]);
+        await conn.unsafe("SELECT RELEASE_LOCK(?)", [HEAVY_DB_LOCK_YIELD_NAME]);
       }
       if (acquired) {
         await conn.unsafe("SELECT RELEASE_LOCK(?)", [HEAVY_DB_LOCK_NAME]);

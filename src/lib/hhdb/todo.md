@@ -4,7 +4,7 @@
 
 Confirmed **same server, same database** — canoes and my session both reach `srv=UHEROnas`, `db=hawaii_housing_database`, 600,380 rows. So it is not two databases. The table is untouched: `in_parcel_list` stamped on 0 rows, `parcel_list_version` null, no `repair:`/`enqueued:` strings in `error`, `max(no_results_at)` still 2026-08-13 08:37:54. Not a lock artifact — InnoDB readers don't block on writers. `rawQuery` has no read-only guard and rethrows, so a failed write would have thrown rather than silently no-op'd.
 
-One difference stands out: canoes connects as **`hhdb`**, my session as **`uhero`**. `uhero` has `SELECT, INSERT, UPDATE, DELETE ON hawaii_housing_database.*`. If `hhdb` is SELECT-only, every write in both commands raised error 1142 and the CLI died right after printing its report block — which is exactly where the pasted output stops, since the report prints *before* the `if (!execute)` branch and before any write.
+One difference stands out: canoes connects as **`hhdb`**, my session as **`uhero`**. `uhero` has `SELECT, INSERT, UPDATE, DELETE ON hawaii_housing_database.*`. If `hhdb` is SELECT-only, every write in both commands raised error 1142 and the CLI died right after printing its report block — which is exactly where the pasted output stops, since the report prints _before_ the `if (!execute)` branch and before any write.
 
 Two things to run on canoes:
 

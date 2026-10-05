@@ -624,7 +624,12 @@ class LoaderCollection {
         await tx.unsafe(
           `INSERT IGNORE INTO series_dependencies (data_source_id, series_id, universe, dep_name)
            VALUES ${rows.map(() => "(?, ?, ?, ?)").join(",")}`,
-          rows.flatMap((e) => [e.dataSourceId, e.seriesId, e.universe, e.depName]),
+          rows.flatMap((e) => [
+            e.dataSourceId,
+            e.seriesId,
+            e.universe,
+            e.depName,
+          ]),
         );
       }
     });
@@ -657,7 +662,10 @@ class LoaderCollection {
       });
     } catch (e) {
       log.warn(
-        { loaderId: loader.id, err: e instanceof Error ? e.message : String(e) },
+        {
+          loaderId: loader.id,
+          err: e instanceof Error ? e.message : String(e),
+        },
         "series_dependencies write failed (nightly rebuild will catch up)",
       );
     }

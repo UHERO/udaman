@@ -125,8 +125,7 @@ function countByPeriod(fileMap: Map<string, string>): Record<string, number> {
  * run's 10,246 errors unreadable without re-parsing every file by hand.
  */
 type ParseOutcome =
-  | { ok: true; parsed: ParsedProperty }
-  | { ok: false; status: string };
+  { ok: true; parsed: ParsedProperty } | { ok: false; status: string };
 
 function parseAndWriteJson(tmk: string, filePath: string): ParseOutcome {
   const html = readFileSync(filePath, "utf-8");

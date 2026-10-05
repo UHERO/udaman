@@ -14,8 +14,9 @@ import { mkdir } from "fs/promises";
 import path from "path";
 
 import { hstToday } from "@catalog/utils/time";
-import { rawQuery } from "@/lib/mysql/hhdb";
+
 import { createLogger } from "@/core/observability/logger";
+import { rawQuery } from "@/lib/mysql/hhdb";
 
 import { ALL_DATA_TABLES } from "./qpub-db-sync";
 
@@ -122,9 +123,7 @@ async function dumpTable(
         );
 
     for (const row of chunk) {
-      writer.write(
-        columns.map((c) => csvField(row[c.name])).join(",") + "\n",
-      );
+      writer.write(columns.map((c) => csvField(row[c.name])).join(",") + "\n");
     }
     rows += chunk.length;
 

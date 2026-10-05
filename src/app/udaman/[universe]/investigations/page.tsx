@@ -1,8 +1,8 @@
+import UniverseCollection from "@catalog/collections/universe-collection";
 import {
   getLoadErrors,
   getReloadJobs,
 } from "@catalog/controllers/investigations";
-import UniverseCollection from "@catalog/collections/universe-collection";
 import type { Universe } from "@catalog/types/shared";
 
 import InvestigationsPanel from "@/components/investigations-panel";
