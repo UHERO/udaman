@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-app-env={process.env.NEXT_PUBLIC_APP_ENV ?? process.env.APP_ENV}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
