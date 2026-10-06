@@ -398,6 +398,21 @@ export async function list(opts: RenthubOptions = {}) {
   }));
 }
 
+/**
+ * Rebuild freq_renthub_listings (Summary + Exploration counts) without
+ * reloading: `bun run renthub freq`. load() calls it after writing.
+ */
+export async function refreshFreq(opts: RenthubOptions = {}) {
+  const db = opts.db ?? (opts.local ? (localRawQuery as Db) : (rawQuery as Db));
+  return refreshFreqTables(
+    resilient("renthub", db) as Db,
+    opts.tx ??
+      ((fn) =>
+        (opts.local ? localTransaction : transaction)((q) => fn(q as Db))),
+    [{ table: "renthub_listings", dateColumns: RENTHUB_DATE_COLUMNS }],
+  );
+}
+
 export async function load(opts: RenthubOptions = {}) {
   const db = opts.db ?? (opts.local ? (localRawQuery as Db) : (rawQuery as Db));
   const query = resilient("renthub", db) as Db;
@@ -490,18 +505,7 @@ export async function load(opts: RenthubOptions = {}) {
     results.filter((r) => r.status === s);
 
   // Any batch written → the Summary / Exploration counts are stale: rebuild.
-  const freq =
-    total("loaded").length > 0
-      ? await refreshFreqTables(
-          query,
-          opts.tx ??
-            ((fn) =>
-              (opts.local ? localTransaction : transaction)((q) =>
-                fn(q as Db),
-              )),
-          [{ table: "renthub_listings", dateColumns: RENTHUB_DATE_COLUMNS }],
-        )
-      : null;
+  const freq = total("loaded").length > 0 ? await refreshFreq(opts) : null;
 
   const geocodeTotals = emptyCounts();
   for (const r of results)

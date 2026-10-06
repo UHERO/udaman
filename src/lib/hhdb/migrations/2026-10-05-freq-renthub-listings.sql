@@ -256,3 +256,11 @@ FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`av
 INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
 SELECT '0', 'availability_status', LEFT(COALESCE(CAST(`availability_status` AS CHAR), '[NULL]'), 500), COUNT(*)
 FROM renthub_listings GROUP BY LEFT(CAST(`availability_status` AS CHAR), 500);
+
+-- scraped_at_month
+INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+SELECT LEFT(tmk, 1), 'scraped_at_month', LEFT(COALESCE(CAST(DATE_FORMAT(`scraped_at`, '%Y-%m') AS CHAR), '[NULL]'), 500), COUNT(*)
+FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(DATE_FORMAT(`scraped_at`, '%Y-%m') AS CHAR), 500);
+INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+SELECT '0', 'scraped_at_month', LEFT(COALESCE(CAST(DATE_FORMAT(`scraped_at`, '%Y-%m') AS CHAR), '[NULL]'), 500), COUNT(*)
+FROM renthub_listings GROUP BY LEFT(CAST(DATE_FORMAT(`scraped_at`, '%Y-%m') AS CHAR), 500);

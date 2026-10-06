@@ -420,6 +420,21 @@ export interface FicohOptions {
   tx?: Tx;
 }
 
+/**
+ * Rebuild the insurance freq_ tables (Summary + Exploration counts) without
+ * reloading: `bun run ficoh freq`. load() calls it after writing.
+ */
+export async function refreshFreq(opts: FicohOptions = {}) {
+  const db = opts.db ?? (opts.local ? (localRawQuery as Db) : (rawQuery as Db));
+  const tx: Tx =
+    opts.tx ??
+    ((fn) => (opts.local ? localTransaction : transaction)((q) => fn(q as Db)));
+  return refreshFreqTables(db, tx, [
+    { table: "insurance_policies", dateColumns: FICOH_DATE_COLUMNS },
+    { table: "insurance_claims", dateColumns: FICOH_DATE_COLUMNS },
+  ]);
+}
+
 export async function load(opts: FicohOptions = {}) {
   const file =
     opts.file?.trim() || process.env.FICOH_FILE?.trim() || DEFAULT_FICOH_FILE;
@@ -484,12 +499,7 @@ export async function load(opts: FicohOptions = {}) {
   }
 
   // The Summary / Exploration counts must match what was just loaded.
-  const freq = opts.dryRun
-    ? null
-    : await refreshFreqTables(db, tx, [
-        { table: "insurance_policies", dateColumns: FICOH_DATE_COLUMNS },
-        { table: "insurance_claims", dateColumns: FICOH_DATE_COLUMNS },
-      ]);
+  const freq = opts.dryRun ? null : await refreshFreq(opts);
 
   return {
     target: opts.dryRun ? "none (dry run)" : opts.local ? "local" : "remote",

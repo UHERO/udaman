@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 
 import { getSummaryFieldDefs } from "@/core/catalog/types/hhdb-data-dictionary";
 import {
+  extraFreqColumns,
   freqInsertsInSql,
   freqInsertStatements,
 } from "@/core/catalog/utils/hhdb-freq-sql";
@@ -35,6 +36,11 @@ function insertedColumns(sql: string): { county: string[]; state: string[] } {
 const summaryColumns = (getSummaryFieldDefs("renthub_listings") ?? []).map(
   (f) => f.column,
 );
+/** Every column_name the freq SQL counts: Summary fields + month counts. */
+const freqColumns = [
+  ...summaryColumns,
+  ...extraFreqColumns("renthub_listings"),
+];
 const dateColumns = RENTHUB_COLUMNS.filter(
   (c) => (c.kind === "date" || c.kind === "datetime") && c.summary,
 ).map((c) => c.column);
@@ -59,8 +65,8 @@ describe("freq_renthub_listings mirrors the other freq_ tables", () => {
       // If this fails you toggled `summary` on a RENTHUB_COLUMNS spec or a
       // renthub_listings dictionary entry: regenerate the two INSERTs for it
       // in BOTH sql files.
-      expect(county).toEqual(summaryColumns);
-      expect(state).toEqual(summaryColumns);
+      expect(county).toEqual(freqColumns);
+      expect(state).toEqual(freqColumns);
     });
 
     test(`${name}: INSERTs are exactly what the loader runs after a load`, () => {
@@ -75,7 +81,7 @@ describe("freq_renthub_listings mirrors the other freq_ tables", () => {
       const countyInserts = sql.match(
         /SELECT LEFT\(tmk, 1\), '[a-z_0-9]+',[^;]*FROM renthub_listings[^;]*;/g,
       );
-      expect(countyInserts?.length).toBe(summaryColumns.length);
+      expect(countyInserts?.length).toBe(freqColumns.length);
       for (const stmt of countyInserts ?? [])
         expect(stmt).toContain("WHERE tmk IS NOT NULL");
     });
@@ -84,7 +90,7 @@ describe("freq_renthub_listings mirrors the other freq_ tables", () => {
       const stmts = sql.match(
         /SELECT (?:LEFT\(tmk, 1\)|'0'), '([a-z_0-9]+)',[^;]*FROM renthub_listings[^;]*;/g,
       );
-      expect(stmts?.length).toBe(summaryColumns.length * 2);
+      expect(stmts?.length).toBe(freqColumns.length * 2);
       for (const stmt of stmts ?? []) {
         const col = stmt.match(/, '([a-z_0-9]+)',/)![1];
         const byYear = stmt.includes(`CAST(YEAR(\`${col}\`) AS CHAR)`);

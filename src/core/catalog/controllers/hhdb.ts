@@ -8,7 +8,9 @@ import HhdbCommercialDetailCollection from "../collections/hhdb-commercial-detai
 import HhdbCondoCollection from "../collections/hhdb-condo-collection";
 import HhdbCoverageCollection, {
   isCoverageTable,
+  MATCH_COLUMNS,
   type CoverageResult,
+  type MatchBreakdownResult,
 } from "../collections/hhdb-coverage-collection";
 import HhdbCurrentTaxBillCollection from "../collections/hhdb-current-tax-bill-collection";
 import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
@@ -51,6 +53,7 @@ import type {
   TemporalDrilldown,
   TextDrilldown,
 } from "../types/hhdb";
+import type { MatchColumn } from "../types/hhdb-coverage";
 import { getQueryBuilderSchema as buildQueryBuilderSchema } from "../utils/hhdb-query-builder/schema";
 import type { QuerySchema, QuerySpec } from "../utils/hhdb-query-builder/spec";
 
@@ -407,12 +410,24 @@ export async function getInsuranceClaimsJSON(params: HhdbListParams) {
   return HhdbSpecTableCollection.listJSON(INSURANCE_CLAIMS_LIST, params);
 }
 
-export async function getCoverageByYear(
+export async function getCoverageByPeriod(
   table: string,
 ): Promise<CoverageResult> {
   if (!isCoverageTable(table))
     throw new Error(`No coverage chart for ${table}`);
-  return HhdbCoverageCollection.byYear(table);
+  return HhdbCoverageCollection.byPeriod(table);
+}
+
+export async function getMatchBreakdown(
+  table: string,
+  column: string,
+): Promise<MatchBreakdownResult> {
+  if (
+    !isCoverageTable(table) ||
+    !(MATCH_COLUMNS[table] as readonly string[]).includes(column)
+  )
+    throw new Error(`No match breakdown for ${table}.${column}`);
+  return HhdbCoverageCollection.matchBreakdown(table, column as MatchColumn);
 }
 
 // --- Dashboard & Factor (no model instantiation, unchanged) ---

@@ -8,7 +8,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Legend, XAxis, YAxis } from "recharts";
 
-import { getHhdbCoverageByYear } from "@/actions/hhdb";
+import { getHhdbCoverageByPeriod } from "@/actions/hhdb";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -49,7 +49,14 @@ const chartConfig = {
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
-interface CoverageByYearChartProps {
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+/** "2024-03" → "Mar 2024"; a year stays as is. */
+const periodLabel = (p: string) =>
+  /^\d{4}-\d{2}$/.test(p)
+    ? `${MONTHS[Number(p.slice(5)) - 1]} ${p.slice(0, 4)}`
+    : p;
+
+interface CoverageChartProps {
   /** freq_ table base name, e.g. "insurance_policies". */
   table: string;
   title: string;
@@ -58,17 +65,17 @@ interface CoverageByYearChartProps {
   note?: string;
 }
 
-export function CoverageByYearChart({
+export function CoverageChart({
   table,
   title,
   description,
   note,
-}: CoverageByYearChartProps) {
+}: CoverageChartProps) {
   const [data, setData] = useState<CoverageResult | null>(null);
   const [showTable, setShowTable] = useState(false);
 
   useEffect(() => {
-    getHhdbCoverageByYear(table).then(setData);
+    getHhdbCoverageByPeriod(table).then(setData);
   }, [table]);
 
   const rows = data?.rows ?? [];
@@ -105,7 +112,9 @@ export function CoverageByYearChart({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Year</TableHead>
+                <TableHead>
+                  {data.granularity === "month" ? "Month" : "Year"}
+                </TableHead>
                 {COVERAGE_SERIES.map((s) => (
                   <TableHead key={s} className="text-right">
                     {chartConfig[s].label}
@@ -116,8 +125,8 @@ export function CoverageByYearChart({
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
-                <TableRow key={r.year}>
-                  <TableCell>{r.year}</TableCell>
+                <TableRow key={r.period}>
+                  <TableCell>{periodLabel(r.period)}</TableCell>
                   {COVERAGE_SERIES.map((s) => (
                     <TableCell key={s} className="text-right tabular-nums">
                       {fmt(r[s])}
@@ -134,7 +143,18 @@ export function CoverageByYearChart({
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
             <AreaChart data={rows} margin={{ left: 8, right: 8, top: 8 }}>
               <CartesianGrid vertical={false} strokeOpacity={0.4} />
-              <XAxis dataKey="year" tickLine={false} axisLine={false} />
+              <XAxis
+                dataKey="period"
+                tickLine={false}
+                axisLine={false}
+                // Monthly: one tick per January, labelled with the year.
+                ticks={
+                  data.granularity === "month"
+                    ? rows.map((r) => r.period).filter((p) => p.endsWith("-01"))
+                    : undefined
+                }
+                tickFormatter={(p: string) => p.slice(0, 4)}
+              />
               <YAxis
                 tickLine={false}
                 axisLine={false}
@@ -147,10 +167,10 @@ export function CoverageByYearChart({
                 content={
                   <ChartTooltipContent
                     indicator="line"
-                    labelFormatter={(year, payload) => {
+                    labelFormatter={(period, payload) => {
                       const r = payload?.[0]?.payload as
                         { total?: number } | undefined;
-                      return `${year} · ${fmt(r?.total ?? 0)} records`;
+                      return `${periodLabel(String(period))} · ${fmt(r?.total ?? 0)} records`;
                     }}
                     formatter={(value, name) => (
                       <div className="flex w-full justify-between gap-4">

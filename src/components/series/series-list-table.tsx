@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { SeriesSummary } from "@catalog/types";
@@ -9,8 +10,11 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
+  SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
 import {
   Table,
@@ -37,11 +41,20 @@ const Restricted = () => (
   </span>
 );
 
+// Nullable columns map null → undefined so `sortUndefined: "last"` keeps
+// empty cells at the bottom in both sort directions.
+const nullsLast = <K extends keyof SeriesSummary>(key: K) => ({
+  id: key,
+  accessorFn: (row: SeriesSummary) => row[key] ?? undefined,
+  sortUndefined: "last" as const,
+});
+
 export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
   const { universe } = useParams();
   const columns: ColumnDef<SeriesSummary>[] = [
     {
       accessorKey: "name",
+      sortingFn: "alphanumeric",
       header: () => (
         <>
           <span>Name</span>{" "}
@@ -59,6 +72,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
     },
     {
       accessorKey: "seasonalAdjustment",
+      sortingFn: "text",
       header: "SA",
       cell: ({ row }) => {
         const sa = row.getValue("seasonalAdjustment");
@@ -66,16 +80,19 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
       },
     },
     {
-      accessorKey: "portalName",
+      ...nullsLast("portalName"),
+      sortingFn: "text",
       header: "Portal Name",
     },
     {
-      accessorKey: "unitShortLabel",
+      ...nullsLast("unitShortLabel"),
+      sortingFn: "text",
       header: "Units",
       cell: ({ row }) => row.getValue("unitShortLabel") ?? "-",
     },
     {
-      accessorKey: "minDate",
+      ...nullsLast("minDate"),
+      sortingFn: "datetime",
       header: "First",
       cell: ({ row }) => {
         const date = row.getValue<Date | null>("minDate");
@@ -83,7 +100,8 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
       },
     },
     {
-      accessorKey: "maxDate",
+      ...nullsLast("maxDate"),
+      sortingFn: "datetime",
       header: "Last",
       cell: ({ row }) => {
         const date = row.getValue<Date | null>("maxDate");
@@ -91,7 +109,8 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
       },
     },
     {
-      accessorKey: "sourceDescription",
+      ...nullsLast("sourceDescription"),
+      sortingFn: "text",
       header: "Source",
       cell: ({ row }) => {
         const desc = row.getValue("sourceDescription");
@@ -107,10 +126,18 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
     },
   ];
 
+  const [sorting, setSorting] = useState<SortingState>([]);
+
   const table = useReactTable({
     data,
     columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    // Click cycles asc → desc → asc; never back to unsorted.
+    sortDescFirst: false,
+    enableSortingRemoval: false,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
 
   return (
@@ -120,14 +147,37 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
+                const sorted = header.column.getIsSorted();
                 return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
+                  <TableHead
+                    key={header.id}
+                    aria-sort={
+                      sorted === "asc"
+                        ? "ascending"
+                        : sorted === "desc"
+                          ? "descending"
+                          : undefined
+                    }
+                  >
+                    {header.isPlaceholder ? null : (
+                      <button
+                        type="button"
+                        className="flex cursor-pointer items-center gap-1 select-none"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
+                        {sorted === "asc" ? (
+                          <ArrowUp className="size-3" />
+                        ) : sorted === "desc" ? (
+                          <ArrowDown className="size-3" />
+                        ) : (
+                          <ArrowUpDown className="text-muted-foreground size-3" />
+                        )}
+                      </button>
+                    )}
                   </TableHead>
                 );
               })}

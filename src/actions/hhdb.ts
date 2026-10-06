@@ -12,7 +12,7 @@ import {
   getCondoAreaByYearBuilt as getCondoAreaCtrl,
   getCondoProjectsJSON as getCondoProjectsCtrl,
   getCondoUnitsJSON as getCondoUnitsCtrl,
-  getCoverageByYear as getCoverageByYearCtrl,
+  getCoverageByPeriod as getCoverageByPeriodCtrl,
   getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
   getDedicationsJSON as getDedicationsCtrl,
   getFreqSummary as getFreqSummaryCtrl,
@@ -25,6 +25,7 @@ import {
   getInsuranceClaimsJSON as getInsuranceClaimsCtrl,
   getInsurancePoliciesJSON as getInsurancePoliciesCtrl,
   getLandClassificationsJSON as getLandClassificationsCtrl,
+  getMatchBreakdown as getMatchBreakdownCtrl,
   getMedianAssessedByClass as getMedianAssessedCtrl,
   getMedianSalePriceByIsland as getMedianSalePriceCtrl,
   getMlsExploration as getMlsExplorationCtrl,
@@ -263,9 +264,14 @@ export async function getHhdbInsuranceClaims(params: HhdbListParams) {
   return getInsuranceClaimsCtrl(params);
 }
 
-export async function getHhdbCoverageByYear(table: string) {
+export async function getHhdbCoverageByPeriod(table: string) {
   await requirePermission("hhdb", "read");
-  return getCoverageByYearCtrl(table);
+  return getCoverageByPeriodCtrl(table);
+}
+
+export async function getHhdbMatchBreakdown(table: string, column: string) {
+  await requirePermission("hhdb", "read");
+  return getMatchBreakdownCtrl(table, column);
 }
 
 export async function getHhdbFreqSummary(

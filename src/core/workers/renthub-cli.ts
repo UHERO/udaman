@@ -1,4 +1,4 @@
-import { list, load } from "@/core/crawlers/renthub/load";
+import { list, load, refreshFreq } from "@/core/crawlers/renthub/load";
 import type { RenthubOptions } from "@/core/crawlers/renthub/load";
 import { createLogger } from "@/core/observability/logger";
 
@@ -22,6 +22,8 @@ Commands:
   load          Load every delivery not yet recorded in renthub_loads (or
                 whose file size changed). Rerun after a new delivery lands;
                 rerun with --force after the parcel layer or properties change.
+  freq          Rebuild freq_renthub_listings (Summary / Exploration counts)
+                from the loaded rows, without reloading. load runs this itself.
 
 Options:
   --dry-run        Parse, validate and geocode every HI file, write nothing
@@ -108,6 +110,8 @@ async function main() {
     console.table(await list(opts));
   } else if (command === "load") {
     console.log(JSON.stringify(await load(opts), null, 2));
+  } else if (command === "freq") {
+    console.log(JSON.stringify(await refreshFreq(opts), null, 2));
   } else {
     usage();
   }

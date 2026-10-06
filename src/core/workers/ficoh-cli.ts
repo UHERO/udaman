@@ -1,4 +1,4 @@
-import { load } from "@/core/crawlers/ficoh/load";
+import { load, refreshFreq } from "@/core/crawlers/ficoh/load";
 import type { FicohOptions } from "@/core/crawlers/ficoh/load";
 import { createLogger } from "@/core/observability/logger";
 
@@ -9,7 +9,10 @@ const log = createLogger("ficoh-cli");
 
 function usage(): never {
   console.log(`
-Usage: bun run ficoh load [options]
+Usage: bun run ficoh load|freq [options]
+
+  freq   Rebuild the insurance freq_ tables (Summary / Exploration counts)
+         from the loaded rows, without reloading. load runs this itself.
 
 Load the FICOH homeowners policy / claim workbook into insurance_policies and
 insurance_claims, REPLACING both tables in one transaction. Each row is
@@ -59,8 +62,11 @@ function parseArgs(argv: string[]): { command: string; opts: FicohOptions } {
 
 async function main() {
   const { command, opts } = parseArgs(process.argv.slice(2));
-  if (command !== "load") usage();
-  console.log(JSON.stringify(await load(opts), null, 2));
+  if (command === "load")
+    console.log(JSON.stringify(await load(opts), null, 2));
+  else if (command === "freq")
+    console.log(JSON.stringify(await refreshFreq(opts), null, 2));
+  else usage();
 }
 
 function reportFatal(label: string, err: unknown): never {
