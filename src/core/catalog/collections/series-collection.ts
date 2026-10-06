@@ -1298,7 +1298,8 @@ class SeriesCollection {
    *                   depends on a matched series; requires another term
    *   {PATTERN      — dataPortalName regex
    *   }PATTERN      — description regex
-   *   firstOP DATE  — filter by MIN observation date (e.g. first>=2020-01-01)
+   *   firstOP DATE  — filter by MIN observation date; OP is <, <=, >, >=, or =
+   *                   (e.g. first>=2020-01-01, last=2024-12-01)
    *   lastOP DATE   — filter by MAX observation date
    *   123 or 1,2,3  — direct series-ID lookup
    *   (default)     — regex against name prefix | portalName | description
@@ -1320,6 +1321,10 @@ class SeriesCollection {
     const joins = ["INNER JOIN xseries ON xseries.id = series.xseries_id"];
     const conditions: string[] = [];
     const variables: (string | number | Date)[] = [];
+    // first/last date terms hit data_points, so they're kept separate and
+    // appended after every cheap series/xseries filter (see below).
+    const dateConditions: string[] = [];
+    const dateVariables: string[] = [];
     let univ: string | null = universe as string;
     let includeDeps = false;
 
@@ -1535,7 +1540,7 @@ class SeriesCollection {
 
       // Numeric: series ID(s)
       if (/^\d+\b/.test(term)) {
-        if (conditions.length > 0) {
+        if (conditions.length + dateConditions.length > 0) {
           // Already have other conditions — treat as text search instead
           conditions.push(
             `concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) ${negated}regexp ?`,
@@ -1551,15 +1556,18 @@ class SeriesCollection {
         break;
       }
 
-      // Date range: first>=2020-01-01, last<2023-06-30, etc.
-      const dateMatch = term.match(/^(first|last)([<>]=?)(.*)/);
+      // Date range: first>=2020-01-01, last<2023-06-30, last=2024-12-01, etc.
+      const dateMatch = term.match(/^(first|last)([<>]=?|=)(.*)/);
       if (dateMatch) {
         if (negated) throw new Error("Cannot negate date range search terms");
         const aggFunc = dateMatch[1] === "first" ? "MIN" : "MAX";
-        conditions.push(
-          `xseries.id IN (SELECT dp.xseries_id FROM data_points dp WHERE dp.current = 1 AND dp.value IS NOT NULL GROUP BY dp.xseries_id HAVING ${aggFunc}(dp.date) ${dateMatch[2]} ?)`,
+        // Correlated per-xseries lookup (uses dp_xdc_uac) rather than an
+        // uncorrelated IN (… GROUP BY … HAVING), which MariaDB materializes
+        // over every current data point regardless of the other filters.
+        dateConditions.push(
+          `(SELECT ${aggFunc}(dp.date) FROM data_points dp WHERE dp.xseries_id = xseries.id AND dp.current = 1 AND dp.value IS NOT NULL) ${dateMatch[2]} ?`,
         );
-        variables.push(dateMatch[3]);
+        dateVariables.push(dateMatch[3]);
         continue;
       }
 
@@ -1584,7 +1592,7 @@ class SeriesCollection {
 
     // `&deps` on its own would expand "everything" to "everything" — refuse
     // rather than silently return the whole universe.
-    if (includeDeps && conditions.length === 0) {
+    if (includeDeps && conditions.length + dateConditions.length === 0) {
       throw new Error("&deps requires at least one other search term");
     }
 
@@ -1593,6 +1601,12 @@ class SeriesCollection {
       conditions.push("series.universe = ?");
       variables.push(univ);
     }
+
+    // Date terms last: MariaDB evaluates a table's attached conditions in
+    // WHERE order, so the per-series data_points subquery only runs for rows
+    // that survived the name/freq/geo/universe filters.
+    conditions.push(...dateConditions);
+    variables.push(...dateVariables);
 
     const SELECT_COLS = [
       `SELECT DISTINCT`,
