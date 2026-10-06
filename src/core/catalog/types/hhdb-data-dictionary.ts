@@ -195,7 +195,7 @@ const RENTHUB_LISTINGS_FIELDS: DictionaryField[] = [
     key: "tmk",
     label: "TMK",
     description:
-      "Parcel the listing was geocoded to, same format as the qPublic tables. Parcel level only (CPR always 0000): a condo rental resolves to its building's parcel, never its unit. How it was found is in tmk_match.",
+      "Imputed — RentHub supplies no parcel. The parcel the listing was geocoded to (see tmk_match), narrowed to the condo unit's own CPR TMK when the listing address names one (see cpr_match); otherwise parcel-level (CPR 0000). Same format as the qPublic tables, so condo units with cpr_match set join to properties / owners on tmk.",
   },
   {
     key: "tmk_match",
@@ -216,6 +216,13 @@ const RENTHUB_LISTINGS_FIELDS: DictionaryField[] = [
     label: "TMK Address",
     description:
       "The qPublic site address the listing's address matched (address-based matches only), for checking fuzzy and far matches.",
+  },
+  {
+    key: "cpr_match",
+    label: "Unit (CPR) Match",
+    description:
+      "How tmk was narrowed from the parcel to one condo unit (CPR): unit (the listing's unit number is a unit on the parcel), unit_variant (a spelling of it, e.g. K1142 → 1142, PH8 → 8), house_address (no unit given, but on a CPR'd lot of houses the address belongs to one unit). NULL = tmk is parcel-level: not a condo parcel, or the listing gives only the building's address. Checked against RentHub's own unit_id: listings of the same unit land on the same CPR 99.8%+ of the time.",
+    summary: ALL_VIEWS,
   },
   {
     key: "coord_decimals",
@@ -2232,7 +2239,7 @@ export const HHDB_TABLE_DOCS: Record<string, string> = {
   mls_listings:
     "Residential MLS listings scraped daily from HiCentral, the Honolulu Board of REALTORS public property search — not a qPublic table. One row per listing, keyed by (mls_board, mls_number) and updated in place as status and price change; each change is recorded in mls_listing_history. Coverage is strongest for Oahu and thin for the neighbor islands. The initial backfill reaches back only to roughly 2024, because the site caps any one search at about 9,980 results. tmk uses the same format as the qPublic tables, so listings join to properties/parcels. first_seen_at / last_seen_at are our observation times, not MLS dates — use list_date and date_sold for market timing. County columns here are derived from the TMK's leading digit, so listings without a TMK count toward the State total only.",
   renthub_listings:
-    "Rental listings from RentHub's scrape of listing sites (Zillow and others) — not a qPublic table. Only the vendor's Hawaii file is loaded, from every delivery since 2014. One row per scraped listing record: the same unit listed again, or still listed in a later scrape, appears again under a new id, so count distinct unit_id (2023-07-28 on) or address for unit-level questions. TMK IS IMPUTED: unlike the qPublic tables, whose TMK comes from a parcel number, RentHub gives only a point and an address; tmk is our geocode (the parcel the point falls in, corrected by address matching), parcel level only (CPR 0000). ~98% of rows have one, ~83% confirmed by address; tmk_match says how each was found — filter on it. Coverage before 2022 is thin (tens to a few thousand rows a year for 2018–2021). scraped_at and available_at are the vendor's clock, not Hawaii time. County columns are the TMK's leading digit; listings with no TMK count toward the State total only.",
+    "Rental listings from RentHub's scrape of listing sites (Zillow and others) — not a qPublic table. Only the vendor's Hawaii file is loaded, from every delivery since 2014. One row per scraped listing record: the same unit listed again, or still listed in a later scrape, appears again under a new id, so count distinct unit_id (2023-07-28 on) or address for unit-level questions. TMK IS IMPUTED: unlike the qPublic tables, whose TMK comes from a parcel number, RentHub gives only a point and an address; tmk is our geocode: the parcel the point falls in, corrected by address matching (~98% of rows have one, ~83% confirmed by address; tmk_match says how), then narrowed to the condo unit's CPR when the listing address names one (cpr_match, ~18% of rows) — those rows join to properties / owners on tmk. Listings that give only a building's address stay parcel-level. Coverage before 2022 is thin (tens to a few thousand rows a year for 2018–2021). scraped_at and available_at are the vendor's clock, not Hawaii time. County columns are the TMK's leading digit; listings with no TMK count toward the State total only.",
   insurance_policies:
     "FICOH homeowners insurance policies, 2018-01 to 2025-06 effective dates — not a qPublic table. RESTRICTED: approved researchers only, and results may be reported only in aggregate (FICOH data guidelines). One row per policy term per insured location: a policy covering several properties has several rows with the same number and term (location_no). Renewals get a new number; policy_base links them for numbers from 2020 on. TMK IS IMPUTED: unlike the qPublic tables, whose TMK comes from a parcel number, FICOH gives only a street address; tmk is our match of it to qPublic site addresses (CPR-level for matched condo units, parcel-level otherwise; ~93% of policies have one). tmk_match says how each was found. Construction and company codes come without a decode. County columns are the TMK's leading digit; policies without a TMK count toward the State total only.",
   insurance_claims:

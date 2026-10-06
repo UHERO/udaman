@@ -182,10 +182,46 @@ export function parcelOf(tmk: string): string | null {
 /** house number → street key → parcel TMK → one qPublic address seen there. */
 type Streets = Map<string, Map<string, string>>;
 
+/** How a listing was matched to one condo unit (CPR) on its parcel. */
+export type CprMatch = "unit" | "unit_variant" | "house_address";
+
+export interface CprHit {
+  /** properties.tmk of the unit, as stored (CPR-level). */
+  tmk: string;
+  /** That unit's qPublic site address. */
+  address: string;
+  match: CprMatch;
+}
+
+/** The CPR (unit-level) rows of one condo parcel, by unit and by house. */
+interface ParcelCprs {
+  units: Map<string, Map<string, string>>;
+  houses: Map<string, Map<string, string>>;
+}
+
+/**
+ * Spellings of a unit number to retry when the unit itself is not found:
+ * a tower / room prefix ("k1142", "rm516" → "1142", "516"), a trailing letter
+ * ("1404a" → "1404"), and penthouse ("ph8" → "8").
+ */
+export function unitVariants(unit: string): string[] {
+  return [
+    ...new Set([
+      unit.replace(/^[a-z]+(?=\d)/, ""),
+      unit.replace(/(?<=\d)[a-z]+$/, ""),
+      unit.replace(/^ph/, ""),
+    ]),
+  ].filter((v) => v && v !== unit);
+}
+
+const houseKey = (k: AddressKey) => `${k.num}|${k.street}|${k.lot ?? ""}`;
+
 export class AddressIndex {
   private readonly byNum = new Map<string, Streets>();
   /** "num|street|unit" → full (CPR-level) properties.tmk → its address. */
   private readonly units = new Map<string, Map<string, string>>();
+  /** Parcel TMK → its CPR rows (properties.tmk not ending -0000). */
+  private readonly cprs = new Map<string, ParcelCprs>();
   private count = 0;
 
   /** Distinct (number, street, parcel) entries. */
@@ -205,13 +241,55 @@ export class AddressIndex {
       parcels.set(parcel, address.trim());
       this.count++;
     }
+    const tmk = propertyTmk.trim();
     if (key.unit) {
       const k = `${key.num}|${key.street}|${key.unit}`;
       let cprs = this.units.get(k);
       if (!cprs) this.units.set(k, (cprs = new Map()));
-      cprs.set(propertyTmk.trim(), address.trim());
+      cprs.set(tmk, address.trim());
+    }
+    if (!tmk.endsWith("-0000")) {
+      let p = this.cprs.get(parcel);
+      if (!p)
+        this.cprs.set(parcel, (p = { units: new Map(), houses: new Map() }));
+      const put = (m: Map<string, Map<string, string>>, k: string) => {
+        let at = m.get(k);
+        if (!at) m.set(k, (at = new Map()));
+        at.set(tmk, address.trim());
+      };
+      if (key.unit) put(p.units, key.unit);
+      put(p.houses, houseKey(key));
     }
     return true;
+  }
+
+  /**
+   * The one condo unit (CPR) on `parcel` this address names, if exactly one:
+   *   unit           the listing's unit number is a unit on the parcel
+   *   unit_variant   a spelling of it is ("K1142" → 1142, "PH8" → 8)
+   *   house_address  no unit given, but on a CPR'd lot of houses the
+   *                  address itself belongs to one unit ("87-2131 PAKEKE ST")
+   * Only the parcel already matched is searched, and two or more candidates
+   * is no match: the same unit number in two buildings, or a building
+   * address shared by every unit.
+   */
+  matchCpr(parcel: string, key: AddressKey): CprHit | null {
+    const p = this.cprs.get(parcel);
+    if (!p) return null;
+    const only = (m: Map<string, string> | undefined, match: CprMatch) => {
+      if (m?.size !== 1) return null;
+      const [[tmk, address]] = m;
+      return { tmk, address, match };
+    };
+    if (key.unit) {
+      const exact = p.units.get(key.unit);
+      if (exact) return only(exact, "unit");
+      const hits = new Map<string, string>();
+      for (const v of unitVariants(key.unit))
+        for (const [tmk, addr] of p.units.get(v) ?? []) hits.set(tmk, addr);
+      return only(hits, "unit_variant");
+    }
+    return only(p.houses.get(houseKey(key)), "house_address");
   }
 
   /**

@@ -24,13 +24,13 @@ export interface HhdbTableConfig {
  * geocode. Figures are from the full loads (October 2026).
  */
 const RENTHUB_TMK_WARNING =
-  "TMK is imputed, not supplied. RentHub gives a map point and a street address, not a parcel: tmk is our geocode — the parcel the point falls in, corrected by matching the listing address to qPublic site addresses. About 98% of rows have a TMK, but only ~83% are confirmed by address (tmk_match = within_addr or address); within (~14%) rests on the point alone (right ~90% of the time in spot checks), and fuzzy / address_far are inferred. TMKs are parcel-level only (CPR always 0000): a condo rental resolves to its building, never its unit. Filter on tmk_match to suit your analysis. County columns on the Summary tab count only rows with a TMK; the rest are in the State total.";
+  "TMK is imputed, not supplied. RentHub gives a map point and a street address, not a parcel. About 98% of rows have been matched to a TMK via a spatial join on Rent Hub's lat & lon coordinates and address matching. ~83% are confirmed by coords & address and ~14% by only coords. Where the listing address names a condo unit, tmk is that unit's CPR TMK (cpr_match is set, ~18% of rows) and joins to properties / owners; listings that give only a building's address stay at the parcel level (CPR 0000).";
 
 const FICOH_TMK_WARNING =
-  "TMK is imputed, not supplied: FICOH gives a street address only (no parcel, no coordinates), and tmk is our match of that address to qPublic site addresses in the ZIP's county. tmk_match = unit is a condo unit matched to its own qPublic record — the only rows with a unit-level (CPR) TMK; address is the parcel (CPR 0000) carrying that exact address; fuzzy allows a misspelled street. Rows whose address is missing, not in qPublic, or shared by several parcels have no TMK. County columns on the Summary tab count only rows with a TMK; the rest are in the State total.";
+  "TMK is imputed, not supplied: FICOH gives a street address only (no parcel, no coordinates). We assign TMK by matching on zip and then street address. Majority records find match this way, but be aware that this is the least reliable TMK field.";
 
 const FICOH_RESTRICTED =
-  "Restricted data: FICOH policies and claims are for approved researchers only, and results may be reported only in aggregate. ";
+  "Restricted data: FICOH policies and claims data require explicit data agreement and approval prior to any public access. ";
 
 export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
   properties: {

@@ -25,7 +25,7 @@ import { createLogger } from "@/core/observability/logger";
 import { rawQuery, transaction } from "@/lib/mysql/hhdb";
 import { localRawQuery, localTransaction } from "@/lib/mysql/hhdb-local";
 
-import { AddressIndex, type Db } from "../address";
+import { AddressIndex, normalizeAddress, type Db } from "../address";
 import { parseCsv } from "../csv";
 import { refreshFreqTables, type Tx } from "../freq-refresh";
 import { resilient } from "../mls/db-retry";
@@ -111,7 +111,10 @@ export interface RenthubBatchResult {
   batch: string;
   file: string;
   status: "loaded" | "skipped" | "parsed";
+  /** Rows in the file. */
   rows: number;
+  /** Mainland strays dropped (isMainlandStray). */
+  dropped?: number;
   geocode?: GeocodeCounts;
   /** MySQL affectedRows summed: 1 per insert, 2 per changed update, 0 unchanged. */
   affectedRows?: number;
@@ -186,21 +189,56 @@ const RENTHUB_DATE_COLUMNS: ReadonlySet<string> = new Set(
   ),
 );
 
-export type GeocodeCounts = Record<TmkMatch | "unmatched", number>;
+const CPR_COUNTS = [
+  "cpr_unit",
+  "cpr_unit_variant",
+  "cpr_house_address",
+] as const;
+
+/**
+ * Parcel outcomes (one per row), plus how many of those rows were then
+ * narrowed to a condo unit (cpr_*).
+ */
+export type GeocodeCounts = Record<
+  TmkMatch | "unmatched" | (typeof CPR_COUNTS)[number],
+  number
+>;
 
 const emptyCounts = (): GeocodeCounts =>
   Object.fromEntries(
-    [...TMK_MATCHES, "unmatched"].map((k) => [k, 0]),
+    [...TMK_MATCHES, "unmatched", ...CPR_COUNTS].map((k) => [k, 0]),
   ) as GeocodeCounts;
 
+/** Rows narrowed to a condo unit. */
+export const cprTotal = (c: GeocodeCounts) =>
+  c.cpr_unit + c.cpr_unit_variant + c.cpr_house_address;
+
+const ID = colIndex("id");
+const ZIP = colIndex("zip");
 const LAT = colIndex("latitude");
 const LON = colIndex("longitude");
 const TMK = colIndex("tmk");
 const TMK_MATCH = colIndex("tmk_match");
 const TMK_DISTANCE = colIndex("tmk_distance_m");
 const TMK_ADDRESS = colIndex("tmk_address");
+const CPR_MATCH = colIndex("cpr_match");
 const ADDRESS = colIndex("address");
 const COORD_DECIMALS = colIndex("coord_decimals");
+
+/**
+ * A listing that is not in Hawaii: geocoded outside the islands AND without a
+ * Hawaii ZIP. In the 2014–2026 deliveries that is 150 rows — 121 Las Vegas /
+ * Henderson / North Las Vegas listings (building type "RNT", 2017–2018) and
+ * 29 others in OH, CA, FL, IA, AZ, GA. A Honolulu listing with a bad point
+ * keeps its 96xxx ZIP and stays.
+ */
+export function isMainlandStray(row: SqlValue[]): boolean {
+  if (row[LAT] === null || row[LON] === null) return false;
+  const lat = Number(row[LAT]);
+  const lon = Number(row[LON]);
+  const inHawaii = lat > 18.5 && lat < 22.5 && lon > -160.6 && lon < -154.5;
+  return !inHawaii && !/^96[78]/.test(String(row[ZIP] ?? ""));
+}
 
 /** Fill the tmk columns of parsed rows in place. */
 export function geocodeRows(
@@ -227,7 +265,22 @@ export function geocodeRows(
     row[TMK_MATCH] = hit?.match ?? null;
     row[TMK_DISTANCE] = hit ? Math.round(hit.distanceM * 10) / 10 : null;
     row[TMK_ADDRESS] = hit?.address ?? null;
+    row[CPR_MATCH] = null;
     counts[hit?.match ?? "unmatched"]++;
+
+    // On a condo parcel, the listing's unit (or, on a CPR'd lot of houses,
+    // its address) may name one unit: tmk then becomes that unit's CPR TMK,
+    // the level properties / owners are keyed at. tmk_match still says how
+    // the parcel was found.
+    const key =
+      hit && addresses ? normalizeAddress(row[ADDRESS] as string | null) : null;
+    const cpr = key ? addresses!.matchCpr(hit!.tmk, key) : null;
+    if (cpr) {
+      row[TMK] = cpr.tmk;
+      row[TMK_ADDRESS] = cpr.address;
+      row[CPR_MATCH] = cpr.match;
+      counts[`cpr_${cpr.match}`]++;
+    }
   }
   return counts;
 }
@@ -290,16 +343,19 @@ async function recordLoad(
   db: Db,
   b: RenthubBatch,
   rows: number,
+  dropped: number,
   geo: GeocodeCounts,
   parcelLayer: string,
 ): Promise<void> {
   await db(
-    `INSERT INTO renthub_loads (batch, file_name, file_bytes, rows_in_file,
-       rows_within_addr, rows_address, rows_fuzzy, rows_address_far, rows_within,
+    `INSERT INTO renthub_loads (batch, file_name, file_bytes, rows_in_file, rows_dropped,
+       rows_cpr, rows_within_addr, rows_address, rows_fuzzy, rows_address_far, rows_within,
        rows_nearest, rows_unmatched, parcel_layer, loaded_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE file_name = VALUES(file_name), file_bytes = VALUES(file_bytes),
-       rows_in_file = VALUES(rows_in_file), rows_within_addr = VALUES(rows_within_addr),
+       rows_in_file = VALUES(rows_in_file), rows_dropped = VALUES(rows_dropped),
+       rows_cpr = VALUES(rows_cpr),
+       rows_within_addr = VALUES(rows_within_addr),
        rows_address = VALUES(rows_address), rows_fuzzy = VALUES(rows_fuzzy),
        rows_address_far = VALUES(rows_address_far),
        rows_within = VALUES(rows_within), rows_nearest = VALUES(rows_nearest),
@@ -310,6 +366,8 @@ async function recordLoad(
       path.basename(b.file),
       b.bytes,
       rows,
+      dropped,
+      cprTotal(geo),
       geo.within_addr,
       geo.address,
       geo.fuzzy,
@@ -377,7 +435,11 @@ export async function load(opts: RenthubOptions = {}) {
       continue;
     }
     const start = performance.now();
-    const rows = await readBatch(b);
+    const parsed = await readBatch(b);
+    const strays = parsed.filter(isMainlandStray);
+    const rows = strays.length
+      ? parsed.filter((r) => !isMainlandStray(r))
+      : parsed;
     parcels ??= await ParcelIndex.fromGeojson(parcelsPath);
     if (!addresses && geoOpts.addressRadiusM > 0) {
       addresses = await AddressIndex.fromDb(query);
@@ -389,7 +451,8 @@ export async function load(opts: RenthubOptions = {}) {
         batch: b.batch,
         file,
         status: "parsed",
-        rows: rows.length,
+        rows: parsed.length,
+        dropped: strays.length,
         geocode: geo,
       });
       log.info({ batch: b.batch, rows: rows.length, ...geo }, "parsed");
@@ -399,13 +462,20 @@ export async function load(opts: RenthubOptions = {}) {
     budget ??= rowBudget(await maxAllowedPacket(query));
     for (const chunk of chunkRows(rows, budget))
       affectedRows += await upsertChunk(query, chunk);
-    await recordLoad(query, b, rows.length, geo, parcelsPath);
+    // Strays a previous load wrote (before the filter existed) are removed.
+    if (strays.length)
+      await query(
+        `DELETE FROM renthub_listings WHERE id IN (${strays.map(() => "?").join(", ")})`,
+        strays.map((r) => r[ID] as number),
+      );
+    await recordLoad(query, b, parsed.length, strays.length, geo, parcelsPath);
     const ms = Math.round(performance.now() - start);
     results.push({
       batch: b.batch,
       file,
       status: "loaded",
-      rows: rows.length,
+      rows: parsed.length,
+      dropped: strays.length,
       geocode: geo,
       affectedRows,
       ms,
@@ -447,6 +517,7 @@ export async function load(opts: RenthubOptions = {}) {
     parcelLayer: parcels ? parcelsPath : null,
     ...geoOpts,
     rows: results.reduce((n, r) => n + r.rows, 0),
+    dropped: results.reduce((n, r) => n + (r.dropped ?? 0), 0),
     geocode: geocodeTotals,
     freq,
     batches: results,

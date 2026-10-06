@@ -34,15 +34,15 @@ CREATE TABLE IF NOT EXISTS `renthub_listings` (
     `id`                  INT UNSIGNED NOT NULL PRIMARY KEY COMMENT 'Vendor record id (CSV "id"); unique across batches',
     `batch`               VARCHAR(21) NOT NULL COMMENT 'Delivery directory the row came from, e.g. 2026-01-07_2026-01-21',
 
-    -- Parcel geocode (src/core/crawlers/renthub/geocode.ts): the parcel the
-    -- point falls in on the statewide TMK polygon layer, corrected by matching
-    -- the listing address against qPublic site addresses of nearby parcels.
-    -- Parcel-level only: CPR is always 0000, so a condo rental resolves to its
-    -- building's parcel.
-    `tmk`                 VARCHAR(18) NULL COMMENT 'Parcel TMK I-Z-S-PPP-PPP-0000 the point falls in; NULL when unmatched',
+    -- Geocode (src/core/crawlers/renthub/geocode.ts): the parcel the point
+    -- falls in on the statewide TMK polygon layer, corrected by matching the
+    -- listing address against qPublic site addresses of nearby parcels; then,
+    -- on a condo parcel, the unit the address names (AddressIndex.matchCpr).
+    `tmk`                 VARCHAR(30) NULL COMMENT 'The unit''s CPR TMK when cpr_match is set, else the parcel (CPR 0000); NULL when unmatched',
     `tmk_match`           VARCHAR(16) NULL COMMENT 'Best first: within_addr (point inside, address agrees), address (nearby parcel has the exact address), fuzzy (same number, similar street), address_far (exact address on the only such parcel within 10 km; vendor point is off), within (point inside, address unconfirmed), nearest (opt-in)',
     `tmk_distance_m`      DECIMAL(6,1) NULL COMMENT 'Metres from the point to the parcel; 0 when inside',
-    `tmk_address`         VARCHAR(255) NULL COMMENT 'qPublic site address that matched (within_addr / address / fuzzy / address_far)',
+    `tmk_address`         VARCHAR(255) NULL COMMENT 'qPublic site address that matched (the unit''s, when cpr_match is set)',
+    `cpr_match`           VARCHAR(16) NULL COMMENT 'How tmk was narrowed to a condo unit: unit, unit_variant (K1142 → 1142, PH8), house_address (CPR''d lot of houses); NULL = parcel-level tmk',
     `coord_decimals`      TINYINT UNSIGNED NULL COMMENT 'Decimal places of the raw lat/lon (the fewer of the two): 4 = ~11 m, 3 = ~110 m; tmk is unreliable below 4',
 
     -- Data columns: RENTHUB_COLUMNS in src/core/crawlers/renthub/columns.ts, in order.
@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS `renthub_listings` (
     `zip`                 VARCHAR(10) NULL COMMENT '5-digit ZIP or ZIP+4',
     `address`             VARCHAR(255) NULL COMMENT 'Street address; the vendor placeholder "0" is stored as NULL',
     `company`             VARCHAR(255) NULL COMMENT 'Listing site or property manager (Zillow, HomeRiver Group, Greystar, ...)',
-    `building_type`       VARCHAR(32) NULL COMMENT 'Raw, mixed vocabularies: apartment building / APT, house / SFR / Single Family House, condo / CON, TH / townhouse, unknown, ...',
+    `building_type`       VARCHAR(32) NULL COMMENT 'single-family, apartment, condo, townhouse, mobile-home, commercial, other (BUILDING_TYPES in renthub/columns.ts)',
+    `building_type_raw`   VARCHAR(32) NULL COMMENT 'Building type as the vendor gives it (SFR, house, APT, CON, TH, unknown, ...)',
     `beds`                TINYINT UNSIGNED NULL COMMENT '0 = studio',
     `baths`               DECIMAL(3,1) NULL,
     `sqft`                INT UNSIGNED NULL COMMENT 'Interior square feet; the rare fractional values are rounded',
@@ -96,6 +97,8 @@ CREATE TABLE IF NOT EXISTS `renthub_loads` (
     `file_name`    VARCHAR(64) NOT NULL COMMENT 'File loaded from that directory, e.g. HI.csv.gz',
     `file_bytes`   INT UNSIGNED NOT NULL COMMENT 'Size of that file; a different size on disk means the batch is reloaded',
     `rows_in_file` INT UNSIGNED NOT NULL COMMENT 'Data rows parsed from the file',
+    `rows_dropped` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Mainland strays not loaded: outside Hawaii and no Hawaii ZIP',
+    `rows_cpr`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Rows whose tmk was narrowed to a condo unit (cpr_match set)',
     `rows_within_addr` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Rows per tmk_match value, as loaded',
     `rows_address`   INT UNSIGNED NOT NULL DEFAULT 0,
     `rows_fuzzy`     INT UNSIGNED NOT NULL DEFAULT 0,

@@ -9,7 +9,54 @@
  */
 
 export type RenthubKind =
-  "text" | "int" | "decimal" | "flag" | "date" | "datetime";
+  | "text"
+  | "int"
+  | "decimal"
+  | "flag"
+  | "date"
+  | "datetime"
+  /** Vendor building type → one of BUILDING_TYPE_BUCKETS (BUILDING_TYPES). */
+  | "buildingType";
+
+export const BUILDING_TYPE_BUCKETS = [
+  "single-family",
+  "apartment",
+  "condo",
+  "townhouse",
+  "mobile-home",
+  "commercial",
+  "other",
+] as const;
+export type BuildingTypeBucket = (typeof BUILDING_TYPE_BUCKETS)[number];
+
+/**
+ * Every vendor building type seen in the 2014–2026 deliveries, and its bucket
+ * (agreed 2026-10-05). The vendor mixes several vocabularies for the same
+ * thing. A value not listed here stops the load: a new type needs a decision,
+ * not a silent "other".
+ */
+export const BUILDING_TYPES: Readonly<Record<string, BuildingTypeBucket>> = {
+  SFR: "single-family",
+  house: "single-family",
+  "Single Family House": "single-family",
+  "apartment building": "apartment",
+  APT: "apartment",
+  apartment: "apartment",
+  Apartment: "apartment",
+  condo: "condo",
+  CON: "condo",
+  Condo: "condo",
+  TH: "townhouse",
+  townhouse: "townhouse",
+  MH: "mobile-home",
+  COMM: "commercial",
+  unknown: "other",
+  Other: "other",
+  duplex: "other",
+  TIME: "other",
+  // Las Vegas-area listings only; the loader drops them as mainland strays.
+  RNT: "other",
+};
 
 export interface RenthubColumnSpec {
   /** Header in the vendor CSV. */
@@ -101,11 +148,19 @@ export const RENTHUB_COLUMNS: readonly RenthubColumnSpec[] = [
   {
     csv: "building type",
     column: "building_type",
-    kind: "text",
+    kind: "buildingType",
     label: "Building Type",
     description:
-      "As the vendor gives it, in several vocabularies that mean the same thing: apartment building / APT, house / SFR / Single Family House, condo / CON, TH / townhouse, plus unknown.",
+      "single-family, apartment, condo, townhouse, mobile-home, commercial or other — the vendor's mixed vocabularies grouped (SFR / house / Single Family House → single-family; apartment building / APT → apartment; condo / CON → condo; TH / townhouse → townhouse; MH → mobile-home; COMM → commercial; unknown, Other, duplex, TIME (timeshare) → other). The vendor's own text is in building_type_raw.",
     summary: true,
+  },
+  {
+    csv: "building type",
+    column: "building_type_raw",
+    kind: "text",
+    label: "Building Type (vendor)",
+    description:
+      "Building type exactly as the vendor gives it (SFR, house, APT, apartment building, CON, TH, unknown, ...); see building_type for the grouped value.",
   },
   {
     csv: "beds",
@@ -265,6 +320,8 @@ export const RENTHUB_LOADER_COLUMNS = [
   "tmk_match",
   "tmk_distance_m",
   "tmk_address",
+  // Condo unit (CPR) on that parcel, when the address names one (load.ts).
+  "cpr_match",
   "coord_decimals",
 ] as const;
 
@@ -324,6 +381,14 @@ function parseValue(spec: RenthubColumnSpec, raw: string): SqlValue {
       const m = DATETIME.exec(v);
       if (!m) throw bad();
       return m[1] + (m[2] ?? "");
+    }
+    case "buildingType": {
+      const bucket = BUILDING_TYPES[v];
+      if (!bucket)
+        throw new RenthubParseError(
+          `${spec.csv}: ${JSON.stringify(v)} has no bucket — add it to BUILDING_TYPES in renthub/columns.ts`,
+        );
+      return bucket;
     }
   }
 }
@@ -386,6 +451,7 @@ export function parseRecord(
   const values: SqlValue[] = [
     Number(id),
     batch,
+    null,
     null,
     null,
     null,

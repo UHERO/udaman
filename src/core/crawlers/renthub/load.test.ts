@@ -4,13 +4,21 @@ import { AddressIndex } from "../address";
 import { parseCsv } from "../csv";
 import { rowBudget, valueBytes } from "../packet";
 import {
+  BUILDING_TYPE_BUCKETS,
+  BUILDING_TYPES,
   coordDecimals,
   mapHeader,
   parseRecord,
   RENTHUB_INSERT_COLUMNS,
   RenthubParseError,
 } from "./columns";
-import { chunkRows, geocodeRows, upsertSql, type GeocodeCounts } from "./load";
+import {
+  chunkRows,
+  geocodeRows,
+  isMainlandStray,
+  upsertSql,
+  type GeocodeCounts,
+} from "./load";
 import { ParcelIndex } from "./parcels";
 
 const OLD_HEADER =
@@ -89,6 +97,36 @@ describe("renthub columns", () => {
     expect(coordDecimals("", "-158.0116")).toBeNull();
   });
 
+  test("building type is bucketed; the vendor text is kept", () => {
+    expect(parse(NEW_HEADER, NEW_ROW)).toMatchObject({
+      building_type: "apartment",
+      building_type_raw: "apartment building",
+    });
+    for (const [raw, bucket] of [
+      ["SFR", "single-family"],
+      ["Single Family House", "single-family"],
+      ["CON", "condo"],
+      ["TH", "townhouse"],
+      ["MH", "mobile-home"],
+      ["COMM", "commercial"],
+      ["duplex", "other"],
+      ["TIME", "other"],
+      ["unknown", "other"],
+    ])
+      expect(
+        parse(NEW_HEADER, NEW_ROW.replace(",apartment building,", `,${raw},`))
+          .building_type,
+      ).toBe(bucket);
+    for (const b of Object.values(BUILDING_TYPES))
+      expect(BUILDING_TYPE_BUCKETS).toContain(b);
+  });
+
+  test("an unmapped building type stops the load", () => {
+    expect(() =>
+      parse(NEW_HEADER, NEW_ROW.replace(",apartment building,", ",Yurt,")),
+    ).toThrow(/"Yurt" has no bucket/);
+  });
+
   test("rejects unknown or missing header columns", () => {
     expect(() => mapHeader([...NEW_HEADER.split(","), "pets"])).toThrow(
       /unknown column/,
@@ -96,6 +134,84 @@ describe("renthub columns", () => {
     expect(() =>
       mapHeader(NEW_HEADER.split(",").filter((h) => h !== "beds")),
     ).toThrow(/missing column/);
+  });
+});
+
+describe("geocodeRows: condo units", () => {
+  test("a listing whose unit is a CPR on its parcel gets the CPR tmk", () => {
+    const idx = new ParcelIndex();
+    idx.add(
+      {
+        division: "1",
+        zone: "5",
+        section: "0",
+        plat1: "123",
+        parcel1: "045",
+        st_areashape: 1,
+      },
+      {
+        type: "Polygon",
+        coordinates: [
+          [
+            [-158.0115, 21.502],
+            [-158.0105, 21.502],
+            [-158.0105, 21.503],
+            [-158.0115, 21.503],
+            [-158.0115, 21.502],
+          ],
+        ],
+      },
+    );
+    const addresses = new AddressIndex();
+    addresses.add("1-5-0-123-045-0000", "1576 CALIFORNIA AVE");
+    addresses.add("1-5-0-123-045-0007", "1576 CALIFORNIA AVE APT A");
+    addresses.add("1-5-0-123-045-0008", "1576 CALIFORNIA AVE APT B");
+    const inside = parse(
+      NEW_HEADER,
+      NEW_ROW.replace("21.502584,-158.0116", "21.5025,-158.011"),
+    );
+    const row = RENTHUB_INSERT_COLUMNS.map((c) => inside[c]);
+    const counts = geocodeRows([row], idx, addresses, {
+      maxNearestM: 0,
+      addressRadiusM: 300,
+    });
+    const at = (c: string) => row[RENTHUB_INSERT_COLUMNS.indexOf(c)];
+    // "1576 California Ave APT A": parcel by point + address, then unit A.
+    expect([
+      at("tmk"),
+      at("tmk_match"),
+      at("cpr_match"),
+      at("tmk_address"),
+    ]).toEqual([
+      "1-5-0-123-045-0007",
+      "within_addr",
+      "unit",
+      "1576 CALIFORNIA AVE APT A",
+    ]);
+    expect(counts.cpr_unit).toBe(1);
+  });
+});
+
+describe("isMainlandStray", () => {
+  const row = (lat: string | null, lon: string | null, zip: string) =>
+    RENTHUB_INSERT_COLUMNS.map((c) =>
+      c === "latitude"
+        ? lat
+        : c === "longitude"
+          ? lon
+          : c === "zip"
+            ? zip
+            : null,
+    );
+  test("outside Hawaii with no Hawaii ZIP is dropped; anything else stays", () => {
+    expect(isMainlandStray(row("36.1147", "-115.1728", "89103"))).toBe(true); // Las Vegas
+    expect(isMainlandStray(row("40.80", "-81.38", "44703"))).toBe(true); // Canton OH
+    expect(isMainlandStray(row("21.30", "-157.85", "96813"))).toBe(false);
+    // A Honolulu listing with a bad point keeps its Hawaii ZIP.
+    expect(isMainlandStray(row("40.0", "-80.0", "96813"))).toBe(false);
+    // A bad ZIP on a Hawaii point stays; so does a row with no point.
+    expect(isMainlandStray(row("21.30", "-157.85", "95814"))).toBe(false);
+    expect(isMainlandStray(row(null, null, "89103"))).toBe(false);
   });
 });
 
@@ -184,6 +300,9 @@ describe("geocodeRows", () => {
       within: 0,
       nearest: 0,
       unmatched: 0,
+      cpr_unit: 0,
+      cpr_unit_variant: 0,
+      cpr_house_address: 0,
       ...o,
     });
 

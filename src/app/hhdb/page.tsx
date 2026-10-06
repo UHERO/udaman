@@ -153,10 +153,13 @@ export default function Page() {
             matching the listing address to qPublic site addresses nearby. About
             98% of rows have a TMK and ~83% are confirmed by address (
             <code>tmk_match</code> = <code>within_addr</code> or{" "}
-            <code>address</code>). TMKs are parcel-level only (CPR always{" "}
-            <code>0000</code>): a condo rental resolves to its building, never
-            its unit. <code>coord_decimals</code> flags points too coarse to
-            trust.
+            <code>address</code>). On a condo parcel, when the listing address
+            names a unit, <code>tmk</code> is narrowed to that unit&apos;s CPR (
+            <code>cpr_match</code> is set, ~18% of rows), so those rentals join
+            to <code>properties</code> and <code>owners</code>; listings that
+            give only the building&apos;s address stay parcel-level (CPR{" "}
+            <code>0000</code>). <code>coord_decimals</code> flags points too
+            coarse to trust.
           </p>
 
           <h2 className="mt-4 text-lg font-bold">

@@ -3115,6 +3115,14 @@ BEGIN
   SELECT '0', 'tmk_match', LEFT(COALESCE(CAST(`tmk_match` AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM renthub_listings GROUP BY LEFT(CAST(`tmk_match` AS CHAR), 500);
 
+  -- cpr_match
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'cpr_match', LEFT(COALESCE(CAST(`cpr_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`cpr_match` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'cpr_match', LEFT(COALESCE(CAST(`cpr_match` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`cpr_match` AS CHAR), 500);
+
   -- coord_decimals
   INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'coord_decimals', LEFT(COALESCE(CAST(`coord_decimals` AS CHAR), '[NULL]'), 500), COUNT(*)

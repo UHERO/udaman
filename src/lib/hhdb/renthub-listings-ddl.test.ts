@@ -72,6 +72,7 @@ const KIND_TYPE: Record<RenthubColumnSpec["kind"], RegExp> = {
   flag: /^BOOLEAN\b/,
   date: /^DATE\b/,
   datetime: /^DATETIME\(3\)/,
+  buildingType: /^VARCHAR\(32\)/,
 };
 
 describe("renthub_listings.sql", () => {
@@ -94,7 +95,8 @@ describe("renthub_listings.sql", () => {
     }
     expect(cols.get("id")).toBe("INT UNSIGNED NOT NULL PRIMARY KEY");
     expect(cols.get("batch")).toBe("VARCHAR(21) NOT NULL");
-    expect(cols.get("tmk")).toBe("VARCHAR(18) NULL");
+    expect(cols.get("tmk")).toBe("VARCHAR(30) NULL");
+    expect(cols.get("cpr_match")).toBe("VARCHAR(16) NULL");
     expect(cols.get("tmk_match")).toBe("VARCHAR(16) NULL");
     expect(cols.get("tmk_address")).toBe("VARCHAR(255) NULL");
     expect(cols.get("tmk_distance_m")).toBe("DECIMAL(6,1) NULL");

@@ -6,6 +6,7 @@ import {
   normalizeAddress,
   parcelOf,
   streetSimilarity,
+  unitVariants,
 } from "./address";
 
 /** Listing spelling ↔ qPublic spelling, as seen in the data; each pair must agree. */
@@ -154,6 +155,55 @@ describe("AddressIndex", () => {
       new Map([["1-2-3-002-106-0412", "1001 QUEEN ST APT 3713"]]),
     );
     expect(idx.unitTmks(normalizeAddress("1001 Queen St")!)).toBeUndefined();
+  });
+
+  test("matchCpr: unit, unit variant, house address — on the matched parcel only", () => {
+    const idx = new AddressIndex();
+    // A tower: units on one parcel.
+    idx.add("1-2-1-005-004-0000", "1519 NUUANU AVE");
+    idx.add("1-2-1-005-004-0085", "1519 NUUANU AVE APT 1142");
+    idx.add("1-2-1-005-004-0086", "1519 NUUANU AVE APT 1143");
+    // The same unit number in two buildings (house numbers) on one parcel.
+    idx.add("1-2-6-011-050-0003", "1627 ALA WAI BLVD APT 203");
+    idx.add("1-2-6-011-050-0019", "1629 ALA WAI BLVD APT 203");
+    // A CPR'd lot of houses, each with its own address.
+    idx.add("1-8-7-010-002-0040", "87-2131 PAKEKE ST");
+    idx.add("1-8-7-010-002-0041", "87-2133 PAKEKE ST");
+    const parcel = "1-2-1-005-004-0000";
+    const k = (a: string) => normalizeAddress(a)!;
+
+    expect(idx.matchCpr(parcel, k("1519 Nuuanu Ave #1142"))).toEqual({
+      tmk: "1-2-1-005-004-0085",
+      address: "1519 NUUANU AVE APT 1142",
+      match: "unit",
+    });
+    expect(
+      idx.matchCpr(parcel, k("1519 Nuuanu Ave K1142 King Tower"))?.match,
+    ).toBe("unit_variant");
+    expect(
+      idx.matchCpr("1-8-7-010-002-0000", k("87-2131 Pakeke Street")),
+    ).toMatchObject({
+      tmk: "1-8-7-010-002-0040",
+      match: "house_address",
+    });
+    // No guess: same unit number in two buildings; a building address shared
+    // by every unit; a unit on a different parcel; a non-condo parcel.
+    expect(
+      idx.matchCpr("1-2-6-011-050-0000", k("1627 Ala Wai Blvd 203")),
+    ).toBeNull();
+    expect(idx.matchCpr(parcel, k("1519 Nuuanu Ave"))).toBeNull();
+    expect(
+      idx.matchCpr("1-2-1-005-099-0000", k("1519 Nuuanu Ave #1142")),
+    ).toBeNull();
+    expect(idx.matchCpr(parcel, k("1519 Nuuanu Ave #9999"))).toBeNull();
+  });
+
+  test("unitVariants", () => {
+    expect(unitVariants("k1142")).toEqual(["1142"]);
+    expect(unitVariants("rm516")).toEqual(["516"]);
+    expect(unitVariants("1404a")).toEqual(["1404"]);
+    expect(unitVariants("ph8")).toEqual(["8"]);
+    expect(unitVariants("3305")).toEqual([]);
   });
 
   test("indexes CPR rows under their parcel, once per parcel", () => {

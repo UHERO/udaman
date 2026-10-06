@@ -98,6 +98,8 @@ function renthubDisplay(spec: RenthubColumnSpec): DisplayKind {
   switch (spec.kind) {
     case "flag":
       return "flag";
+    case "buildingType":
+      return "text";
     case "date":
       return "date";
     case "datetime":
@@ -136,6 +138,7 @@ const LOADER_DISPLAY: Record<string, DisplayKind> = {
   tmk_match: "text",
   tmk_distance_m: "number",
   tmk_address: "longtext",
+  cpr_match: "text",
   coord_decimals: "plain",
   policy_base: "text",
   location_no: "plain",
@@ -191,6 +194,7 @@ export const RENTHUB_LIST: SpecTableDef = {
     "zip",
     "tmk",
     "tmk_match",
+    "cpr_match",
     "availability_status",
     "company",
   ],

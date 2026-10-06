@@ -989,10 +989,11 @@ model properties {
 model renthub_listings {
   id                  Int       @id @db.UnsignedInt
   batch               String    @db.VarChar(21)
-  tmk                 String?   @db.VarChar(18)
+  tmk                 String?   @db.VarChar(30)
   tmk_match           String?   @db.VarChar(16)
   tmk_distance_m      Decimal?  @db.Decimal(6, 1)
   tmk_address         String?   @db.VarChar(255)
+  cpr_match           String?   @db.VarChar(16)
   coord_decimals      Int?      @db.UnsignedTinyInt
   scraped_at          DateTime  @db.DateTime(3)
   state               String    @db.Char(2)
@@ -1002,6 +1003,7 @@ model renthub_listings {
   address             String?   @db.VarChar(255)
   company             String?   @db.VarChar(255)
   building_type       String?   @db.VarChar(32)
+  building_type_raw   String?   @db.VarChar(32)
   beds                Int?      @db.UnsignedTinyInt
   baths               Decimal?  @db.Decimal(3, 1)
   sqft                Int?      @db.UnsignedInt
@@ -1042,6 +1044,8 @@ model renthub_loads {
   file_name        String   @db.VarChar(64)
   file_bytes       Int      @db.UnsignedInt
   rows_in_file     Int      @db.UnsignedInt
+  rows_dropped     Int      @default(0) @db.UnsignedInt
+  rows_cpr         Int      @default(0) @db.UnsignedInt
   rows_within_addr Int      @default(0) @db.UnsignedInt
   rows_address     Int      @default(0) @db.UnsignedInt
   rows_fuzzy       Int      @default(0) @db.UnsignedInt
