@@ -6,7 +6,7 @@ import {
 } from "@catalog/models/approval";
 import { Check, Square } from "lucide-react";
 
-import { Separator } from "@/components/ui/separator";
+import { CommsPanel } from "./comms-panel";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
 function formatDate(value: string | null): string | null {
@@ -90,7 +90,7 @@ function CheckRow({ label, checked }: { label: string; checked: boolean }) {
   );
 }
 
-/** A titled block. Sections are divided by <Separator />, not cards. */
+/** A titled block, on its own solid panel so sections read as distinct. */
 function Section({
   title,
   children,
@@ -99,10 +99,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-semibold">{title}</h2>
+    <CommsPanel title={title} bodyClassName="py-2">
       {children}
-    </section>
+    </CommsPanel>
   );
 }
 
@@ -110,7 +109,7 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
   const d = approval.formData;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Section title="A. Publication details">
         <dl className="divide-y">
           <Row label="Title">{approval.name}</Row>
@@ -138,8 +137,6 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
         </dl>
       </Section>
 
-      <Separator />
-
       <Section title="B. Disclosures">
         <dl className="divide-y">
           <Row label="Conflicts of interest">{d.conflictsOfInterest}</Row>
@@ -151,16 +148,12 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
         </dl>
       </Section>
 
-      <Separator />
-
       <Section title="C. Development and prior review">
         <dl className="divide-y">
           <Row label="Reviewers and contributors">{d.reviewers}</Row>
           <Row label="Stakeholder input">{d.stakeholderInput}</Row>
         </dl>
       </Section>
-
-      <Separator />
 
       <Section title="D. Lead author certification">
         <div className="divide-y">
@@ -200,8 +193,6 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
         </div>
       </Section>
 
-      <Separator />
-
       <Section title="E. Availability and dissemination">
         <dl className="divide-y">
           <Row label="Available on release day for media">
@@ -212,8 +203,6 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
           <Row label="Contact phone">{d.mediaContactPhone}</Row>
         </dl>
       </Section>
-
-      <Separator />
 
       <Section title="Notification">
         <dl className="divide-y">

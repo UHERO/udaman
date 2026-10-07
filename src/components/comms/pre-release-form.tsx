@@ -55,9 +55,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
+import { CommsPanel } from "./comms-panel";
 
 /** Split a comma/semicolon/whitespace-separated address list into trimmed entries. */
 function parseRecipients(raw: string): string[] {
@@ -351,7 +352,7 @@ const CERTIFICATIONS = [
   },
 ] as const;
 
-/** A titled block of fields. Sections are divided by <Separator />, not cards. */
+/** A titled block of fields, on its own solid panel. */
 function FormSection({
   title,
   description,
@@ -362,15 +363,9 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-2">
-      <div className="space-y-0.5">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {description ? (
-          <p className="text-muted-foreground text-sm">{description}</p>
-        ) : null}
-      </div>
+    <CommsPanel title={title} description={description}>
       {children}
-    </section>
+    </CommsPanel>
   );
 }
 
@@ -906,8 +901,6 @@ export function PreReleaseForm({
         </FieldGroup>
       </FormSection>
 
-      <Separator />
-
       <FormSection title="B. Disclosures">
         <FieldGroup>
           <Field data-invalid={!!errors.conflictsOfInterest}>
@@ -1029,8 +1022,6 @@ export function PreReleaseForm({
         </FieldGroup>
       </FormSection>
 
-      <Separator />
-
       <FormSection title="C. Development and prior review">
         <FieldGroup>
           <Field data-invalid={!!errors.reviewers}>
@@ -1060,8 +1051,6 @@ export function PreReleaseForm({
           </Field>
         </FieldGroup>
       </FormSection>
-
-      <Separator />
 
       <FormSection
         title="D. Lead author certification"
@@ -1108,8 +1097,6 @@ export function PreReleaseForm({
           </FieldDescription>
         </FieldGroup>
       </FormSection>
-
-      <Separator />
 
       <FormSection title="E. Availability and dissemination">
         <FieldGroup>
@@ -1178,8 +1165,6 @@ export function PreReleaseForm({
         </FieldGroup>
       </FormSection>
 
-      <Separator />
-
       <FormSection
         title="Notification"
         description="Everyone on this list is emailed the submitted form. It starts with the standard UHERO recipients — add or remove anyone before submitting. The lead author is always included."
@@ -1201,9 +1186,7 @@ export function PreReleaseForm({
         </FieldGroup>
       </FormSection>
 
-      <Separator />
-
-      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 pb-8">
+      <div className="bg-card mb-8 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 rounded-lg border px-4 py-3 shadow-xs sm:px-5">
         {mode === "edit" && (
           <Field orientation="horizontal" className="mr-auto w-auto">
             <Checkbox
@@ -1213,36 +1196,32 @@ export function PreReleaseForm({
                 setResendNotification(checked === true)
               }
             />
-            <FieldContent>
-              <FieldLabel htmlFor="resendNotification" className="font-normal">
-                Resend notification
-              </FieldLabel>
-              <FieldDescription>
-                Emails the updated form to everyone in the recipient list above.
-                Edits don&apos;t notify anyone unless this is checked.
-              </FieldDescription>
-            </FieldContent>
+            <FieldLabel htmlFor="resendNotification" className="font-normal">
+              Resend notification
+            </FieldLabel>
           </Field>
         )}
-        <Button
-          type="button"
-          variant="outline"
-          className="cursor-pointer"
-          onClick={() => router.push(returnHref)}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          className="cursor-pointer"
-          disabled={form.formState.isSubmitting}
-        >
-          {form.formState.isSubmitting
-            ? "Saving…"
-            : mode === "create"
-              ? "Submit form"
-              : "Save changes"}
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="cursor-pointer"
+            onClick={() => router.push(returnHref)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="cursor-pointer"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting
+              ? "Saving…"
+              : mode === "create"
+                ? "Submit form"
+                : "Save changes"}
+          </Button>
+        </div>
       </div>
     </form>
   );

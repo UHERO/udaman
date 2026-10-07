@@ -20,11 +20,22 @@ import { cn } from "@/lib/utils";
 export function PreReleaseStatusTabs({
   active,
   counts,
+  author,
 }: {
   active: ApprovalStatusFilter;
   counts: Record<ApprovalStatusFilter, number>;
+  /** Lead-author filter (user id) to carry across tabs, if any. */
+  author?: number;
 }) {
   const { fullWidth, toggleWidth } = useFullWidth();
+
+  // Always spell out view and status: bare /comms falls back to the default
+  // view and the "not reviewed" filter, so "All items" would be unreachable.
+  const hrefFor = (f: ApprovalStatusFilter) => {
+    const params = new URLSearchParams({ view: "list", status: f });
+    if (author) params.set("author", String(author));
+    return `/comms?${params}`;
+  };
 
   return (
     <div className="flex items-center border-b">
@@ -37,7 +48,7 @@ export function PreReleaseStatusTabs({
           return (
             <Link
               key={f}
-              href={f === "all" ? "/comms" : `/comms?status=${f}`}
+              href={hrefFor(f)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
                 "-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors",

@@ -1,3 +1,4 @@
+import { CommsPanel } from "@/components/comms/comms-panel";
 import { PreReleaseForm } from "@/components/comms/pre-release-form";
 import { PRE_RELEASE_RECIPIENTS } from "@/core/mailers/recipients";
 import { requireAuth } from "@/lib/auth/dal";
@@ -11,13 +12,13 @@ export default async function Page() {
 
   return (
     <div className="space-y-4">
-      <div>
+      <CommsPanel>
         <h1 className="text-3xl font-bold">UHERO Pre-Release Form</h1>
         <p className="text-muted-foreground text-sm">
           Submitting this form records your sign-off and notifies the standard
           recipients.
         </p>
-      </div>
+      </CommsPanel>
       <PreReleaseForm
         mode="create"
         authorName={authorName}
