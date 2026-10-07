@@ -8,7 +8,11 @@ import {
   currentUserName as getCurrentUserName,
 } from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
-import { PreReleaseDetail } from "@/components/comms/pre-release-detail";
+import {
+  ApprovalDates,
+  PreReleaseDetail,
+} from "@/components/comms/pre-release-detail";
+import { ReleaseButton } from "@/components/comms/release-button";
 import { ReviewPanel } from "@/components/comms/review-panel";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -39,7 +43,7 @@ export default async function Page({
   const currentUserId = parseInt(userId) || 0;
   const isAdmin = role === "admin" || role === "dev";
 
-  // Only the author (or an admin) can revise a filed form.
+  // Only the author (or an admin) can revise or release a filed form.
   const canEdit = isAdmin || approval.authorUserId === currentUserId;
 
   return (
@@ -54,24 +58,33 @@ export default async function Page({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="space-y-2">
         <div>
           <h1 className="text-3xl font-bold">{approval.name}</h1>
           <p className="text-muted-foreground text-sm">
             Pre-release form filed by {approval.author}
           </p>
-          <div className="mt-2">
-            <ApprovalStatusBadges approval={approval} size="md" />
-          </div>
         </div>
-        {canEdit && (
-          <Button asChild variant="outline" className="cursor-pointer">
-            <Link href={`/comms/pub-form/${approval.id}/edit`}>
-              <Pencil className="h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
-        )}
+        <ApprovalDates approval={approval} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ApprovalStatusBadges approval={approval} size="md" />
+          {canEdit && (
+            <>
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="cursor-pointer"
+              >
+                <Link href={`/comms/pub-form/${approval.id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </Link>
+              </Button>
+              <ReleaseButton approval={approval} />
+            </>
+          )}
+        </div>
       </div>
 
       <ReviewPanel
