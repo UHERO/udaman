@@ -16,6 +16,7 @@ export type CreateApprovalPayload = {
   author: string;
   authorUserId: number;
   targetReleaseDate?: string | null;
+  reviewByDate?: string | null;
   formData: PreReleaseFormData;
 };
 
@@ -25,6 +26,7 @@ export type UpdateApprovalPayload = {
   /** Re-attribute the form. Pass together with `author` — the two must agree. */
   authorUserId?: number;
   targetReleaseDate?: string | null;
+  reviewByDate?: string | null;
   formData?: PreReleaseFormData;
 };
 
@@ -122,14 +124,15 @@ class ApprovalCollection {
       author,
       authorUserId,
       targetReleaseDate = null,
+      reviewByDate = null,
       formData,
     } = payload;
 
     const insertId = await insertAndGetId(
       `INSERT INTO approvals
          (type, universe, name, author, author_user_id, target_release_date,
-          form_data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          review_by_date, form_data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         type,
         universe,
@@ -137,6 +140,7 @@ class ApprovalCollection {
         author,
         authorUserId,
         targetReleaseDate || null,
+        reviewByDate || null,
         JSON.stringify(formData),
       ],
     );
@@ -165,6 +169,11 @@ class ApprovalCollection {
             updates.targetReleaseDate !== undefined
               ? updates.targetReleaseDate || null
               : current.targetReleaseDate
+          },
+          review_by_date = ${
+            updates.reviewByDate !== undefined
+              ? updates.reviewByDate || null
+              : current.reviewByDate
           },
           form_data = ${JSON.stringify(updates.formData ?? current.formData)},
           updated_at = NOW()

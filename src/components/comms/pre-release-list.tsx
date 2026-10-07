@@ -158,6 +158,7 @@ export function PreReleaseList({
             <TableHead className="w-8" />
             <TableHead>Title</TableHead>
             <TableHead>Lead author</TableHead>
+            <TableHead>Review by</TableHead>
             <TableHead>Target release</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Submitted</TableHead>
@@ -199,7 +200,12 @@ export function PreReleaseList({
                     </Link>
                   </TableCell>
                   <TableCell>{a.author}</TableCell>
-                  <TableCell>{formatDate(a.targetReleaseDate)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatDate(a.reviewByDate)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(a.targetReleaseDate)}
+                  </TableCell>
                   <TableCell>
                     <ApprovalStatusBadges approval={a} />
                   </TableCell>
@@ -268,7 +274,7 @@ export function PreReleaseList({
 
                 {isOpen && (
                   <TableRow className="bg-muted/60 hover:bg-muted/60">
-                    <TableCell colSpan={7} className="p-2 sm:pl-10">
+                    <TableCell colSpan={8} className="p-2 sm:pl-10">
                       <div className="border-muted-foreground/40 bg-background/40 space-y-4 rounded-md border border-dashed px-3 py-2">
                         <ReviewKanbanBoard
                           reviews={list}

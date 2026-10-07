@@ -264,6 +264,7 @@ export type ApprovalAttrs = {
   author: string;
   author_user_id: number;
   target_release_date?: Date | string | null;
+  review_by_date?: Date | string | null;
   form_data?: unknown;
   released_at?: Date | string | null;
   released_by_user_id?: number | null;
@@ -304,6 +305,8 @@ class Approval {
   author: string;
   authorUserId: number;
   targetReleaseDate: Date | null;
+  /** When reviewers need to respond by. Null on forms filed before it existed. */
+  reviewByDate: Date | null;
   formData: PreReleaseFormData;
   releasedAt: Date | null;
   releasedByUserId: number | null;
@@ -323,6 +326,7 @@ class Approval {
     this.author = attrs.author;
     this.authorUserId = attrs.author_user_id;
     this.targetReleaseDate = toDate(attrs.target_release_date);
+    this.reviewByDate = toDate(attrs.review_by_date);
     // The driver hands back JSON columns already parsed on some paths and as a
     // raw string on others, so normalize both.
     this.formData =
@@ -364,6 +368,7 @@ class Approval {
       author: this.author,
       authorUserId: this.authorUserId,
       targetReleaseDate: toDateString(this.targetReleaseDate),
+      reviewByDate: toDateString(this.reviewByDate),
       formData: this.formData,
       releasedAt: this.releasedAt?.toISOString() ?? null,
       releasedByUserId: this.releasedByUserId,

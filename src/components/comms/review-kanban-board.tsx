@@ -303,6 +303,34 @@ function AddReviewCard({
  * than via the inline "Not Started" card (e.g. from a table row's actions
  * menu, or after picking a form on a cross-comm board).
  */
+/**
+ * The date reviewers act on: "Review by" when set, falling back to the target
+ * release date for forms filed before review-by existed.
+ */
+function DueBadge({
+  approval,
+  className,
+}: {
+  approval: Pick<ApprovalJSON, "reviewByDate" | "targetReleaseDate">;
+  className?: string;
+}) {
+  if (approval.reviewByDate) {
+    return (
+      <Badge variant="outline" className={cn("font-semibold", className)}>
+        Review by {approval.reviewByDate}
+      </Badge>
+    );
+  }
+  if (approval.targetReleaseDate) {
+    return (
+      <Badge variant="outline" className={className}>
+        Target {approval.targetReleaseDate}
+      </Badge>
+    );
+  }
+  return null;
+}
+
 export function NewReviewDialog({
   approval,
   currentUserName,
@@ -347,11 +375,7 @@ export function NewReviewDialog({
           <span className="text-muted-foreground">{approval.name}</span>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">Not Started</Badge>
-            {approval.targetReleaseDate && (
-              <Badge variant="outline">
-                Target {approval.targetReleaseDate}
-              </Badge>
-            )}
+            <DueBadge approval={approval} />
           </div>
           <div>
             <div className="text-muted-foreground mb-1 flex items-center justify-between text-xs font-medium tracking-wide uppercase">
@@ -614,10 +638,8 @@ function ReviewCard({
             {review.notes}
           </p>
         )}
-        {approval?.targetReleaseDate && showComm && (
-          <Badge variant="outline" className="text-[10px]">
-            Target {approval.targetReleaseDate}
-          </Badge>
+        {approval && showComm && (
+          <DueBadge approval={approval} className="text-[10px]" />
         )}
       </div>
 
@@ -698,11 +720,7 @@ function ReviewCard({
                   Attested
                 </Badge>
               )}
-              {approval?.targetReleaseDate && showComm && (
-                <Badge variant="outline">
-                  Target {approval.targetReleaseDate}
-                </Badge>
-              )}
+              {approval && showComm && <DueBadge approval={approval} />}
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between">

@@ -30,10 +30,11 @@ import { mysql } from "@/lib/mysql/db";
 
 const log = createLogger("action.approvals");
 
-/** Payload the pre-release form submits. Title/author/date are hoisted out of formData. */
+/** Payload the pre-release form submits. Title/author/dates are hoisted out of formData. */
 export type PreReleaseSubmission = {
   name: string;
   targetReleaseDate: string | null;
+  reviewByDate: string | null;
   formData: PreReleaseFormData;
   /**
    * Lead author when the form is filed on someone else's behalf. Must be an
@@ -318,6 +319,7 @@ export async function createApproval(payload: PreReleaseSubmission) {
         name: payload.name,
         ...author,
         targetReleaseDate: payload.targetReleaseDate,
+        reviewByDate: payload.reviewByDate,
         formData: withAuthorRecipient(payload.formData, authorEmail),
       },
     });
@@ -353,6 +355,7 @@ export async function updateApproval(
       payload: {
         name: payload.name,
         targetReleaseDate: payload.targetReleaseDate,
+        reviewByDate: payload.reviewByDate,
         formData: withAuthorRecipient(payload.formData, authorEmail),
         ...author,
       },
