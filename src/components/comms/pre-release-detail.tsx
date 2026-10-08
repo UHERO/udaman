@@ -4,9 +4,9 @@ import {
   formatPublicationType,
   formatSecondaryTypes,
 } from "@catalog/models/approval";
-import { Check, Square } from "lucide-react";
+import { CalendarClock, Check, Square } from "lucide-react";
 
-import { Separator } from "@/components/ui/separator";
+import { CommsPanel } from "./comms-panel";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
 function formatDate(value: string | null): string | null {
@@ -19,6 +19,36 @@ function formatDate(value: string | null): string | null {
     month: "long",
     day: "numeric",
   });
+}
+
+/**
+ * Header summary of a form's dates. "Review by" leads — it's the date
+ * reviewers act on; the release date trails it because lead time varies by
+ * publication type.
+ */
+export function ApprovalDates({
+  approval,
+}: {
+  approval: Pick<ApprovalJSON, "reviewByDate" | "targetReleaseDate">;
+}) {
+  const reviewBy = formatDate(approval.reviewByDate);
+  const release = formatDate(approval.targetReleaseDate);
+  if (!reviewBy && !release) return null;
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      {reviewBy && (
+        <p className="inline-flex items-center gap-1.5 text-base font-semibold">
+          <CalendarClock className="h-4 w-4 self-center" />
+          Review by {reviewBy}
+        </p>
+      )}
+      {release && (
+        <p className="text-muted-foreground text-sm">
+          Target release {release}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function formatTimestamp(value: string | null): string | null {
@@ -90,7 +120,7 @@ function CheckRow({ label, checked }: { label: string; checked: boolean }) {
   );
 }
 
-/** A titled block. Sections are divided by <Separator />, not cards. */
+/** A titled block, on its own solid panel so sections read as distinct. */
 function Section({
   title,
   children,
@@ -99,10 +129,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-semibold">{title}</h2>
+    <CommsPanel title={title} bodyClassName="py-2">
       {children}
-    </section>
+    </CommsPanel>
   );
 }
 
@@ -110,7 +139,7 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
   const d = approval.formData;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Section title="A. Publication details">
         <dl className="divide-y">
           <Row label="Title">{approval.name}</Row>
@@ -120,6 +149,7 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
           </Row>
           <Row label="Lead author">{approval.author}</Row>
           <Row label="All authors and contributors">{d.contributors}</Row>
+          <Row label="Review by">{formatDate(approval.reviewByDate)}</Row>
           <Row label="Target release date">
             {formatDate(approval.targetReleaseDate)}
           </Row>
@@ -138,8 +168,6 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
         </dl>
       </Section>
 
-      <Separator />
-
       <Section title="B. Disclosures">
         <dl className="divide-y">
           <Row label="Conflicts of interest">{d.conflictsOfInterest}</Row>
@@ -151,16 +179,12 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
         </dl>
       </Section>
 
-      <Separator />
-
       <Section title="C. Development and prior review">
         <dl className="divide-y">
           <Row label="Reviewers and contributors">{d.reviewers}</Row>
           <Row label="Stakeholder input">{d.stakeholderInput}</Row>
         </dl>
       </Section>
-
-      <Separator />
 
       <Section title="D. Lead author certification">
         <div className="divide-y">
@@ -200,8 +224,6 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
         </div>
       </Section>
 
-      <Separator />
-
       <Section title="E. Availability and dissemination">
         <dl className="divide-y">
           <Row label="Available on release day for media">
@@ -212,8 +234,6 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
           <Row label="Contact phone">{d.mediaContactPhone}</Row>
         </dl>
       </Section>
-
-      <Separator />
 
       <Section title="Notification">
         <dl className="divide-y">

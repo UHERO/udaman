@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { getApproval } from "@/actions/approvals";
+import { CommsPanel } from "@/components/comms/comms-panel";
 import { PreReleaseForm } from "@/components/comms/pre-release-form";
 import { PRE_RELEASE_RECIPIENTS } from "@/core/mailers/recipients";
 import { getCurrentUserContext } from "@/lib/auth/dal";
@@ -35,13 +36,13 @@ export default async function Page({
 
   return (
     <div className="space-y-4">
-      <div>
+      <CommsPanel>
         <h1 className="text-3xl font-bold">Edit pre-release form</h1>
         <p className="text-muted-foreground text-sm">
           Saving re-certifies the form as of now. Edits don&apos;t notify anyone
           unless you tick &ldquo;Resend notification&rdquo; before saving.
         </p>
-      </div>
+      </CommsPanel>
       <PreReleaseForm
         mode="edit"
         approval={approval}

@@ -1,11 +1,14 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ApprovalJSON } from "@catalog/models/approval";
 import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
@@ -40,6 +43,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -48,6 +58,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
+import { cn } from "@/lib/utils";
 
 import { NewReviewDialog, ReviewKanbanBoard } from "./review-kanban-board";
 import { ReviewTable } from "./review-table";
@@ -65,8 +76,77 @@ function formatDate(value: string | null): string {
   });
 }
 
+type SortKey =
+  "name" | "reviewByDate" | "targetReleaseDate" | "status" | "createdAt";
+type Sort = { key: SortKey; dir: "asc" | "desc" } | null;
+
+/**
+ * Status orders by release, then review progress, so ascending runs from
+ * unreviewed drafts to released forms.
+ */
+function sortValue(a: ApprovalJSON, key: SortKey): string | number | null {
+  switch (key) {
+    case "name":
+      return a.name.toLowerCase();
+    case "reviewByDate":
+      return a.reviewByDate;
+    case "targetReleaseDate":
+      return a.targetReleaseDate;
+    case "createdAt":
+      return a.createdAt;
+    case "status":
+      return (a.isReleased ? 1000 : 0) + a.reviewCount;
+  }
+}
+
+/** Sort a copy; missing dates go last in both directions. */
+function sortApprovals(list: ApprovalJSON[], sort: Sort): ApprovalJSON[] {
+  if (!sort) return list;
+  const sign = sort.dir === "asc" ? 1 : -1;
+  return [...list].sort((x, y) => {
+    const a = sortValue(x, sort.key);
+    const b = sortValue(y, sort.key);
+    if (a === b) return 0;
+    if (a === null) return 1;
+    if (b === null) return -1;
+    return (a < b ? -1 : 1) * sign;
+  });
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: Sort;
+  onSort: (key: SortKey) => void;
+}) {
+  const dir = sort?.key === sortKey ? sort.dir : null;
+  return (
+    <button
+      type="button"
+      className="flex cursor-pointer items-center gap-1 select-none"
+      onClick={() => onSort(sortKey)}
+    >
+      {label}
+      {dir === "asc" ? (
+        <ArrowUp className="size-3" />
+      ) : dir === "desc" ? (
+        <ArrowDown className="size-3" />
+      ) : (
+        <ArrowUpDown className="text-muted-foreground size-3" />
+      )}
+    </button>
+  );
+}
+
 export function PreReleaseList({
   approvals,
+  authors,
+  activeAuthor,
   reviews,
   currentUserId,
   currentUserName,
@@ -75,6 +155,10 @@ export function PreReleaseList({
   emptyMessage = "No pre-release forms submitted yet.",
 }: {
   approvals: ApprovalJSON[];
+  /** Lead authors offered by the filter select. */
+  authors: { id: number; name: string }[];
+  /** User id from `?author=`, when the list is filtered to one author. */
+  activeAuthor?: number;
   /** Reviews keyed by approval id. */
   reviews: Record<string, ApprovalReviewJSON[]>;
   currentUserId: number;
@@ -84,7 +168,39 @@ export function PreReleaseList({
   emptyMessage?: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const base = "/comms/pub-form";
+
+  const [sort, setSort] = useState<Sort>(null);
+  // Click cycles ascending → descending → unsorted (server order).
+  const cycleSort = (key: SortKey) =>
+    setSort((s) =>
+      s?.key !== key
+        ? { key, dir: "asc" }
+        : s.dir === "asc"
+          ? { key, dir: "desc" }
+          : null,
+    );
+  const sorted = useMemo(
+    () => sortApprovals(approvals, sort),
+    [approvals, sort],
+  );
+  const ariaSort = (key: SortKey) =>
+    sort?.key === key
+      ? sort.dir === "asc"
+        ? "ascending"
+        : "descending"
+      : undefined;
+
+  // The author filter lives in the URL (like the status tabs) so the server
+  // can apply it to the tab counts too.
+  function selectAuthor(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", "list");
+    if (value === "all") params.delete("author");
+    else params.set("author", value);
+    router.push(`/comms?${params}`);
+  }
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   function toggle(set: Set<number>, id: number, force?: boolean): Set<number> {
@@ -146,7 +262,8 @@ export function PreReleaseList({
     }
   }
 
-  if (!approvals.length) {
+  // Nothing at all and no filter to clear: skip the empty table.
+  if (!approvals.length && !activeAuthor) {
     return <p className="text-muted-foreground py-8 text-sm">{emptyMessage}</p>;
   }
 
@@ -156,16 +273,90 @@ export function PreReleaseList({
         <TableHeader>
           <TableRow>
             <TableHead className="w-8" />
-            <TableHead>Title</TableHead>
-            <TableHead>Lead author</TableHead>
-            <TableHead>Target release</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Submitted</TableHead>
+            <TableHead aria-sort={ariaSort("name")}>
+              <SortHeader
+                label="Title"
+                sortKey="name"
+                sort={sort}
+                onSort={cycleSort}
+              />
+            </TableHead>
+            <TableHead>
+              {/* The header itself opens the author filter; when one is
+                  picked it shows that name so the filter stays visible. */}
+              <Select
+                value={activeAuthor ? String(activeAuthor) : "all"}
+                onValueChange={selectAuthor}
+              >
+                <SelectTrigger
+                  className={cn(
+                    "h-auto cursor-pointer gap-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent",
+                    activeAuthor && "text-primary",
+                  )}
+                  aria-label="Filter by lead author"
+                >
+                  <SelectValue>
+                    {authors.find((u) => u.id === activeAuthor)?.name ??
+                      "Lead author"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All authors</SelectItem>
+                  {authors.map((u) => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </TableHead>
+            <TableHead aria-sort={ariaSort("reviewByDate")}>
+              <SortHeader
+                label="Review by"
+                sortKey="reviewByDate"
+                sort={sort}
+                onSort={cycleSort}
+              />
+            </TableHead>
+            <TableHead aria-sort={ariaSort("targetReleaseDate")}>
+              <SortHeader
+                label="Target release"
+                sortKey="targetReleaseDate"
+                sort={sort}
+                onSort={cycleSort}
+              />
+            </TableHead>
+            <TableHead aria-sort={ariaSort("status")}>
+              <SortHeader
+                label="Status"
+                sortKey="status"
+                sort={sort}
+                onSort={cycleSort}
+              />
+            </TableHead>
+            <TableHead aria-sort={ariaSort("createdAt")}>
+              <SortHeader
+                label="Submitted"
+                sortKey="createdAt"
+                sort={sort}
+                onSort={cycleSort}
+              />
+            </TableHead>
             <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {approvals.map((a) => {
+          {!sorted.length && (
+            <TableRow className="hover:bg-transparent">
+              <TableCell
+                colSpan={8}
+                className="text-muted-foreground py-8 text-sm"
+              >
+                {emptyMessage}
+              </TableCell>
+            </TableRow>
+          )}
+          {sorted.map((a) => {
             const isOpen = expanded.has(a.id);
             const list = reviews[String(a.id)] ?? [];
             return (
@@ -199,7 +390,12 @@ export function PreReleaseList({
                     </Link>
                   </TableCell>
                   <TableCell>{a.author}</TableCell>
-                  <TableCell>{formatDate(a.targetReleaseDate)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatDate(a.reviewByDate)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(a.targetReleaseDate)}
+                  </TableCell>
                   <TableCell>
                     <ApprovalStatusBadges approval={a} />
                   </TableCell>
@@ -268,7 +464,7 @@ export function PreReleaseList({
 
                 {isOpen && (
                   <TableRow className="bg-muted/60 hover:bg-muted/60">
-                    <TableCell colSpan={7} className="p-2 sm:pl-10">
+                    <TableCell colSpan={8} className="p-2 sm:pl-10">
                       <div className="border-muted-foreground/40 bg-background/40 space-y-4 rounded-md border border-dashed px-3 py-2">
                         <ReviewKanbanBoard
                           reviews={list}

@@ -22,6 +22,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
+  ArrowUpRight,
   CheckCircle2,
   GripVertical,
   Maximize2,
@@ -40,7 +41,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -303,6 +306,34 @@ function AddReviewCard({
  * than via the inline "Not Started" card (e.g. from a table row's actions
  * menu, or after picking a form on a cross-comm board).
  */
+/**
+ * The date reviewers act on: "Review by" when set, falling back to the target
+ * release date for forms filed before review-by existed.
+ */
+function DueBadge({
+  approval,
+  className,
+}: {
+  approval: Pick<ApprovalJSON, "reviewByDate" | "targetReleaseDate">;
+  className?: string;
+}) {
+  if (approval.reviewByDate) {
+    return (
+      <Badge variant="outline" className={cn("font-semibold", className)}>
+        Review by {approval.reviewByDate}
+      </Badge>
+    );
+  }
+  if (approval.targetReleaseDate) {
+    return (
+      <Badge variant="outline" className={className}>
+        Target {approval.targetReleaseDate}
+      </Badge>
+    );
+  }
+  return null;
+}
+
 export function NewReviewDialog({
   approval,
   currentUserName,
@@ -347,11 +378,7 @@ export function NewReviewDialog({
           <span className="text-muted-foreground">{approval.name}</span>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">Not Started</Badge>
-            {approval.targetReleaseDate && (
-              <Badge variant="outline">
-                Target {approval.targetReleaseDate}
-              </Badge>
-            )}
+            <DueBadge approval={approval} />
           </div>
           <div>
             <div className="text-muted-foreground mb-1 flex items-center justify-between text-xs font-medium tracking-wide uppercase">
@@ -533,6 +560,14 @@ function ReviewCard({
   const [notesDraft, setNotesDraft] = useState(review.notes ?? "");
   const [savingNotes, setSavingNotes] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Two-step withdraw: first click arms, second click deletes. Disarms on its
+  // own after a few seconds so a stray later click can't withdraw.
+  const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
+  useEffect(() => {
+    if (!confirmingWithdraw) return;
+    const t = setTimeout(() => setConfirmingWithdraw(false), 4000);
+    return () => clearTimeout(t);
+  }, [confirmingWithdraw]);
   const isOwn = review.reviewerUserId === currentUserId;
 
   function startEditingNotes() {
@@ -604,9 +639,10 @@ function ReviewCard({
           <Link
             href={`/comms/pub-form/${approval.id}`}
             onClick={(e) => e.stopPropagation()}
-            className="text-muted-foreground block truncate text-xs hover:underline"
+            className="text-primary flex items-center gap-1 font-medium underline-offset-2 hover:underline"
           >
-            {approval.name}
+            <span className="truncate">{approval.name}</span>
+            <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
           </Link>
         )}
         {review.notes && (
@@ -614,10 +650,8 @@ function ReviewCard({
             {review.notes}
           </p>
         )}
-        {approval?.targetReleaseDate && showComm && (
-          <Badge variant="outline" className="text-[10px]">
-            Target {approval.targetReleaseDate}
-          </Badge>
+        {approval && showComm && (
+          <DueBadge approval={approval} className="text-xs" />
         )}
       </div>
 
@@ -625,7 +659,10 @@ function ReviewCard({
         open={detailsOpen}
         onOpenChange={(open) => {
           setDetailsOpen(open);
-          if (!open) setMaximized(false);
+          if (!open) {
+            setMaximized(false);
+            setConfirmingWithdraw(false);
+          }
         }}
       >
         <DialogContent
@@ -651,75 +688,59 @@ function ReviewCard({
               {maximized ? "Restore" : "Maximize"}
             </span>
           </button>
-          <DialogHeader>
-            <DialogTitle>
+          {/* Swiss-style header: small tracked kicker, heavy flush-left name. */}
+          <DialogHeader className="gap-1 pr-14">
+            <div className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
+              Review{isOwn && " · Yours"}
+            </div>
+            <DialogTitle className="text-2xl leading-tight font-semibold tracking-tight">
               {review.reviewer}
-              {isOwn && (
-                <span className="text-muted-foreground text-xs font-normal">
-                  {" "}
-                  (you)
-                </span>
-              )}
             </DialogTitle>
-          </DialogHeader>
-          <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto text-sm">
             {showComm && approval && (
               <Link
                 href={`/comms/pub-form/${approval.id}`}
-                className="text-muted-foreground block hover:underline"
+                className="text-primary inline-flex w-fit items-center gap-1 text-base font-medium underline-offset-4 hover:underline"
               >
                 {approval.name}
+                <ArrowUpRight className="h-4 w-4 shrink-0" />
               </Link>
             )}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">
-                  {REVIEW_BOARD_STATUS_LABELS[review.boardStatus]}
-                </Badge>
-                {isOwn && !editingNotes && (
-                  <Badge variant="outline" asChild>
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete()}
-                      disabled={deleting}
-                      className="text-destructive hover:bg-destructive/10 cursor-pointer hover:border-none disabled:opacity-50"
-                    >
-                      Withdraw review
-                    </button>
-                  </Badge>
+          </DialogHeader>
+          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto text-sm">
+            {/* Booktabs-style facts table: heavy top rule, hairline below. */}
+            <dl className="border-foreground grid grid-cols-2 border-t-2 border-b sm:grid-cols-3">
+              <ReviewFact label="Status">
+                {REVIEW_BOARD_STATUS_LABELS[review.boardStatus]}
+              </ReviewFact>
+              <ReviewFact label="Attested">
+                {review.attested ? (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Yes
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Not yet</span>
                 )}
-              </div>
-              {review.attested && (
-                <Badge
-                  variant="outline"
-                  className="gap-1 text-emerald-600 dark:text-emerald-400"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Attested
-                </Badge>
+              </ReviewFact>
+              {approval?.reviewByDate && showComm && (
+                <ReviewFact label="Review by">
+                  <span className="font-semibold tabular-nums">
+                    {approval.reviewByDate}
+                  </span>
+                </ReviewFact>
               )}
               {approval?.targetReleaseDate && showComm && (
-                <Badge variant="outline">
-                  Target {approval.targetReleaseDate}
-                </Badge>
+                <ReviewFact label="Target release">
+                  <span className="tabular-nums">
+                    {approval.targetReleaseDate}
+                  </span>
+                </ReviewFact>
               )}
-            </div>
-            <div>
-              <div className="mb-1 flex items-center justify-between">
-                <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  Notes
-                </div>
-                {isOwn && !editingNotes && (
-                  <button
-                    type="button"
-                    onClick={startEditingNotes}
-                    className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit
-                  </button>
-                )}
-              </div>
+            </dl>
+            <section>
+              <h3 className="text-muted-foreground mb-2 border-b pb-1 text-[11px] font-medium tracking-[0.18em] uppercase">
+                Notes
+              </h3>
               {editingNotes ? (
                 <div className="space-y-2">
                   <Textarea
@@ -752,14 +773,88 @@ function ReviewCard({
                   </div>
                 </div>
               ) : review.notes ? (
-                <p className="whitespace-pre-wrap">{review.notes}</p>
+                <p className="max-w-prose font-serif text-[15px] leading-relaxed whitespace-pre-wrap">
+                  {review.notes}
+                </p>
               ) : (
-                <p className="text-muted-foreground italic">No notes yet.</p>
+                <p className="text-muted-foreground font-serif italic">
+                  No notes yet.
+                </p>
               )}
-            </div>
+            </section>
           </div>
+          {/* While editing notes, the textarea's own Cancel/Save take over. */}
+          {!editingNotes && (
+            <DialogFooter className="border-t pt-4">
+              {isOwn && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "border-destructive cursor-pointer",
+                      confirmingWithdraw
+                        ? "bg-destructive hover:bg-destructive/90 text-white hover:text-white"
+                        : "text-destructive hover:text-destructive hover:bg-destructive/10",
+                    )}
+                    disabled={deleting}
+                    onClick={() =>
+                      confirmingWithdraw
+                        ? void handleDelete()
+                        : setConfirmingWithdraw(true)
+                    }
+                  >
+                    {deleting
+                      ? "Withdrawing…"
+                      : confirmingWithdraw
+                        ? "Click to confirm"
+                        : "Withdraw Review"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={startEditingNotes}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                </>
+              )}
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer"
+                >
+                  Cancel
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** One cell of the review dialog's facts table: tracked label over value. */
+function ReviewFact({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="py-3 pr-4">
+      <dt className="text-muted-foreground mb-1 text-[11px] font-medium tracking-[0.18em] uppercase">
+        {label}
+      </dt>
+      <dd className="text-base font-medium">{children}</dd>
+    </div>
   );
 }
