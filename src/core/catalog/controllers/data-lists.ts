@@ -32,6 +32,13 @@ export async function getDataListsWithCounts({ u }: { u?: Universe }) {
   return { data };
 }
 
+export async function getDataListsForCategoryTree({ u }: { u: Universe }) {
+  log.info({ universe: u }, "fetching data lists for category tree");
+  const data = await DataListCollection.listForCategoryTree(u);
+  log.info({ count: data.length }, "data lists for category tree fetched");
+  return { data };
+}
+
 export async function getDataList({ id }: { id: number }) {
   log.info({ id }, "fetching data list");
   const data = await DataListCollection.getById(id);

@@ -19,6 +19,18 @@ export type UpdateDataListPayload = Partial<{
   ownedBy: number | null;
 }>;
 
+/** A data list with its ordered measurements, for the categories tree view */
+export type CategoryTreeDataList = {
+  id: number;
+  name: string | null;
+  measurements: {
+    id: number;
+    prefix: string;
+    dataPortalName: string | null;
+    indent: string | null;
+  }[];
+};
+
 class DataListCollection {
   /** Fetch all data lists, optionally filtered by universe */
   static async list(
@@ -60,6 +72,57 @@ class DataListCollection {
       ...new DataList(row).toJSON(),
       measurementCount: Number(row.measurement_count),
     }));
+  }
+
+  /** Fetch every data list attached to a category in the universe, with its measurements in list order */
+  static async listForCategoryTree(
+    universe: Universe,
+  ): Promise<CategoryTreeDataList[]> {
+    const rows = await mysql<{
+      data_list_id: number;
+      data_list_name: string | null;
+      measurement_id: number | null;
+      prefix: string | null;
+      data_portal_name: string | null;
+      indent: string | null;
+    }>`
+      SELECT
+        dl.id AS data_list_id,
+        dl.name AS data_list_name,
+        m.id AS measurement_id,
+        m.prefix,
+        m.data_portal_name,
+        dlm.indent
+      FROM data_lists dl
+      LEFT JOIN data_list_measurements dlm ON dlm.data_list_id = dl.id
+      LEFT JOIN measurements m ON m.id = dlm.measurement_id
+      WHERE dl.id IN (
+        SELECT data_list_id FROM categories
+        WHERE universe = ${universe} AND data_list_id IS NOT NULL
+      )
+      ORDER BY dl.id ASC, dlm.list_order ASC
+    `;
+    const byId = new Map<number, CategoryTreeDataList>();
+    for (const row of rows) {
+      let dl = byId.get(row.data_list_id);
+      if (!dl) {
+        dl = {
+          id: row.data_list_id,
+          name: row.data_list_name,
+          measurements: [],
+        };
+        byId.set(row.data_list_id, dl);
+      }
+      if (row.measurement_id != null) {
+        dl.measurements.push({
+          id: row.measurement_id,
+          prefix: row.prefix ?? "",
+          dataPortalName: row.data_portal_name,
+          indent: row.indent,
+        });
+      }
+    }
+    return Array.from(byId.values());
   }
 
   /** Fetch the email of the owner of a data list */

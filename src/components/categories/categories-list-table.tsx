@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import type { CategoryTreeDataList } from "@catalog/collections/data-list-collection";
 import { Category, Geography, Universe } from "@catalog/types/shared";
 import {
   ArrowDown,
   ArrowUp,
-  ChevronDown,
   ChevronRight,
   Eye,
   EyeOff,
@@ -15,6 +15,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 
 import {
   swapCategoryOrder,
@@ -22,14 +23,6 @@ import {
 } from "@/actions/categories";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
@@ -49,7 +42,13 @@ interface DataTableProps {
   data: Category[];
   universe?: string;
   geographies: Geography[];
+  dataLists: CategoryTreeDataList[];
 }
+
+// Shared column template so rows stay aligned at every nesting level.
+// Name | Universe | ID | Default Freq | Default Geo | Status | Actions
+const ROW_GRID =
+  "grid grid-cols-[minmax(0,1fr)_5rem_5rem_6rem_9rem_9rem_10.5rem] items-center gap-x-3 px-3";
 
 // Build a tree structure from flat category list based on ancestry
 function buildTree(categories: Category[]): CategoryNode[] {
@@ -97,13 +96,206 @@ function buildTree(categories: Category[]): CategoryNode[] {
   return roots;
 }
 
+// ─── Tree primitives ─────────────────────────────────────────────────
+
+/** Animated height reveal for a group of child rows */
+function Collapse({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          key="content"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          className="overflow-hidden"
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/** Name cell: depth indent, optional expand toggle, then the label */
+function NameCell({
+  depth,
+  expandable,
+  expanded,
+  onToggle,
+  showToggleSlot = true,
+  children,
+}: {
+  depth: number;
+  expandable: boolean;
+  expanded: boolean;
+  onToggle?: () => void;
+  showToggleSlot?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex min-w-0 items-center gap-1 py-2"
+      style={{ paddingLeft: `${depth}rem` }}
+    >
+      {expandable ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className="hover:bg-muted-foreground/20 shrink-0 cursor-pointer rounded p-0.5"
+        >
+          <ChevronRight
+            className={cn(
+              "h-4 w-4 transition-transform duration-200",
+              expanded && "rotate-90",
+            )}
+          />
+        </button>
+      ) : (
+        showToggleSlot && <span className="w-5 shrink-0" />
+      )}
+      <div className="flex min-w-0 items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
+function KindLabel({ children }: { children: React.ReactNode }) {
+  return <span className="text-muted-foreground shrink-0">{children}:</span>;
+}
+
+/** Icon button with an instant tooltip; the span keeps hover working when disabled */
+function ActionButton({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 cursor-pointer"
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={label}
+          >
+            {children}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+// ─── Data list + measurement rows (read-only) ────────────────────────
+
+interface DataListRowsProps {
+  dataList: CategoryTreeDataList;
+  categoryId: number;
+  universe: string;
+  depth: number;
+  expanded: boolean;
+  onToggle: (categoryId: number) => void;
+}
+
+function DataListRows({
+  dataList,
+  categoryId,
+  universe,
+  depth,
+  expanded,
+  onToggle,
+}: DataListRowsProps) {
+  return (
+    <>
+      <div
+        className={cn(
+          ROW_GRID,
+          "hover:bg-muted/50 border-b text-sm transition-colors",
+          expanded && "bg-muted/60",
+        )}
+      >
+        <NameCell
+          depth={depth}
+          expandable={dataList.measurements.length > 0}
+          expanded={expanded}
+          onToggle={() => onToggle(categoryId)}
+        >
+          <KindLabel>Data List</KindLabel>
+          <Link
+            href={`/udaman/${universe}/catalog/data-lists/${dataList.id}`}
+            className="truncate hover:underline"
+            title={dataList.name ?? undefined}
+          >
+            {dataList.name || `Data list ${dataList.id}`}
+          </Link>
+          <span className="text-muted-foreground shrink-0 text-xs">
+            ({dataList.measurements.length})
+          </span>
+        </NameCell>
+        <span />
+        <span>{dataList.id}</span>
+      </div>
+      <Collapse open={expanded}>
+        {dataList.measurements.map((m) => (
+          <div
+            key={m.id}
+            className={cn(
+              ROW_GRID,
+              "hover:bg-muted/50 border-b text-sm transition-colors",
+            )}
+          >
+            <NameCell depth={depth + 1} expandable={false} expanded={false}>
+              <KindLabel>Measurement</KindLabel>
+              <Link
+                href={`/udaman/${universe}/catalog/measurements/${m.id}`}
+                className="shrink-0 font-mono hover:underline"
+              >
+                {m.prefix}
+              </Link>
+              {m.dataPortalName && (
+                <span
+                  className="text-muted-foreground truncate text-xs"
+                  title={m.dataPortalName}
+                >
+                  {m.dataPortalName}
+                </span>
+              )}
+            </NameCell>
+            <span />
+            <span>{m.id}</span>
+          </div>
+        ))}
+      </Collapse>
+    </>
+  );
+}
+
+// ─── Category rows ───────────────────────────────────────────────────
+
 interface CategoryRowProps {
   category: CategoryNode;
   siblings: CategoryNode[];
   siblingIndex: number;
   expanded: Set<number>;
   onToggle: (id: number) => void;
-  rowIndex: number;
   onAddChild: (parentId: number) => void;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
@@ -118,24 +310,34 @@ interface CategoryRowProps {
     updates: { hidden?: boolean; masked?: boolean },
   ) => Promise<void>;
   geographyMap: Map<number, Geography>;
+  dataListMap: Map<number, CategoryTreeDataList>;
+  expandedLists: Set<number>;
+  onToggleList: (categoryId: number) => void;
 }
 
-function CategoryRowWithChildren({
-  category,
-  siblings,
-  siblingIndex,
-  expanded,
-  onToggle,
-  rowIndex,
-  onAddChild,
-  onEdit,
-  onDelete,
-  onSwap,
-  onToggleVisibility,
-  geographyMap,
-}: CategoryRowProps) {
+function CategoryRowWithChildren(props: CategoryRowProps) {
+  const {
+    category,
+    siblings,
+    siblingIndex,
+    expanded,
+    onToggle,
+    onAddChild,
+    onEdit,
+    onDelete,
+    onSwap,
+    onToggleVisibility,
+    geographyMap,
+    dataListMap,
+    expandedLists,
+    onToggleList,
+  } = props;
   const { universe } = useParams();
-  const hasChildren = category.children.length > 0;
+  const dataList =
+    category.dataListId != null
+      ? dataListMap.get(category.dataListId)
+      : undefined;
+  const hasChildren = category.children.length > 0 || dataList !== undefined;
   const isExpanded = expanded.has(category.id);
   const isRoot = category.depth === 0;
   const isFirst = siblingIndex === 0;
@@ -153,167 +355,140 @@ function CategoryRowWithChildren({
     );
   };
 
+  const childRows = (
+    <>
+      {dataList && (
+        <DataListRows
+          dataList={dataList}
+          categoryId={category.id}
+          universe={String(universe)}
+          depth={category.depth + 1}
+          expanded={expandedLists.has(category.id)}
+          onToggle={onToggleList}
+        />
+      )}
+      {category.children.map((child, i) => (
+        <CategoryRowWithChildren
+          {...props}
+          key={child.id}
+          category={child}
+          siblings={category.children}
+          siblingIndex={i}
+        />
+      ))}
+    </>
+  );
+
   return (
     <>
-      <TableRow className={cn("border-b", isExpanded && "bg-muted")}>
-        <TableCell>
-          {/* inline css for dynamic padding based on tree depth - for indentation */}
-          <div
-            className="flex items-center"
-            style={{ paddingLeft: `${category.depth * 1}rem` }}
+      <div
+        className={cn(
+          ROW_GRID,
+          "hover:bg-muted/50 border-b text-sm transition-colors",
+          isExpanded && "bg-muted",
+        )}
+      >
+        <NameCell
+          depth={category.depth}
+          expandable={hasChildren && !isRoot}
+          expanded={isExpanded}
+          onToggle={() => onToggle(category.id)}
+          showToggleSlot={!isRoot}
+        >
+          <Link
+            href={`/udaman/${universe}/catalog/categories/${category.id}`}
+            className="truncate hover:underline"
           >
-            {hasChildren && !isRoot ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggle(category.id);
-                }}
-                className="hover:bg-muted-foreground/20 mr-1 cursor-pointer rounded p-0.5"
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-            ) : (
-              !isRoot && <span className="mr-1 w-5" />
-            )}
-            <Link
-              href={`/udaman/${universe}/catalog/categories/${category.id}`}
-            >
-              {category.name || "-"}
-            </Link>
-          </div>
-        </TableCell>
-        <TableCell>{category.universe}</TableCell>
-        <TableCell>{category.id}</TableCell>
-        <TableCell>{category.defaultFreq || "-"}</TableCell>
-        <TableCell>
+            {category.name || "-"}
+          </Link>
+        </NameCell>
+        <span>{category.universe}</span>
+        <span>{category.id}</span>
+        <span>{category.defaultFreq || "-"}</span>
+        <span className="truncate">
           {category.defaultGeoId
             ? geographyMap.get(category.defaultGeoId)?.displayName ||
               geographyMap.get(category.defaultGeoId)?.handle ||
               category.defaultGeoId
             : "-"}
-        </TableCell>
-        <TableCell onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-2">
-            {category.hidden && (
-              <Badge
-                variant="secondary"
-                className="cursor-pointer"
-                onClick={() =>
-                  onToggleVisibility(category.id, { hidden: false })
-                }
-                title="Click to unhide"
-              >
-                <EyeOff className="mr-1 h-3 w-3" />
-                Hidden
-              </Badge>
-            )}
-            {category.masked && (
-              <Badge
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() =>
-                  onToggleVisibility(category.id, { masked: false })
-                }
-                title="Click to unmask"
-              >
-                Masked
-              </Badge>
-            )}
+        </span>
+        <div className="flex items-center gap-2">
+          {category.hidden && (
+            <Badge
+              variant="secondary"
+              className="cursor-pointer"
+              onClick={() => onToggleVisibility(category.id, { hidden: false })}
+              title="Click to unhide"
+            >
+              <EyeOff className="mr-1 h-3 w-3" />
+              Hidden
+            </Badge>
+          )}
+          {category.masked && (
+            <Badge
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => onToggleVisibility(category.id, { masked: false })}
+              title="Click to unmask"
+            >
+              Masked
+            </Badge>
+          )}
 
-            {!category.hidden && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 cursor-pointer"
-                    onClick={() =>
-                      onToggleVisibility(category.id, { hidden: true })
-                    }
-                  >
-                    <Eye className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Hide</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        </TableCell>
-        <TableCell onClick={(e) => e.stopPropagation()}>
-          <div className="cursor-pointerflex pointer-events-auto items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 cursor-pointer"
-              onClick={() => onAddChild(category.id)}
-              title="Add child"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 cursor-pointer"
-              onClick={() => onEdit(category.id)}
-              title="Edit"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 cursor-pointer"
-              onClick={() => onDelete(category.id)}
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 cursor-pointer"
-              onClick={() => handleMove("up")}
-              disabled={isFirst}
-              title="Move up"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 cursor-pointer"
-              onClick={() => handleMove("down")}
-              disabled={isLast}
-              title="Move down"
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
-          </div>
-        </TableCell>
-      </TableRow>
-      {hasChildren &&
-        (isRoot || isExpanded) &&
-        category.children.map((child, i) => (
-          <CategoryRowWithChildren
-            key={child.id}
-            category={child}
-            siblings={category.children}
-            siblingIndex={i}
-            expanded={expanded}
-            onToggle={onToggle}
-            rowIndex={rowIndex + i + 1}
-            onAddChild={onAddChild}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onSwap={onSwap}
-            onToggleVisibility={onToggleVisibility}
-            geographyMap={geographyMap}
-          />
-        ))}
+          {!category.hidden && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 cursor-pointer"
+                  aria-label="Hide"
+                  onClick={() =>
+                    onToggleVisibility(category.id, { hidden: true })
+                  }
+                >
+                  <Eye className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Hide</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        <div className="flex items-center gap-0.5">
+          <ActionButton
+            label="Add child"
+            onClick={() => onAddChild(category.id)}
+          >
+            <Plus className="h-4 w-4" />
+          </ActionButton>
+          <ActionButton label="Edit" onClick={() => onEdit(category.id)}>
+            <Pencil className="h-4 w-4" />
+          </ActionButton>
+          <ActionButton label="Delete" onClick={() => onDelete(category.id)}>
+            <Trash2 className="h-4 w-4" />
+          </ActionButton>
+          <ActionButton
+            label="Move up"
+            onClick={() => handleMove("up")}
+            disabled={isFirst}
+          >
+            <ArrowUp className="h-4 w-4" />
+          </ActionButton>
+          <ActionButton
+            label="Move down"
+            onClick={() => handleMove("down")}
+            disabled={isLast}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </ActionButton>
+        </div>
+      </div>
+      {/* Root categories are always open */}
+      {isRoot ? (
+        childRows
+      ) : (
+        <Collapse open={hasChildren && isExpanded}>{childRows}</Collapse>
+      )}
     </>
   );
 }
@@ -322,10 +497,18 @@ export function CategoriesListTable({
   data,
   universe,
   geographies,
+  dataLists,
 }: DataTableProps) {
   const router = useRouter();
   const tree = useMemo(() => buildTree(data), [data]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  // Keyed by category id, since one data list can hang off several categories
+  const [expandedLists, setExpandedLists] = useState<Set<number>>(new Set());
+
+  const dataListMap = useMemo(
+    () => new Map(dataLists.map((dl) => [dl.id, dl])),
+    [dataLists],
+  );
 
   // Form sheet state
   const [formOpen, setFormOpen] = useState(false);
@@ -367,6 +550,18 @@ export function CategoriesListTable({
         next.delete(id);
       } else {
         next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleList = (categoryId: number) => {
+    setExpandedLists((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
       }
       return next;
     });
@@ -421,20 +616,23 @@ export function CategoriesListTable({
 
   return (
     <>
-      <div className="overflow-hidden rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Universe</TableHead>
-              <TableHead>ID</TableHead>
-              <TableHead>Default Freq</TableHead>
-              <TableHead>Default Geo</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <MotionConfig reducedMotion="user">
+        <div className="bg-background mt-4 overflow-x-auto rounded-md border">
+          <div className="min-w-[64rem]">
+            <div
+              className={cn(
+                ROW_GRID,
+                "text-muted-foreground h-10 border-b text-sm font-medium",
+              )}
+            >
+              <span>Name</span>
+              <span>Universe</span>
+              <span>ID</span>
+              <span>Default Freq</span>
+              <span>Default Geo</span>
+              <span>Status</span>
+              <span>Actions</span>
+            </div>
             {tree.length ? (
               tree.map((category, i) => (
                 <CategoryRowWithChildren
@@ -444,25 +642,25 @@ export function CategoriesListTable({
                   siblingIndex={i}
                   expanded={expanded}
                   onToggle={handleToggle}
-                  rowIndex={i}
                   onAddChild={handleAddChild}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onSwap={handleSwap}
                   onToggleVisibility={handleToggleVisibility}
                   geographyMap={geographyMap}
+                  dataListMap={dataListMap}
+                  expandedLists={expandedLists}
+                  onToggleList={handleToggleList}
                 />
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
+              <div className="text-muted-foreground flex h-24 items-center justify-center text-sm">
+                No results.
+              </div>
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+        </div>
+      </MotionConfig>
 
       <CategoryFormSheet
         open={formOpen}

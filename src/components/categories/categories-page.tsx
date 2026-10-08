@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { CategoryTreeDataList } from "@catalog/collections/data-list-collection";
 import { Category, Geography, Universe } from "@catalog/types/shared";
 import { Plus } from "lucide-react";
 
@@ -13,12 +14,14 @@ interface CategoriesPageContentProps {
   data: Category[];
   universe?: Universe;
   geographies: Geography[];
+  dataLists: CategoryTreeDataList[];
 }
 
 export function Categories({
   data,
   universe,
   geographies,
+  dataLists,
 }: CategoriesPageContentProps) {
   const [formOpen, setFormOpen] = useState(false);
 
@@ -47,6 +50,7 @@ export function Categories({
         data={data}
         universe={universe}
         geographies={geographies}
+        dataLists={dataLists}
       />
 
       <CategoryFormSheet

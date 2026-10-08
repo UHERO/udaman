@@ -15,6 +15,7 @@ import {
   deleteDataList as deleteDataListCtrl,
   getDataListsWithCounts as fetchDataLists,
   getDataListForEdit as getDataListForEditCtrl,
+  getDataListsForCategoryTree as getDataListsForCategoryTreeCtrl,
   getDataListSuperTable as getDataListSuperTableCtrl,
   moveMeasurement as moveMeasurementCtrl,
   removeDataListMeasurement as removeDataListMeasurementCtrl,
@@ -36,6 +37,16 @@ export async function getDataLists(params?: { universe?: Universe }) {
   log.info({ universe: params?.universe }, "getDataLists action called");
   const result = await fetchDataLists({ u: params?.universe });
   log.info({ count: result.data.length }, "getDataLists action completed");
+  return result.data;
+}
+
+export async function getDataListsForCategoryTree(params: {
+  universe?: Universe;
+}) {
+  await requirePermission("data-list", "read");
+  const universe = params.universe ?? "UHERO";
+  log.info({ universe }, "getDataListsForCategoryTree action called");
+  const result = await getDataListsForCategoryTreeCtrl({ u: universe });
   return result.data;
 }
 

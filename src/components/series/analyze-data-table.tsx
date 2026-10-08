@@ -14,7 +14,7 @@ import { ArrowUpDown, Check, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Table,
+  RawTable,
   TableBody,
   TableCell,
   TableHead,
@@ -49,6 +49,15 @@ const OVERLAY_EXTRA_COLUMNS: Partial<
   rollingStdDev: { key: "rollingStdLower", label: "±σ Lower" },
 };
 
+/** A revision set (one series, one publish day) shown as a table column.
+ *  `values` holds only the dates where the vintage differs from current. */
+export type VintageTableColumn = {
+  id: string;
+  label: string;
+  seriesIndex: number;
+  values: Map<string, number>;
+};
+
 interface AnalyzeDataTableProps {
   /** Pre-built rows with overlay/transform fields already computed */
   rows: ChartRow[];
@@ -64,6 +73,8 @@ interface AnalyzeDataTableProps {
   rightTransformation?: Transformation | null;
   /** Map of series index → axis assignment */
   seriesAxisMap?: Map<number, "left" | "right">;
+  /** Displayed vintage revisions, one column per (series, publish day) */
+  vintageColumns?: VintageTableColumn[];
 }
 
 const changeColor = (n: number) => {
@@ -83,6 +94,7 @@ export function AnalyzeDataTable({
   seriesNames,
   rightTransformation = null,
   seriesAxisMap,
+  vintageColumns = [],
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
@@ -211,6 +223,29 @@ export function AnalyzeDataTable({
             `${transformLabel} (${name})`,
           );
         }
+      }
+
+      // Vintage revision columns — blank where the vintage matches current
+      for (const vc of vintageColumns) {
+        const color = SERIES_COLORS[vc.seriesIndex % SERIES_COLORS.length];
+        push(
+          {
+            id: vc.id,
+            accessorFn: (row) => vc.values.get(row.date),
+            header: () => (
+              <span
+                className="text-end text-xs font-medium opacity-70"
+                style={{ color }}
+              >
+                {vc.label}
+              </span>
+            ),
+            cell: ({ cell }) => (
+              <FormattedCell n={cell.getValue<number | undefined>()} isLevel />
+            ),
+          },
+          vc.label,
+        );
       }
 
       return { columns: cols, columnLabels: labels };
@@ -379,6 +414,7 @@ export function AnalyzeDataTable({
     activeTransformation,
     rightTransformation,
     seriesAxisMap,
+    vintageColumns,
     secondAxis,
     secondAxisTransformation,
     decimals,
@@ -422,7 +458,8 @@ export function AnalyzeDataTable({
   }, [table, columnLabels]);
 
   return (
-    <div className="w-fit">
+    // Capped at the page width; wider tables scroll horizontally
+    <div className="w-fit max-w-full">
       <div className="flex items-center justify-end pb-2">
         <Button
           variant="outline"
@@ -443,46 +480,58 @@ export function AnalyzeDataTable({
           )}
         </Button>
       </div>
-      <Table className="w-auto font-mono text-gray-800">
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="text-end">
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </TableHead>
+      {/* Flipped scroller puts the scrollbar on top; the inner flip
+          restores the table's orientation */}
+      <div className="[transform:rotateX(180deg)] scrollbar-thin overflow-x-auto">
+        <div className="[transform:rotateX(180deg)]">
+          <RawTable className="w-auto font-mono text-gray-800">
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="text-end">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
               ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row, i) => (
-              <TableRow
-                key={row.id}
-                className={cn(i % 2 === 0 ? "bg-muted/50" : "bg-white")}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="text-end">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row, i) => (
+                  <TableRow
+                    key={row.id}
+                    className={cn(i % 2 === 0 ? "bg-muted/50" : "bg-white")}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="text-end">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No data found.
                   </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No data found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                </TableRow>
+              )}
+            </TableBody>
+          </RawTable>
+        </div>
+      </div>
     </div>
   );
 }

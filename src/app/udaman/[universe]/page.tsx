@@ -9,7 +9,7 @@ import { getVisibleRoutes, toReadableSet } from "@/lib/auth/route-access";
 /** Supplementary descriptions for homepage cards (route-access only has labels). */
 const CARD_DESCRIPTIONS: Record<string, string> = {
   "Time Series": "Browse and manage time series data",
-  "Data Portal Catalog": "View and edit the Data Portal catalog tree",
+  Catalog: "View and edit the Data Portal catalog tree",
   "CSV-to-TSD": "Convert CSV files to TSD format",
   Downloads: "Manage and run data downloads",
   Exports: "Manage data export configurations",

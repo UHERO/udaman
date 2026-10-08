@@ -41,6 +41,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -71,6 +79,7 @@ import {
   LevelChart,
   SERIES_COLORS,
   TRANSFORMATION_LABELS,
+  vintageDiffers,
   type BarMode,
   type ChartRow,
   type Overlay,
@@ -78,9 +87,16 @@ import {
   type Transformation,
   type VintageChartPoint,
 } from "./analyze-chart";
-import { AnalyzeDataTable } from "./analyze-data-table";
+import {
+  AnalyzeDataTable,
+  type VintageTableColumn,
+} from "./analyze-data-table";
 import { AnalyzerSeriesRow } from "./analyzer/analyzer-series-row";
 import type { AnalyzerEntry } from "./analyzer/types";
+
+/** Vintage overlay selection: off, each series' latest vintage, all
+ *  vintages, or a single publish day (YYYY-MM-DD) */
+type VintageMode = "off" | "latest" | "all" | (string & {});
 
 /** When a transform changes what the values mean, the axis "unit" is the
  *  transform itself (%, index, z-score) rather than the source unit.
@@ -154,7 +170,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground text-[10px] leading-tight">
         {label}
       </span>
-      <span className="font-mono text-xs leading-tight font-medium">
+      <span className="font-mono text-xs leading-tight font-medium [overflow-wrap:anywhere]">
         {value}
       </span>
     </div>
@@ -1853,10 +1869,16 @@ export function AnalyzeControls({
       return v === "column" ? "column" : "line";
     },
   );
-  // Vintage (non-current data point) overlay — off unless the URL opts in
-  const [showVintages, setShowVintages] = useState(
-    () => searchParams.get("vintages") === "1",
-  );
+  // Vintage (non-current data point) overlay — off unless the URL opts in.
+  // "latest" | "all" | a publish day (YYYY-MM-DD); legacy "1" means all.
+  const [vintageMode, setVintageMode] = useState<VintageMode>(() => {
+    const v = searchParams.get("vintages");
+    if (!v) return "off";
+    if (v === "1") return "all";
+    return v;
+  });
+  const showVintages = vintageMode !== "off";
+  const [vintageMenuOpen, setVintageMenuOpen] = useState(false);
   const [vintageData, setVintageData] = useState<
     Record<string, VintageChartPoint[]>
   >({});
@@ -2031,8 +2053,10 @@ export function AnalyzeControls({
     return result;
   }, [entries]);
 
+  // Fetch when the overlay is on, or when the menu opens (it lists the
+  // available publish days)
   useEffect(() => {
-    if (!showVintages) return;
+    if (!showVintages && !vintageMenuOpen) return;
     const missing = vintageEligible
       .map((e) => e.name)
       .filter((n) => !(n in vintageData));
@@ -2045,13 +2069,13 @@ export function AnalyzeControls({
     return () => {
       cancelled = true;
     };
-  }, [showVintages, vintageEligible, vintageData, _universe]);
+  }, [showVintages, vintageMenuOpen, vintageEligible, vintageData, _universe]);
 
-  /** Vintage points keyed by compare-series index, for the chart.
-   *  Skipped for series on an axis with an active transform — raw vintage
-   *  values wouldn't align with the transformed line. */
-  const chartVintagePoints = useMemo(() => {
-    if (!showVintages) return undefined;
+  /** All vintage points keyed by compare-series index, before the
+   *  publish-day filter. Skipped for series on an axis with an active
+   *  transform — raw vintage values wouldn't align with the transformed
+   *  line. */
+  const availableVintagePoints = useMemo(() => {
     const map = new Map<number, VintageChartPoint[]>();
     for (const { index, name } of vintageEligible) {
       const axis = seriesAxisMap.get(index) ?? "left";
@@ -2060,15 +2084,77 @@ export function AnalyzeControls({
       const points = vintageData[name];
       if (points && points.length > 0) map.set(index, points);
     }
-    return map.size > 0 ? map : undefined;
+    return map;
   }, [
-    showVintages,
     vintageEligible,
     vintageData,
     seriesAxisMap,
     transformation,
     rightTransformation,
   ]);
+
+  /** Publish days present, newest first. Vintages uploaded the same day
+   *  are treated as one set. */
+  const vintageDays = useMemo(() => {
+    const days = new Set<string>();
+    for (const points of availableVintagePoints.values()) {
+      for (const p of points) days.add(p.publishedAt);
+    }
+    return [...days].sort().reverse();
+  }, [availableVintagePoints]);
+
+  /** Most recent publish day per series — "Most Recent" means each
+   *  series' own latest vintage, which can differ across series. */
+  const latestVintageDayBySeries = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const [index, points] of availableVintagePoints) {
+      let max = "";
+      for (const p of points) if (p.publishedAt > max) max = p.publishedAt;
+      map.set(index, max);
+    }
+    return map;
+  }, [availableVintagePoints]);
+
+  const latestVintageLabel = useMemo(() => {
+    const days = new Set(latestVintageDayBySeries.values());
+    if (days.size === 0) return null;
+    return days.size === 1 ? [...days][0] : "per series";
+  }, [latestVintageDayBySeries]);
+
+  /** Vintage points for the chart, filtered to the selected mode */
+  const chartVintagePoints = useMemo(() => {
+    if (!showVintages) return undefined;
+    const map = new Map<number, VintageChartPoint[]>();
+    for (const [index, points] of availableVintagePoints) {
+      if (vintageMode === "all") {
+        map.set(index, points);
+        continue;
+      }
+      const day =
+        vintageMode === "latest"
+          ? latestVintageDayBySeries.get(index)
+          : vintageMode;
+      // One point per date: points are ordered created_at DESC within a
+      // date, so the first hit is the day's final upload
+      const seen = new Set<string>();
+      const filtered = points.filter((p) => {
+        if (p.publishedAt !== day || seen.has(p.date)) return false;
+        seen.add(p.date);
+        return true;
+      });
+      if (filtered.length > 0) map.set(index, filtered);
+    }
+    return map.size > 0 ? map : undefined;
+  }, [
+    showVintages,
+    vintageMode,
+    availableVintagePoints,
+    latestVintageDayBySeries,
+  ]);
+
+  const eligibleVintagesLoaded = vintageEligible.every(
+    (e) => e.name in vintageData,
+  );
 
   const vintageCount = useMemo(() => {
     if (!chartVintagePoints) return 0;
@@ -2226,7 +2312,7 @@ export function AnalyzeControls({
         stdDevMultiplier !== 1 ? String(stdDevMultiplier) : undefined,
       leftChartType: leftChartType !== "line" ? leftChartType : undefined,
       rightChartType: rightChartType !== "line" ? rightChartType : undefined,
-      vintages: showVintages ? "1" : undefined,
+      vintages: showVintages ? vintageMode : undefined,
     });
   }, [
     overlays,
@@ -2244,6 +2330,7 @@ export function AnalyzeControls({
     leftChartType,
     rightChartType,
     showVintages,
+    vintageMode,
   ]);
 
   // ── Available dates from brush-selected range ─────────────────────
@@ -2445,6 +2532,47 @@ export function AnalyzeControls({
     currentFreqCode,
   ]);
 
+  /** One table column per displayed (series, publish day) revision set,
+   *  holding only the values that differ from current at the displayed
+   *  precision. Sets with no differing value in range are dropped. */
+  const tableVintageColumns = useMemo(() => {
+    if (!chartVintagePoints) return [];
+    const rowByDate = new Map(tableData.map((r) => [r.date, r]));
+    const columns: VintageTableColumn[] = [];
+    for (const [seriesIndex, points] of chartVintagePoints) {
+      if (seriesVisibility.get(seriesIndex) === "hidden") continue;
+      const byDay = new Map<string, Map<string, number>>();
+      for (const p of points) {
+        const current = rowByDate.get(p.date)?.[`series_${seriesIndex}`];
+        if (current == null || isNaN(current)) continue;
+        if (!vintageDiffers(current, p.value, decimals)) continue;
+        let values = byDay.get(p.publishedAt);
+        if (!values) {
+          values = new Map();
+          byDay.set(p.publishedAt, values);
+        }
+        // Points are created_at DESC within a date: keep the day's last upload
+        if (!values.has(p.date)) values.set(p.date, p.value);
+      }
+      const days = [...byDay.keys()].sort().reverse();
+      for (const day of days) {
+        columns.push({
+          id: `vintage_${seriesIndex}_${day}`,
+          label: `${compareSeriesNames[seriesIndex]} (${day})`,
+          seriesIndex,
+          values: byDay.get(day)!,
+        });
+      }
+    }
+    return columns;
+  }, [
+    chartVintagePoints,
+    tableData,
+    seriesVisibility,
+    decimals,
+    compareSeriesNames,
+  ]);
+
   // Summary stats for the brush-selected range (selected series)
   const rangeStats = useMemo(() => {
     const sliced = chartData.slice(
@@ -2515,57 +2643,38 @@ export function AnalyzeControls({
 
   const fmt = (v: number) => formatLevel(v, decimals, unitShortLabel);
 
+  const pct = (v: number | null | undefined) =>
+    v != null ? `${v.toFixed(2)}%` : "—";
+  const statCells = [
+    { label: "Mean", value: rangeStats ? fmt(rangeStats.mean) : "—" },
+    { label: "Median", value: rangeStats ? fmt(rangeStats.median) : "—" },
+    { label: "Std Dev", value: rangeStats ? fmt(rangeStats.stdDev) : "—" },
+    { label: "Min", value: rangeStats ? fmt(rangeStats.min) : "—" },
+    { label: "Max", value: rangeStats ? fmt(rangeStats.max) : "—" },
+    { label: "Total", value: rangeStats ? fmt(rangeStats.total) : "—" },
+    { label: "Change", value: rangeStats ? fmt(rangeStats.change) : "—" },
+    { label: "% Change", value: pct(rangeStats?.pctChange) },
+    { label: "CAGR", value: pct(rangeStats?.cagr) },
+    { label: "Obs", value: rangeStats ? String(rangeStats.n) : "—" },
+  ];
+  // Labels are the floor (~8ch covers "% Change" at its smaller size)
+  const statMinCh = Math.max(8, ...statCells.map((c) => c.value.length)) + 1;
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       {/* Stats & range bar */}
       <div className="flex items-start justify-between gap-6 py-1">
-        <div className="grid grid-cols-5 gap-x-5 gap-y-1">
-          <StatCell
-            label="Mean"
-            value={rangeStats ? fmt(rangeStats.mean) : "—"}
-          />
-          <StatCell
-            label="Median"
-            value={rangeStats ? fmt(rangeStats.median) : "—"}
-          />
-          <StatCell
-            label="Std Dev"
-            value={rangeStats ? fmt(rangeStats.stdDev) : "—"}
-          />
-          <StatCell
-            label="Min"
-            value={rangeStats ? fmt(rangeStats.min) : "—"}
-          />
-          <StatCell
-            label="Max"
-            value={rangeStats ? fmt(rangeStats.max) : "—"}
-          />
-          <StatCell
-            label="Total"
-            value={rangeStats ? fmt(rangeStats.total) : "—"}
-          />
-          <StatCell
-            label="Change"
-            value={rangeStats ? fmt(rangeStats.change) : "—"}
-          />
-          <StatCell
-            label="% Change"
-            value={
-              rangeStats?.pctChange != null
-                ? `${rangeStats.pctChange.toFixed(2)}%`
-                : "—"
-            }
-          />
-          <StatCell
-            label="CAGR"
-            value={
-              rangeStats?.cagr != null ? `${rangeStats.cagr.toFixed(2)}%` : "—"
-            }
-          />
-          <StatCell
-            label="Obs"
-            value={rangeStats ? String(rangeStats.n) : "—"}
-          />
+        {/* At most 5 columns, each at least as wide as the longest value
+            (in ch of the mono value font), so the stats only wrap to a 3rd+
+            row when the actual numbers can't fit 5 across. Capped at 5
+            columns of that width plus gaps so it doesn't stretch to fill. */}
+        <div
+          className="grid max-w-[calc(5_*_var(--stat-min)_+_5rem)] min-w-0 flex-1 grid-cols-[repeat(auto-fill,minmax(max(var(--stat-min),calc((100%_-_5rem)/5)),1fr))] gap-x-5 gap-y-1 font-mono text-xs"
+          style={{ "--stat-min": `${statMinCh}ch` } as React.CSSProperties}
+        >
+          {statCells.map(({ label, value }) => (
+            <StatCell key={label} label={label} value={value} />
+          ))}
         </div>
         <Separator orientation="vertical" className="h-auto self-stretch" />
         <div className="flex flex-col gap-1">
@@ -2632,24 +2741,70 @@ export function AnalyzeControls({
                 />
               )}
               {vintageEligible.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowVintages((v) => !v)}
-                  title="Overlay non-current (vintage) data points"
-                  className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors ${
-                    showVintages
-                      ? "border-slate-400 bg-slate-100 text-slate-700"
-                      : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-                  }`}
+                <DropdownMenu
+                  open={vintageMenuOpen}
+                  onOpenChange={setVintageMenuOpen}
                 >
-                  <History className="h-4 w-4" />
-                  Vintages
-                  {showVintages && vintageCount > 0 && (
-                    <span className="rounded-full bg-slate-500 px-1.5 text-[10px] leading-4 text-white">
-                      {vintageCount}
-                    </span>
-                  )}
-                </button>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      title="Overlay non-current (vintage) data points"
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors ${
+                        showVintages
+                          ? "border-slate-400 bg-slate-100 text-slate-700"
+                          : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+                      }`}
+                    >
+                      <History className="h-4 w-4" />
+                      Vintages
+                      {showVintages && vintageCount > 0 && (
+                        <span className="rounded-full bg-slate-500 px-1.5 text-[10px] leading-4 text-white">
+                          {vintageCount}
+                        </span>
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="max-h-80 overflow-y-auto"
+                  >
+                    <DropdownMenuRadioGroup
+                      value={vintageMode}
+                      onValueChange={setVintageMode}
+                    >
+                      <DropdownMenuRadioItem value="off" className="text-xs">
+                        Off
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="latest" className="text-xs">
+                        Most Recent
+                        {latestVintageLabel && (
+                          <span className="text-muted-foreground">
+                            ({latestVintageLabel})
+                          </span>
+                        )}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="all" className="text-xs">
+                        All
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuSeparator />
+                      {vintageDays.length === 0 ? (
+                        <p className="text-muted-foreground px-2 py-1.5 text-xs">
+                          {eligibleVintagesLoaded ? "No vintages" : "Loading…"}
+                        </p>
+                      ) : (
+                        vintageDays.map((day) => (
+                          <DropdownMenuRadioItem
+                            key={day}
+                            value={day}
+                            className="font-mono text-xs"
+                          >
+                            {day}
+                          </DropdownMenuRadioItem>
+                        ))
+                      )}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </>
@@ -2840,6 +2995,7 @@ export function AnalyzeControls({
         activeTransformation={transformation}
         rightTransformation={rightTransformation}
         seriesAxisMap={seriesAxisMap}
+        vintageColumns={tableVintageColumns}
       />
     </div>
   );

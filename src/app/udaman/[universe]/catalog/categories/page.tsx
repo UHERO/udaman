@@ -1,6 +1,7 @@
 import type { Universe } from "@catalog/types/shared";
 
 import { getCategories } from "@/actions/categories";
+import { getDataListsForCategoryTree } from "@/actions/data-lists";
 import { getGeographies } from "@/actions/geographies";
 import { Categories } from "@/components/categories/categories-page";
 
@@ -11,9 +12,10 @@ export default async function Page({
 }) {
   const { universe } = await params;
   const u = universe as Universe;
-  const [data, geographies] = await Promise.all([
+  const [data, geographies, dataLists] = await Promise.all([
     getCategories({ universe: u }),
     getGeographies({ universe: u }),
+    getDataListsForCategoryTree({ universe: u }),
   ]);
 
   return (
@@ -23,7 +25,12 @@ export default async function Page({
         Manage category definitions for the data portal.
       </p>
       <div className="mt-4">
-        <Categories data={data} universe={u} geographies={geographies} />
+        <Categories
+          data={data}
+          universe={u}
+          geographies={geographies}
+          dataLists={dataLists}
+        />
       </div>
     </div>
   );

@@ -17,15 +17,19 @@ export default async function MeasurementDetailPage({
   const numericId = parseInt(id);
   if (isNaN(numericId)) notFound();
 
-  let measurement, series, unitsList, sourcesList, sourceDetailsList;
+  let measurement, series, dataLists, unitsList, sourcesList, sourceDetailsList;
   try {
-    [{ measurement, series }, unitsList, sourcesList, sourceDetailsList] =
-      await Promise.all([
-        getMeasurementDetail(numericId),
-        getUnits({ universe: u }),
-        getSources({ universe: u }),
-        getSourceDetails({ universe: u }),
-      ]);
+    [
+      { measurement, series, dataLists },
+      unitsList,
+      sourcesList,
+      sourceDetailsList,
+    ] = await Promise.all([
+      getMeasurementDetail(numericId),
+      getUnits({ universe: u }),
+      getSources({ universe: u }),
+      getSourceDetails({ universe: u }),
+    ]);
   } catch {
     notFound();
   }
@@ -49,6 +53,7 @@ export default async function MeasurementDetailPage({
     <MeasurementDetailView
       measurement={measurement}
       series={series}
+      dataLists={dataLists}
       universe={u}
       units={units}
       sources={sources}

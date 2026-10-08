@@ -100,7 +100,7 @@ export const ROUTES: RouteEntry[] = [
     roles: FULL_ACCESS_ROLES,
   },
   {
-    label: "Data Portal Catalog",
+    label: "Catalog",
     resource: "catalog",
     path: "/catalog",
     icon: ChartLine,

@@ -1005,6 +1005,102 @@ function ChartTooltip({
   );
 }
 
+/** Signed change from a vintage to the current value, e.g. "+1.23 (+0.4%)" */
+function formatVintageDelta(
+  delta: number,
+  vintageValue: number,
+  decimals: number,
+): string {
+  const sign = delta > 0 ? "+" : "";
+  const abs = `${sign}${delta.toFixed(decimals)}`;
+  if (vintageValue === 0) return abs;
+  const pct = (delta / Math.abs(vintageValue)) * 100;
+  return `${abs} (${pct > 0 ? "+" : ""}${pct.toFixed(1)}%)`;
+}
+
+/** Whether a vintage differs from the current value at the displayed
+ *  precision (so "+0.0" revisions can be skipped) */
+export function vintageDiffers(
+  current: number,
+  vintage: number,
+  decimals: number,
+): boolean {
+  return Number((current - vintage).toFixed(decimals)) !== 0;
+}
+
+/** Bounding box Recharts passes to a ReferenceLine segment's label */
+type SegmentBox = { x: number; y: number; width: number; height: number };
+
+/**
+ * Label for a revision annotation: the text sits offset diagonally from
+ * the current point, joined to it by a thin leader line. The segment's box
+ * spans vintage → current, so the current point is its top edge when
+ * revised up and its bottom edge when revised down.
+ *
+ * The preferred side is away from the vintage (up for an upward revision),
+ * but it flips vertically when the text would leave the plot area — the
+ * SVG clips anything past its edge, which hid labels on the chart's peak —
+ * and flips to the left near the right edge.
+ */
+function VintageAnnotationLabel({
+  viewBox,
+  up,
+  leftward,
+  plotTop,
+  plotBottom,
+  color,
+  text,
+}: {
+  viewBox?: SegmentBox;
+  up: boolean;
+  leftward: boolean;
+  plotTop: number;
+  plotBottom: number;
+  color: string;
+  text: string;
+}) {
+  if (!viewBox) return <g />;
+  const OFFSET_X = 18;
+  const OFFSET_Y = 20;
+  const HALF_TEXT = 7;
+  const px = viewBox.x;
+  const py = up ? viewBox.y : viewBox.y + viewBox.height;
+  let goUp = up;
+  if (goUp && py - OFFSET_Y - HALF_TEXT < plotTop) goUp = false;
+  else if (!goUp && py + OFFSET_Y + HALF_TEXT > plotBottom) goUp = true;
+  const lx = px + (leftward ? -OFFSET_X : OFFSET_X);
+  const ly = py + (goUp ? -OFFSET_Y : OFFSET_Y);
+  return (
+    <g pointerEvents="none">
+      <line x1={px} y1={py} x2={lx} y2={ly} stroke={color} strokeWidth={0.75} />
+      <circle cx={px} cy={py} r={1.5} fill={color} />
+      <text
+        x={lx + (leftward ? -3 : 3)}
+        y={ly}
+        textAnchor={leftward ? "end" : "start"}
+        dominantBaseline="middle"
+        fontSize={10}
+        fontWeight={600}
+        fill={color}
+        stroke="white"
+        strokeWidth={3}
+        paintOrder="stroke"
+      >
+        {text}
+      </text>
+    </g>
+  );
+}
+
+/** LevelChart layout heights — Recharts' default XAxis height and the
+ *  LevelChart Brush's height — for keeping annotation labels in the plot */
+const LEVEL_CHART_HEIGHT = 360;
+const X_AXIS_HEIGHT = 30;
+const BRUSH_HEIGHT = 30;
+
+/** Number of current-vs-vintage changes annotated on the chart */
+const VINTAGE_ANNOTATION_LIMIT = 5;
+
 /* ------------------------------------------------------------------ */
 /*  CompareTooltip — tooltip for multi-series compare mode             */
 /* ------------------------------------------------------------------ */
@@ -1076,19 +1172,34 @@ function CompareTooltip({
       {vintages && vintages.length > 0 && (
         <div className="mt-1 space-y-0.5 border-t pt-1 text-xs">
           <p className="font-medium text-slate-400">Vintages</p>
-          {vintages.map((v, idx) => (
-            <p
-              key={idx}
-              style={{
-                color: SERIES_COLORS[v.seriesIndex % SERIES_COLORS.length],
-                opacity: 0.7,
-              }}
-            >
-              {seriesNames.length > 1 ? `${seriesNames[v.seriesIndex]}: ` : ""}
-              {v.value.toFixed(decimals)}
-              <span className="ml-1 text-slate-400">pub. {v.publishedAt}</span>
-            </p>
-          ))}
+          {vintages.map((v, idx) => {
+            // Change from this vintage to the current value
+            const current = row[`series_${v.seriesIndex}`];
+            const delta =
+              current != null && !isNaN(current) ? current - v.value : null;
+            return (
+              <p
+                key={idx}
+                style={{
+                  color: SERIES_COLORS[v.seriesIndex % SERIES_COLORS.length],
+                  opacity: 0.7,
+                }}
+              >
+                {seriesNames.length > 1
+                  ? `${seriesNames[v.seriesIndex]}: `
+                  : ""}
+                {v.value.toFixed(decimals)}
+                {delta != null && (
+                  <span className="ml-1 font-medium">
+                    Δ {formatVintageDelta(delta, v.value, decimals)}
+                  </span>
+                )}
+                <span className="ml-1 text-slate-400">
+                  pub. {v.publishedAt}
+                </span>
+              </p>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1355,6 +1466,82 @@ export function LevelChart({
     return map;
   }, [vintagePoints]);
 
+  // Annotate the largest current-vs-vintage changes in the visible range:
+  // one candidate per (series, date) — its biggest revision — then the top
+  // VINTAGE_ANNOTATION_LIMIT overall. With several series on the chart the
+  // ranking uses % change so one large-magnitude series can't take them all.
+  const vintageAnnotations = useMemo(() => {
+    if (!vintagePoints || vintagePoints.size === 0) return [];
+    const first = chartData[mappedBrushStart ?? 0]?.date ?? "";
+    const last =
+      chartData[mappedBrushEnd ?? chartData.length - 1]?.date ?? "9999-12-31";
+    const rowByDate = new Map(chartData.map((r) => [r.date, r]));
+    // Position of each visible date in the range, to put labels near the
+    // right edge on the left side of their point
+    const visibleDates = chartData
+      .map((r) => r.date)
+      .filter((d) => d >= first && d <= last);
+    const posByDate = new Map(
+      visibleDates.map((d, i) => [
+        d,
+        visibleDates.length > 1 ? i / (visibleDates.length - 1) : 0,
+      ]),
+    );
+    type Annotation = {
+      seriesIndex: number;
+      date: string;
+      leftward: boolean;
+      vintage: number;
+      current: number;
+      delta: number;
+      score: number;
+    };
+    const visibleSeries = [...vintagePoints.keys()].filter(
+      (i) => seriesVisibility?.get(i) !== "hidden",
+    );
+    const usePct = visibleSeries.length > 1;
+    const candidates: Annotation[] = [];
+    for (const seriesIndex of visibleSeries) {
+      const best = new Map<string, Annotation>();
+      for (const p of vintagePoints.get(seriesIndex) ?? []) {
+        if (p.date < first || p.date > last) continue;
+        const current = rowByDate.get(p.date)?.[`series_${seriesIndex}`];
+        if (current == null || isNaN(current)) continue;
+        // Skip revisions that vanish at the displayed precision
+        if (!vintageDiffers(current, p.value, decimals)) continue;
+        const delta = current - p.value;
+        const score = usePct
+          ? p.value === 0
+            ? 0
+            : Math.abs(delta / p.value)
+          : Math.abs(delta);
+        const prev = best.get(p.date);
+        if (!prev || score > prev.score) {
+          best.set(p.date, {
+            seriesIndex,
+            date: p.date,
+            leftward: (posByDate.get(p.date) ?? 0) > 0.85,
+            vintage: p.value,
+            current,
+            delta,
+            score,
+          });
+        }
+      }
+      candidates.push(...best.values());
+    }
+    return candidates
+      .sort((a, b) => b.score - a.score)
+      .slice(0, VINTAGE_ANNOTATION_LIMIT);
+  }, [
+    vintagePoints,
+    chartData,
+    mappedBrushStart,
+    mappedBrushEnd,
+    seriesVisibility,
+    decimals,
+  ]);
+
   if (chartData.length === 0) return null;
 
   // Find the date string for the index base reference line
@@ -1367,6 +1554,8 @@ export function LevelChart({
   const hasRight = seriesAxisMap
     ? [...seriesAxisMap.values()].some((v) => v === "right")
     : false;
+
+  const chartMarginTop = indexBaseDate ? 24 : 10;
 
   // Use brush range (not full data range) so events outside the visible
   // window don't get rendered and throw off the chart axis.
@@ -1381,11 +1570,11 @@ export function LevelChart({
   );
 
   return (
-    <ResponsiveContainer width="100%" height={360}>
+    <ResponsiveContainer width="100%" height={LEVEL_CHART_HEIGHT}>
       <ComposedChart
         data={vintagePlot.rows}
         margin={{
-          top: indexBaseDate ? 24 : 10,
+          top: chartMarginTop,
           right: hasRight ? 10 : 10,
           bottom: 0,
           left: 0,
@@ -1532,6 +1721,42 @@ export function LevelChart({
                   />
                 )
               }
+            />
+          );
+        })}
+        {/* Largest revisions: dashed segment from the vintage dot to the
+            current point, labelled with the change */}
+        {vintageAnnotations.map((a) => {
+          const color =
+            seriesVisibility?.get(a.seriesIndex) === "gray"
+              ? "#94a3b8"
+              : SERIES_COLORS[a.seriesIndex % SERIES_COLORS.length];
+          return (
+            <ReferenceLine
+              key={`vintage-ann-${a.seriesIndex}-${a.date}`}
+              yAxisId={seriesAxisMap?.get(a.seriesIndex) ?? "left"}
+              segment={[
+                { x: a.date, y: a.vintage },
+                { x: a.date, y: a.current },
+              ]}
+              stroke={color}
+              strokeWidth={1.5}
+              strokeDasharray="3 2"
+              label={(props: { viewBox?: SegmentBox }) => (
+                <VintageAnnotationLabel
+                  viewBox={props.viewBox}
+                  up={a.delta > 0}
+                  leftward={a.leftward}
+                  plotTop={chartMarginTop}
+                  plotBottom={
+                    LEVEL_CHART_HEIGHT -
+                    X_AXIS_HEIGHT -
+                    (onBrushChange ? BRUSH_HEIGHT : 0)
+                  }
+                  color={color}
+                  text={formatVintageDelta(a.delta, a.vintage, decimals)}
+                />
+              )}
             />
           );
         })}
@@ -1739,7 +1964,7 @@ export function LevelChart({
         {onBrushChange && (
           <Brush
             dataKey="date"
-            height={30}
+            height={BRUSH_HEIGHT}
             stroke="var(--color-ublue)"
             tickFormatter={formatDate}
             startIndex={mappedBrushStart ?? 0}

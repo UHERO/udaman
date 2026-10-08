@@ -120,6 +120,13 @@ export async function getMeasurementSeriesWithMetadata({ id }: { id: number }) {
   return { data };
 }
 
+export async function getMeasurementDataLists({ id }: { id: number }) {
+  log.info({ id }, "fetching measurement data lists");
+  const data = await MeasurementCollection.getDataLists(id);
+  log.info({ count: data.length }, "measurement data lists fetched");
+  return { data };
+}
+
 /** Propagatable field names that map from measurement to series */
 const PROPAGATABLE_FIELDS = [
   "dataPortalName",

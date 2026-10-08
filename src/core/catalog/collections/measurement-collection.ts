@@ -27,6 +27,16 @@ export type MeasurementWithLabels = {
   sourceDetailDescription: string | null;
 };
 
+/** One row per (data list, category) pair; category fields null if uncategorized */
+export type MeasurementDataListRow = {
+  id: number;
+  name: string | null;
+  universe: string;
+  categoryId: number | null;
+  categoryName: string | null;
+  categoryHidden: boolean;
+};
+
 export type MeasurementSeriesRow = {
   id: number;
   name: string;
@@ -333,6 +343,42 @@ class MeasurementCollection {
       unitShortLabel: row.unit_short_label,
       sourceDescription: row.source_description,
       sourceDetailDescription: row.source_detail_description,
+    }));
+  }
+
+  /** Fetch the data lists a measurement belongs to (used by measurement detail page) */
+  static async getDataLists(
+    measurementId: number,
+  ): Promise<MeasurementDataListRow[]> {
+    const rows = await mysql<{
+      id: number;
+      name: string | null;
+      universe: string;
+      category_id: number | null;
+      category_name: string | null;
+      category_hidden: number | null;
+      category_masked: number | null;
+    }>`
+      SELECT DISTINCT
+        dl.id, dl.name, dl.universe,
+        c.id AS category_id,
+        c.name AS category_name,
+        c.hidden AS category_hidden,
+        c.masked AS category_masked
+      FROM data_list_measurements dlm
+      JOIN data_lists dl ON dl.id = dlm.data_list_id
+      LEFT JOIN categories c ON c.data_list_id = dl.id
+      WHERE dlm.measurement_id = ${measurementId}
+      ORDER BY dl.name ASC, c.name ASC
+    `;
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      universe: row.universe,
+      categoryId: row.category_id,
+      categoryName: row.category_name,
+      categoryHidden:
+        Boolean(row.category_hidden) || Boolean(row.category_masked),
     }));
   }
 

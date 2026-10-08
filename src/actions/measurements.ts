@@ -11,6 +11,7 @@ import {
   createMeasurement as createMeasurementCtrl,
   deleteMeasurement as deleteMeasurementCtrl,
   getMeasurementsWithUnits as fetchMeasurements,
+  getMeasurementDataLists as getMeasurementDataListsCtrl,
   getMeasurementSeriesWithMetadata as getMeasurementSeriesCtrl,
   getMeasurementWithLabels as getMeasurementWithLabelsCtrl,
   propagateFields as propagateFieldsCtrl,
@@ -70,8 +71,11 @@ export async function getMeasurementDetail(id: number) {
   await requirePermission("measurement", "read");
   log.info({ id }, "getMeasurementDetail action called");
   const { data: measurement } = await getMeasurementWithLabelsCtrl({ id });
-  const { data: series } = await getMeasurementSeriesCtrl({ id });
-  return { measurement, series };
+  const [{ data: series }, { data: dataLists }] = await Promise.all([
+    getMeasurementSeriesCtrl({ id }),
+    getMeasurementDataListsCtrl({ id }),
+  ]);
+  return { measurement, series, dataLists };
 }
 
 export async function propagateFieldsAction(

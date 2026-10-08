@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { MeasurementSeriesRow } from "@catalog/collections/measurement-collection";
+import type {
+  MeasurementDataListRow,
+  MeasurementSeriesRow,
+} from "@catalog/collections/measurement-collection";
 import type { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -58,6 +61,7 @@ interface OptionItem {
 interface MeasurementDetailViewProps {
   measurement: MeasurementData;
   series: MeasurementSeriesRow[];
+  dataLists: MeasurementDataListRow[];
   universe: Universe;
   units: OptionItem[];
   sources: OptionItem[];
@@ -109,6 +113,7 @@ function formatSA(sa: string | null): string {
 export function MeasurementDetailView({
   measurement,
   series,
+  dataLists,
   universe,
   units,
   sources,
@@ -243,64 +248,129 @@ export function MeasurementDetailView({
         </Button>
       </div>
 
-      {/* Metadata fields checklist */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-4">
-          <h2 className="text-sm font-semibold">Fields to propagate</h2>
-          <button
-            type="button"
-            className="text-primary text-xs hover:underline"
-            onClick={toggleAllFields}
-          >
-            {allFieldsSelected ? "Deselect all" : "Select all"}
-          </button>
-          <Button
-            className="ml-auto cursor-pointer"
-            disabled={
-              isPending ||
-              selectedFields.size === 0 ||
-              selectedSeries.size === 0
-            }
-            onClick={handlePropagate}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Propagating...
-              </>
-            ) : (
-              `Propagate to ${selectedSeries.size} series`
-            )}
-          </Button>
-        </div>
-
-        <div className="flex flex-col gap-x-6 gap-y-1.5">
-          {PROPAGATABLE_FIELDS.map(({ key, label, displayKey }) => {
-            const displayValue = displayKey ? m[displayKey] : m[key];
-            const raw = m[key];
-            const formatted =
-              key === "seasonalAdjustment"
-                ? formatSA(raw as string | null)
-                : formatFieldValue(displayValue);
-            return (
-              <label key={key} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={selectedFields.has(key)}
-                  onCheckedChange={() => toggleField(key)}
-                />
-                <span className="text-muted-foreground">{label}:</span>
-                <span className="font-medium">{formatted}</span>
-              </label>
-            );
-          })}
-        </div>
-
-        {measurement.notes && (
-          <div className="text-sm">
-            <span className="text-muted-foreground">Notes: </span>
-            <span>{measurement.notes}</span>
+      {/* Metadata fields checklist + data list membership */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="min-w-0 space-y-3">
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm font-semibold">Fields to propagate</h2>
+            <button
+              type="button"
+              className="text-primary text-xs hover:underline"
+              onClick={toggleAllFields}
+            >
+              {allFieldsSelected ? "Deselect all" : "Select all"}
+            </button>
+            <Button
+              className="ml-auto cursor-pointer"
+              disabled={
+                isPending ||
+                selectedFields.size === 0 ||
+                selectedSeries.size === 0
+              }
+              onClick={handlePropagate}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Propagating...
+                </>
+              ) : (
+                `Propagate to ${selectedSeries.size} series`
+              )}
+            </Button>
           </div>
-        )}
+
+          <div className="flex flex-col gap-x-6 gap-y-1.5">
+            {PROPAGATABLE_FIELDS.map(({ key, label, displayKey }) => {
+              const displayValue = displayKey ? m[displayKey] : m[key];
+              const raw = m[key];
+              const formatted =
+                key === "seasonalAdjustment"
+                  ? formatSA(raw as string | null)
+                  : formatFieldValue(displayValue);
+              return (
+                <label key={key} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={selectedFields.has(key)}
+                    onCheckedChange={() => toggleField(key)}
+                  />
+                  <span className="text-muted-foreground">{label}:</span>
+                  <span className="font-medium">{formatted}</span>
+                </label>
+              );
+            })}
+          </div>
+
+          {measurement.notes && (
+            <div className="text-sm">
+              <span className="text-muted-foreground">Notes: </span>
+              <span>{measurement.notes}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Height is set by the metadata column; list scrolls if longer */}
+        <div className="min-w-0 md:relative">
+          <div className="flex flex-col gap-2 md:absolute md:inset-0 md:border-l md:pl-6">
+            <h2 className="text-sm font-semibold">
+              Data Lists ({new Set(dataLists.map((dl) => dl.id)).size})
+            </h2>
+            {dataLists.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Not part of any data lists
+              </p>
+            ) : (
+              <div className="min-h-0 flex-1 overflow-y-auto text-sm">
+                <table className="w-full">
+                  <thead className="text-muted-foreground text-left text-xs">
+                    <tr>
+                      <th className="pb-1 font-medium">List</th>
+                      <th className="pb-1 font-medium">Category</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dataLists.map((dl) => (
+                      <tr key={`${dl.id}-${dl.categoryId ?? "none"}`}>
+                        <td className="py-0.5 pr-3 align-top">
+                          <Link
+                            href={`/udaman/${dl.universe}/catalog/data-lists/${dl.id}`}
+                            className="text-primary hover:underline"
+                          >
+                            {dl.name || `Data list ${dl.id}`}
+                          </Link>
+                        </td>
+                        <td className="py-0.5 align-top">
+                          {dl.categoryId == null ? (
+                            <span className="text-muted-foreground">
+                              No category
+                            </span>
+                          ) : (
+                            <>
+                              <Link
+                                href={`/udaman/${dl.universe}/catalog/categories/${dl.categoryId}`}
+                                className="text-primary hover:underline"
+                              >
+                                {dl.categoryName || `Category ${dl.categoryId}`}
+                              </Link>
+                              {dl.categoryHidden && (
+                                <span
+                                  className="text-muted-foreground ml-1 text-xs"
+                                  title="Category is hidden or masked"
+                                >
+                                  (hidden)
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Series table */}
