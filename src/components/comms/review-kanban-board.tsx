@@ -303,6 +303,34 @@ function AddReviewCard({
  * than via the inline "In Progress" card (e.g. from a table row's actions
  * menu, or after picking a form on a cross-comm board).
  */
+/**
+ * The date reviewers act on: "Review by" when set, falling back to the target
+ * release date for forms filed before review-by existed.
+ */
+function DueBadge({
+  approval,
+  className,
+}: {
+  approval: Pick<ApprovalJSON, "reviewByDate" | "targetReleaseDate">;
+  className?: string;
+}) {
+  if (approval.reviewByDate) {
+    return (
+      <Badge variant="outline" className={cn("font-semibold", className)}>
+        Review by {approval.reviewByDate}
+      </Badge>
+    );
+  }
+  if (approval.targetReleaseDate) {
+    return (
+      <Badge variant="outline" className={className}>
+        Target {approval.targetReleaseDate}
+      </Badge>
+    );
+  }
+  return null;
+}
+
 export function NewReviewDialog({
   approval,
   currentUserName,
@@ -349,14 +377,8 @@ export function NewReviewDialog({
         <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto text-sm">
           <span className="text-muted-foreground">{approval.name}</span>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">
-              {REVIEW_BOARD_STATUS_LABELS.in_progress}
-            </Badge>
-            {approval.targetReleaseDate && (
-              <Badge variant="outline">
-                Target {approval.targetReleaseDate}
-              </Badge>
-            )}
+            <Badge variant="secondary">Not Started</Badge>
+            <DueBadge approval={approval} />
           </div>
           <div>
             <div className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
@@ -618,10 +640,8 @@ function ReviewCard({
             {review.notes}
           </p>
         )}
-        {approval?.targetReleaseDate && showComm && (
-          <Badge variant="outline" className="text-xs">
-            Target {approval.targetReleaseDate}
-          </Badge>
+        {approval && showComm && (
+          <DueBadge approval={approval} className="text-xs" />
         )}
       </div>
 
@@ -692,6 +712,13 @@ function ReviewCard({
                   <span className="text-muted-foreground">Not yet</span>
                 )}
               </ReviewFact>
+              {approval?.reviewByDate && showComm && (
+                <ReviewFact label="Review by">
+                  <span className="font-semibold tabular-nums">
+                    {approval.reviewByDate}
+                  </span>
+                </ReviewFact>
+              )}
               {approval?.targetReleaseDate && showComm && (
                 <ReviewFact label="Target release">
                   <span className="tabular-nums">

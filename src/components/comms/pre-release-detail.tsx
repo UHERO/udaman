@@ -4,7 +4,7 @@ import {
   formatPublicationType,
   formatSecondaryTypes,
 } from "@catalog/models/approval";
-import { Check, Square } from "lucide-react";
+import { CalendarClock, Check, Square } from "lucide-react";
 
 import { CommsPanel } from "./comms-panel";
 
@@ -19,6 +19,36 @@ function formatDate(value: string | null): string | null {
     month: "long",
     day: "numeric",
   });
+}
+
+/**
+ * Header summary of a form's dates. "Review by" leads — it's the date
+ * reviewers act on; the release date trails it because lead time varies by
+ * publication type.
+ */
+export function ApprovalDates({
+  approval,
+}: {
+  approval: Pick<ApprovalJSON, "reviewByDate" | "targetReleaseDate">;
+}) {
+  const reviewBy = formatDate(approval.reviewByDate);
+  const release = formatDate(approval.targetReleaseDate);
+  if (!reviewBy && !release) return null;
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      {reviewBy && (
+        <p className="inline-flex items-center gap-1.5 text-base font-semibold">
+          <CalendarClock className="h-4 w-4 self-center" />
+          Review by {reviewBy}
+        </p>
+      )}
+      {release && (
+        <p className="text-muted-foreground text-sm">
+          Target release {release}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function formatTimestamp(value: string | null): string | null {
@@ -119,6 +149,7 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
           </Row>
           <Row label="Lead author">{approval.author}</Row>
           <Row label="All authors and contributors">{d.contributors}</Row>
+          <Row label="Review by">{formatDate(approval.reviewByDate)}</Row>
           <Row label="Target release date">
             {formatDate(approval.targetReleaseDate)}
           </Row>

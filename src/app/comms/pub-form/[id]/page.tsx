@@ -9,7 +9,10 @@ import {
 } from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
 import { CommsPanel, SectionDivider } from "@/components/comms/comms-panel";
-import { PreReleaseDetail } from "@/components/comms/pre-release-detail";
+import {
+  ApprovalDates,
+  PreReleaseDetail,
+} from "@/components/comms/pre-release-detail";
 import { ReleaseButton } from "@/components/comms/release-button";
 import { ReviewPanel } from "@/components/comms/review-panel";
 import { Button } from "@/components/ui/button";
@@ -40,7 +43,7 @@ export default async function Page({
   const currentUserId = parseInt(userId) || 0;
   const isAdmin = role === "admin" || role === "dev";
 
-  // Only the author (or an admin) can revise a filed form.
+  // Only the author (or an admin) can revise or release a filed form.
   const canEdit = isAdmin || approval.authorUserId === currentUserId;
 
   return (
@@ -53,15 +56,30 @@ export default async function Page({
           <ArrowLeft className="h-3.5 w-3.5" />
           All pre-release forms
         </Link>
-        <div className="mt-3 flex items-start justify-between gap-4">
+        <div className="mt-3 space-y-2">
           <div>
             <h1 className="text-3xl font-bold">{approval.name}</h1>
             <p className="text-muted-foreground text-sm">
               Pre-release form filed by {approval.author}
             </p>
-            <div className="mt-2">
-              <ApprovalStatusBadges approval={approval} size="md" />
-            </div>
+          </div>
+          <ApprovalDates approval={approval} />
+          <div className="flex flex-wrap items-center gap-2">
+            <ApprovalStatusBadges approval={approval} size="md" />
+            {canEdit && (
+              <>
+                <ReleaseButton
+                  approvalId={approval.id}
+                  isReleased={approval.isReleased}
+                />
+                <Button asChild variant="outline" className="cursor-pointer">
+                  <Link href={`/comms/pub-form/${approval.id}/edit`}>
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
           {canEdit && (
             <div className="flex shrink-0 gap-2">

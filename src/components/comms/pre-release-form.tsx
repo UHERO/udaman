@@ -100,6 +100,7 @@ const formSchema = z
     contributors: z
       .string()
       .min(1, "List all authors and substantial contributors"),
+    reviewByDate: z.string().min(1, "Review-by date is required"),
     targetReleaseDate: z.string().min(1, "Target release date is required"),
     documentUrl: z.string(),
 
@@ -178,6 +179,19 @@ const formSchema = z
       }
     }
 
+    // ISO dates compare correctly as strings.
+    if (
+      v.reviewByDate &&
+      v.targetReleaseDate &&
+      v.reviewByDate > v.targetReleaseDate
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["reviewByDate"],
+        message: "Must be on or before the target release date",
+      });
+    }
+
     if (
       v.documentUrl.trim() &&
       !/^https?:\/\/\S+$/i.test(v.documentUrl.trim())
@@ -234,6 +248,7 @@ const EMPTY: Omit<FormValues, "recipients"> = {
   publicationTypeOther: "",
   secondaryPublicationTypes: [],
   contributors: "",
+  reviewByDate: "",
   targetReleaseDate: "",
   documentUrl: "",
   conflictsOfInterest: "",
@@ -297,6 +312,7 @@ function toFormValues(
       isPublicationType,
     ),
     contributors: d.contributors ?? "",
+    reviewByDate: approval.reviewByDate ?? "",
     targetReleaseDate: approval.targetReleaseDate ?? "",
     documentUrl: d.documentUrl ?? "",
     conflictsOfInterest: d.conflictsOfInterest ?? "",
@@ -715,6 +731,7 @@ export function PreReleaseForm({
     const payload = {
       name: values.name,
       targetReleaseDate: values.targetReleaseDate || null,
+      reviewByDate: values.reviewByDate || null,
       formData,
       // Null tells the server "the signed-in user" (create) or "unchanged"
       // (edit); the server re-checks that the id is a real account.
@@ -820,7 +837,7 @@ export function PreReleaseForm({
             )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Field data-invalid={!!errors.author}>
               <FieldLabel htmlFor="leadAuthor">Lead author</FieldLabel>
               {onBehalf ? (
@@ -857,6 +874,20 @@ export function PreReleaseForm({
                     ? "Taken from your account unless you are filing for someone else."
                     : "Tick the box to reassign this form to another account."}
               </FieldDescription>
+            </Field>
+
+            <Field data-invalid={!!errors.reviewByDate}>
+              <FieldLabel htmlFor="reviewByDate">Review by</FieldLabel>
+              <Input
+                id="reviewByDate"
+                type="date"
+                {...form.register("reviewByDate")}
+              />
+              <FieldDescription>
+                When reviewers need to respond. Lead time before release varies
+                by publication type.
+              </FieldDescription>
+              <FieldError errors={[errors.reviewByDate]} />
             </Field>
 
             <Field data-invalid={!!errors.targetReleaseDate}>

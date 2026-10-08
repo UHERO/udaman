@@ -61,7 +61,6 @@ import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 import { cn } from "@/lib/utils";
 
 import { NewReviewDialog, ReviewKanbanBoard } from "./review-kanban-board";
-import { ReviewTable } from "./review-table";
 
 /** Render a `YYYY-MM-DD` string without letting the local timezone shift the day. */
 function formatDate(value: string | null): string {
@@ -76,7 +75,8 @@ function formatDate(value: string | null): string {
   });
 }
 
-type SortKey = "name" | "targetReleaseDate" | "status" | "createdAt";
+type SortKey =
+  "name" | "reviewByDate" | "targetReleaseDate" | "status" | "createdAt";
 type Sort = { key: SortKey; dir: "asc" | "desc" } | null;
 
 /**
@@ -87,6 +87,8 @@ function sortValue(a: ApprovalJSON, key: SortKey): string | number | null {
   switch (key) {
     case "name":
       return a.name.toLowerCase();
+    case "reviewByDate":
+      return a.reviewByDate;
     case "targetReleaseDate":
       return a.targetReleaseDate;
     case "createdAt":
@@ -307,6 +309,14 @@ export function PreReleaseList({
                 </SelectContent>
               </Select>
             </TableHead>
+            <TableHead aria-sort={ariaSort("reviewByDate")}>
+              <SortHeader
+                label="Review by"
+                sortKey="reviewByDate"
+                sort={sort}
+                onSort={cycleSort}
+              />
+            </TableHead>
             <TableHead aria-sort={ariaSort("targetReleaseDate")}>
               <SortHeader
                 label="Target release"
@@ -338,7 +348,7 @@ export function PreReleaseList({
           {!sorted.length && (
             <TableRow className="hover:bg-transparent">
               <TableCell
-                colSpan={7}
+                colSpan={8}
                 className="text-muted-foreground py-8 text-sm"
               >
                 {emptyMessage}
@@ -379,7 +389,12 @@ export function PreReleaseList({
                     </Link>
                   </TableCell>
                   <TableCell>{a.author}</TableCell>
-                  <TableCell>{formatDate(a.targetReleaseDate)}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatDate(a.reviewByDate)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(a.targetReleaseDate)}
+                  </TableCell>
                   <TableCell>
                     <ApprovalStatusBadges approval={a} />
                   </TableCell>
@@ -448,7 +463,7 @@ export function PreReleaseList({
 
                 {isOpen && (
                   <TableRow className="bg-muted/60 hover:bg-muted/60">
-                    <TableCell colSpan={7} className="p-2 sm:pl-10">
+                    <TableCell colSpan={8} className="p-2 sm:pl-10">
                       <div className="border-muted-foreground/40 bg-background/40 space-y-4 rounded-md border border-dashed px-3 py-2">
                         <ReviewKanbanBoard
                           reviews={list}

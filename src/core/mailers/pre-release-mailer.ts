@@ -103,6 +103,8 @@ export type PreReleaseSubmittedInput = {
   /** Lead author, who is also the submitter and certifier */
   author: string;
   targetReleaseDate: string | null;
+  /** When reviewers need to respond by. */
+  reviewByDate: string | null;
   submittedAt: Date;
   formData: PreReleaseFormData;
   /** Addresses to notify. Falls back to the list stored on the form. */
@@ -124,6 +126,11 @@ export async function sendPreReleaseSubmitted(
       <strong>${esc(input.name)}</strong>.
       <a href="${esc(url)}">View it in udaman</a>.
     </p>
+    ${
+      input.reviewByDate
+        ? `<p><strong>Please review by ${esc(input.reviewByDate)}.</strong></p>`
+        : ""
+    }
 
     ${section(
       "A. Publication details",
@@ -135,6 +142,7 @@ export async function sendPreReleaseSubmitted(
         ) +
         row("Lead author", input.author) +
         row("Contributors", d.contributors) +
+        row("Review by", input.reviewByDate) +
         row("Target release date", input.targetReleaseDate) +
         row("Link to draft", d.documentUrl),
     )}
