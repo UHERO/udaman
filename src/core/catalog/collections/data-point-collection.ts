@@ -193,10 +193,10 @@ class DataPointCollection {
           SELECT
             date,
             value,
-            updated_at,
+            COALESCE(updated_at, created_at) AS updated_at,
             pseudo_history,
             data_source_id,
-            ROW_NUMBER() OVER (PARTITION BY date ORDER BY updated_at DESC) as rn
+            ROW_NUMBER() OVER (PARTITION BY date ORDER BY COALESCE(updated_at, created_at) DESC) as rn
           FROM data_points
           WHERE xseries_id = ${xseriesId} AND current = 1
         ) ranked
@@ -215,8 +215,7 @@ class DataPointCollection {
           SELECT
             date,
             value,
-            updated_at,
-            ROW_NUMBER() OVER (PARTITION BY date ORDER BY updated_at DESC) as rn
+            ROW_NUMBER() OVER (PARTITION BY date ORDER BY COALESCE(updated_at, created_at) DESC) as rn
           FROM data_points
           WHERE xseries_id = ${xseriesId} AND current = 1
         ) ranked

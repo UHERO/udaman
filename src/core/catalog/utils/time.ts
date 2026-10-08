@@ -242,7 +242,8 @@ function formatHst(
 /** Generates the age field in series table. Taken from JP's ruby version. Unsure why
  * they settled on the 100 day and 10 month intervals.
  */
-function dpAgeCode(updatedAt: string, pseudoHistory: boolean) {
+function dpAgeCode(updatedAt: string | Date | null, pseudoHistory: boolean) {
+  if (updatedAt == null) return "-";
   const now = new Date();
   const createdAt = hstToInstant(updatedAt);
   const days = Math.max(0, differenceInDays(now, createdAt));
