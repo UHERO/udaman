@@ -43,9 +43,8 @@ import {
 } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -79,7 +78,6 @@ import {
   LevelChart,
   SERIES_COLORS,
   TRANSFORMATION_LABELS,
-  vintageDiffers,
   type BarMode,
   type ChartRow,
   type Overlay,
@@ -87,16 +85,10 @@ import {
   type Transformation,
   type VintageChartPoint,
 } from "./analyze-chart";
-import {
-  AnalyzeDataTable,
-  type VintageTableColumn,
-} from "./analyze-data-table";
+import { AnalyzeDataTable } from "./analyze-data-table";
 import { AnalyzerSeriesRow } from "./analyzer/analyzer-series-row";
+import { parseVintageExpr } from "./analyzer/expr-utils";
 import type { AnalyzerEntry } from "./analyzer/types";
-
-/** Vintage overlay selection: off, each series' latest vintage, all
- *  vintages, or a single publish day (YYYY-MM-DD) */
-type VintageMode = "off" | "latest" | "all" | (string & {});
 
 /** When a transform changes what the values mean, the axis "unit" is the
  *  transform itself (%, index, z-score) rather than the source unit.
@@ -1801,6 +1793,11 @@ interface AnalyzeControlsProps {
   onAxisChange?: (id: string, axis: "left" | "right") => void;
   onRemove?: (id: string) => void;
   onAddCompareYoY?: (id: string) => void;
+  /** Add (or remove) past-vintage entries, one per (series, publish day) */
+  onToggleVintages?: (
+    items: Array<{ name: string; day: string }>,
+    add: boolean,
+  ) => void;
 }
 
 export function AnalyzeControls({
@@ -1821,6 +1818,7 @@ export function AnalyzeControls({
   onAxisChange,
   onRemove,
   onAddCompareYoY,
+  onToggleVintages,
 }: AnalyzeControlsProps) {
   const searchParams = useSearchParams();
 
@@ -1869,15 +1867,12 @@ export function AnalyzeControls({
       return v === "column" ? "column" : "line";
     },
   );
-  // Vintage (non-current data point) overlay — off unless the URL opts in.
-  // "latest" | "all" | a publish day (YYYY-MM-DD); legacy "1" means all.
-  const [vintageMode, setVintageMode] = useState<VintageMode>(() => {
+  // Every non-current point as a muted dot — off unless the URL opts in
+  // (legacy "1" and the old "all" mode both meant dots)
+  const [showVintagePoints, setShowVintagePoints] = useState(() => {
     const v = searchParams.get("vintages");
-    if (!v) return "off";
-    if (v === "1") return "all";
-    return v;
+    return v === "1" || v === "all";
   });
-  const showVintages = vintageMode !== "off";
   const [vintageMenuOpen, setVintageMenuOpen] = useState(false);
   const [vintageData, setVintageData] = useState<
     Record<string, VintageChartPoint[]>
@@ -2040,7 +2035,7 @@ export function AnalyzeControls({
   }, [compareSeriesData, seriesAxisMap, transformation, rightTransformation]);
 
   // ── Vintages: only plain-series entries have vintages (calculated
-  // expressions don't map to stored data points) ─────────────────────
+  // expressions and vintage entries don't map to stored data points) ───
   const vintageEligible = useMemo(() => {
     if (!entries) return [];
     // Entries with data align 1:1 with compareSeriesData indices
@@ -2053,10 +2048,35 @@ export function AnalyzeControls({
     return result;
   }, [entries]);
 
-  // Fetch when the overlay is on, or when the menu opens (it lists the
+  /** Vintage entries paired with their current series, by compare index.
+   *  Drives the tooltip Δ and the chart's largest-revision annotations. */
+  const vintagePairs = useMemo(() => {
+    if (!entries) return [];
+    const loaded = entries.filter((e) => e.data.length > 0);
+    const baseByName = new Map(vintageEligible.map((v) => [v.name, v.index]));
+    const pairs: Array<{ vintageIndex: number; baseIndex: number }> = [];
+    for (let i = 0; i < loaded.length; i++) {
+      const v = parseVintageExpr(loaded[i].expression);
+      const baseIndex = v ? baseByName.get(v.name) : undefined;
+      if (baseIndex != null) pairs.push({ vintageIndex: i, baseIndex });
+    }
+    return pairs;
+  }, [entries, vintageEligible]);
+
+  /** "name|day" for every vintage entry in the list (loaded or not) */
+  const vintageEntryKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const e of entries ?? []) {
+      const v = parseVintageExpr(e.expression);
+      if (v) keys.add(`${v.name}|${v.day}`);
+    }
+    return keys;
+  }, [entries]);
+
+  // Fetch when the dots are on, or when the menu opens (it lists the
   // available publish days)
   useEffect(() => {
-    if (!showVintages && !vintageMenuOpen) return;
+    if (!showVintagePoints && !vintageMenuOpen) return;
     const missing = vintageEligible
       .map((e) => e.name)
       .filter((n) => !(n in vintageData));
@@ -2069,13 +2089,68 @@ export function AnalyzeControls({
     return () => {
       cancelled = true;
     };
-  }, [showVintages, vintageMenuOpen, vintageEligible, vintageData, _universe]);
+  }, [
+    showVintagePoints,
+    vintageMenuOpen,
+    vintageEligible,
+    vintageData,
+    _universe,
+  ]);
 
-  /** All vintage points keyed by compare-series index, before the
-   *  publish-day filter. Skipped for series on an axis with an active
-   *  transform — raw vintage values wouldn't align with the transformed
-   *  line. */
-  const availableVintagePoints = useMemo(() => {
+  /** Publish days per eligible series name, newest first. Vintages
+   *  uploaded the same day are treated as one set. */
+  const vintageDaysByName = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const { name } of vintageEligible) {
+      const days = new Set((vintageData[name] ?? []).map((p) => p.publishedAt));
+      if (days.size > 0) map.set(name, [...days].sort().reverse());
+    }
+    return map;
+  }, [vintageEligible, vintageData]);
+
+  /** All publish days present across series, newest first */
+  const vintageDays = useMemo(() => {
+    const days = new Set<string>();
+    for (const list of vintageDaysByName.values()) {
+      for (const d of list) days.add(d);
+    }
+    return [...days].sort().reverse();
+  }, [vintageDaysByName]);
+
+  /** "Most Recent" = each series' own latest vintage, which can differ
+   *  across series */
+  const latestVintageItems = useMemo(
+    () =>
+      [...vintageDaysByName].map(([name, days]) => ({ name, day: days[0] })),
+    [vintageDaysByName],
+  );
+
+  const latestVintageLabel = useMemo(() => {
+    const days = new Set(latestVintageItems.map((v) => v.day));
+    if (days.size === 0) return null;
+    return days.size === 1 ? [...days][0] : "per series";
+  }, [latestVintageItems]);
+
+  /** The (series, day) pairs a publish-day menu item adds */
+  const vintageItemsForDay = (day: string) =>
+    [...vintageDaysByName]
+      .filter(([, days]) => days.includes(day))
+      .map(([name]) => ({ name, day }));
+
+  const vintagesAllAdded = (items: Array<{ name: string; day: string }>) =>
+    items.length > 0 &&
+    items.every((v) => vintageEntryKeys.has(`${v.name}|${v.day}`));
+
+  const toggleVintageItems = (items: Array<{ name: string; day: string }>) => {
+    if (items.length === 0) return;
+    onToggleVintages?.(items, !vintagesAllAdded(items));
+  };
+
+  /** Every vintage point as a muted dot, keyed by compare-series index.
+   *  Skipped for series on an axis with an active transform — raw vintage
+   *  values wouldn't align with the transformed line. */
+  const chartVintagePoints = useMemo(() => {
+    if (!showVintagePoints) return undefined;
     const map = new Map<number, VintageChartPoint[]>();
     for (const { index, name } of vintageEligible) {
       const axis = seriesAxisMap.get(index) ?? "left";
@@ -2084,8 +2159,9 @@ export function AnalyzeControls({
       const points = vintageData[name];
       if (points && points.length > 0) map.set(index, points);
     }
-    return map;
+    return map.size > 0 ? map : undefined;
   }, [
+    showVintagePoints,
     vintageEligible,
     vintageData,
     seriesAxisMap,
@@ -2093,75 +2169,12 @@ export function AnalyzeControls({
     rightTransformation,
   ]);
 
-  /** Publish days present, newest first. Vintages uploaded the same day
-   *  are treated as one set. */
-  const vintageDays = useMemo(() => {
-    const days = new Set<string>();
-    for (const points of availableVintagePoints.values()) {
-      for (const p of points) days.add(p.publishedAt);
-    }
-    return [...days].sort().reverse();
-  }, [availableVintagePoints]);
-
-  /** Most recent publish day per series — "Most Recent" means each
-   *  series' own latest vintage, which can differ across series. */
-  const latestVintageDayBySeries = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const [index, points] of availableVintagePoints) {
-      let max = "";
-      for (const p of points) if (p.publishedAt > max) max = p.publishedAt;
-      map.set(index, max);
-    }
-    return map;
-  }, [availableVintagePoints]);
-
-  const latestVintageLabel = useMemo(() => {
-    const days = new Set(latestVintageDayBySeries.values());
-    if (days.size === 0) return null;
-    return days.size === 1 ? [...days][0] : "per series";
-  }, [latestVintageDayBySeries]);
-
-  /** Vintage points for the chart, filtered to the selected mode */
-  const chartVintagePoints = useMemo(() => {
-    if (!showVintages) return undefined;
-    const map = new Map<number, VintageChartPoint[]>();
-    for (const [index, points] of availableVintagePoints) {
-      if (vintageMode === "all") {
-        map.set(index, points);
-        continue;
-      }
-      const day =
-        vintageMode === "latest"
-          ? latestVintageDayBySeries.get(index)
-          : vintageMode;
-      // One point per date: points are ordered created_at DESC within a
-      // date, so the first hit is the day's final upload
-      const seen = new Set<string>();
-      const filtered = points.filter((p) => {
-        if (p.publishedAt !== day || seen.has(p.date)) return false;
-        seen.add(p.date);
-        return true;
-      });
-      if (filtered.length > 0) map.set(index, filtered);
-    }
-    return map.size > 0 ? map : undefined;
-  }, [
-    showVintages,
-    vintageMode,
-    availableVintagePoints,
-    latestVintageDayBySeries,
-  ]);
-
   const eligibleVintagesLoaded = vintageEligible.every(
     (e) => e.name in vintageData,
   );
 
-  const vintageCount = useMemo(() => {
-    if (!chartVintagePoints) return 0;
-    let n = 0;
-    for (const points of chartVintagePoints.values()) n += points.length;
-    return n;
-  }, [chartVintagePoints]);
+  /** Vintage series in the list, for the trigger's badge */
+  const vintageEntryCount = vintageEntryKeys.size;
 
   const endIdx = Math.max(0, chartData.length - 1);
   const [rangePreset, setRangePreset] = useState(() => {
@@ -2312,7 +2325,7 @@ export function AnalyzeControls({
         stdDevMultiplier !== 1 ? String(stdDevMultiplier) : undefined,
       leftChartType: leftChartType !== "line" ? leftChartType : undefined,
       rightChartType: rightChartType !== "line" ? rightChartType : undefined,
-      vintages: showVintages ? vintageMode : undefined,
+      vintages: showVintagePoints ? "all" : undefined,
     });
   }, [
     overlays,
@@ -2329,8 +2342,7 @@ export function AnalyzeControls({
     stdDevMultiplier,
     leftChartType,
     rightChartType,
-    showVintages,
-    vintageMode,
+    showVintagePoints,
   ]);
 
   // ── Available dates from brush-selected range ─────────────────────
@@ -2532,47 +2544,6 @@ export function AnalyzeControls({
     currentFreqCode,
   ]);
 
-  /** One table column per displayed (series, publish day) revision set,
-   *  holding only the values that differ from current at the displayed
-   *  precision. Sets with no differing value in range are dropped. */
-  const tableVintageColumns = useMemo(() => {
-    if (!chartVintagePoints) return [];
-    const rowByDate = new Map(tableData.map((r) => [r.date, r]));
-    const columns: VintageTableColumn[] = [];
-    for (const [seriesIndex, points] of chartVintagePoints) {
-      if (seriesVisibility.get(seriesIndex) === "hidden") continue;
-      const byDay = new Map<string, Map<string, number>>();
-      for (const p of points) {
-        const current = rowByDate.get(p.date)?.[`series_${seriesIndex}`];
-        if (current == null || isNaN(current)) continue;
-        if (!vintageDiffers(current, p.value, decimals)) continue;
-        let values = byDay.get(p.publishedAt);
-        if (!values) {
-          values = new Map();
-          byDay.set(p.publishedAt, values);
-        }
-        // Points are created_at DESC within a date: keep the day's last upload
-        if (!values.has(p.date)) values.set(p.date, p.value);
-      }
-      const days = [...byDay.keys()].sort().reverse();
-      for (const day of days) {
-        columns.push({
-          id: `vintage_${seriesIndex}_${day}`,
-          label: `${compareSeriesNames[seriesIndex]} (${day})`,
-          seriesIndex,
-          values: byDay.get(day)!,
-        });
-      }
-    }
-    return columns;
-  }, [
-    chartVintagePoints,
-    tableData,
-    seriesVisibility,
-    decimals,
-    compareSeriesNames,
-  ]);
-
   // Summary stats for the brush-selected range (selected series)
   const rangeStats = useMemo(() => {
     const sliced = chartData.slice(
@@ -2748,18 +2719,18 @@ export function AnalyzeControls({
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      title="Overlay non-current (vintage) data points"
+                      title="Plot past vintages as their own series"
                       className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors ${
-                        showVintages
+                        vintageEntryCount > 0 || showVintagePoints
                           ? "border-slate-400 bg-slate-100 text-slate-700"
                           : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
                       }`}
                     >
                       <History className="h-4 w-4" />
                       Vintages
-                      {showVintages && vintageCount > 0 && (
+                      {vintageEntryCount > 0 && (
                         <span className="rounded-full bg-slate-500 px-1.5 text-[10px] leading-4 text-white">
-                          {vintageCount}
+                          {vintageEntryCount}
                         </span>
                       )}
                     </button>
@@ -2768,41 +2739,53 @@ export function AnalyzeControls({
                     align="start"
                     className="max-h-80 overflow-y-auto"
                   >
-                    <DropdownMenuRadioGroup
-                      value={vintageMode}
-                      onValueChange={setVintageMode}
+                    {vintageDays.length === 0 ? (
+                      <p className="text-muted-foreground px-2 py-1.5 text-xs">
+                        {eligibleVintagesLoaded ? "No vintages" : "Loading…"}
+                      </p>
+                    ) : (
+                      <>
+                        <DropdownMenuCheckboxItem
+                          className="text-xs"
+                          checked={vintagesAllAdded(latestVintageItems)}
+                          onSelect={(e) => e.preventDefault()}
+                          onCheckedChange={() =>
+                            toggleVintageItems(latestVintageItems)
+                          }
+                        >
+                          Most Recent
+                          {latestVintageLabel && (
+                            <span className="text-muted-foreground">
+                              ({latestVintageLabel})
+                            </span>
+                          )}
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuSeparator />
+                        {vintageDays.map((day) => {
+                          const items = vintageItemsForDay(day);
+                          return (
+                            <DropdownMenuCheckboxItem
+                              key={day}
+                              className="font-mono text-xs"
+                              checked={vintagesAllAdded(items)}
+                              onSelect={(e) => e.preventDefault()}
+                              onCheckedChange={() => toggleVintageItems(items)}
+                            >
+                              {day}
+                            </DropdownMenuCheckboxItem>
+                          );
+                        })}
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      className="text-xs"
+                      checked={showVintagePoints}
+                      onSelect={(e) => e.preventDefault()}
+                      onCheckedChange={(v) => setShowVintagePoints(v === true)}
                     >
-                      <DropdownMenuRadioItem value="off" className="text-xs">
-                        Off
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="latest" className="text-xs">
-                        Most Recent
-                        {latestVintageLabel && (
-                          <span className="text-muted-foreground">
-                            ({latestVintageLabel})
-                          </span>
-                        )}
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="all" className="text-xs">
-                        All
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuSeparator />
-                      {vintageDays.length === 0 ? (
-                        <p className="text-muted-foreground px-2 py-1.5 text-xs">
-                          {eligibleVintagesLoaded ? "No vintages" : "Loading…"}
-                        </p>
-                      ) : (
-                        vintageDays.map((day) => (
-                          <DropdownMenuRadioItem
-                            key={day}
-                            value={day}
-                            className="font-mono text-xs"
-                          >
-                            {day}
-                          </DropdownMenuRadioItem>
-                        ))
-                      )}
-                    </DropdownMenuRadioGroup>
+                      Show all vintage points
+                    </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -2964,6 +2947,7 @@ export function AnalyzeControls({
           seriesUnitLabels={seriesUnitLabels}
           selectedEvents={selectedEvents}
           vintagePoints={chartVintagePoints}
+          vintagePairs={vintagePairs}
           overlays={leftVisibleCount === 1 ? overlays : []}
           stats={leftVisibleCount === 1 ? (chartStats ?? undefined) : undefined}
           unitShortLabel={unitShortLabel}
@@ -2995,7 +2979,6 @@ export function AnalyzeControls({
         activeTransformation={transformation}
         rightTransformation={rightTransformation}
         seriesAxisMap={seriesAxisMap}
-        vintageColumns={tableVintageColumns}
       />
     </div>
   );

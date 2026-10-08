@@ -51,9 +51,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 /**
- * Author-driven kanban board: one card per review, dragged between status
- * columns by the parent approval's author to signal reviewer progress.
- * Independent of the reviewer's own attested checkbox/notes (ReviewTable).
+ * Review kanban board: one card per review, dragged between status columns
+ * by the parent approval's author (any card) or a reviewer (their own card).
+ * Moving a card into "Review Complete" is what signs a review off (sets
+ * `attested`); moving it back out clears that.
  *
  * Read-only for anyone who isn't allowed to move a given card — cards render
  * without drag handles in that case.
@@ -65,7 +66,7 @@ export function ReviewKanbanBoard({
   currentUserId,
   showComm = false,
   addReview,
-  notStartedExtra,
+  inProgressExtra,
 }: {
   reviews: ApprovalReviewJSON[];
   /** Parent approval per review, keyed by approvalId — only needed when showComm. */
@@ -75,16 +76,16 @@ export function ReviewKanbanBoard({
   /** Show the parent comm's name/link on each card (cross-comm board). */
   showComm?: boolean;
   /**
-   * Enables the "Add review" affordance in "Not Started" for one specific
+   * Enables the "Add review" affordance in "In Progress" for one specific
    * approval. On a cross-comm board (many approvals mixed together), pair
-   * this with `notStartedExtra` to let the caller pick which approval first.
+   * this with `inProgressExtra` to let the caller pick which approval first.
    */
   addReview?: {
     approvalId: number;
     currentUserName: string;
   };
-  /** Extra content rendered in "Not Started", above the add-review card — e.g. a form picker on a cross-comm board. */
-  notStartedExtra?: ReactNode;
+  /** Extra content rendered in "In Progress", above the add-review card — e.g. a form picker on a cross-comm board. */
+  inProgressExtra?: ReactNode;
 }) {
   const router = useRouter();
   const dndId = useId();
@@ -112,8 +113,13 @@ export function ReviewKanbanBoard({
     setCards((cs) =>
       cs.map((r) => (r.id === reviewId ? { ...r, boardStatus: status } : r)),
     );
+    // The server also flips `attested` when entering/leaving "Review
+    // Complete", so take its copy of the card rather than our optimistic one.
     setReviewBoardStatus(reviewId, status)
-      .then(() => router.refresh())
+      .then((result) => {
+        handleCardUpdate(result.data);
+        router.refresh();
+      })
       .catch((err) => {
         setCards(previous);
         toast.error(err instanceof Error ? err.message : "Update failed");
@@ -142,7 +148,7 @@ export function ReviewKanbanBoard({
     setCards((cs) => [...cs, created]);
   }
 
-  if (!cards.length && !showAddReview && !notStartedExtra) {
+  if (!cards.length && !showAddReview && !inProgressExtra) {
     return (
       <p className="text-muted-foreground py-2 text-sm">No reviews yet.</p>
     );
@@ -155,7 +161,7 @@ export function ReviewKanbanBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {REVIEW_BOARD_STATUSES.map((status) => (
           <BoardColumn
             key={status}
@@ -168,10 +174,10 @@ export function ReviewKanbanBoard({
             onCardUpdate={handleCardUpdate}
             onCardDelete={handleCardDelete}
             addReview={
-              showAddReview && status === "not_started" ? addReview : undefined
+              showAddReview && status === "in_progress" ? addReview : undefined
             }
             onReviewAdded={handleReviewAdded}
-            extra={status === "not_started" ? notStartedExtra : undefined}
+            extra={status === "in_progress" ? inProgressExtra : undefined}
           />
         ))}
       </div>
@@ -214,17 +220,19 @@ function AddReviewCard({
     return () => clearTimeout(t);
   }, [phase]);
   const router = useRouter();
-  const [attested, setAttested] = useState(false);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // New reviews start unsigned; moving the card to "Review Complete" signs off.
   async function save() {
     setSaving(true);
     try {
-      const result = await submitReview(approvalId, { attested, notes });
+      const result = await submitReview(approvalId, {
+        attested: false,
+        notes,
+      });
       onAdded(result.data);
       setPhase("button");
-      setAttested(false);
       setNotes("");
       router.refresh();
     } catch (err) {
@@ -253,18 +261,7 @@ function AddReviewCard({
 
   return (
     <div className="animate-in fade-in bg-background space-y-2 rounded-md border p-3 text-sm duration-200">
-      <div className="flex items-center justify-between">
-        <span className="font-medium">{currentUserName}</span>
-        <label className="text-muted-foreground flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={attested}
-            onChange={(e) => setAttested(e.target.checked)}
-            disabled={saving}
-          />
-          Reviewed
-        </label>
-      </div>
+      <div className="font-medium">{currentUserName}</div>
       <Textarea
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
@@ -303,7 +300,7 @@ function AddReviewCard({
  * existing card's details — just without a board-status badge, withdraw
  * button, or message thread, since none of those exist until the review is
  * actually saved. Used wherever "Add review" needs to open directly rather
- * than via the inline "Not Started" card (e.g. from a table row's actions
+ * than via the inline "In Progress" card (e.g. from a table row's actions
  * menu, or after picking a form on a cross-comm board).
  */
 export function NewReviewDialog({
@@ -316,14 +313,17 @@ export function NewReviewDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [attested, setAttested] = useState(false);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // New reviews start unsigned; moving the card to "Review Complete" signs off.
   async function save() {
     setSaving(true);
     try {
-      const result = await submitReview(approval.id, { attested, notes });
+      const result = await submitReview(approval.id, {
+        attested: false,
+        notes,
+      });
       toast.success(result.message);
       router.refresh();
       onClose();
@@ -349,7 +349,9 @@ export function NewReviewDialog({
         <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto text-sm">
           <span className="text-muted-foreground">{approval.name}</span>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Not Started</Badge>
+            <Badge variant="secondary">
+              {REVIEW_BOARD_STATUS_LABELS.in_progress}
+            </Badge>
             {approval.targetReleaseDate && (
               <Badge variant="outline">
                 Target {approval.targetReleaseDate}
@@ -357,17 +359,8 @@ export function NewReviewDialog({
             )}
           </div>
           <div>
-            <div className="text-muted-foreground mb-1 flex items-center justify-between text-xs font-medium tracking-wide uppercase">
-              <span>Notes</span>
-              <label className="flex items-center gap-1.5 normal-case">
-                <input
-                  type="checkbox"
-                  checked={attested}
-                  onChange={(e) => setAttested(e.target.checked)}
-                  disabled={saving}
-                />
-                Reviewed
-              </label>
+            <div className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
+              Notes
             </div>
             <Textarea
               value={notes}
@@ -395,7 +388,6 @@ export function NewReviewDialog({
               disabled={saving}
               onClick={() => void save()}
             >
-              {attested && <CheckCircle2 className="h-3.5 w-3.5" />}
               Submit
             </Button>
           </div>

@@ -58,7 +58,7 @@ export function ReviewerBoard({
         canDrag={(review) => review.reviewerUserId === currentUserId}
         currentUserId={currentUserId}
         showComm
-        notStartedExtra={
+        inProgressExtra={
           unreviewed.length > 0 ? (
             <AddReviewPicker
               key={creatingFor?.id ?? "none"}

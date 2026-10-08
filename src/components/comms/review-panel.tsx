@@ -49,7 +49,7 @@ export function ReviewPanel({
       <ReviewKanbanBoard
         reviews={reviews}
         approvals={{ [approval.id]: approval }}
-        canDrag={() => canModify}
+        canDrag={(r) => canModify || r.reviewerUserId === currentUserId}
         currentUserId={currentUserId}
         addReview={
           canAdd ? { approvalId: approval.id, currentUserName } : undefined

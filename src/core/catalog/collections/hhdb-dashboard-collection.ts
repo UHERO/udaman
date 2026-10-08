@@ -51,6 +51,12 @@ export interface OutOfStateByStateRow {
   pct: number;
 }
 
+export interface TransactionsByMonthRow {
+  /** "YYYY-MM" */
+  period: string;
+  count: number;
+}
+
 export interface OutOfStateByZipRow {
   mailing_zip_code: string;
   mailing_state: string;
@@ -358,6 +364,48 @@ export default class HhdbDashboardCollection {
       total_transactions: Number(r.total_transactions),
       out_of_state_count: Number(r.out_of_state_count),
       ratio: Number(r.out_of_state_count) / Number(r.total_transactions),
+    }));
+  }
+
+  /**
+   * Recorded documents per month, statewide or for one county (leading TMK
+   * digit). Statewide includes rows with no parcel (blank or 9-9-9 TMK).
+   * Both variants are index-only scans: statewide on idx_recDate, county as a
+   * taxKey range on idx_tg_loader_county (taxKey is the undashed tmk, so its
+   * first digit is the county too, and a range on it is sargable).
+   */
+  static async getTransactionsByMonth(
+    countyCode?: string,
+  ): Promise<TransactionsByMonthRow[]> {
+    const conditions = ["recDate IS NOT NULL"];
+    const params: string[] = [];
+    if (countyCode) {
+      if (!/^[1-4]$/.test(countyCode)) {
+        throw new Error(`Invalid county code: ${countyCode}`);
+      }
+      conditions.push("taxKey >= ? AND taxKey < ?");
+      params.push(countyCode, String(Number(countyCode) + 1));
+    }
+
+    const rows = await rawQuery<{
+      year: number;
+      month: number;
+      count: number;
+    }>(
+      `SELECT
+        YEAR(recDate) as year,
+        MONTH(recDate) as month,
+        COUNT(*) as count
+      FROM tg_transactions
+      WHERE ${conditions.join(" AND ")}
+      GROUP BY YEAR(recDate), MONTH(recDate)
+      ORDER BY year, month`,
+      params,
+    );
+
+    return rows.map((r) => ({
+      period: `${r.year}-${String(r.month).padStart(2, "0")}`,
+      count: Number(r.count),
     }));
   }
 

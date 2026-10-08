@@ -3,13 +3,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { transformSeriesAction } from "@/actions/series-actions";
+import {
+  getVintageSeriesAction,
+  transformSeriesAction,
+} from "@/actions/series-actions";
 import type { TimelineEventForChart } from "@/components/series/analyze-chart";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 
 import { AnalyzerCalculate } from "./analyzer-calculate";
 import { AnalyzerSearch } from "./analyzer-search";
-import { editableToExpr, exprToDisplayName } from "./expr-utils";
+import {
+  editableToExpr,
+  exprToDisplayName,
+  parseVintageExpr,
+  vintageExpr,
+} from "./expr-utils";
 import type { AnalyzerEntry } from "./types";
 
 interface AnalyzerProps {
@@ -24,6 +32,39 @@ interface AnalyzerProps {
 /** Convert a bare series name to an eval expression */
 function nameToExpr(name: string): string {
   return `"${name}".ts`;
+}
+
+type EvaluatedSeries = {
+  data: [string, number][];
+  unitShortLabel: string | null;
+  decimals: number;
+  frequencyCode: string | null;
+};
+
+/** Load an entry's data: vintage expressions fetch the series as published
+ *  on that day; everything else goes through the eval executor. */
+async function evaluateExpression(
+  expression: string,
+): Promise<EvaluatedSeries | { error: string }> {
+  const vintage = parseVintageExpr(expression);
+  if (vintage) {
+    const result = await getVintageSeriesAction(vintage.name, vintage.day);
+    if ("error" in result) return result;
+    return {
+      data: result.data,
+      unitShortLabel: result.unitShortLabel,
+      decimals: result.decimals,
+      frequencyCode: result.frequencyCode,
+    };
+  }
+  const result = await transformSeriesAction(expression);
+  if ("error" in result) return result;
+  return {
+    data: result.series.data,
+    unitShortLabel: result.unitShortLabel ?? null,
+    decimals: result.series.decimals,
+    frequencyCode: result.series.frequencyCode ?? null,
+  };
 }
 
 export function Analyzer({
@@ -109,7 +150,7 @@ export function Analyzer({
       prev.map((e) => (e.id === id ? { ...e, loading: true, error: null } : e)),
     );
 
-    const result = await transformSeriesAction(expression);
+    const result = await evaluateExpression(expression);
 
     // Discard result if a newer evaluation has been started
     if (evalVersions.current.get(id) !== version) return;
@@ -123,10 +164,7 @@ export function Analyzer({
         return {
           ...e,
           name: exprToDisplayName(expression),
-          data: result.series.data,
-          unitShortLabel: result.unitShortLabel ?? null,
-          decimals: result.series.decimals,
-          frequencyCode: result.series.frequencyCode ?? null,
+          ...result,
           loading: false,
           error: null,
         };
@@ -178,7 +216,7 @@ export function Analyzer({
   const handleAddExpression = useCallback(
     async (input: string): Promise<boolean> => {
       const expression = editableToExpr(input.trim());
-      const result = await transformSeriesAction(expression);
+      const result = await evaluateExpression(expression);
 
       if ("error" in result) {
         toast.error("Could not evaluate calculation", {
@@ -187,7 +225,7 @@ export function Analyzer({
         return false;
       }
 
-      if (result.series.data.length === 0) {
+      if (result.data.length === 0) {
         toast.warning("Calculation produced no data points", {
           description: expression,
         });
@@ -200,10 +238,7 @@ export function Analyzer({
           id: crypto.randomUUID(),
           expression,
           name: exprToDisplayName(expression),
-          data: result.series.data,
-          unitShortLabel: result.unitShortLabel ?? null,
-          decimals: result.series.decimals,
-          frequencyCode: result.series.frequencyCode ?? null,
+          ...result,
           visibility: "active",
           axis: "left",
           loading: false,
@@ -267,6 +302,59 @@ export function Analyzer({
 
       setEntries((prev) => [...prev, newEntry]);
       evaluateEntry(newEntry.id, newEntry.expression);
+    },
+    [entries, evaluateEntry],
+  );
+
+  /** Add or remove past-vintage entries. Each (series, day) becomes its own
+   *  entry, placed after the series' current entry (and any vintages
+   *  already there) on the same axis. Adding one that exists is a no-op. */
+  const handleToggleVintages = useCallback(
+    (items: Array<{ name: string; day: string }>, add: boolean) => {
+      const exprs = new Set(items.map((v) => vintageExpr(v.name, v.day)));
+      if (!add) {
+        setEntries((prev) => {
+          for (const e of prev) {
+            if (exprs.has(e.expression)) evalVersions.current.delete(e.id);
+          }
+          return prev.filter((e) => !exprs.has(e.expression));
+        });
+        return;
+      }
+      const next = [...entries];
+      const toLoad: AnalyzerEntry[] = [];
+      for (const { name, day } of items) {
+        const expression = vintageExpr(name, day);
+        if (next.some((e) => e.expression === expression)) continue;
+        const baseIdx = next.findIndex(
+          (e) => e.expression === nameToExpr(name),
+        );
+        // Insert after the base entry and its existing vintages
+        let at = baseIdx < 0 ? next.length : baseIdx + 1;
+        while (at < next.length) {
+          const v = parseVintageExpr(next[at].expression);
+          if (!v || v.name !== name) break;
+          at++;
+        }
+        const entry: AnalyzerEntry = {
+          id: crypto.randomUUID(),
+          expression,
+          name: exprToDisplayName(expression),
+          data: [],
+          unitShortLabel: null,
+          decimals: 1,
+          frequencyCode: null,
+          visibility: "active",
+          axis: baseIdx < 0 ? "left" : next[baseIdx].axis,
+          loading: true,
+          error: null,
+        };
+        next.splice(at, 0, entry);
+        toLoad.push(entry);
+      }
+      if (toLoad.length === 0) return;
+      setEntries(next);
+      for (const entry of toLoad) evaluateEntry(entry.id, entry.expression);
     },
     [entries, evaluateEntry],
   );
@@ -428,6 +516,7 @@ export function Analyzer({
           onAxisChange={handleAxisChange}
           onRemove={handleRemove}
           onAddCompareYoY={handleAddCompareYoY}
+          onToggleVintages={handleToggleVintages}
         />
       )}
     </div>

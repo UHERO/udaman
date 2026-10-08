@@ -546,6 +546,13 @@ export async function getOutOfStateRatioByQuarter(islandCode?: string) {
   return data;
 }
 
+export async function getTransactionsByMonth(countyCode?: string) {
+  log.info({ countyCode }, "fetching transactions by month");
+  const data = await HhdbDashboardCollection.getTransactionsByMonth(countyCode);
+  log.info({ count: data.length }, "transactions by month fetched");
+  return data;
+}
+
 export async function getOutOfStateTopStates(
   startYear?: number,
   endYear?: number,

@@ -14,7 +14,12 @@ import { logControllerCall } from "@/core/observability/app-events";
 import { createLogger } from "@/core/observability/logger";
 
 import Measurements from "../models/measurements";
-import type { AnalyzeResult, CompareResult, Universe } from "../types/shared";
+import type {
+  AnalyzeResult,
+  CompareResult,
+  CompareSeriesEntry,
+  Universe,
+} from "../types/shared";
 
 const log = createLogger("catalog.series");
 
@@ -387,6 +392,36 @@ export async function transformSeries({
     resultDate: resultLastDate ?? null,
     unitLabel: result.unitLabel ?? null,
     unitShortLabel: result.unitShortLabel ?? null,
+  };
+}
+
+/**
+ * A series as published at the end of `day` (YYYY-MM-DD), for plotting a
+ * past vintage alongside the current series in the analyzer.
+ */
+export async function getVintageSeries({
+  name,
+  day,
+}: {
+  name: string;
+  day: string;
+}): Promise<CompareSeriesEntry> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    throw new Error(`Invalid vintage date: ${day}`);
+  }
+  const s = await SeriesCollection.getByName(name);
+  if (s.xseriesId == null) throw new Error(`Series ${name} has no data`);
+  const data = await DataPointCollection.getAsOf({
+    xseriesId: s.xseriesId,
+    day,
+  });
+  log.info({ name, day, observations: data.length }, "vintage series loaded");
+  return {
+    name,
+    data,
+    decimals: s.decimals,
+    frequencyCode: s.frequencyCode,
+    unitShortLabel: s.unitShortLabel,
   };
 }
 

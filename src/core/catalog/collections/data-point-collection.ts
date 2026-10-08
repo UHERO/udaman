@@ -393,6 +393,61 @@ class DataPointCollection {
   }
 
   /**
+   * Reconstruct an xseries as it stood at the end of `day` (YYYY-MM-DD, HST
+   * wall-clock like created_at): for each date, the latest data point
+   * created on or before that day, current or not. Returned ascending.
+   *
+   * A clear-and-reload deletes old rows and re-creates current ones with a
+   * new created_at, so some dates can have no point that old even though
+   * they were published then. Dates inside the reconstructed range fall
+   * back to the current value; dates after it are left out (the series
+   * hadn't reached them yet).
+   */
+  static async getAsOf(opts: {
+    xseriesId: number;
+    day: string;
+  }): Promise<[string, number][]> {
+    const { xseriesId, day } = opts;
+    type Row = { date: Date | string; value: number | null };
+    const toDateStr = (d: Date | string) =>
+      d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10);
+
+    const asOfRows = await mysql<Row>`
+      SELECT date, value FROM (
+        SELECT dp.date, dp.value,
+          ROW_NUMBER() OVER (
+            PARTITION BY dp.date ORDER BY dp.created_at DESC
+          ) AS rn
+        FROM data_points dp
+        WHERE dp.xseries_id = ${xseriesId}
+          AND dp.created_at < DATE_ADD(${day}, INTERVAL 1 DAY)
+      ) ranked
+      WHERE rn = 1
+    `;
+    const currentRows = await mysql<Row>`
+      SELECT date, value FROM data_points
+      WHERE xseries_id = ${xseriesId} AND current = 1
+    `;
+
+    const asOf = new Map<string, number | null>();
+    for (const r of asOfRows) {
+      asOf.set(toDateStr(r.date), r.value == null ? null : Number(r.value));
+    }
+    let lastAsOf = "";
+    for (const d of asOf.keys()) if (d > lastAsOf) lastAsOf = d;
+
+    const result = new Map<string, number>();
+    for (const r of currentRows) {
+      const d = toDateStr(r.date);
+      if (d > lastAsOf || asOf.has(d) || r.value == null) continue;
+      result.set(d, Number(r.value));
+    }
+    for (const [d, v] of asOf) if (v != null) result.set(d, v);
+
+    return [...result.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }
+
+  /**
    * Sync the public_data_points table for a given universe.
    * Ported from Rails DataPoint.update_public_data_points.
    *

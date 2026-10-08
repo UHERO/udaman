@@ -56,7 +56,7 @@ const REVIEWER_EMAILS = [
 
 type ReviewSeed = {
   reviewerEmail: string;
-  boardStatus: "not_started" | "in_progress" | "needs_changes" | "reviewed";
+  boardStatus: "in_progress" | "needs_changes" | "reviewed";
   /** Days before "now" the review's note was left, for created_at ordering. */
   daysAgo: number;
   attested: boolean;
@@ -181,7 +181,7 @@ const APPROVALS: ApprovalSeed[] = [
       },
       {
         reviewerEmail: "ashleysh@hawaii.edu",
-        boardStatus: "not_started",
+        boardStatus: "in_progress",
         daysAgo: 0,
         attested: false,
         notes: null,
@@ -247,7 +247,7 @@ const APPROVALS: ApprovalSeed[] = [
       },
       {
         reviewerEmail: "kburnett@hawaii.edu",
-        boardStatus: "not_started",
+        boardStatus: "in_progress",
         daysAgo: 0,
         attested: false,
         notes: null,
@@ -333,7 +333,7 @@ const APPROVALS: ApprovalSeed[] = [
       },
       {
         reviewerEmail: "gangnes@hawaii.edu",
-        boardStatus: "not_started",
+        boardStatus: "in_progress",
         daysAgo: 0,
         attested: false,
         notes: null,
@@ -362,14 +362,14 @@ const APPROVALS: ApprovalSeed[] = [
       },
       {
         reviewerEmail: "gangnes@hawaii.edu",
-        boardStatus: "not_started",
+        boardStatus: "in_progress",
         daysAgo: 0,
         attested: false,
         notes: null,
       },
       {
         reviewerEmail: "bondsmit@hawaii.edu",
-        boardStatus: "not_started",
+        boardStatus: "in_progress",
         daysAgo: 0,
         attested: false,
         notes: null,

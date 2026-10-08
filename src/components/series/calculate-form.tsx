@@ -7,6 +7,8 @@ import { Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { editableToExpr } from "./analyzer/expr-utils";
+
 interface CalculateFormProps {
   initialExpression?: string;
 }
@@ -21,9 +23,11 @@ export function CalculateForm({ initialExpression }: CalculateFormProps) {
     const trimmed = expression.trim();
     if (!trimmed) return;
 
-    router.push(
-      `/udaman/${universe}/analyze?eval=${encodeURIComponent(trimmed)}`,
-    );
+    // The analyzer reads eval-syntax expressions from ?exprs=, so convert
+    // friendly input (`A@HI.Q - 20` → `"A@HI.Q".ts - 20`) the same way its
+    // own Calculate box does. Already-quoted eval syntax passes through.
+    const params = new URLSearchParams({ exprs: editableToExpr(trimmed) });
+    router.push(`/udaman/${universe}/analyze?${params}`);
   };
 
   return (
@@ -31,7 +35,7 @@ export function CalculateForm({ initialExpression }: CalculateFormProps) {
       <Input
         value={expression}
         onChange={(e) => setExpression(e.target.value)}
-        placeholder={`"E_NF@HI.M".ts + "E_NF@MAU.M".ts`}
+        placeholder="E_NF@HI.M + E_NF@MAU.M"
         className="flex-1 font-mono text-sm"
       />
       <Button type="submit" size="sm" variant="outline">

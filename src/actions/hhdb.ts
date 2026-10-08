@@ -53,6 +53,7 @@ import {
   getTgTransactionsJSON as getTgTransactionsCtrl,
   getTopOwners as getTopOwnersCtrl,
   getTotalAssessedByIsland as getTotalAssessedCtrl,
+  getTransactionsByMonth as getTransactionsByMonthCtrl,
   runQueryBuilder as runQueryBuilderCtrl,
 } from "@catalog/controllers/hhdb";
 import type {
@@ -330,6 +331,13 @@ export async function getHhdbOutOfStateRatio(islandCode?: string) {
   await requirePermission("hhdb", "read");
   return cachedDashboard(`outOfStateRatio:${islandCode ?? "all"}`, () =>
     getOutOfStateRatioCtrl(islandCode),
+  );
+}
+
+export async function getHhdbTransactionsByMonth(countyCode?: string) {
+  await requirePermission("hhdb", "read");
+  return cachedDashboard(`transactionsByMonth:${countyCode ?? "all"}`, () =>
+    getTransactionsByMonthCtrl(countyCode),
   );
 }
 

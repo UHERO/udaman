@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 /**
  * Counties in TMK-digit order, always in this order and these colors on every
@@ -48,6 +49,31 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 const fmt = (n: number) => n.toLocaleString("en-US");
+const pct = (n: number) => `${(100 * n).toFixed(1)}%`;
+
+type Measure = "count" | "share";
+
+/**
+ * Recharts colors an Area's legend swatch from its stroke, which here is the
+ * background-colored seam, so the default legend renders blank swatches.
+ * Draw the swatches from the config colors instead (rendered inside
+ * ChartContainer so the --color-* vars resolve).
+ */
+function CoverageLegend() {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-4 pt-3 text-xs">
+      {COVERAGE_SERIES.map((s) => (
+        <div key={s} className="flex items-center gap-1.5">
+          <div
+            className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+            style={{ backgroundColor: `var(--color-${s})` }}
+          />
+          {chartConfig[s].label}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
 /** "2024-03" → "Mar 2024"; a year stays as is. */
@@ -73,6 +99,7 @@ export function CoverageChart({
 }: CoverageChartProps) {
   const [data, setData] = useState<CoverageResult | null>(null);
   const [showTable, setShowTable] = useState(false);
+  const [measure, setMeasure] = useState<Measure>("count");
 
   useEffect(() => {
     getHhdbCoverageByPeriod(table).then(setData);
@@ -81,6 +108,16 @@ export function CoverageChart({
   const rows = data?.rows ?? [];
   const totalNoTmk = rows.reduce((n, r) => n + r.no_tmk, 0);
   const total = rows.reduce((n, r) => n + r.total, 0);
+  const isShare = measure === "share";
+  // Share of each period's total; the stack sums to 1.
+  const chartRows = isShare
+    ? rows.map((r) => {
+        const out = { ...r };
+        for (const s of COVERAGE_SERIES) out[s] = r.total ? r[s] / r.total : 0;
+        return out;
+      })
+    : rows;
+  const fmtValue = isShare ? pct : fmt;
 
   return (
     <Card>
@@ -90,13 +127,29 @@ export function CoverageChart({
           <CardDescription>{description}</CardDescription>
         </div>
         {rows.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTable((v) => !v)}
-          >
-            {showTable ? "Show chart" : "Show table"}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={measure}
+              onValueChange={(v) => v && setMeasure(v as Measure)}
+            >
+              <ToggleGroupItem value="count" className="px-2 text-xs">
+                Count
+              </ToggleGroupItem>
+              <ToggleGroupItem value="share" className="px-2 text-xs">
+                Share
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTable((v) => !v)}
+            >
+              {showTable ? "Show chart" : "Show table"}
+            </Button>
+          </div>
         )}
       </CardHeader>
       <CardContent>
@@ -124,12 +177,12 @@ export function CoverageChart({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
+              {chartRows.map((r) => (
                 <TableRow key={r.period}>
                   <TableCell>{periodLabel(r.period)}</TableCell>
                   {COVERAGE_SERIES.map((s) => (
                     <TableCell key={s} className="text-right tabular-nums">
-                      {fmt(r[s])}
+                      {fmtValue(r[s])}
                     </TableCell>
                   ))}
                   <TableCell className="text-right font-medium tabular-nums">
@@ -141,7 +194,7 @@ export function CoverageChart({
           </Table>
         ) : (
           <ChartContainer config={chartConfig} className="h-[320px] w-full">
-            <AreaChart data={rows} margin={{ left: 8, right: 8, top: 8 }}>
+            <AreaChart data={chartRows} margin={{ left: 8, right: 8, top: 8 }}>
               <CartesianGrid vertical={false} strokeOpacity={0.4} />
               <XAxis
                 dataKey="period"
@@ -159,8 +212,13 @@ export function CoverageChart({
                 tickLine={false}
                 axisLine={false}
                 width={56}
+                domain={isShare ? [0, 1] : undefined}
                 tickFormatter={(v: number) =>
-                  v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
+                  isShare
+                    ? `${Math.round(100 * v)}%`
+                    : v >= 1000
+                      ? `${Math.round(v / 1000)}k`
+                      : String(v)
                 }
               />
               <ChartTooltip
@@ -176,14 +234,14 @@ export function CoverageChart({
                       <div className="flex w-full justify-between gap-4">
                         <span className="text-muted-foreground">{name}</span>
                         <span className="font-mono tabular-nums">
-                          {fmt(Number(value))}
+                          {fmtValue(Number(value))}
                         </span>
                       </div>
                     )}
                   />
                 }
               />
-              <Legend />
+              <Legend content={<CoverageLegend />} />
               {COVERAGE_SERIES.map((s) => (
                 <Area
                   key={s}
@@ -196,7 +254,6 @@ export function CoverageChart({
                   // A surface-colored seam separates adjacent bands.
                   stroke="var(--background)"
                   strokeWidth={2}
-                  legendType="square"
                 />
               ))}
             </AreaChart>

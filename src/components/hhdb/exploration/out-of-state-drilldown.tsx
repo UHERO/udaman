@@ -127,11 +127,22 @@ export function OutOfStateDrilldown() {
               <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <ChartContainer config={stateConfig} className="h-[400px] w-full">
+            // Grow with the state count so every label renders.
+            <ChartContainer
+              config={stateConfig}
+              className="w-full"
+              style={{ height: Math.max(400, stateData.length * 24 + 40) }}
+            >
               <BarChart data={stateData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
-                <YAxis type="category" dataKey="mailing_state" width={40} />
+                <YAxis
+                  type="category"
+                  dataKey="mailing_state"
+                  width={40}
+                  interval={0}
+                  tick={{ fontSize: 12 }}
+                />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent

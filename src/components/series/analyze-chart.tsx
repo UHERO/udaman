@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { Fragment, useCallback, useMemo } from "react";
 import { formatLevel } from "@catalog/utils/format";
 import { addMonthsStr } from "@catalog/utils/time";
 import {
@@ -1005,14 +1005,15 @@ function ChartTooltip({
   );
 }
 
-/** Signed change from a vintage to the current value, e.g. "+1.23 (+0.4%)" */
+/** Signed change from a vintage to the current value, e.g. "+1,234.5 (+0.4%)".
+ *  Same number formatting as the data table (commas, formatLevel precision). */
 function formatVintageDelta(
   delta: number,
   vintageValue: number,
   decimals: number,
 ): string {
-  const sign = delta > 0 ? "+" : "";
-  const abs = `${sign}${delta.toFixed(decimals)}`;
+  const sign = delta > 0 ? "+" : delta < 0 ? "-" : "";
+  const abs = `${sign}${formatLevel(Math.abs(delta), decimals)}`;
   if (vintageValue === 0) return abs;
   const pct = (delta / Math.abs(vintageValue)) * 100;
   return `${abs} (${pct > 0 ? "+" : ""}${pct.toFixed(1)}%)`;
@@ -1101,8 +1102,27 @@ const BRUSH_HEIGHT = 30;
 /** Number of current-vs-vintage changes annotated on the chart */
 const VINTAGE_ANNOTATION_LIMIT = 5;
 
+/** Tooltip color for a vintage → current change: green when current is
+ *  higher, red when lower, neutral when it rounds to zero */
+function vintageDeltaColor(delta: number, decimals: number): string {
+  const rounded = Number(delta.toFixed(decimals));
+  if (rounded > 0) return "text-green-700";
+  if (rounded < 0) return "text-red-700";
+  return "text-slate-500";
+}
+
+/** Small color key identifying a series in the tooltip */
+function TooltipSwatch({ color, faded }: { color: string; faded?: boolean }) {
+  return (
+    <span
+      className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]"
+      style={{ backgroundColor: color, opacity: faded ? 0.5 : 1 }}
+    />
+  );
+}
+
 /* ------------------------------------------------------------------ */
-/*  CompareTooltip — tooltip for multi-series compare mode             */
+/*  CompareTooltip — tooltip multi-series compare mode             */
 /* ------------------------------------------------------------------ */
 
 interface CompareTooltipProps {
@@ -1119,6 +1139,8 @@ interface CompareTooltipProps {
     string,
     Array<{ seriesIndex: number; value: number; publishedAt: string }>
   >;
+  /** Vintage series index → its current series index */
+  vintageBaseIndex?: Map<number, number>;
 }
 
 function CompareTooltip({
@@ -1130,6 +1152,7 @@ function CompareTooltip({
   seriesVisibility,
   unitLabels,
   vintagesByDate,
+  vintageBaseIndex,
 }: CompareTooltipProps) {
   if (!active || !payload?.length || !label) return null;
   const row = payload[0]?.payload as ChartRow | undefined;
@@ -1139,69 +1162,99 @@ function CompareTooltip({
     ?.get(label)
     ?.filter((v) => seriesVisibility?.get(v.seriesIndex) !== "hidden");
 
+  // One grid for every row so names, values, changes, and units line up
+  // in columns: swatch | name | value | change | unit (or publish date)
   return (
     <div className="rounded-md border bg-white px-3 py-2 shadow-md">
       <p className="mb-1 text-xs font-medium text-slate-500">
         {formatDate(label)}
       </p>
-      {seriesNames.map((name, i) => {
-        if (seriesVisibility?.get(i) === "hidden") return null;
-        const v = row[`series_${i}`];
-        const vis = seriesVisibility?.get(i);
-        const unitSuffix = unitLabels?.get(i);
-        return (
-          <p
-            key={name}
-            className="text-sm font-semibold"
-            style={{
-              color:
-                vis === "gray"
-                  ? "#94a3b8"
-                  : SERIES_COLORS[i % SERIES_COLORS.length],
-            }}
-          >
-            {name}: {v != null && !isNaN(v) ? v.toFixed(decimals) : "—"}
-            {unitSuffix ? (
-              <span className="ml-1 text-xs font-normal text-slate-400">
-                {unitSuffix}
-              </span>
-            ) : null}
-          </p>
-        );
-      })}
-      {vintages && vintages.length > 0 && (
-        <div className="mt-1 space-y-0.5 border-t pt-1 text-xs">
-          <p className="font-medium text-slate-400">Vintages</p>
-          {vintages.map((v, idx) => {
-            // Change from this vintage to the current value
-            const current = row[`series_${v.seriesIndex}`];
-            const delta =
-              current != null && !isNaN(current) ? current - v.value : null;
-            return (
-              <p
-                key={idx}
-                style={{
-                  color: SERIES_COLORS[v.seriesIndex % SERIES_COLORS.length],
-                  opacity: 0.7,
-                }}
+      <div className="grid grid-cols-[auto_auto_auto_auto_auto] items-center gap-x-2 gap-y-0.5">
+        {seriesNames.map((name, i) => {
+          if (seriesVisibility?.get(i) === "hidden") return null;
+          const v = row[`series_${i}`];
+          const gray = seriesVisibility?.get(i) === "gray";
+          const unitSuffix = unitLabels?.get(i);
+          // Vintage series: the change to current, where they differ
+          const baseIdx = vintageBaseIndex?.get(i);
+          const current = baseIdx != null ? row[`series_${baseIdx}`] : null;
+          const delta =
+            v != null &&
+            !isNaN(v) &&
+            current != null &&
+            !isNaN(current) &&
+            vintageDiffers(current, v, decimals)
+              ? current - v
+              : null;
+          const text = gray ? "text-muted-foreground" : "text-foreground";
+          return (
+            <Fragment key={name}>
+              <TooltipSwatch
+                color={
+                  gray ? "#94a3b8" : SERIES_COLORS[i % SERIES_COLORS.length]
+                }
+              />
+              <span className={`text-sm font-medium ${text}`}>{name}</span>
+              <span
+                className={`text-right font-mono text-sm font-semibold ${text}`}
               >
-                {seriesNames.length > 1
-                  ? `${seriesNames[v.seriesIndex]}: `
+                {v != null && !isNaN(v) ? formatLevel(v, decimals) : "—"}
+              </span>
+              <span
+                className={`text-right font-mono text-xs font-medium ${
+                  delta != null ? vintageDeltaColor(delta, decimals) : ""
+                }`}
+              >
+                {delta != null && v != null
+                  ? formatVintageDelta(delta, v, decimals)
                   : ""}
-                {v.value.toFixed(decimals)}
-                {delta != null && (
-                  <span className="ml-1 font-medium">
-                    Δ {formatVintageDelta(delta, v.value, decimals)}
+              </span>
+              <span className="text-muted-foreground text-xs">
+                {unitSuffix ?? ""}
+              </span>
+            </Fragment>
+          );
+        })}
+        {vintages && vintages.length > 0 && (
+          <>
+            <p className="text-muted-foreground col-span-full mt-1 border-t pt-1 text-xs font-medium">
+              Vintages
+            </p>
+            {vintages.map((v, idx) => {
+              // Change from this vintage to the current value
+              const current = row[`series_${v.seriesIndex}`];
+              const delta =
+                current != null && !isNaN(current) ? current - v.value : null;
+              return (
+                <Fragment key={idx}>
+                  <TooltipSwatch
+                    color={SERIES_COLORS[v.seriesIndex % SERIES_COLORS.length]}
+                    faded
+                  />
+                  <span className="text-foreground text-xs">
+                    {seriesNames.length > 1 ? seriesNames[v.seriesIndex] : ""}
                   </span>
-                )}
-                <span className="ml-1 text-slate-400">
-                  pub. {v.publishedAt}
-                </span>
-              </p>
-            );
-          })}
-        </div>
-      )}
+                  <span className="text-foreground text-right font-mono text-xs">
+                    {formatLevel(v.value, decimals)}
+                  </span>
+                  <span
+                    className={`text-right font-mono text-xs font-medium ${
+                      delta != null ? vintageDeltaColor(delta, decimals) : ""
+                    }`}
+                  >
+                    {delta != null
+                      ? formatVintageDelta(delta, v.value, decimals)
+                      : ""}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    pub. {v.publishedAt}
+                  </span>
+                </Fragment>
+              );
+            })}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -1265,6 +1318,8 @@ interface LevelChartProps {
   selectedEvents?: TimelineEventForChart[];
   /** Vintage (non-current) data points per series index, drawn as muted dots */
   vintagePoints?: Map<number, VintageChartPoint[]>;
+  /** Vintage series paired with their current series (compare indices) */
+  vintagePairs?: Array<{ vintageIndex: number; baseIndex: number }>;
   brushStartIndex?: number;
   brushEndIndex?: number;
   onBrushChange?: (range: { startIndex?: number; endIndex?: number }) => void;
@@ -1336,6 +1391,7 @@ export function LevelChart({
   seriesUnitLabels,
   selectedEvents = [],
   vintagePoints,
+  vintagePairs,
   brushStartIndex,
   brushEndIndex,
   onBrushChange,
@@ -1466,27 +1522,29 @@ export function LevelChart({
     return map;
   }, [vintagePoints]);
 
-  // Annotate the largest current-vs-vintage changes in the visible range:
-  // one candidate per (series, date) — its biggest revision — then the top
-  // VINTAGE_ANNOTATION_LIMIT overall. With several series on the chart the
-  // ranking uses % change so one large-magnitude series can't take them all.
+  // Annotate the largest current-vs-vintage changes in the visible range,
+  // between each vintage series and its current series: one candidate per
+  // (pair, date), then the top VINTAGE_ANNOTATION_LIMIT overall. With
+  // several pairs the ranking uses % change so one large-magnitude series
+  // can't take them all.
   const vintageAnnotations = useMemo(() => {
-    if (!vintagePoints || vintagePoints.size === 0) return [];
+    const pairs = (vintagePairs ?? []).filter(
+      (p) =>
+        seriesVisibility?.get(p.vintageIndex) !== "hidden" &&
+        seriesVisibility?.get(p.baseIndex) !== "hidden" &&
+        // Different axes means different scales — a segment between them
+        // would be meaningless
+        (seriesAxisMap?.get(p.vintageIndex) ?? "left") ===
+          (seriesAxisMap?.get(p.baseIndex) ?? "left"),
+    );
+    if (pairs.length === 0) return [];
     const first = chartData[mappedBrushStart ?? 0]?.date ?? "";
     const last =
       chartData[mappedBrushEnd ?? chartData.length - 1]?.date ?? "9999-12-31";
-    const rowByDate = new Map(chartData.map((r) => [r.date, r]));
-    // Position of each visible date in the range, to put labels near the
-    // right edge on the left side of their point
-    const visibleDates = chartData
-      .map((r) => r.date)
-      .filter((d) => d >= first && d <= last);
-    const posByDate = new Map(
-      visibleDates.map((d, i) => [
-        d,
-        visibleDates.length > 1 ? i / (visibleDates.length - 1) : 0,
-      ]),
+    const visibleRows = chartData.filter(
+      (r) => r.date >= first && r.date <= last,
     );
+    const usePct = pairs.length > 1;
     type Annotation = {
       seriesIndex: number;
       date: string;
@@ -1496,51 +1554,54 @@ export function LevelChart({
       delta: number;
       score: number;
     };
-    const visibleSeries = [...vintagePoints.keys()].filter(
-      (i) => seriesVisibility?.get(i) !== "hidden",
-    );
-    const usePct = visibleSeries.length > 1;
     const candidates: Annotation[] = [];
-    for (const seriesIndex of visibleSeries) {
-      const best = new Map<string, Annotation>();
-      for (const p of vintagePoints.get(seriesIndex) ?? []) {
-        if (p.date < first || p.date > last) continue;
-        const current = rowByDate.get(p.date)?.[`series_${seriesIndex}`];
+    visibleRows.forEach((row, ri) => {
+      // Near the right edge, put labels on the left side of their point
+      const leftward =
+        visibleRows.length > 1 && ri / (visibleRows.length - 1) > 0.85;
+      for (const { vintageIndex, baseIndex } of pairs) {
+        const current = row[`series_${baseIndex}`];
+        const vintage = row[`series_${vintageIndex}`];
         if (current == null || isNaN(current)) continue;
+        if (vintage == null || isNaN(vintage)) continue;
         // Skip revisions that vanish at the displayed precision
-        if (!vintageDiffers(current, p.value, decimals)) continue;
-        const delta = current - p.value;
+        if (!vintageDiffers(current, vintage, decimals)) continue;
+        const delta = current - vintage;
         const score = usePct
-          ? p.value === 0
+          ? vintage === 0
             ? 0
-            : Math.abs(delta / p.value)
+            : Math.abs(delta / vintage)
           : Math.abs(delta);
-        const prev = best.get(p.date);
-        if (!prev || score > prev.score) {
-          best.set(p.date, {
-            seriesIndex,
-            date: p.date,
-            leftward: (posByDate.get(p.date) ?? 0) > 0.85,
-            vintage: p.value,
-            current,
-            delta,
-            score,
-          });
-        }
+        candidates.push({
+          seriesIndex: vintageIndex,
+          date: row.date,
+          leftward,
+          vintage,
+          current,
+          delta,
+          score,
+        });
       }
-      candidates.push(...best.values());
-    }
+    });
     return candidates
       .sort((a, b) => b.score - a.score)
       .slice(0, VINTAGE_ANNOTATION_LIMIT);
   }, [
-    vintagePoints,
+    vintagePairs,
     chartData,
     mappedBrushStart,
     mappedBrushEnd,
     seriesVisibility,
+    seriesAxisMap,
     decimals,
   ]);
+
+  /** vintage series index → its current series index, for the tooltip */
+  const vintageBaseIndex = useMemo(
+    () =>
+      new Map((vintagePairs ?? []).map((p) => [p.vintageIndex, p.baseIndex])),
+    [vintagePairs],
+  );
 
   if (chartData.length === 0) return null;
 
@@ -1632,6 +1693,7 @@ export function LevelChart({
               seriesVisibility={seriesVisibility}
               unitLabels={seriesUnitLabels}
               vintagesByDate={vintagesByDate}
+              vintageBaseIndex={vintageBaseIndex}
             />
           }
         />
@@ -1679,6 +1741,9 @@ export function LevelChart({
                 yAxisId={axisId}
                 stroke={color}
                 strokeWidth={vis === "gray" ? 1 : 2}
+                // Vintages mostly overlap their current series; dashing
+                // keeps the current line visible underneath
+                strokeDasharray={vintageBaseIndex.has(i) ? "5 3" : undefined}
                 strokeOpacity={opacity}
                 dot={false}
                 isAnimationActive={true}

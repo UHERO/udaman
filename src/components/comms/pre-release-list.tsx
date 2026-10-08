@@ -453,7 +453,9 @@ export function PreReleaseList({
                         <ReviewKanbanBoard
                           reviews={list}
                           approvals={{ [a.id]: a }}
-                          canDrag={() => canModify(a)}
+                          canDrag={(r) =>
+                            canModify(a) || r.reviewerUserId === currentUserId
+                          }
                           currentUserId={currentUserId}
                           addReview={
                             canReview(a)

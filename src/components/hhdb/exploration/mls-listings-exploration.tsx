@@ -196,11 +196,24 @@ function PropertyTypes({ data }: { data: MlsExplorationData }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={COUNT_CONFIG} className="h-[300px] w-full">
+        {/* Grow with the category count so every label renders. */}
+        <ChartContainer
+          config={COUNT_CONFIG}
+          className="w-full"
+          style={{
+            height: Math.max(300, data.propertyTypes.length * 28 + 40),
+          }}
+        >
           <BarChart data={data.propertyTypes} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis type="number" />
-            <YAxis dataKey="property_type" type="category" width={120} />
+            <YAxis
+              dataKey="property_type"
+              type="category"
+              width={140}
+              interval={0}
+              tick={{ fontSize: 12 }}
+            />
             <ChartTooltip content={<ChartTooltipContent />} />
             <Bar
               dataKey="count"

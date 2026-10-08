@@ -196,9 +196,10 @@ export async function deleteReview({
 }
 
 /**
- * Move a review's kanban card. Only the parent approval's author (or an
- * admin/dev) may set it — this is the author's own progress signal, separate
- * from whatever the reviewer has attested/noted.
+ * Move a review's kanban card. The parent approval's author (or an
+ * admin/dev) may move any card; a reviewer may move their own. Moving into
+ * "Review Complete" is the sign-off (sets `attested`), so this is also where
+ * the author gets emailed when a form reaches REQUIRED_REVIEWS.
  */
 export async function setReviewBoardStatus({
   reviewId,
@@ -211,9 +212,24 @@ export async function setReviewBoardStatus({
 }) {
   const review = await ApprovalReviewCollection.getById(reviewId);
   const approval = await ApprovalCollection.getById(review.approvalId);
-  assertCanModify(approval, actor);
+  if (!canManageReview(review, actor)) assertCanModify(approval, actor);
+  const before = await ApprovalReviewCollection.countForApproval(approval.id);
   const data = await ApprovalReviewCollection.setBoardStatus(reviewId, status);
-  log.info({ reviewId, status }, "review board status updated");
+  const after = await ApprovalReviewCollection.countForApproval(approval.id);
+  log.info({ reviewId, status, count: after }, "review board status updated");
+
+  if (before < REQUIRED_REVIEWS && after >= REQUIRED_REVIEWS) {
+    notifyAuthorReviewed(approval.id, approval.authorUserId).catch((err) => {
+      log.error(
+        {
+          err: err instanceof Error ? err.message : String(err),
+          id: approval.id,
+        },
+        "reviewed notification failed",
+      );
+    });
+  }
+
   return { message: "Review status updated", data, approvalId: approval.id };
 }
 

@@ -12,7 +12,6 @@
  * change it — see `assertCanModify` in controllers/approvals.ts.
  */
 export const REVIEW_BOARD_STATUSES = [
-  "not_started",
   "in_progress",
   "needs_changes",
   "reviewed",
@@ -20,7 +19,6 @@ export const REVIEW_BOARD_STATUSES = [
 export type ReviewBoardStatus = (typeof REVIEW_BOARD_STATUSES)[number];
 
 export const REVIEW_BOARD_STATUS_LABELS: Record<ReviewBoardStatus, string> = {
-  not_started: "Not Started",
   in_progress: "In Progress",
   needs_changes: "Edits Requested",
   reviewed: "Review Complete",
@@ -84,7 +82,7 @@ class ApprovalReview {
     this.notes = attrs.notes ?? null;
     this.boardStatus = isReviewBoardStatus(attrs.board_status ?? "")
       ? (attrs.board_status as ReviewBoardStatus)
-      : "not_started";
+      : "in_progress"; // incl. legacy "not_started" rows
     this.createdAt = toDate(attrs.created_at);
     this.updatedAt = toDate(attrs.updated_at);
   }

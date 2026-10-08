@@ -82,7 +82,7 @@ class ApprovalReviewCollection {
    * `reviewed_at` is set the first time the box is checked and kept on later
    * edits; unchecking clears it. `board_status` moves in lockstep — checking
    * the box is equivalent to dragging the kanban card to "Review Complete"
-   * (and back to "Not Started" on uncheck) — so the table and board always
+   * (and back to "In Progress" on uncheck) — so the table and board always
    * agree on whether a review is signed off, whether this is a brand-new
    * review or an edit of an existing one.
    */
@@ -94,13 +94,13 @@ class ApprovalReviewCollection {
       VALUES
         (${payload.approvalId}, ${payload.reviewerUserId}, ${payload.reviewer},
          ${attested}, IF(${attested} = 1, NOW(), NULL), ${payload.notes},
-         IF(${attested} = 1, 'reviewed', 'not_started'), NOW(), NOW())
+         IF(${attested} = 1, 'reviewed', 'in_progress'), NOW(), NOW())
       ON DUPLICATE KEY UPDATE
         reviewer = VALUES(reviewer),
         attested = VALUES(attested),
         reviewed_at = IF(VALUES(attested) = 1, COALESCE(reviewed_at, NOW()), NULL),
         notes = VALUES(notes),
-        board_status = IF(VALUES(attested) = 1, 'reviewed', IF(board_status = 'reviewed', 'not_started', board_status)),
+        board_status = IF(VALUES(attested) = 1, 'reviewed', IF(board_status = 'reviewed', 'in_progress', board_status)),
         updated_at = NOW()
     `;
     const review = await this.findByReviewer(

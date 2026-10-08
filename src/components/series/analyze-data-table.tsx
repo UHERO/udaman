@@ -49,15 +49,6 @@ const OVERLAY_EXTRA_COLUMNS: Partial<
   rollingStdDev: { key: "rollingStdLower", label: "±σ Lower" },
 };
 
-/** A revision set (one series, one publish day) shown as a table column.
- *  `values` holds only the dates where the vintage differs from current. */
-export type VintageTableColumn = {
-  id: string;
-  label: string;
-  seriesIndex: number;
-  values: Map<string, number>;
-};
-
 interface AnalyzeDataTableProps {
   /** Pre-built rows with overlay/transform fields already computed */
   rows: ChartRow[];
@@ -73,8 +64,6 @@ interface AnalyzeDataTableProps {
   rightTransformation?: Transformation | null;
   /** Map of series index → axis assignment */
   seriesAxisMap?: Map<number, "left" | "right">;
-  /** Displayed vintage revisions, one column per (series, publish day) */
-  vintageColumns?: VintageTableColumn[];
 }
 
 const changeColor = (n: number) => {
@@ -94,7 +83,6 @@ export function AnalyzeDataTable({
   seriesNames,
   rightTransformation = null,
   seriesAxisMap,
-  vintageColumns = [],
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
@@ -223,29 +211,6 @@ export function AnalyzeDataTable({
             `${transformLabel} (${name})`,
           );
         }
-      }
-
-      // Vintage revision columns — blank where the vintage matches current
-      for (const vc of vintageColumns) {
-        const color = SERIES_COLORS[vc.seriesIndex % SERIES_COLORS.length];
-        push(
-          {
-            id: vc.id,
-            accessorFn: (row) => vc.values.get(row.date),
-            header: () => (
-              <span
-                className="text-end text-xs font-medium opacity-70"
-                style={{ color }}
-              >
-                {vc.label}
-              </span>
-            ),
-            cell: ({ cell }) => (
-              <FormattedCell n={cell.getValue<number | undefined>()} isLevel />
-            ),
-          },
-          vc.label,
-        );
       }
 
       return { columns: cols, columnLabels: labels };
@@ -414,7 +379,6 @@ export function AnalyzeDataTable({
     activeTransformation,
     rightTransformation,
     seriesAxisMap,
-    vintageColumns,
     secondAxis,
     secondAxisTransformation,
     decimals,

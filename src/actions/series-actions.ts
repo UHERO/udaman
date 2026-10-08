@@ -27,6 +27,7 @@ import {
   getCompareAllGeos as getCompareAllGeosCtrl,
   getCompareMeasurement as getCompareMeasurementCtrl,
   getCompareSANS as getCompareSANSCtrl,
+  getVintageSeries as getVintageSeriesCtrl,
   searchSeries,
   transformSeries as transformSeriesCtrl,
   unquarantineSeries as unquarantineSeriesCtrl,
@@ -35,6 +36,7 @@ import {
 import type {
   AnalyzeResult,
   CompareResult,
+  CompareSeriesEntry,
   SeasonalAdjustment,
   SourceMapNode,
   Universe,
@@ -687,6 +689,24 @@ export async function transformSeriesAction(
       "transformSeriesAction failed",
     );
     AppLogCollection.logError(e, { userId, name: "series.transform" });
+    return { error: message };
+  }
+}
+
+/** A series as published at the end of `day` (YYYY-MM-DD), for plotting
+ *  a past vintage as its own series in the analyzer. */
+export async function getVintageSeriesAction(
+  name: string,
+  day: string,
+): Promise<CompareSeriesEntry | { error: string }> {
+  const { userId } = await requirePermission("series", "read");
+  log.info({ name, day }, "getVintageSeriesAction called");
+  try {
+    return await getVintageSeriesCtrl({ name, day });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ name, day, error: message }, "getVintageSeriesAction failed");
+    AppLogCollection.logError(e, { userId, name: "series.vintage" });
     return { error: message };
   }
 }

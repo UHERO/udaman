@@ -13,6 +13,26 @@ const BARE_NAME_RE = /[%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD]\b/gi;
 const QUOTED_REF_RE =
   /"([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])"(\.tsn?)\b/gi;
 
+/** A past vintage of a series, plotted as its own entry. Not eval syntax —
+ *  the analyzer intercepts it and loads the series as published at the end
+ *  of that day: `"VIS@HI.Q".vintage("2026-10-01")`. */
+const VINTAGE_EXPR_RE = /^"([^"]+)"\.vintage\("(\d{4}-\d{2}-\d{2})"\)$/;
+
+/** Editable / display form of a vintage: `VIS@HI.Q (2026-10-01)` */
+const VINTAGE_EDITABLE_RE = /^([^\s"()]+)\s+\((\d{4}-\d{2}-\d{2})\)$/;
+
+export function vintageExpr(name: string, day: string): string {
+  return `"${name}".vintage("${day}")`;
+}
+
+/** `{ name, day }` for a vintage expression, otherwise null */
+export function parseVintageExpr(
+  expr: string,
+): { name: string; day: string } | null {
+  const m = expr.match(VINTAGE_EXPR_RE);
+  return m ? { name: m[1], day: m[2] } : null;
+}
+
 /**
  * Drop a lone unpaired `"`.
  *
@@ -39,6 +59,9 @@ function dropUnpairedQuote(s: string): string {
  * `Series.` statics) is left untouched.
  */
 export function exprToEditable(expr: string): string {
+  const vintage = parseVintageExpr(expr);
+  if (vintage) return `${vintage.name} (${vintage.day})`;
+
   // Whole expression is a single reference — un-quote it even if the name
   // doesn't carry a frequency suffix (`"EMPL@HAW".ts`, used by some loaders).
   const lone = expr.match(/^"([^"]+)"(\.tsn?)$/);
@@ -64,6 +87,9 @@ export function editableToExpr(input: string): string {
   // A stray unpaired quote is a typo, not eval syntax. Strip it first so it
   // can't satisfy the pass-through below and be stored as the expression.
   const cleaned = dropUnpairedQuote(input);
+
+  const vintage = cleaned.trim().match(VINTAGE_EDITABLE_RE);
+  if (vintage) return vintageExpr(vintage[1], vintage[2]);
 
   // Already written in eval syntax — pass through untouched.
   if (cleaned.includes('"')) return cleaned;
