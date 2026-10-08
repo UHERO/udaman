@@ -8,6 +8,7 @@ import {
   currentUserName as getCurrentUserName,
 } from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
+import { CommsPanel, SectionDivider } from "@/components/comms/comms-panel";
 import {
   ApprovalDates,
   PreReleaseDetail,
@@ -15,7 +16,6 @@ import {
 import { ReleaseButton } from "@/components/comms/release-button";
 import { ReviewPanel } from "@/components/comms/review-panel";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 import { NotFoundError } from "@/lib/errors";
 
@@ -47,8 +47,8 @@ export default async function Page({
   const canEdit = isAdmin || approval.authorUserId === currentUserId;
 
   return (
-    <div className="space-y-4">
-      <div>
+    <div className="space-y-6">
+      <CommsPanel>
         <Link
           href="/comms"
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
@@ -56,36 +56,33 @@ export default async function Page({
           <ArrowLeft className="h-3.5 w-3.5" />
           All pre-release forms
         </Link>
-      </div>
-
-      <div className="space-y-2">
-        <div>
-          <h1 className="text-3xl font-bold">{approval.name}</h1>
-          <p className="text-muted-foreground text-sm">
-            Pre-release form filed by {approval.author}
-          </p>
+        <div className="mt-3 space-y-2">
+          <div>
+            <h1 className="text-3xl font-bold">{approval.name}</h1>
+            <p className="text-muted-foreground text-sm">
+              Pre-release form filed by {approval.author}
+            </p>
+          </div>
+          <ApprovalDates approval={approval} />
+          <div className="flex flex-wrap items-center gap-2">
+            <ApprovalStatusBadges approval={approval} size="md" />
+            {canEdit && (
+              <>
+                <ReleaseButton
+                  approvalId={approval.id}
+                  isReleased={approval.isReleased}
+                />
+                <Button asChild variant="outline" className="cursor-pointer">
+                  <Link href={`/comms/pub-form/${approval.id}/edit`}>
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </Link>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-        <ApprovalDates approval={approval} />
-        <div className="flex flex-wrap items-center gap-2">
-          <ApprovalStatusBadges approval={approval} size="md" />
-          {canEdit && (
-            <>
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="cursor-pointer"
-              >
-                <Link href={`/comms/pub-form/${approval.id}/edit`}>
-                  <Pencil className="h-4 w-4" />
-                  Edit
-                </Link>
-              </Button>
-              <ReleaseButton approval={approval} />
-            </>
-          )}
-        </div>
-      </div>
+      </CommsPanel>
 
       <ReviewPanel
         approval={approval}
@@ -96,7 +93,7 @@ export default async function Page({
         isDev={role === "dev"}
       />
 
-      <Separator />
+      <SectionDivider label="Submitted form" />
 
       <PreReleaseDetail approval={approval} />
     </div>

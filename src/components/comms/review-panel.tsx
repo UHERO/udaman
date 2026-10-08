@@ -3,6 +3,7 @@
 import type { ApprovalJSON } from "@catalog/models/approval";
 import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
 
+import { CommsPanel } from "./comms-panel";
 import { ReviewKanbanBoard } from "./review-kanban-board";
 import { formatReviewTimestamp, ReviewTable } from "./review-table";
 
@@ -33,18 +34,18 @@ export function ReviewPanel({
   const canModify = isAuthor || isAdmin;
 
   return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Review</h2>
-        <p className="text-muted-foreground text-sm">
+    <CommsPanel
+      title="Reviews"
+      description={
+        <>
           {approval.reviewCount} of {approval.requiredReviews} required reviews
           {approval.isReviewed ? " — reviewed" : ""}
           {approval.releasedAt
             ? ` · released ${formatReviewTimestamp(approval.releasedAt)}`
             : ""}
-        </p>
-      </div>
-
+        </>
+      }
+    >
       <ReviewKanbanBoard
         reviews={reviews}
         approvals={{ [approval.id]: approval }}
@@ -65,6 +66,6 @@ export function ReviewPanel({
         canAdd={canAdd}
       />
       */}
-    </section>
+    </CommsPanel>
   );
 }
