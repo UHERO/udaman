@@ -130,6 +130,16 @@ export function SeriesDuplicateForm({
           investigationNotes: values.investigationNotes || undefined,
         },
       );
+      if (!result.success) {
+        if (result.message.includes("Duplicate entry")) {
+          form.setError("prefix", {
+            message: `"${name}" already exists in ${universe}`,
+          });
+        } else {
+          toast.error(result.message);
+        }
+        return;
+      }
       toast.success(result.message, {
         description: values.copyLoaders
           ? "Loaders copied from source series"
@@ -137,15 +147,9 @@ export function SeriesDuplicateForm({
       });
       nav.push(`/udaman/${universe}/series/${result.data.id}`);
     } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : "Failed to duplicate series";
-      if (msg.includes("Duplicate entry")) {
-        form.setError("prefix", {
-          message: `"${name}" already exists in ${universe}`,
-        });
-      } else {
-        toast.error(msg);
-      }
+      toast.error(
+        error instanceof Error ? error.message : "Failed to duplicate series",
+      );
     }
   }
 

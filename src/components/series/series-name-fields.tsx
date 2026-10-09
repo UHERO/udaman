@@ -24,7 +24,14 @@ import {
 // ─── Schema & helpers (importable by parent forms) ──────────────────
 
 export const nameFieldsSchema = {
-  prefix: z.string().min(1, "Series prefix is required"),
+  prefix: z
+    .string()
+    .min(1, "Series prefix is required")
+    // Mirrors the prefix part of NAME_REGEX in catalog/models/series.ts
+    .regex(
+      /^[%$\w]+(&[0-9Q]+[FH](\d+|F))?$/i,
+      "Prefix only (no @geo or .freq) — letters, digits, _, %, $",
+    ),
   geo: z.string().min(1, "Geography is required"),
   freq: z.string().min(1, "Frequency is required"),
 };

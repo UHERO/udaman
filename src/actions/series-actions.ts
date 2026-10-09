@@ -585,12 +585,18 @@ export async function duplicateSeries(
     });
 
     revalidatePath(`/udaman/${universe}/series`);
-    return { message: result.message, data: result.data.toJSON() };
+    return {
+      success: true as const,
+      message: result.message,
+      data: result.data.toJSON(),
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "duplicateSeries failed");
     AppLogCollection.logError(err, { userId, name: "series.duplicate" });
-    throw err;
+    // Return rather than throw: Next.js redacts thrown server-action error
+    // messages in production, so the form would only see a generic digest.
+    return { success: false as const, message };
   }
 }
 
