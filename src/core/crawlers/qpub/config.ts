@@ -165,7 +165,7 @@ export function getHtmlPath(tmk: string): string {
   const zone = getZone(tmk);
   const section = getSection(tmk);
   return path.join(
-    QPUB_CONFIG.NAS_PATH,
+    /*turbopackIgnore: true*/ QPUB_CONFIG.NAS_PATH,
     QPUB_CONFIG.HTML_DIR,
     period,
     island,
@@ -181,7 +181,7 @@ export function getJsonPath(tmk: string): string {
   const zone = getZone(tmk);
   const section = getSection(tmk);
   return path.join(
-    QPUB_CONFIG.NAS_PATH,
+    /*turbopackIgnore: true*/ QPUB_CONFIG.NAS_PATH,
     QPUB_CONFIG.JSON_DIR,
     period,
     island,
@@ -254,7 +254,10 @@ function safeDirList(dir: string): string[] {
 
 /** Period directories present on the NAS, newest first (e.g. ['2026-1','2025-2']) */
 export function listPeriods(): string[] {
-  const baseDir = path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.HTML_DIR);
+  const baseDir = path.join(
+    /*turbopackIgnore: true*/ QPUB_CONFIG.NAS_PATH,
+    QPUB_CONFIG.HTML_DIR,
+  );
   return safeDirList(baseDir)
     .filter((d) => /^\d{4}-[12]$/.test(d))
     .sort()
@@ -286,22 +289,28 @@ export function* listHtmlFiles(
   period?: string,
   island?: string,
 ): Generator<string> {
-  const baseDir = path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.HTML_DIR);
+  const baseDir = path.join(
+    /*turbopackIgnore: true*/ QPUB_CONFIG.NAS_PATH,
+    QPUB_CONFIG.HTML_DIR,
+  );
   const periods = period ? [period] : listPeriods();
 
   for (const p of periods) {
-    const periodDir = path.join(baseDir, p);
+    const periodDir = path.join(/*turbopackIgnore: true*/ baseDir, p);
     const islands = island ? [island] : safeDirList(periodDir);
     for (const i of islands) {
-      const islandDir = path.join(periodDir, i);
+      const islandDir = path.join(/*turbopackIgnore: true*/ periodDir, i);
       for (const zone of safeDirList(islandDir)) {
-        const zoneDir = path.join(islandDir, zone);
+        const zoneDir = path.join(/*turbopackIgnore: true*/ islandDir, zone);
         for (const section of safeDirList(zoneDir)) {
-          const sectionDir = path.join(zoneDir, section);
+          const sectionDir = path.join(
+            /*turbopackIgnore: true*/ zoneDir,
+            section,
+          );
           if (!statSync(sectionDir).isDirectory()) continue;
           for (const file of safeDirList(sectionDir)) {
             if (file.endsWith(".html")) {
-              yield path.join(sectionDir, file);
+              yield path.join(/*turbopackIgnore: true*/ sectionDir, file);
             }
           }
         }

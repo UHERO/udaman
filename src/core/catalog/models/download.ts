@@ -68,7 +68,7 @@ class Download {
 
   /** Root directory for raw downloaded files */
   static get root(): string {
-    return join(getDataDir(), "rawdata");
+    return join(/*turbopackIgnore: true*/ getDataDir(), "rawdata");
   }
 
   /** Sanitize handle for use as a filename (replace @ with _) */
@@ -79,10 +79,13 @@ class Download {
   /** Full save path for the downloaded file */
   savePath(noExt = false): string {
     if (noExt) {
-      return join(Download.root, this.sanitizeHandle());
+      return join(
+        /*turbopackIgnore: true*/ Download.root,
+        this.sanitizeHandle(),
+      );
     }
     return join(
-      Download.root,
+      /*turbopackIgnore: true*/ Download.root,
       `${this.sanitizeHandle()}.${this.filenameExt ?? "ext"}`,
     );
   }
@@ -90,7 +93,11 @@ class Download {
   /** Path after extraction (for zip files with file_to_extract set) */
   extractPath(): string | null {
     if (!this.fileToExtract) return null;
-    return join(Download.root, this.sanitizeHandle(), this.fileToExtract);
+    return join(
+      /*turbopackIgnore: true*/ Download.root,
+      this.sanitizeHandle(),
+      this.fileToExtract,
+    );
   }
 
   /** Effective file path: extracted file if set, otherwise the save path */

@@ -232,12 +232,12 @@ export async function sendPreReleaseSubmitted(
 }
 
 /**
- * Production posts to #communications; local and staging post to
+ * Production posts to #communication; local and staging post to
  * #automation, so test submissions never reach the comms team.
  */
 const SLACK_COMMS_CHANNEL =
   process.env.NEXT_PUBLIC_APP_ENV === "production"
-    ? "communications"
+    ? "communication"
     : "automation";
 
 /** Post a new pre-release form submission to the comms Slack channel. */
