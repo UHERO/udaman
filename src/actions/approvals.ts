@@ -16,16 +16,32 @@ import {
   submitReview as submitReviewCtrl,
   updateApproval as updateApprovalCtrl,
 } from "@catalog/controllers/approvals";
-import type { PreReleaseFormData } from "@catalog/models/approval";
+import type {
+  ApprovalJSON,
+  PreReleaseFormData,
+} from "@catalog/models/approval";
 import type ApprovalReviewModel from "@catalog/models/approval-review";
-import type { ReviewBoardStatus } from "@catalog/models/approval-review";
+import type {
+  ApprovalReviewJSON,
+  ReviewBoardStatus,
+} from "@catalog/models/approval-review";
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
+import type { ActionResult } from "@/lib/action-result";
 import { getSession } from "@/lib/auth/dal";
-import { requirePermission } from "@/lib/auth/permissions";
+import {
+  PermissionDeniedError,
+  requirePermission,
+} from "@/lib/auth/permissions";
 import { normalizeUniverse } from "@/lib/auth/roles";
-import { NotFoundError } from "@/lib/errors";
+import {
+  AuthorizationError,
+  HttpError,
+  NotFoundError,
+  ValidationError,
+} from "@/lib/errors";
+import { fuzzyScore } from "@/lib/fuzzy-match";
 import { mysql } from "@/lib/mysql/db";
 
 const log = createLogger("action.approvals");
@@ -52,6 +68,33 @@ export type AuthorCandidate = {
 };
 
 const REVALIDATE_PATH = "/comms";
+
+type Saved<T> = ActionResult<{ message: string; data: T }>;
+
+/**
+ * The message to show for a failure the user caused and can act on (not
+ * allowed, bad input, gone), or null for anything unexpected — which is
+ * rethrown. See ActionResult for why these aren't simply thrown.
+ */
+function userFacingError(
+  err: unknown,
+): { ok: false; error: string; denied: boolean } | null {
+  if (err instanceof PermissionDeniedError) {
+    return {
+      ok: false,
+      error: "You don't have permission to do that.",
+      denied: true,
+    };
+  }
+  if (err instanceof HttpError && err.statusCode < 500) {
+    return {
+      ok: false,
+      error: err.message,
+      denied: err instanceof AuthorizationError,
+    };
+  }
+  return null;
+}
 
 /**
  * Resolve the display name to store as `author` / `reviewer`.
@@ -94,6 +137,52 @@ export async function listAuthorCandidates(): Promise<AuthorCandidate[]> {
   return rows.map((r) => ({ id: r.id, name: r.name, email: r.email }));
 }
 
+/** How many suggestions the recipient autocomplete shows. */
+const RECIPIENT_SUGGESTION_LIMIT = 8;
+
+/**
+ * Recipient autocomplete: users in the submitter's universe, fuzzy-matched
+ * on name, email, and id, best first. Same pool as listAuthorCandidates —
+ * the users table is small enough to score in memory, which buys typo
+ * tolerance that a LIKE query can't.
+ */
+export async function searchRecipientCandidates(
+  query: string,
+): Promise<AuthorCandidate[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const candidates = await listAuthorCandidates();
+  return candidates
+    .map((u) => ({ u, score: fuzzyScore(q, [u.name, u.email, u.id]) }))
+    .filter((m) => m.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, RECIPIENT_SUGGESTION_LIMIT)
+    .map((m) => m.u);
+}
+
+/**
+ * Display names for recipient addresses, keyed by lowercased email. Addresses
+ * with no account, or an account with no name, are simply absent.
+ */
+export async function lookupRecipientNames(
+  emails: string[],
+): Promise<Record<string, string>> {
+  await requirePermission("approval", "read");
+  const wanted = [...new Set(emails.map((e) => e.trim().toLowerCase()))]
+    .filter(Boolean)
+    .slice(0, 200);
+  if (!wanted.length) return {};
+  const rows = await mysql<{ name: string | null; email: string }>`
+    SELECT name, email FROM users WHERE LOWER(email) IN ${mysql(wanted)}
+  `;
+  const names: Record<string, string> = {};
+  for (const r of rows) {
+    const name = r.name?.trim();
+    if (name) names[r.email.toLowerCase()] = name;
+  }
+  return names;
+}
+
 type ResolvedAuthor = {
   author: string;
   authorUserId: number;
@@ -134,7 +223,9 @@ async function resolveAuthor(
     };
   }
   if (!u || normalizeUniverse(u.universe) !== normalizeUniverse(universe)) {
-    throw new Error("The selected author is not a user in this universe");
+    throw new ValidationError(
+      "The selected author is not a user in this universe",
+    );
   }
   return {
     author: u.name?.trim() || u.email || "Unknown user",
@@ -212,13 +303,13 @@ export async function getApprovalReviews(id: number) {
 export async function submitReview(
   id: number,
   payload: { attested: boolean; notes: string },
-) {
+): Promise<Saved<ApprovalReviewJSON>> {
   // Reviewing is a write, but any internal user may do it — same gate as
   // filing a form. Authors may review their own forms.
   const { userId, role } = await requirePermission("approval", "update");
-  await getApproval(id); // universe scoping
   log.info({ id }, "submitReview action called");
   try {
+    await getApproval(id); // universe scoping
     const result = await submitReviewCtrl({
       id,
       actor: { userId, role },
@@ -228,16 +319,20 @@ export async function submitReview(
     });
     revalidatePath(REVALIDATE_PATH);
     revalidatePath(`/comms/pub-form/${id}`);
-    return { message: result.message, data: result.data.toJSON() };
+    return { ok: true, message: result.message, data: result.data.toJSON() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "submitReview failed");
     AppLogCollection.logError(err, { userId, name: "approval.review" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }
 
-export async function deleteReview(reviewId: number) {
+export async function deleteReview(
+  reviewId: number,
+): Promise<ActionResult<{ message: string }>> {
   const { userId, role } = await requirePermission("approval", "update");
   log.info({ reviewId }, "deleteReview action called");
   try {
@@ -247,11 +342,13 @@ export async function deleteReview(reviewId: number) {
     });
     revalidatePath(REVALIDATE_PATH);
     revalidatePath(`/comms/pub-form/${result.approvalId}`);
-    return { message: result.message };
+    return { ok: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteReview failed");
     AppLogCollection.logError(err, { userId, name: "approval.review.delete" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }
@@ -259,7 +356,7 @@ export async function deleteReview(reviewId: number) {
 export async function setReviewBoardStatus(
   reviewId: number,
   status: ReviewBoardStatus,
-) {
+): Promise<Saved<ApprovalReviewJSON>> {
   const { userId, role } = await requirePermission("approval", "update");
   log.info({ reviewId, status }, "setReviewBoardStatus action called");
   try {
@@ -270,20 +367,25 @@ export async function setReviewBoardStatus(
     });
     revalidatePath(REVALIDATE_PATH);
     revalidatePath(`/comms/pub-form/${result.approvalId}`);
-    return { message: result.message, data: result.data.toJSON() };
+    return { ok: true, message: result.message, data: result.data.toJSON() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "setReviewBoardStatus failed");
     AppLogCollection.logError(err, { userId, name: "approval.review.board" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }
 
-export async function setApprovalReleased(id: number, released: boolean) {
+export async function setApprovalReleased(
+  id: number,
+  released: boolean,
+): Promise<Saved<ApprovalJSON>> {
   const { userId, role } = await requirePermission("approval", "update");
-  await getApproval(id); // universe scoping
   log.info({ id, released }, "setApprovalReleased action called");
   try {
+    await getApproval(id); // universe scoping
     const result = await setApprovalReleasedCtrl({
       id,
       released,
@@ -291,16 +393,20 @@ export async function setApprovalReleased(id: number, released: boolean) {
     });
     revalidatePath(REVALIDATE_PATH);
     revalidatePath(`/comms/pub-form/${id}`);
-    return { message: result.message, data: result.data.toJSON() };
+    return { ok: true, message: result.message, data: result.data.toJSON() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "setApprovalReleased failed");
     AppLogCollection.logError(err, { userId, name: "approval.release" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }
 
-export async function createApproval(payload: PreReleaseSubmission) {
+export async function createApproval(
+  payload: PreReleaseSubmission,
+): Promise<Saved<ApprovalJSON>> {
   const { userId, universe } = await requirePermission("approval", "create");
   log.info(
     { onBehalfOf: payload.authorUserId ?? null },
@@ -325,11 +431,13 @@ export async function createApproval(payload: PreReleaseSubmission) {
     });
     revalidatePath(REVALIDATE_PATH);
     log.info({ id: result.data.id }, "createApproval action completed");
-    return { message: result.message, data: result.data.toJSON() };
+    return { ok: true, message: result.message, data: result.data.toJSON() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "createApproval failed");
     AppLogCollection.logError(err, { userId, name: "approval.create" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }
@@ -337,7 +445,7 @@ export async function createApproval(payload: PreReleaseSubmission) {
 export async function updateApproval(
   id: number,
   payload: PreReleaseSubmission,
-) {
+): Promise<Saved<ApprovalJSON>> {
   const { userId, role, universe } = await requirePermission(
     "approval",
     "update",
@@ -362,16 +470,20 @@ export async function updateApproval(
       actor: { userId, role },
     });
     revalidatePath(REVALIDATE_PATH);
-    return { message: result.message, data: result.data.toJSON() };
+    return { ok: true, message: result.message, data: result.data.toJSON() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "updateApproval failed");
     AppLogCollection.logError(err, { userId, name: "approval.update" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }
 
-export async function resendApprovalNotification(id: number) {
+export async function resendApprovalNotification(
+  id: number,
+): Promise<ActionResult<{ message: string }>> {
   const { userId, role } = await requirePermission("approval", "update");
   log.info({ id }, "resendApprovalNotification action called");
   try {
@@ -380,27 +492,33 @@ export async function resendApprovalNotification(id: number) {
       actor: { userId, role },
     });
     log.info({ id }, "resendApprovalNotification action completed");
-    return { message: result.message };
+    return { ok: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "resendApprovalNotification failed");
     AppLogCollection.logError(err, { userId, name: "approval.resend" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }
 
-export async function deleteApproval(id: number) {
+export async function deleteApproval(
+  id: number,
+): Promise<ActionResult<{ message: string }>> {
   const { userId, role } = await requirePermission("approval", "delete");
   log.info({ id }, "deleteApproval action called");
   try {
     const result = await deleteApprovalCtrl({ id, actor: { userId, role } });
     revalidatePath(REVALIDATE_PATH);
     log.info({ id }, "deleteApproval action completed");
-    return { message: result.message };
+    return { ok: true, message: result.message };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "deleteApproval failed");
     AppLogCollection.logError(err, { userId, name: "approval.delete" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
     throw err;
   }
 }

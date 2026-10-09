@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { setApprovalReleased } from "@/actions/approvals";
 import { Button } from "@/components/ui/button";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 
 /** Toggles a form's released state; shown to the author and admins. */
 export function ReleaseButton({
@@ -22,11 +23,13 @@ export function ReleaseButton({
   function handleRelease(released: boolean) {
     startTransition(async () => {
       try {
-        const result = await setApprovalReleased(approvalId, released);
+        const result = unwrapAction(
+          await setApprovalReleased(approvalId, released),
+        );
         toast.success(result.message);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Update failed");
+        toastActionError(err, "Update failed");
       }
     });
   }

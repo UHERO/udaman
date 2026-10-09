@@ -5,7 +5,7 @@ import {
 } from "@/core/mailers/pre-release-mailer";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
 import { createLogger } from "@/core/observability/logger";
-import { AuthorizationError } from "@/lib/errors";
+import { AuthorizationError, ValidationError } from "@/lib/errors";
 import { mysql } from "@/lib/mysql/db";
 
 import ApprovalCollection from "../collections/approval-collection";
@@ -40,13 +40,17 @@ function isAdmin(role: string): boolean {
  * ownership half of the rule has to live here. Admins are exempt so a stale or
  * mistaken submission can always be cleaned up.
  */
-function assertCanModify(approval: Approval, actor: Actor): void {
+function assertCanModify(
+  approval: Approval,
+  actor: Actor,
+  message: string,
+): void {
   if (isAdmin(actor.role)) return;
   if (approval.authorUserId === actor.userId) return;
-  throw new AuthorizationError(
-    "You can only edit or delete approvals you submitted",
-    { approvalId: approval.id, actorUserId: actor.userId },
-  );
+  throw new AuthorizationError(message, {
+    approvalId: approval.id,
+    actorUserId: actor.userId,
+  });
 }
 
 export async function getApprovals({
@@ -185,10 +189,13 @@ export async function deleteReview({
 }) {
   const review = await ApprovalReviewCollection.getById(reviewId);
   if (!canManageReview(review, actor)) {
-    throw new AuthorizationError("You can only withdraw your own review", {
-      reviewId,
-      actorUserId: actor.userId,
-    });
+    throw new AuthorizationError(
+      `This is ${review.reviewer}'s review — only they can withdraw it.`,
+      {
+        reviewId,
+        actorUserId: actor.userId,
+      },
+    );
   }
   await ApprovalReviewCollection.delete(reviewId);
   log.info({ reviewId, approvalId: review.approvalId }, "review deleted");
@@ -212,7 +219,13 @@ export async function setReviewBoardStatus({
 }) {
   const review = await ApprovalReviewCollection.getById(reviewId);
   const approval = await ApprovalCollection.getById(review.approvalId);
-  if (!canManageReview(review, actor)) assertCanModify(approval, actor);
+  if (!canManageReview(review, actor)) {
+    assertCanModify(
+      approval,
+      actor,
+      `This is ${review.reviewer}'s review — only they or the form's author can move it.`,
+    );
+  }
   const before = await ApprovalReviewCollection.countForApproval(approval.id);
   const data = await ApprovalReviewCollection.setBoardStatus(reviewId, status);
   const after = await ApprovalReviewCollection.countForApproval(approval.id);
@@ -244,7 +257,13 @@ export async function setApprovalReleased({
   actor: Actor;
 }) {
   const existing = await ApprovalCollection.getById(id);
-  assertCanModify(existing, actor);
+  assertCanModify(
+    existing,
+    actor,
+    released
+      ? "Only the form's author can mark it released."
+      : "Only the form's author can undo its release.",
+  );
   const data = await ApprovalCollection.setReleased(
     id,
     released ? { byUserId: actor.userId } : null,
@@ -320,11 +339,15 @@ export async function resendApprovalNotification({
 }) {
   log.info({ id }, "resending approval notification");
   const existing = await ApprovalCollection.getById(id);
-  assertCanModify(existing, actor);
+  assertCanModify(
+    existing,
+    actor,
+    "Only the form's author can resend its notification.",
+  );
 
   const recipients = resolvePreReleaseRecipients(existing.formData);
   if (!recipients.length) {
-    throw new Error(
+    throw new ValidationError(
       "This form has no recipients — edit it and add at least one address",
     );
   }
@@ -362,7 +385,11 @@ export async function updateApproval({
 }) {
   log.info({ id }, "updating approval");
   const existing = await ApprovalCollection.getById(id);
-  assertCanModify(existing, actor);
+  assertCanModify(
+    existing,
+    actor,
+    "Only the form's author can edit this form.",
+  );
 
   // Preserve the notification audit trail — editing doesn't re-send mail, so
   // rewriting notifiedRecipients from the new form would be a lie.
@@ -387,7 +414,11 @@ export async function deleteApproval({
 }) {
   log.info({ id }, "deleting approval");
   const existing = await ApprovalCollection.getById(id);
-  assertCanModify(existing, actor);
+  assertCanModify(
+    existing,
+    actor,
+    "Only the form's author can delete this form.",
+  );
 
   await ApprovalCollection.delete(id);
   log.info({ id }, "approval deleted");

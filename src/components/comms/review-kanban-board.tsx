@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 /**
@@ -56,8 +57,9 @@ import { cn } from "@/lib/utils";
  * Moving a card into "Review Complete" is what signs a review off (sets
  * `attested`); moving it back out clears that.
  *
- * Read-only for anyone who isn't allowed to move a given card — cards render
- * without drag handles in that case.
+ * Cards the viewer isn't allowed to move render without a grip, but can
+ * still be picked up: dropping one snaps it back with a toast saying why,
+ * rather than the drag silently doing nothing.
  */
 export function ReviewKanbanBoard({
   reviews,
@@ -107,7 +109,15 @@ export function ReviewKanbanBoard({
     const reviewId = Number(active.id);
     const status = over.id as ReviewBoardStatus;
     const review = cards.find((r) => r.id === reviewId);
-    if (!review || review.boardStatus === status || !canDrag(review)) return;
+    if (!review || review.boardStatus === status) return;
+    if (!canDrag(review)) {
+      toast.warning(
+        review.reviewerUserId === currentUserId
+          ? "You can't move this review."
+          : `This is ${review.reviewer}'s review — only they or the form's author can move it.`,
+      );
+      return;
+    }
 
     const previous = cards;
     setCards((cs) =>
@@ -116,13 +126,14 @@ export function ReviewKanbanBoard({
     // The server also flips `attested` when entering/leaving "Review
     // Complete", so take its copy of the card rather than our optimistic one.
     setReviewBoardStatus(reviewId, status)
+      .then(unwrapAction)
       .then((result) => {
         handleCardUpdate(result.data);
         router.refresh();
       })
       .catch((err) => {
         setCards(previous);
-        toast.error(err instanceof Error ? err.message : "Update failed");
+        toastActionError(err, "Update failed");
       });
   }
 
@@ -227,16 +238,18 @@ function AddReviewCard({
   async function save() {
     setSaving(true);
     try {
-      const result = await submitReview(approvalId, {
-        attested: false,
-        notes,
-      });
+      const result = unwrapAction(
+        await submitReview(approvalId, {
+          attested: false,
+          notes,
+        }),
+      );
       onAdded(result.data);
       setPhase("button");
       setNotes("");
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toastActionError(err, "Save failed");
     } finally {
       setSaving(false);
     }
@@ -296,14 +309,6 @@ function AddReviewCard({
 }
 
 /**
- * Create a new review for `approval`, in the same dialog layout as an
- * existing card's details — just without a board-status badge, withdraw
- * button, or message thread, since none of those exist until the review is
- * actually saved. Used wherever "Add review" needs to open directly rather
- * than via the inline "In Progress" card (e.g. from a table row's actions
- * menu, or after picking a form on a cross-comm board).
- */
-/**
  * The date reviewers act on: "Review by" when set, falling back to the target
  * release date for forms filed before review-by existed.
  */
@@ -331,6 +336,14 @@ function DueBadge({
   return null;
 }
 
+/**
+ * Create a new review for `approval`, in the same dialog layout as an
+ * existing card's details — just without a board-status badge, withdraw
+ * button, or message thread, since none of those exist until the review is
+ * actually saved. Used wherever "Add review" needs to open directly rather
+ * than via the inline "In Progress" card (e.g. from a table row's actions
+ * menu, or after picking a form on a cross-comm board).
+ */
 export function NewReviewDialog({
   approval,
   currentUserName,
@@ -348,15 +361,17 @@ export function NewReviewDialog({
   async function save() {
     setSaving(true);
     try {
-      const result = await submitReview(approval.id, {
-        attested: false,
-        notes,
-      });
+      const result = unwrapAction(
+        await submitReview(approval.id, {
+          attested: false,
+          notes,
+        }),
+      );
       toast.success(result.message);
       router.refresh();
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toastActionError(err, "Save failed");
     } finally {
       setSaving(false);
     }
@@ -377,7 +392,9 @@ export function NewReviewDialog({
         <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto text-sm">
           <span className="text-muted-foreground">{approval.name}</span>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Not Started</Badge>
+            <Badge variant="secondary">
+              {REVIEW_BOARD_STATUS_LABELS.in_progress}
+            </Badge>
             <DueBadge approval={approval} />
           </div>
           <div>
@@ -499,9 +516,10 @@ function DraggableCard({
   onUpdate: (review: ApprovalReviewJSON) => void;
   onDelete: (id: number) => void;
 }) {
+  // Never disabled: a disallowed drop is rejected in handleDragEnd with a
+  // toast. `draggable` only controls the grip affordance.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: review.id,
-    disabled: !draggable,
   });
 
   return (
@@ -568,15 +586,17 @@ function ReviewCard({
   async function saveNotes() {
     setSavingNotes(true);
     try {
-      const result = await submitReview(review.approvalId, {
-        attested: review.attested,
-        notes: notesDraft,
-      });
+      const result = unwrapAction(
+        await submitReview(review.approvalId, {
+          attested: review.attested,
+          notes: notesDraft,
+        }),
+      );
       setReview(result.data);
       onUpdate?.(result.data);
       setEditingNotes(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save notes");
+      toastActionError(err, "Failed to save notes");
     } finally {
       setSavingNotes(false);
     }
@@ -585,14 +605,12 @@ function ReviewCard({
   async function handleDelete() {
     setDeleting(true);
     try {
-      const result = await deleteReview(review.id);
+      const result = unwrapAction(await deleteReview(review.id));
       toast.success(result.message);
       setDetailsOpen(false);
       onDelete?.(review.id);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Could not withdraw review",
-      );
+      toastActionError(err, "Could not withdraw review");
     } finally {
       setDeleting(false);
     }
@@ -603,11 +621,12 @@ function ReviewCard({
       <div
         className={cn(
           "bg-background hover:bg-muted/40 w-full max-w-full cursor-pointer space-y-1.5 overflow-hidden rounded-md border p-2 text-left text-sm shadow-sm",
-          draggable && "touch-none active:cursor-grabbing",
+          dragListeners && "touch-none",
+          draggable && "active:cursor-grabbing",
         )}
         onClick={() => setDetailsOpen(true)}
-        {...(draggable ? dragAttributes : undefined)}
-        {...(draggable ? dragListeners : undefined)}
+        {...dragAttributes}
+        {...dragListeners}
       >
         <div className="flex items-start justify-between gap-2">
           <span className="min-w-0 truncate font-medium">

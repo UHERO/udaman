@@ -15,8 +15,8 @@ import {
 } from "@/actions/approvals";
 import { AuthorReviewBoard } from "@/components/comms/author-review-board";
 import { CommsPanel } from "@/components/comms/comms-panel";
-import { CommsViewToggle } from "@/components/comms/comms-view-toggle";
 import type { CommsView } from "@/components/comms/comms-view-toggle";
+import { CommsViewToggle } from "@/components/comms/comms-view-toggle";
 import { PreReleaseList } from "@/components/comms/pre-release-list";
 import { PreReleaseStatusTabs } from "@/components/comms/pre-release-status-tabs";
 import { ReviewerBoard } from "@/components/comms/reviewer-board";
@@ -76,24 +76,27 @@ export default async function Page({
   return (
     <div className="space-y-4">
       <CommsPanel bodyClassName="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Pre-Release Forms</h1>
-            <p className="text-muted-foreground text-sm">
-              Sign-off record filed by the lead author before a work product is
-              released. A form is reviewed once {REQUIRED_REVIEWS} colleagues
-              have signed off.
-            </p>
-          </div>
-          <Button asChild className="cursor-pointer">
+        <div>
+          <h1 className="text-3xl font-bold">Pre-Release Forms</h1>
+          <p className="text-muted-foreground text-sm">
+            Sign-off record filed by the lead author before a work product is
+            released. A form is reviewed once {REQUIRED_REVIEWS} colleagues have
+            signed off.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CommsViewToggle active={activeView} />
+          <Button
+            asChild
+            className="bg-ublue hover:bg-ublue/90 shrink-0 cursor-pointer rounded-none text-white"
+          >
             <Link href="/comms/pub-form/new">
               <Plus className="h-4 w-4" />
-              New form
+              Request for review
             </Link>
           </Button>
         </div>
-
-        <CommsViewToggle active={activeView} />
       </CommsPanel>
 
       {activeView === "board" ? (

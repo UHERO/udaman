@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 export function formatReviewTimestamp(value: string | null): string {
@@ -179,13 +180,15 @@ function ReviewRow({
   function save() {
     startTransition(async () => {
       try {
-        const result = await submitReview(approvalId, { attested, notes });
+        const result = unwrapAction(
+          await submitReview(approvalId, { attested, notes }),
+        );
         toast.success(result.message);
         setEditing(false);
         onDone?.();
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Save failed");
+        toastActionError(err, "Save failed");
       }
     });
   }
@@ -194,11 +197,11 @@ function ReviewRow({
     if (!review) return;
     startTransition(async () => {
       try {
-        const result = await deleteReview(review.id);
+        const result = unwrapAction(await deleteReview(review.id));
         toast.success(result.message);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Could not withdraw");
+        toastActionError(err, "Could not withdraw");
       }
     });
   }

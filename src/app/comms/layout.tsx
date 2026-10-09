@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CommsLayout as CommsMain } from "@/components/comms/comms-layout";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { WidthToggleBar } from "@/components/width-toggle-bar";
 import { requireAuth } from "@/lib/auth/dal";
 import { getReadableResources } from "@/lib/auth/readable-resources";
 
@@ -47,6 +48,7 @@ export default async function CommsLayout({
       <SidebarInset>
         <AppHeader />
         <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
+          <WidthToggleBar />
           <CommsMain>{children}</CommsMain>
         </div>
       </SidebarInset>

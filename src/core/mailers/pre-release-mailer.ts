@@ -60,10 +60,10 @@ function shell(title: string, bodyHtml: string): string {
 </html>`;
 }
 
-function section(heading: string, rowsHtml: string): string {
+function section(heading: string, rowsHtml: string, afterHtml = ""): string {
   return `
     <h3 style="margin: 24px 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #555;">${esc(heading)}</h3>
-    <table style="border-collapse: collapse; width: 100%;">${rowsHtml}</table>`;
+    <table style="border-collapse: collapse; width: 100%;">${rowsHtml}</table>${afterHtml}`;
 }
 
 /** One label/value row. Multi-line disclosure text keeps its line breaks. */
@@ -88,9 +88,14 @@ function aiUsageRow(d: Parameters<typeof formatAiUsageParts>[0]): string {
   </tr>`;
 }
 
+/**
+ * A certification checkbox. The mark column is only as wide as the mark —
+ * so section D can't share a table with a 220px-label row(), which would
+ * widen it back out.
+ */
 function checkRow(label: string, checked: boolean): string {
   return `<tr>
-    <td style="padding: 4px 12px 4px 0; vertical-align: top; width: 220px;">${checked ? "&#10003;" : "&#9744;"}</td>
+    <td style="padding: 4px 8px 4px 0; vertical-align: top; width: 16px;">${checked ? "&#10003;" : "&#9744;"}</td>
     <td style="padding: 4px 0;">${esc(label)}</td>
   </tr>`;
 }
@@ -116,7 +121,9 @@ export async function sendPreReleaseSubmitted(
 ): Promise<void> {
   const { formData: d } = input;
   const subject = `Pre-Release Form: ${input.name}`;
-  const url = `${BASE_URL}/${input.universe.toLowerCase()}/comms/pub-form/${input.approvalId}`;
+  // /comms is a top-level route (see TOP_LEVEL_APPS in src/proxy.ts), not
+  // under a universe segment.
+  const url = `${BASE_URL}/comms/pub-form/${input.approvalId}`;
 
   const html = shell(
     subject,
@@ -135,9 +142,9 @@ export async function sendPreReleaseSubmitted(
     ${section(
       "A. Publication details",
       row("Title", input.name) +
-        row("Primary type", formatPublicationType(d)) +
+        row("Type of publication", formatPublicationType(d)) +
         row(
-          "Secondary types",
+          "Planned derivations",
           formatSecondaryTypes(d.secondaryPublicationTypes),
         ) +
         row("Lead author", input.author) +
@@ -182,13 +189,12 @@ export async function sendPreReleaseSubmitted(
         checkRow(
           "The manuscript is the independent work of the authors.",
           d.certIndependent,
-        ) +
-        row(
-          "Certified by",
-          `${input.author} — ${input.submittedAt.toLocaleString("en-US", {
-            timeZone: "Pacific/Honolulu",
-          })} HST`,
         ),
+      `<p style="margin: 8px 0 0;"><span style="color: #666;">Certified by</span> ${esc(
+        `${input.author} — ${input.submittedAt.toLocaleString("en-US", {
+          timeZone: "Pacific/Honolulu",
+        })} HST`,
+      )}</p>`,
     )}
 
     ${section(
@@ -225,7 +231,14 @@ export async function sendPreReleaseSubmitted(
   await Mailer.email({ to, subject, html });
 }
 
-const SLACK_COMMS_CHANNEL = "automation";
+/**
+ * Production posts to #communications; local and staging post to
+ * #automation, so test submissions never reach the comms team.
+ */
+const SLACK_COMMS_CHANNEL =
+  process.env.NEXT_PUBLIC_APP_ENV === "production"
+    ? "communications"
+    : "automation";
 
 /** Post a new pre-release form submission to the comms Slack channel. */
 export async function notifyPreReleaseSubmittedSlack(input: {

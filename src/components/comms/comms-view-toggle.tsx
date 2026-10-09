@@ -24,8 +24,8 @@ export function CommsViewToggle({ active }: { active: CommsView }) {
         className={cn(
           "rounded-md px-3 py-1.5 font-medium transition-colors",
           isActive
-            ? "bg-muted text-foreground"
-            : "text-muted-foreground hover:text-foreground",
+            ? "bg-ublue/15 text-ublue ring-ublue/40 font-semibold ring-1"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
         {label}

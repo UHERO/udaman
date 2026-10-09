@@ -20,7 +20,7 @@ import {
   UH_AI_GUIDANCE_URL,
 } from "@catalog/models/approval";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronsUpDown, Plus, RotateCcw, X } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -29,10 +29,11 @@ import {
   resendApprovalNotification,
   updateApproval,
 } from "@/actions/approvals";
-import { authorLabel, AuthorPicker } from "@/components/comms/author-picker";
 import type { AuthorCandidate } from "@/components/comms/author-picker";
+import { authorLabel, AuthorPicker } from "@/components/comms/author-picker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Field,
   FieldContent,
@@ -56,22 +57,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 import { CommsPanel } from "./comms-panel";
+import { isEmail, RecipientEditor } from "./recipient-editor";
 
 /** Split a comma/semicolon/whitespace-separated address list into trimmed entries. */
-function parseRecipients(raw: string): string[] {
-  return raw
-    .split(/[,;\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-function isEmail(address: string): boolean {
-  return z.string().email().safeParse(address).success;
-}
-
 /** Append an address unless it's already there (case-insensitive). */
 function withRecipient(list: string[], address: string | null | undefined) {
   const email = address?.trim();
@@ -107,8 +99,10 @@ const formSchema = z
     // B — Disclosures
     conflictsOfInterest: z
       .string()
-      .min(1, 'Required — enter "none" if applicable'),
-    fundingSources: z.string().min(1, 'Required — enter "none" if applicable'),
+      .min(1, 'Required — check "None" if there are none'),
+    fundingSources: z
+      .string()
+      .min(1, 'Required — check "None" if there are none'),
     dataRestrictions: z.string(),
     aiUsage: z.enum(["none", "followed_guidance"]),
     aiUses: z.array(z.enum(AI_USES)),
@@ -369,6 +363,40 @@ const CERTIFICATIONS = [
 ] as const;
 
 /** A titled block of fields, on its own solid panel. */
+type NoneableField =
+  "conflictsOfInterest" | "fundingSources" | "dataRestrictions";
+
+/**
+ * Small "None" shortcut on a disclosure field's label row. Checked is derived
+ * from the text itself, so a form saved with "none" typed in shows it ticked,
+ * and typing anything else unticks it.
+ */
+function NoneCheckbox({
+  id,
+  value,
+  onChange,
+}: {
+  id: NoneableField;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const checked = value.trim().toLowerCase() === "none";
+  return (
+    <label
+      htmlFor={`${id}-none`}
+      className="text-muted-foreground flex shrink-0 cursor-pointer items-center gap-1.5 text-xs"
+    >
+      <Checkbox
+        id={`${id}-none`}
+        checked={checked}
+        onCheckedChange={(c) => onChange(c === true ? "None" : "")}
+        className="size-3.5 [&_svg]:size-3"
+      />
+      Click to enter &quot;None&quot;
+    </label>
+  );
+}
+
 function FormSection({
   title,
   description,
@@ -461,132 +489,6 @@ function SecondaryTypeSelect({
         })}
       </PopoverContent>
     </Popover>
-  );
-}
-
-/**
- * Editable notification list.
- *
- * Seeded with the standard recipients, but every entry is removable — the list
- * that survives here is exactly who gets mailed on submission.
- */
-function RecipientEditor({
-  value,
-  onChange,
-  standardRecipients,
-}: {
-  value: string[];
-  onChange: (next: string[]) => void;
-  standardRecipients: string[];
-}) {
-  const [draft, setDraft] = useState("");
-  const [draftError, setDraftError] = useState<string | null>(null);
-
-  const missingStandard = standardRecipients.filter(
-    (a) => !value.some((v) => v.toLowerCase() === a.toLowerCase()),
-  );
-
-  function addDraft() {
-    const entries = parseRecipients(draft);
-    if (!entries.length) {
-      setDraftError(null);
-      return;
-    }
-
-    const bad = entries.filter((a) => !isEmail(a));
-    if (bad.length) {
-      setDraftError(`Not valid email addresses: ${bad.join(", ")}`);
-      return;
-    }
-
-    // Adding someone already on the list is a no-op, not an error.
-    const existing = new Set(value.map((a) => a.toLowerCase()));
-    const fresh = entries.filter((a) => !existing.has(a.toLowerCase()));
-
-    onChange([...value, ...fresh]);
-    setDraft("");
-    setDraftError(null);
-  }
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {/* Add controls stack in their own column so the list beside them can
-          grow without pushing the input down the page. */}
-      <div className="space-y-2">
-        <div className="flex gap-2">
-          <Input
-            value={draft}
-            placeholder="someone@hawaii.edu"
-            aria-label="Add a recipient"
-            onChange={(e) => {
-              setDraft(e.target.value);
-              if (draftError) setDraftError(null);
-            }}
-            // Enter would otherwise submit the whole form.
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addDraft();
-              }
-            }}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            className="shrink-0 cursor-pointer"
-            onClick={addDraft}
-          >
-            <Plus className="size-4" />
-            Add
-          </Button>
-        </div>
-
-        {draftError ? (
-          <p className="text-destructive text-sm">{draftError}</p>
-        ) : null}
-
-        {missingStandard.length ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground h-auto cursor-pointer px-0 py-0"
-            onClick={() => onChange([...value, ...missingStandard])}
-          >
-            <RotateCcw className="size-3" />
-            Restore {missingStandard.length} standard recipient
-            {missingStandard.length === 1 ? "" : "s"}
-          </Button>
-        ) : null}
-      </div>
-
-      {value.length ? (
-        <ul className="divide-y self-start rounded-md border">
-          {value.map((address) => (
-            <li
-              key={address}
-              className="flex items-center justify-between gap-2 py-1 pr-1 pl-3 text-sm"
-            >
-              <span className="truncate">{address}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground size-7 cursor-pointer"
-                aria-label={`Remove ${address}`}
-                onClick={() => onChange(value.filter((a) => a !== address))}
-              >
-                <X className="size-4" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground self-start rounded-md border border-dashed p-3 text-sm">
-          No recipients — nobody will be notified.
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -741,8 +643,8 @@ export function PreReleaseForm({
     try {
       const result =
         mode === "create"
-          ? await createApproval(payload)
-          : await updateApproval(approval!.id, payload);
+          ? unwrapAction(await createApproval(payload))
+          : unwrapAction(await updateApproval(approval!.id, payload));
       toast.success(result.message);
 
       // Resend after the update commits so the mail carries the edited form.
@@ -750,13 +652,15 @@ export function PreReleaseForm({
       // happened — so report it separately and still navigate.
       if (mode === "edit" && resendNotification) {
         try {
-          const resent = await resendApprovalNotification(approval!.id);
+          const resent = unwrapAction(
+            await resendApprovalNotification(approval!.id),
+          );
           toast.success(resent.message);
         } catch (error) {
-          toast.error(
-            error instanceof Error
-              ? `Saved, but the notification failed: ${error.message}`
-              : "Saved, but the notification failed to send",
+          toastActionError(
+            error,
+            "Saved, but the notification failed to send",
+            "Saved, but the notification failed: ",
           );
         }
       }
@@ -764,9 +668,7 @@ export function PreReleaseForm({
       router.push(returnHref);
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to save the form",
-      );
+      toastActionError(error, "Failed to save the form");
     }
   }
 
@@ -787,7 +689,9 @@ export function PreReleaseForm({
             )}
           >
             <Field data-invalid={!!errors.publicationType}>
-              <FieldLabel htmlFor="publicationType">Primary type</FieldLabel>
+              <FieldLabel htmlFor="publicationType">
+                Type of publication
+              </FieldLabel>
               <Select
                 value={publicationType}
                 onValueChange={(v) => setPrimaryType(v as PublicationType)}
@@ -808,7 +712,7 @@ export function PreReleaseForm({
 
             <Field data-invalid={!!errors.secondaryPublicationTypes}>
               <FieldLabel htmlFor="secondaryPublicationTypes">
-                Secondary types
+                Planned derivations
               </FieldLabel>
               <SecondaryTypeSelect
                 value={secondaryTypes}
@@ -837,7 +741,7 @@ export function PreReleaseForm({
             )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field data-invalid={!!errors.author}>
               <FieldLabel htmlFor="leadAuthor">Lead author</FieldLabel>
               {onBehalf ? (
@@ -876,32 +780,6 @@ export function PreReleaseForm({
               </FieldDescription>
             </Field>
 
-            <Field data-invalid={!!errors.reviewByDate}>
-              <FieldLabel htmlFor="reviewByDate">Review by</FieldLabel>
-              <Input
-                id="reviewByDate"
-                type="date"
-                {...form.register("reviewByDate")}
-              />
-              <FieldDescription>
-                When reviewers need to respond. Lead time before release varies
-                by publication type.
-              </FieldDescription>
-              <FieldError errors={[errors.reviewByDate]} />
-            </Field>
-
-            <Field data-invalid={!!errors.targetReleaseDate}>
-              <FieldLabel htmlFor="targetReleaseDate">
-                Target release date
-              </FieldLabel>
-              <Input
-                id="targetReleaseDate"
-                type="date"
-                {...form.register("targetReleaseDate")}
-              />
-              <FieldError errors={[errors.targetReleaseDate]} />
-            </Field>
-
             <Field data-invalid={!!errors.documentUrl}>
               <FieldLabel htmlFor="documentUrl">Link to draft</FieldLabel>
               <Input
@@ -913,6 +791,44 @@ export function PreReleaseForm({
                 Google Doc, PDF, or repository link reviewers can open.
               </FieldDescription>
               <FieldError errors={[errors.documentUrl]} />
+            </Field>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field data-invalid={!!errors.reviewByDate}>
+              <FieldLabel htmlFor="reviewByDate">Review by</FieldLabel>
+              <DatePicker
+                id="reviewByDate"
+                placeholder="Pick a deadline for reviewers"
+                value={form.watch("reviewByDate")}
+                invalid={!!errors.reviewByDate}
+                onChange={(v) =>
+                  form.setValue("reviewByDate", v, {
+                    shouldDirty: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
+              />
+              <FieldError errors={[errors.reviewByDate]} />
+            </Field>
+
+            <Field data-invalid={!!errors.targetReleaseDate}>
+              <FieldLabel htmlFor="targetReleaseDate">
+                Target release
+              </FieldLabel>
+              <DatePicker
+                id="targetReleaseDate"
+                placeholder="Pick an approximate release date"
+                value={form.watch("targetReleaseDate")}
+                invalid={!!errors.targetReleaseDate}
+                onChange={(v) =>
+                  form.setValue("targetReleaseDate", v, {
+                    shouldDirty: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
+              />
+              <FieldError errors={[errors.targetReleaseDate]} />
             </Field>
           </div>
 
@@ -935,23 +851,50 @@ export function PreReleaseForm({
       <FormSection title="B. Disclosures">
         <FieldGroup>
           <Field data-invalid={!!errors.conflictsOfInterest}>
-            <FieldLabel htmlFor="conflictsOfInterest">
-              Conflicts of interest
-            </FieldLabel>
+            <div className="flex items-center justify-between gap-3">
+              <FieldLabel htmlFor="conflictsOfInterest">
+                Conflicts of interest
+              </FieldLabel>
+              <NoneCheckbox
+                id="conflictsOfInterest"
+                value={form.watch("conflictsOfInterest")}
+                onChange={(v) =>
+                  form.setValue("conflictsOfInterest", v, {
+                    shouldDirty: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
+              />
+            </div>
             <Textarea
               id="conflictsOfInterest"
               rows={1}
               className={TEXTAREA_CLASS}
-              placeholder='Financial, personal, or professional interests that bear on the work. Enter "none" if applicable.'
+              placeholder="Financial, personal, or professional interests that bear on the work"
               {...form.register("conflictsOfInterest")}
             />
             <FieldError errors={[errors.conflictsOfInterest]} />
           </Field>
 
           <Field data-invalid={!!errors.fundingSources}>
-            <FieldLabel htmlFor="fundingSources">Funding source(s)</FieldLabel>
+            <div className="flex items-center justify-between gap-3">
+              <FieldLabel htmlFor="fundingSources">
+                Funding source(s)
+              </FieldLabel>
+              <NoneCheckbox
+                id="fundingSources"
+                value={form.watch("fundingSources")}
+                onChange={(v) =>
+                  form.setValue("fundingSources", v, {
+                    shouldDirty: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
+              />
+            </div>
             <Textarea
               id="fundingSources"
+              placeholder="Organizations providing grants, contracts, or other support beyond your regular salary"
               rows={1}
               className={TEXTAREA_CLASS}
               {...form.register("fundingSources")}
@@ -960,9 +903,21 @@ export function PreReleaseForm({
           </Field>
 
           <Field data-invalid={!!errors.dataRestrictions}>
-            <FieldLabel htmlFor="dataRestrictions">
-              Data restrictions or confidentiality obligations
-            </FieldLabel>
+            <div className="flex items-center justify-between gap-3">
+              <FieldLabel htmlFor="dataRestrictions">
+                Data restrictions or confidentiality obligations
+              </FieldLabel>
+              <NoneCheckbox
+                id="dataRestrictions"
+                value={form.watch("dataRestrictions")}
+                onChange={(v) =>
+                  form.setValue("dataRestrictions", v, {
+                    shouldDirty: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
+              />
+            </div>
             <Textarea
               id="dataRestrictions"
               rows={1}
@@ -1061,6 +1016,7 @@ export function PreReleaseForm({
             </FieldLabel>
             <Textarea
               id="reviewers"
+              placeholder="Note any prior reviews by UHERO faculty"
               rows={1}
               className={TEXTAREA_CLASS}
               {...form.register("reviewers")}
@@ -1158,6 +1114,9 @@ export function PreReleaseForm({
                 </FieldLabel>
               </Field>
             </RadioGroup>
+            <FieldDescription className="">
+              Media contact must be a UHERO faculty, research staff, or fellow
+            </FieldDescription>
           </Field>
 
           <div className="grid gap-3 sm:grid-cols-3">

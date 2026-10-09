@@ -143,8 +143,8 @@ export function PreReleaseDetail({ approval }: { approval: ApprovalJSON }) {
       <Section title="A. Publication details">
         <dl className="divide-y">
           <Row label="Title">{approval.name}</Row>
-          <Row label="Primary type">{formatPublicationType(d)}</Row>
-          <Row label="Secondary types">
+          <Row label="Type of publication">{formatPublicationType(d)}</Row>
+          <Row label="Planned derivations">
             {formatSecondaryTypes(d.secondaryPublicationTypes)}
           </Row>
           <Row label="Lead author">{approval.author}</Row>

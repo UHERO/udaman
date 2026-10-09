@@ -58,6 +58,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { resolvePreReleaseRecipients } from "@/core/mailers/recipients";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 import { NewReviewDialog, ReviewKanbanBoard } from "./review-kanban-board";
@@ -230,14 +231,12 @@ export function PreReleaseList({
     if (!pendingDelete) return;
     setDeleting(true);
     try {
-      const result = await deleteApproval(pendingDelete.id);
+      const result = unwrapAction(await deleteApproval(pendingDelete.id));
       toast.success(result.message);
       setPendingDelete(null);
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete the form",
-      );
+      toastActionError(error, "Failed to delete the form");
     } finally {
       setDeleting(false);
     }
@@ -247,15 +246,13 @@ export function PreReleaseList({
     if (!pendingResend) return;
     setResending(true);
     try {
-      const result = await resendApprovalNotification(pendingResend.id);
+      const result = unwrapAction(
+        await resendApprovalNotification(pendingResend.id),
+      );
       toast.success(result.message);
       setPendingResend(null);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to send the notification",
-      );
+      toastActionError(error, "Failed to send the notification");
     } finally {
       setResending(false);
     }

@@ -81,20 +81,6 @@ export default async function Page({
               </>
             )}
           </div>
-          {canEdit && (
-            <div className="flex shrink-0 gap-2">
-              <ReleaseButton
-                approvalId={approval.id}
-                isReleased={approval.isReleased}
-              />
-              <Button asChild variant="outline" className="cursor-pointer">
-                <Link href={`/comms/pub-form/${approval.id}/edit`}>
-                  <Pencil className="h-4 w-4" />
-                  Edit
-                </Link>
-              </Button>
-            </div>
-          )}
         </div>
       </CommsPanel>
 
