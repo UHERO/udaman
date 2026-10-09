@@ -82,11 +82,26 @@ const periodLabel = (p: string) =>
     ? `${MONTHS[Number(p.slice(5)) - 1]} ${p.slice(0, 4)}`
     : p;
 
+/** A date column the chart can count periods by (COVERAGE_SOURCES). */
+interface CoverageDate {
+  /** Column name, e.g. "scraped_at". */
+  date: string;
+  /** Toggle label. */
+  label: string;
+  /** Card description while this date is selected. */
+  description: string;
+}
+
 interface CoverageChartProps {
   /** freq_ table base name, e.g. "insurance_policies". */
   table: string;
   title: string;
   description: string;
+  /**
+   * Dates the periods can be counted by, the table's default first; two or
+   * more add a toggle. Omitted = the table's only (default) date.
+   */
+  dates?: readonly CoverageDate[];
   /** One-line caveat under the chart (partial years, coverage gaps). */
   note?: string;
 }
@@ -95,15 +110,22 @@ export function CoverageChart({
   table,
   title,
   description,
+  dates,
   note,
 }: CoverageChartProps) {
   const [data, setData] = useState<CoverageResult | null>(null);
   const [showTable, setShowTable] = useState(false);
   const [measure, setMeasure] = useState<Measure>("count");
+  const [date, setDate] = useState(dates?.[0]?.date);
 
   useEffect(() => {
-    getHhdbCoverageByPeriod(table).then(setData);
-  }, [table]);
+    let current = true;
+    setData(null);
+    getHhdbCoverageByPeriod(table, date).then((d) => current && setData(d));
+    return () => {
+      current = false;
+    };
+  }, [table, date]);
 
   const rows = data?.rows ?? [];
   const totalNoTmk = rows.reduce((n, r) => n + r.no_tmk, 0);
@@ -124,10 +146,31 @@ export function CoverageChart({
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
           <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+          <CardDescription>
+            {dates?.find((d) => d.date === date)?.description ?? description}
+          </CardDescription>
         </div>
-        {rows.length > 0 && (
+        {(rows.length > 0 || (dates?.length ?? 0) > 1) && (
           <div className="flex shrink-0 items-center gap-2">
+            {dates && dates.length > 1 && (
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={date}
+                onValueChange={(v) => v && setDate(v)}
+              >
+                {dates.map((d) => (
+                  <ToggleGroupItem
+                    key={d.date}
+                    value={d.date}
+                    className="px-2 text-xs"
+                  >
+                    {d.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            )}
             <ToggleGroup
               type="single"
               variant="outline"

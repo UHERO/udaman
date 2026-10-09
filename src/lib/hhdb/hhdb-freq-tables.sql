@@ -3323,6 +3323,22 @@ BEGIN
   SELECT '0', 'availability_status', LEFT(COALESCE(CAST(`availability_status` AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM renthub_listings GROUP BY LEFT(CAST(`availability_status` AS CHAR), 500);
 
+  -- unit_id
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'unit_id', LEFT(COALESCE(CAST(`unit_id` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`unit_id` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'unit_id', LEFT(COALESCE(CAST(`unit_id` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`unit_id` AS CHAR), 500);
+
+  -- property_id
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'property_id', LEFT(COALESCE(CAST(`property_id` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(`property_id` AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'property_id', LEFT(COALESCE(CAST(`property_id` AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(`property_id` AS CHAR), 500);
+
   -- scraped_at_month
   INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'scraped_at_month', LEFT(COALESCE(CAST(DATE_FORMAT(`scraped_at`, '%Y-%m') AS CHAR), '[NULL]'), 500), COUNT(*)
@@ -3330,6 +3346,14 @@ BEGIN
   INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
   SELECT '0', 'scraped_at_month', LEFT(COALESCE(CAST(DATE_FORMAT(`scraped_at`, '%Y-%m') AS CHAR), '[NULL]'), 500), COUNT(*)
   FROM renthub_listings GROUP BY LEFT(CAST(DATE_FORMAT(`scraped_at`, '%Y-%m') AS CHAR), 500);
+
+  -- date_posted_month
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT LEFT(tmk, 1), 'date_posted_month', LEFT(COALESCE(CAST(DATE_FORMAT(`date_posted`, '%Y-%m') AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings WHERE tmk IS NOT NULL GROUP BY LEFT(tmk, 1), LEFT(CAST(DATE_FORMAT(`date_posted`, '%Y-%m') AS CHAR), 500);
+  INSERT INTO freq_renthub_listings (county_code, column_name, column_value, frequency)
+  SELECT '0', 'date_posted_month', LEFT(COALESCE(CAST(DATE_FORMAT(`date_posted`, '%Y-%m') AS CHAR), '[NULL]'), 500), COUNT(*)
+  FROM renthub_listings GROUP BY LEFT(CAST(DATE_FORMAT(`date_posted`, '%Y-%m') AS CHAR), 500);
 
   -- freq_insurance_policies
   TRUNCATE TABLE freq_insurance_policies;

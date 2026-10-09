@@ -17,7 +17,21 @@ export function RentListingsExploration() {
         table="renthub_listings"
         title="Listing records per month"
         description="Rent listing records by the month RentHub scraped them, stacked by county (from the imputed TMK)."
-        note="Records are scraped listing records, not distinct units: a unit still listed in a later scrape counts again. Coverage before 2022 is thin, and the August 2023 spike is a vendor backfill of older listings. Gaps are months with no delivery."
+        dates={[
+          {
+            date: "scraped_at",
+            label: "Scraped",
+            description:
+              "Rent listing records by the month RentHub scraped them (scraped_at), stacked by county (from the imputed TMK).",
+          },
+          {
+            date: "date_posted",
+            label: "Listed",
+            description:
+              "Rent listing records by the month the listing was posted (date_posted), stacked by county. Where this differs from the scrape month, records were backfilled or scraped long after posting.",
+          },
+        ]}
+        note="Records are scraped listing records, not distinct units: a unit still listed in a later scrape counts again. Coverage before 2022 is thin, and the August 2023 spike in scrapes is a vendor backfill of older listings — switch to Listed to see when those were posted. Gaps are months with no records."
       />
       <MatchBreakdownChart
         table="renthub_listings"

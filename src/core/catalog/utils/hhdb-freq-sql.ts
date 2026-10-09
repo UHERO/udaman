@@ -14,10 +14,9 @@ import { getSummaryFieldDefs } from "../types/hhdb-data-dictionary";
  * columns, under column_name `<column>_month` ("YYYY-MM") — not a Summary-tab
  * field, but what the Exploration tab's monthly coverage chart reads.
  */
-export const FREQ_MONTH_COLUMNS: Readonly<Record<string, readonly string[]>> =
-  {
-    renthub_listings: ["scraped_at"],
-  };
+export const FREQ_MONTH_COLUMNS: Readonly<Record<string, readonly string[]>> = {
+  renthub_listings: ["scraped_at", "date_posted"],
+};
 
 /** freq_ column_name of a date column's month counts. */
 export const monthFreqColumn = (column: string) => `${column}_month`;

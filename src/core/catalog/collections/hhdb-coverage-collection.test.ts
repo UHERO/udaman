@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { extraFreqColumns } from "../utils/hhdb-freq-sql";
 import {
   COVERAGE_SOURCES,
   isCoverageTable,
@@ -66,12 +67,23 @@ describe("pivotCoverage", () => {
     ]);
   });
 
-  test("rent listings are monthly; insurance stays yearly", () => {
-    expect(COVERAGE_SOURCES.renthub_listings).toEqual({
-      column: "scraped_at_month",
-      granularity: "month",
-    });
-    expect(COVERAGE_SOURCES.insurance_claims.granularity).toBe("year");
+  test("rent listings are monthly, by scrape or post date; insurance stays yearly", () => {
+    expect(COVERAGE_SOURCES.renthub_listings).toEqual([
+      { date: "scraped_at", column: "scraped_at_month", granularity: "month" },
+      {
+        date: "date_posted",
+        column: "date_posted_month",
+        granularity: "month",
+      },
+    ]);
+    expect(COVERAGE_SOURCES.insurance_claims[0].granularity).toBe("year");
+  });
+
+  test("every month column a chart reads is one freq_ counts", () => {
+    for (const [table, sources] of Object.entries(COVERAGE_SOURCES))
+      for (const s of sources)
+        if (s.granularity === "month")
+          expect(extraFreqColumns(table)).toContain(s.column);
   });
 
   test("only the three imputed-TMK tables have Exploration data", () => {

@@ -1,5 +1,6 @@
 import { list, load, refreshFreq } from "@/core/crawlers/renthub/load";
 import type { RenthubOptions } from "@/core/crawlers/renthub/load";
+import { mapIds } from "@/core/crawlers/renthub/map-ids";
 import { createLogger } from "@/core/observability/logger";
 
 // Ensure all date operations use Hawaii Standard Time.
@@ -22,6 +23,11 @@ Commands:
   load          Load every delivery not yet recorded in renthub_loads (or
                 whose file size changed). Rerun after a new delivery lands;
                 rerun with --force after the parcel layer or properties change.
+  map           Fill unit_id / property_id from the vendor's id mapping
+                (mut_mapping.csv.gz, ~2.5 GB; covers listings up to Nov 2023,
+                which pre-2023-07-28 files lack). Fills NULLs only; a stored
+                value that differs is reported as a conflict, not changed.
+                Rerun after loading old deliveries into an empty table.
   freq          Rebuild freq_renthub_listings (Summary / Exploration counts)
                 from the loaded rows, without reloading. load runs this itself.
 
@@ -32,6 +38,8 @@ Options:
   --local          Write to the local rebuild DB instead of the remote housing DB
   --root <dir>     Delivery root (default $RENTHUB_RAW_PATH, else
                    /Volumes/UHEROroot/datashare/renthub/rawdata)
+  --mapping <file> Id mapping for map (default $RENTHUB_MAPPING_PATH, else
+                   /Volumes/UHEROroot/datashare/renthub/mut_mapping.csv.gz)
   --parcels <file> TMK polygon GeoJSON (default $RENTHUB_PARCELS_PATH, else
                    /Volumes/UHEROroot/work/research/housing/shapefiles/Statewide_TMKs.geojson)
   --max-nearest <m>  Let a point inside no parcel take the nearest parcel
@@ -45,10 +53,13 @@ Options:
   process.exit(1);
 }
 
-function parseArgs(argv: string[]): { command: string; opts: RenthubOptions } {
+function parseArgs(argv: string[]): {
+  command: string;
+  opts: RenthubOptions & { mapping?: string };
+} {
   const [command, ...rest] = argv;
   if (!command || command === "--help" || command === "-h") usage();
-  const opts: RenthubOptions = {};
+  const opts: RenthubOptions & { mapping?: string } = {};
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
     const next = () => {
@@ -71,6 +82,9 @@ function parseArgs(argv: string[]): { command: string; opts: RenthubOptions } {
         break;
       case "--root":
         opts.root = next();
+        break;
+      case "--mapping":
+        opts.mapping = next();
         break;
       case "--parcels":
         opts.parcels = next();
@@ -110,6 +124,8 @@ async function main() {
     console.table(await list(opts));
   } else if (command === "load") {
     console.log(JSON.stringify(await load(opts), null, 2));
+  } else if (command === "map") {
+    console.log(JSON.stringify(await mapIds(opts), null, 2));
   } else if (command === "freq") {
     console.log(JSON.stringify(await refreshFreq(opts), null, 2));
   } else {

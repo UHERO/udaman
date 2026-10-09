@@ -288,6 +288,13 @@ export function geocodeRows(
 const quote = (c: string) => `\`${c}\``;
 
 /**
+ * Filled from the vendor's id mapping by `renthub map` (map-ids.ts) for
+ * deliveries older than 2023-07-28, whose files lack them: a blank in the
+ * file never clears a stored value.
+ */
+const MAPPED_COLUMNS = new Set(["unit_id", "property_id"]);
+
+/**
  * On a repeated id the NEWER batch wins wholesale: every column but id and
  * batch (geocode included) is guarded by `VALUES(batch) >= batch`, and `batch` itself is assigned last so
  * the guards still see the stored value (MySQL applies the assignments left
@@ -299,8 +306,12 @@ const UPSERT_TAIL =
   " ON DUPLICATE KEY UPDATE " +
   [
     ...RENTHUB_INSERT_COLUMNS.filter((c) => c !== "id" && c !== "batch").map(
-      (c) =>
-        `${quote(c)} = IF(VALUES(\`batch\`) >= \`batch\`, VALUES(${quote(c)}), ${quote(c)})`,
+      (c) => {
+        const incoming = MAPPED_COLUMNS.has(c)
+          ? `COALESCE(VALUES(${quote(c)}), ${quote(c)})`
+          : `VALUES(${quote(c)})`;
+        return `${quote(c)} = IF(VALUES(\`batch\`) >= \`batch\`, ${incoming}, ${quote(c)})`;
+      },
     ),
     "`batch` = GREATEST(`batch`, VALUES(`batch`))",
   ].join(", ");

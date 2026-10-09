@@ -265,9 +265,9 @@ export async function getHhdbInsuranceClaims(params: HhdbListParams) {
   return getInsuranceClaimsCtrl(params);
 }
 
-export async function getHhdbCoverageByPeriod(table: string) {
+export async function getHhdbCoverageByPeriod(table: string, date?: string) {
   await requirePermission("hhdb", "read");
-  return getCoverageByPeriodCtrl(table);
+  return getCoverageByPeriodCtrl(table, date);
 }
 
 export async function getHhdbMatchBreakdown(table: string, column: string) {

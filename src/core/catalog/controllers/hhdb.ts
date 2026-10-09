@@ -412,10 +412,11 @@ export async function getInsuranceClaimsJSON(params: HhdbListParams) {
 
 export async function getCoverageByPeriod(
   table: string,
+  date?: string,
 ): Promise<CoverageResult> {
   if (!isCoverageTable(table))
     throw new Error(`No coverage chart for ${table}`);
-  return HhdbCoverageCollection.byPeriod(table);
+  return HhdbCoverageCollection.byPeriod(table, date);
 }
 
 export async function getMatchBreakdown(

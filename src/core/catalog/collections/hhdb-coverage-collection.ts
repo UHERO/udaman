@@ -30,17 +30,32 @@ export type {
  * gap these tables have — are State minus the four counties.
  */
 
-/** The freq_ column each table's coverage is counted on, and its period. */
+/**
+ * The date columns each table's coverage can be counted on (the first is the
+ * default), with the freq_ column_name and period of each.
+ */
 export const COVERAGE_SOURCES = {
-  renthub_listings: {
-    column: monthFreqColumn("scraped_at"),
-    granularity: "month",
-  },
-  insurance_policies: { column: "effective_date", granularity: "year" },
-  insurance_claims: { column: "date_of_loss", granularity: "year" },
+  renthub_listings: [
+    {
+      date: "scraped_at",
+      column: monthFreqColumn("scraped_at"),
+      granularity: "month",
+    },
+    {
+      date: "date_posted",
+      column: monthFreqColumn("date_posted"),
+      granularity: "month",
+    },
+  ],
+  insurance_policies: [
+    { date: "effective_date", column: "effective_date", granularity: "year" },
+  ],
+  insurance_claims: [
+    { date: "date_of_loss", column: "date_of_loss", granularity: "year" },
+  ],
 } as const satisfies Record<
   string,
-  { column: string; granularity: CoverageGranularity }
+  readonly { date: string; column: string; granularity: CoverageGranularity }[]
 >;
 
 export type CoverageTable = keyof typeof COVERAGE_SOURCES;
@@ -164,8 +179,18 @@ const stampOf = (rows: FreqRow[]) => {
 };
 
 export default class HhdbCoverageCollection {
-  static async byPeriod(table: CoverageTable): Promise<CoverageResult> {
-    const { column, granularity } = COVERAGE_SOURCES[table];
+  static async byPeriod(
+    table: CoverageTable,
+    date?: string,
+  ): Promise<CoverageResult> {
+    const sources: readonly {
+      date: string;
+      column: string;
+      granularity: CoverageGranularity;
+    }[] = COVERAGE_SOURCES[table];
+    const source = date ? sources.find((s) => s.date === date) : sources[0];
+    if (!source) throw new Error(`No coverage of ${table} by ${date}`);
+    const { column, granularity } = source;
     try {
       const freq = await rawQuery<FreqRow>(
         `SELECT county_code, column_value, frequency, generated_at

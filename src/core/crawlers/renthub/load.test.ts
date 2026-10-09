@@ -225,6 +225,10 @@ describe("renthub load", () => {
     expect(sql).toContain(
       "`tmk` = IF(VALUES(`batch`) >= `batch`, VALUES(`tmk`), `tmk`)",
     );
+    // A blank in an old file never clears an id `renthub map` filled.
+    expect(sql).toContain(
+      "`unit_id` = IF(VALUES(`batch`) >= `batch`, COALESCE(VALUES(`unit_id`), `unit_id`), `unit_id`)",
+    );
     expect(sql).not.toContain("`id` = ");
     expect(sql.endsWith("`batch` = GREATEST(`batch`, VALUES(`batch`))")).toBe(
       true,

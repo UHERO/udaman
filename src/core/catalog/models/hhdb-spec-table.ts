@@ -183,6 +183,7 @@ export const RENTHUB_LIST: SpecTableDef = {
     specDisplay(RENTHUB_COLUMNS, renthubDisplay),
   ),
   defaultVisible: [
+    "id",
     "scraped_at",
     "rent_price",
     "beds",

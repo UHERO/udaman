@@ -298,7 +298,8 @@ export const RENTHUB_COLUMNS: readonly RenthubColumnSpec[] = [
     newerOnly: true,
     label: "Unit ID",
     description:
-      "The vendor's id for the rental unit, stable across relistings. Deliveries from 2023-07-28 on only.",
+      "The vendor's id for the rental unit, stable across relistings: rows sharing it are the same unit listed again. From the delivery file (2023-07-28 on) or, for older listings, the vendor's id mapping (`bun run renthub map`). In the Summary tab, the most-listed units.",
+    summary: true,
   },
   {
     csv: "property id",
@@ -307,7 +308,8 @@ export const RENTHUB_COLUMNS: readonly RenthubColumnSpec[] = [
     newerOnly: true,
     label: "Property ID",
     description:
-      "The vendor's id for the building / property. Deliveries from 2023-07-28 on only.",
+      "The vendor's id for the building / property; a property has one or more unit_ids. From the delivery file (2023-07-28 on) or, for older listings, the vendor's id mapping (`bun run renthub map`). In the Summary tab, the most-listed properties.",
+    summary: true,
   },
 ];
 

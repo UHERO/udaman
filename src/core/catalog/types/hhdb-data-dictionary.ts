@@ -180,9 +180,9 @@ function renthubFormat(col: RenthubColumnSpec): DictionaryField["format"] {
 const RENTHUB_LISTINGS_FIELDS: DictionaryField[] = [
   {
     key: "id",
-    label: "Vendor ID",
+    label: "Listing ID",
     description:
-      "The vendor's record id, unique across deliveries. One row per scraped listing record; the same unit relisted gets a new id (see unit_id).",
+      "The listing `id` exactly as in RentHub's raw files, unique across deliveries — the key their id mapping (unit_id / property_id) and source list (srcs.csv) join on. One row per scraped listing record; the same unit relisted gets a new id (see unit_id).",
   },
   {
     key: "batch",
