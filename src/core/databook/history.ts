@@ -150,6 +150,7 @@ export async function loadHistory(
         vintageAt: vintageDate(edition),
       });
       stats.pointsInserted += res.inserted;
+      if (res.changed) touched.add(t.observedLoaderId);
     }
 
     if (t.pseudoLoaderId) {
@@ -160,17 +161,24 @@ export async function loadHistory(
       if (filled.size > 0) {
         stats.pseudoSeries++;
         if (!opts.dryRun) {
-          await SeriesCollection.updateData({
+          const res = await SeriesCollection.updateData({
             xseriesId: t.xseriesId,
             data: filled,
             dataSourceId: t.pseudoLoaderId,
             pseudoHistory: true,
             vintageAt: vintageDate(editions[editions.length - 1]),
           });
+          if (res.changed) touched.add(t.pseudoLoaderId);
         }
       }
     }
   };
+
+  // Loaders whose series got new points. updateData is called directly
+  // (not through a loader run), so nothing else stamps them — and the
+  // incremental public sync only notices series whose loader or series row
+  // changed since its watermark.
+  const touched = new Set<number>();
 
   // Bounded concurrency; order only matters within a series.
   const limit = Math.max(1, opts.concurrency ?? 2);
@@ -181,11 +189,28 @@ export async function loadHistory(
     }),
   );
 
-  if (!opts.dryRun && opts.publicSync !== false)
-    await DataPointCollection.updatePublicDataPoints(DATABOOK);
+  if (!opts.dryRun && touched.size > 0) {
+    const ids = [...touched];
+    for (let i = 0; i < ids.length; i += 1000) {
+      const chunk = ids.slice(i, i + 1000);
+      await rawQuery(
+        `UPDATE data_sources SET updated_at = NOW(), last_run_at = NOW()
+          WHERE id IN (${chunk.map(() => "?").join(",")})`,
+        chunk,
+      );
+    }
+  }
+  // Full pass: vintage rows carry backdated created_at, and a sweep may
+  // have advanced the watermark since the loaders were created.
+  if (!opts.dryRun && opts.publicSync !== false) await publishDatabook();
   log.info(
     { ...stats, errors: stats.errors.length },
     "Data Book history load complete",
   );
   return stats;
+}
+
+/** Full public_data_points sync for the DATABOOK universe. */
+export async function publishDatabook(): Promise<void> {
+  await DataPointCollection.updatePublicDataPoints(DATABOOK, { full: true });
 }

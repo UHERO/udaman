@@ -14,7 +14,7 @@ import {
   writeIR,
 } from "@/core/databook/extract";
 import { fetchEdition } from "@/core/databook/fetch";
-import { loadHistory } from "@/core/databook/history";
+import { loadHistory, publishDatabook } from "@/core/databook/history";
 import { propose, readManifest, writeManifest } from "@/core/databook/manifest";
 import { matchEditions, needsInterpolation } from "@/core/databook/match";
 import {
@@ -56,6 +56,8 @@ DBEDT Data Book → DATABOOK universe (docs/2026-10-10-databook-universe-plan.md
                               Load vintages oldest-first into data_points (dry run by default).
                               Resumable: re-running skips what is already loaded.
                               --concurrency: series loaded in parallel (default 2)
+  publish                     Full public_data_points sync for DATABOOK (what the
+                              dashboard/REST API read); history runs it automatically
   annual   --edition Y [--execute] [--no-public-sync]
                               New/re-issued edition: fetch, extract, match, apply, load
                               that edition's vintage. Series that exist only in editions
@@ -308,6 +310,14 @@ async function run(args: Args): Promise<void> {
       console.log(JSON.stringify(await applyManifest(manifest)));
       if (args.prune)
         console.log(JSON.stringify({ pruned: await pruneManifest(manifest) }));
+      return;
+    }
+
+    case "publish": {
+      // Force a full public_data_points sync (recovery, or after a load
+      // run with --no-public-sync).
+      await publishDatabook();
+      console.log("DATABOOK public data points synced (full pass).");
       return;
     }
 

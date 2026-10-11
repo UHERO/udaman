@@ -63,7 +63,17 @@ export async function fetchFromRestApi<T>({
   }
 
   // Read once as text so we can include a body preview in any error we throw.
-  const bodyText = await res.text();
+  // The body read can time out on its own (slow/streaming responses), so it
+  // gets the same URL-bearing error as the fetch itself.
+  let bodyText: string;
+  try {
+    bodyText = await res.text();
+  } catch (e) {
+    throw new ExternalServiceError(
+      `fetchFromRestApi: error reading response body from ${url} (status ${res.status}): ${(e as Error).message}`,
+      { url, statusCode: res.status },
+    );
+  }
 
   if (!res.ok) {
     throw new ExternalServiceError(
