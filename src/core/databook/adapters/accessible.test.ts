@@ -268,10 +268,10 @@ describe("snapshot tables (01.29)", () => {
     });
   });
 
-  it("keeps percent fractions raw with their format, and disambiguates repeated rows", () => {
+  it("scales percent fractions to percent units, keeps the format, and disambiguates repeated rows", () => {
     expect(at(cells, "B6")).toMatchObject({
       rowPath: ["Under 18 years (2)"],
-      value: 0.1966,
+      value: 19.66,
       numFmt: "0.0%",
     });
     expect(table.warnings.join()).toContain("repeated-row-label");

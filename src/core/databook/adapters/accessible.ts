@@ -44,6 +44,7 @@ import {
   type ParsedTitle,
   type PeriodContext,
 } from "../labels";
+import { toPercentUnits } from "../meta";
 
 export interface AccessibleSection {
   tables: IRTable[];
@@ -733,7 +734,8 @@ function pushCell(
     rowPath,
     colPath,
     period,
-    value: v.value,
+    // Text cells ("17%") already parse to percent units.
+    value: v.fromString ? v.value : toPercentUnits(v.value, numFmt),
     cellAddr: e.g.addr(r, c),
     ...(numFmt ? { numFmt } : {}),
     markers: [...new Set([...markers, ...v.markers])],

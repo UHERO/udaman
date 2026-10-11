@@ -36,16 +36,27 @@ const log = createLogger("databook-cli");
 /** The edition the manifest (series names, locators) is built from. */
 const MANIFEST_EDITION = 2025;
 
+/** First edition with Excel workbooks in the DBEDT archive. */
+const FIRST_EDITION = 2002;
+
+function allEditions(): number[] {
+  return Array.from(
+    { length: MANIFEST_EDITION - FIRST_EDITION + 1 },
+    (_, i) => FIRST_EDITION + i,
+  );
+}
+
 function usage(): never {
   console.log(`
 Usage: bun run databook <command> [options]
 
 DBEDT Data Book → DATABOOK universe (docs/2026-10-10-databook-universe-plan.md)
 
-  fetch    --edition Y        Download an edition's 24 workbooks to data-dir/databook/raw/
+  fetch    --edition Y|--all  Download an edition's 24 workbooks to data-dir/databook/raw/
   extract  --edition Y|--all  Parse workbooks → data-dir/databook/ir/db{Y}.json
-  propose                     Build/refresh the manifest (data-dir/databook/manifest/)
+  propose  [--fresh]          Build/refresh the manifest (data-dir/databook/manifest/)
                               from the ${MANIFEST_EDITION} IR, keeping existing names
+                              (--fresh: reassign every name; only before production)
   match                       Match every extracted edition to manifest series →
                               data-dir/databook/vintages.csv + match-report.csv,
                               and record editions/interpolate on manifest series
@@ -63,6 +74,34 @@ DBEDT Data Book → DATABOOK universe (docs/2026-10-10-databook-universe-plan.md
                               that edition's vintage. Series that exist only in editions
                               after ${MANIFEST_EDITION} are reported unmatched in
                               match-report.csv (not created yet)
+
+Setting up from scratch (new server/instance; needs DATA_DIR set and the
+public_sync_watermarks migration applied; match peaks at ~1.7 GB):
+
+  bun run databook fetch --all          # ${FIRST_EDITION}–${MANIFEST_EDITION} workbooks
+  bun run databook extract --all        # → ir/db{Y}.json
+  bun run databook propose              # → manifest/ (names; first run creates them)
+  bun run databook match                # → vintages.csv, latest.json; counts on manifest
+  bun run databook apply --execute      # universe, geographies, categories, series, loaders
+  bun run databook history --execute    # load every vintage, then full public sync
+
+  Then clear the REST API cache:
+  redis-cli --scan --pattern '*u=databook*' | xargs -r redis-cli del
+
+Rebuilding after a code change (names may move; pre-production only):
+
+  bun run databook extract --all        # only if the adapters changed
+  bun run databook propose [--fresh]    # --fresh renumbers every name
+  bun run databook match
+  bun run databook apply --execute --prune
+  DELETE dp FROM data_points dp JOIN series s ON s.xseries_id = dp.xseries_id
+    WHERE s.universe = 'DATABOOK';      # drop vintages under changed names
+  bun run databook history --execute
+  (then clear the REST API cache as above)
+
+Each later year, when DBEDT publishes edition Y:
+
+  bun run databook annual --edition Y --execute
 `);
   process.exit(1);
 }
@@ -74,6 +113,7 @@ interface Args {
   execute: boolean;
   publicSync: boolean;
   prune: boolean;
+  fresh: boolean;
   concurrency?: number;
   series: string[];
 }
@@ -88,6 +128,7 @@ function parseArgs(argv: string[]): Args {
     execute: false,
     publicSync: true,
     prune: false,
+    fresh: false,
     series: [],
   };
   for (let i = 0; i < rest.length; i++) {
@@ -110,6 +151,9 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--prune":
         args.prune = true;
+        break;
+      case "--fresh":
+        args.fresh = true;
         break;
       case "--concurrency": {
         const v = Number(rest[++i]);
@@ -163,10 +207,10 @@ function runMatch(): void {
     for (const t of s.tables)
       for (const m of t.measurements)
         for (const x of m.series) {
+          const dates = [...latestObserved(index.get(x.name)).keys()];
           x.editions = res.editions.get(x.name)?.size ?? 0;
-          x.interpolate = needsInterpolation([
-            ...latestObserved(index.get(x.name)).keys(),
-          ]);
+          x.observations = dates.length;
+          x.interpolate = needsInterpolation(dates);
         }
   writeManifest(manifest);
 
@@ -215,8 +259,9 @@ function runMatch(): void {
 async function run(args: Args): Promise<void> {
   switch (args.command) {
     case "fetch": {
-      if (!args.editions.length) usage();
-      for (const e of args.editions) {
+      const editions = args.all ? allEditions() : args.editions;
+      if (!editions.length) usage();
+      for (const e of editions) {
         const res = await fetchEdition(e);
         console.log(`${e}: ${res.files.length} files, changed=${res.changed}`);
       }
@@ -224,12 +269,7 @@ async function run(args: Args): Promise<void> {
     }
 
     case "extract": {
-      const editions = args.all
-        ? Array.from(
-            { length: MANIFEST_EDITION - 2002 + 1 },
-            (_, i) => 2002 + i,
-          )
-        : args.editions;
+      const editions = args.all ? allEditions() : args.editions;
       if (!editions.length) usage();
       for (const e of editions) {
         const ir = extractEdition(e);
@@ -241,7 +281,7 @@ async function run(args: Args): Promise<void> {
 
     case "propose": {
       const ir = readIR(MANIFEST_EDITION);
-      const previous = readManifest();
+      const previous = args.fresh ? [] : readManifest();
       const sections = propose(ir, { narratives: ir.narratives, previous });
       // Carry match results forward for series that keep their name.
       const prevSeries = new Map(
@@ -260,6 +300,7 @@ async function run(args: Args): Promise<void> {
               const p = prevSeries.get(x.name);
               if (p) {
                 x.editions = p.editions;
+                x.observations = p.observations;
                 x.interpolate = p.interpolate;
               }
             }

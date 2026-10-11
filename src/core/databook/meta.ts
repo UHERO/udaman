@@ -70,6 +70,17 @@ export function isPercentFormat(numFmt: string | undefined): boolean {
 }
 
 /**
+ * A numeric cell under a % format holds the fraction (0.17 displays as
+ * "17%"). Percent series are stored in percent units (17), as in Rails and
+ * the data portal, which show the value as-is and take YOY as a difference.
+ * Rounded to 10 places to drop float noise (0.17 * 100 = 17.000000000000004).
+ */
+export function toPercentUnits(value: number, numFmt?: string): number {
+  if (!isPercentFormat(numFmt)) return value;
+  return Math.round(value * 100 * 1e10) / 1e10;
+}
+
+/**
  * Guess a unit from the headnote ("[In thousands of dollars …]"), the
  * series labels, and the cell number format.
  */

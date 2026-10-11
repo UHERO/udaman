@@ -104,7 +104,7 @@ describe("propose", () => {
     expect(ms[1].decimals).toBe(2);
   });
 
-  it("maps geography rows and drops sub-county rows beneath them", () => {
+  it("maps geography rows and keeps sub-county rows under their county", () => {
     const cells = [
       cell("01.11", "C", 4, ["State total"], [], 2020, 100),
       cell("01.11", "C", 5, ["State total", "Hawaii County"], [], 2020, 30),
@@ -140,8 +140,10 @@ describe("propose", () => {
     };
     const ms = propose(ir)[0].tables[0].measurements;
     const names = ms.flatMap((m) => m.series.map((s) => s.name));
-    expect(names).not.toContain(expect.stringContaining("Puna"));
-    expect(names.length).toBe(3);
+    expect(names.length).toBe(4);
+    expect(ms.find((m) => m.dataPortalName === "Puna")?.series[0].geo).toBe(
+      "HAW",
+    );
     expect(new Set(ms.flatMap((m) => m.series.map((s) => s.geo)))).toEqual(
       new Set(["HI", "HAW", "HON"]),
     );

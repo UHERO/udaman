@@ -46,10 +46,34 @@ export function pseudoEval(name: string): string {
   return `Series.load_from_databook("${name}").fill_missing_linear`;
 }
 
-/** Series the manifest says should exist in the database. */
-export function includeSeries(s: ManifestSeries): boolean {
-  if (!s.snapshot) return true;
-  return (s.editions ?? 0) >= MIN_SNAPSHOT_EDITIONS;
+/**
+ * Measurements the manifest says should exist in the database, always
+ * with ALL their geographies. Snapshot measurements need ≥5 editions in at
+ * least one geography (decision 5) — a county that matched in fewer
+ * editions still comes along so the measurement is complete.
+ */
+export function includeMeasurement(m: ManifestMeasurement): boolean {
+  return m.series.some(
+    (s) =>
+      hasHistory(s) &&
+      (!s.snapshot || (s.editions ?? 0) >= MIN_SNAPSHOT_EDITIONS),
+  );
+}
+
+/**
+ * A series needs at least two observations: a single point is not a time
+ * series (event lists like eruptions or hurricanes, a geography printed
+ * for one year only). Series not yet matched (no count) are kept.
+ */
+export const MIN_OBSERVATIONS = 2;
+
+function hasHistory(s: ManifestSeries): boolean {
+  return s.observations === undefined || s.observations >= MIN_OBSERVATIONS;
+}
+
+/** The series of `m` to create. */
+export function includedSeries(m: ManifestMeasurement): ManifestSeries[] {
+  return includeMeasurement(m) ? m.series.filter(hasHistory) : [];
 }
 
 export interface ApplyStats {
@@ -101,7 +125,7 @@ export function planManifest(sections: ManifestSection[]) {
     for (const t of s.tables) {
       tables++;
       for (const m of t.measurements) {
-        const kept = m.series.filter(includeSeries);
+        const kept = includedSeries(m);
         skippedSnapshot += m.series.length - kept.length;
         if (kept.length) measurements++;
         series += kept.length;
@@ -265,9 +289,7 @@ export async function applyManifest(
 
     for (let ti = 0; ti < sec.tables.length; ti++) {
       const t = sec.tables[ti];
-      const measurements = t.measurements.filter((m) =>
-        m.series.some(includeSeries),
-      );
+      const measurements = t.measurements.filter((m) => includeMeasurement(m));
       if (measurements.length === 0) continue;
       const tableName = `${t.tableNum} ${t.title}`.slice(0, 255);
       const meta = `DATABOOK_T${t.tableNum}`;
@@ -347,8 +369,9 @@ export async function applyManifest(
           [dataListId, measurementId, mi, indent],
         );
 
+        const kept = new Set(includedSeries(m));
         for (const s of m.series) {
-          if (!includeSeries(s)) {
+          if (!kept.has(s)) {
             stats.series.skippedSnapshot++;
             continue;
           }
@@ -444,7 +467,7 @@ export async function pruneManifest(sections: ManifestSection[]): Promise<{
   for (const s of sections)
     for (const t of s.tables)
       for (const m of t.measurements) {
-        const kept = m.series.filter(includeSeries);
+        const kept = includedSeries(m);
         if (kept.length) keepPrefixes.add(m.prefix);
         for (const x of kept) keepSeries.add(x.name);
       }

@@ -85,7 +85,7 @@ Table layout:
 | Stacked panels (header row repeated mid-sheet) | 169 | e.g. 02.02: births / deaths / birth rates / death rates |
 | Composite headers | common | `April 1, 2020, Both sexes`, `Real SPI per capita 2018` |
 | Footnote markers | 2,408 labels, 939 values | `Maui County [a]`, `2020 [c]`, cell = `"[a]"`, number format `#,##0\ "[b]"` |
-| Number formats | | `#,##0` 663, `0.0%` 95, `"$"#,##0` 37. Percents are stored as fractions. |
+| Number formats | | `#,##0` 663, `0.0%` 95, `"$"#,##0` 37. Percents are stored as fractions (the loader multiplies them by 100; see `percent` below). |
 | `Source:` line | all | |
 
 **Layouts:**
@@ -222,18 +222,34 @@ editions ──► adapter (2025: accessible │ 2002–2024: legacy) ──► 
   - The manifest stores each series' locator (table history, `row_path`, `col_label`), and every later edition is matched to that locator.
   - Within two or three years, names and table numbers will drift apart. That's acceptable; renaming would break links.
 - **Measurement** = series key without the geo.
-- **Geography labels → handles:**
-
-  | Label variants (after stripping footnote markers) | Handle |
-  |---|---|
-  | State total, State of Hawaii, Statewide | `HI` |
-  | City and County of Honolulu, Honolulu County, Oahu (at county level) | `HON` |
-  | Hawaii County | `HAW` |
-  | Kauai County | `KAU` |
-  | Maui County, including every "Maui County 1/", "2/" or "[a]" (incl. Kalawao) | `MAU` |
-  | United States | `US` |
-
-  Islands (Oahu, Molokai, Lanai, …) only where a table is island-level. Kalawao is never broken out, except in the few tables where it's an explicit separate row (01.11); there it's dropped or kept as plain data, not a geography. Sub-county geographies (judicial districts, tracts, ZCTAs, CDPs) are out of v1. "By state" tables load only the HI and US rows.
+- **Geography** is assigned by `geoassign.ts` (revised 2026-10-11). A measurement is one metric across all of its geographies.
+  - **Handles:**
+    - state and nation: HI, US
+    - counties: HON, HAW, KAU, MAU
+    - islands: OAHU, HAWI, MAUI, MOL, LAN, KAUI, NII, KAHO
+  - **Counties and islands are distinct geographies** (HON vs OAHU, MAU vs MAUI/MOL/LAN), following UHERO's MAU/MAUI pattern.
+  - **Kalawao** rows are dropped; Maui County includes Kalawao.
+  - **Where geographies are found:** anywhere in a cell's labels — row or column, parent or leaf, or the panel label ("Type of offense for Oahu"). They can be whole labels ("Hawaii County [a]", "Oahu total") or phrases at the start or end of a label ("All exemptions, Statewide", "Oahu: male", "Hawaii per capita personal income").
+  - **Bare names are resolved by their siblings.** "Hawaii" is HAW among counties, HAWI among islands, and HI next to the U.S. "U.S. total" only counts as US when Hawaii or a county/island is a sibling; otherwise it's a visitor market.
+  - **"Total" is the state** when it sits next to county/island geographies.
+  - **Not split off:** institution names (colleges, museums, companies) and labels naming several places.
+  - **Panels that differ only in geography merge.** "County" and "Island" panels become one measurement.
+  - **Sub-areas take their nearest geography** and keep their label as a dimension, e.g. judicial district "Puna" becomes `@HAW`.
+  - **By-state tables keep only HI and US.**
+  - **The cross-edition matcher uses the same resolution,** so "Hawaii" (county context) and "Hawaii County" match across editions.
+  - **Snapshot inclusion is per measurement:** if any geography reaches 5 editions, every geography of the measurement is created.
+- **Measurement grouping** (revised 2026-10-11). A measurement never spans sheets. Only geography and frequency are folded into one measurement; every other breakdown (race, age, a component such as an armed-services branch) is its own measurement.
+  - **State columns labelled with the metric.** Some sheets head the state column with the metric itself, e.g. 01.01 "Population (number)" | Honolulu County | Hawaii County | …. In that case the label just before a run of ≥2 sibling county/island labels is the state value of the same metric. It qualifies when it reads as a total ("Index Offenses, total", "Total acres", "Total county debt", "State average") or is the first label of its row/column. 01.01 is therefore one "Population" measurement with five series.
+  - **Percent-change columns and rows are not loaded,** since udaman derives % change itself. Examples: "Population (percent change)", "Hawaii percent change".
+  - **Panel labels that only name a period or a geography type merge.** Examples: "Year", "Date", "State by year", "County: 2024". A statewide time-series panel and a by-county snapshot panel therefore form one measurement (18.17, 16.13, 19.10, 22.08). If the merged panels disagree on a value for the same geography and date, they stay separate.
+  - **Single-place titles set the default geography.** For example "…, for Oahu", "…Oahu Neighborhoods" and "Honolulu Construction Cost Indexes" default to OAHU or HON instead of HI. Comparison titles keep HI, e.g. "for the State and Oahu", "Honolulu and the United States".
+  - **When rows and columns both name a geography,** the axis that lists more geographies wins; the other keeps its label as a dimension. In 06.06, island columns win over a "Government - State total" row.
+  - **Mixed county/island lists:**
+    - "Oahu" among Maui/Hawaii/Kauai counties (with no other islands) is HON.
+    - A bare name whose county is already listed is the island ("Maui County total", Lanai, Maui, Molokai → MAUI).
+    - A bare "Honolulu" needs other county/island siblings; otherwise it is a harbor, airport or station.
+  - **Nesting levels resolve separately,** and a nested geography must be smaller than its parent. In 01.12, "Hawaii", "Maui" and "Lanai" at the top level are islands, and "Oahu > Urban Honolulu" (a census place) stays a place on OAHU instead of becoming HON.
+- **A series needs at least 2 observations** (`MIN_OBSERVATIONS` in apply.ts; `observations` is recorded by `match`). Event and list tables (eruptions, tsunamis, hurricanes, largest employers, rankings) and geographies printed for only one year would otherwise become single-point series.
 - DATABOOK needs its own geography, unit and source rows. `SeriesCollection.create` resolves `(universe, handle)` and throws if it's missing.
 
 ### 2.3 Metadata sources
@@ -243,7 +259,7 @@ editions ──► adapter (2025: accessible │ 2002–2024: legacy) ──► 
 | `description` / `dataPortalName` | Table title (without the period) + panel label + `row_path` + column label, plus a period-basis note when it isn't calendar year ("Fiscal Year", "School Year", "Crop Year", "As of July 1", "5-year ACS ending in year"). The portal name is the leaf label. |
 | `notes` / `investigation_notes` | Headnote + the footnotes that apply (matched by marker letter). |
 | `unit` | Headnote hints, `$` in the number format, header words (rate, per 1,000, index, median), else "Number". Normalized to ~30 units. |
-| `percent` / `decimals` | Cell number format: `0.0%` → `percent = true`, 1 decimal. Values are stored as the fractions DBEDT publishes; udaman's percent field takes care of multiplying by 100 for display. |
+| `percent` / `decimals` | Cell number format: `0.0%` → `percent = true`, 1 decimal. Excel stores the fraction (0.17 shows as 17%). The adapters multiply numeric `%` cells by 100 (`toPercentUnits`, meta.ts), so the series holds 17. The `percent` field does not scale anything: in Rails, Angular and this port it only relabels changes ("Chg" instead of "% Chg") and makes YOY a difference. Text cells such as "17%" already parse to 17. |
 | `xseries.units` (scale) | "in thousands" / "in millions" in the headnote. |
 | `source` / `source_link` / `source_detail` | **Source is always "DBEDT State of Hawaii Data Book"**, linked to https://dbedt.hawaii.gov/economic/databook/, because that is where we get the data and citing it means users won't think UHERO compiled the tables. **`source_detail`** = "Data Book Table 1.07 (2025 edition). Original source: " + DBEDT's citation from the table's `Source:` footer. The original agency and URL are also kept in the manifest (`originalAgency` / `originalLink`). |
 | `seasonal_adjustment` | `not_applicable` |
@@ -405,7 +421,7 @@ Some series only have observations every 10 years (census: 1.01, 1.05, 1.46, …
 1. **Discontinued tables and series:** dropped. Only series that appear in the 2025 edition are created.
 2. **Vintage date:** `{Y+1}-08-01`, the release year, not the file's last-modified date. Re-issued files reuse the same date and are corrected in place.
 3. **Fiscal, school and crop years:** dated by end year, with a note in the series description.
-4. **Percent:** store the published fractions and set udaman's `percent` field.
+4. **Percent:** store percent units (fraction × 100, as all existing udaman percent series do) and set udaman's `percent` field.
 5. **Snapshot series:** included only if matched in ≥5 editions.
 6. **Interval rows:** skipped.
 7. **Mixed estimate bases:** add a note on the measurement. `databook match` also flags "stuck" years automatically (§3.3), for review.

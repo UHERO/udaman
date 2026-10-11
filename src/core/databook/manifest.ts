@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { geoAxis, geoHandle } from "./geo";
+import { assignGeographies, type AssignedCell } from "./geoassign";
 import type { EditionIR, IRCell, IRTable } from "./ir";
 import { labelKey } from "./labels";
 import {
@@ -71,6 +71,8 @@ export interface ManifestSeries {
   snapshot: boolean;
   /** Number of editions this series was matched in — set by `match`. */
   editions?: number;
+  /** Distinct observation dates across all editions — set by `match`. */
+  observations?: number;
   /** Fill interior gaps with a linear pseudo-history loader — set by `match`. */
   interpolate?: boolean;
 }
@@ -124,152 +126,9 @@ export interface ManifestSection {
 
 // ─── Proposal ───────────────────────────────────────────────────────
 
-interface Assigned {
-  cell: IRCell;
-  geo: string;
-  rowDims: string[];
-  colDims: string[];
-}
-
-/**
- * Decide each cell's geography and remaining dimensions. A table has at
- * most one geography axis: column leaves first, else row leaves. Rows
- * nested under a geography row that aren't geographies themselves
- * (judicial districts, tracts) are sub-county and dropped (plan §2.2).
- */
-function assignGeo(cells: IRCell[]): Assigned[] {
-  const leaves = (f: (c: IRCell) => string[]) => [
-    ...new Set(cells.map((c) => f(c).at(-1) ?? "").filter(Boolean)),
-  ];
-  const rowLeaves = leaves((c) => c.rowPath);
-
-  // "By state" tables: keep only the Hawaii and United States rows.
-  if (rowLeaves.filter((l) => US_STATES.has(labelKey(l))).length >= 20) {
-    const out: Assigned[] = [];
-    for (const cell of cells) {
-      const k = labelKey(cell.rowPath.at(-1) ?? "");
-      const geo =
-        k === "hawaii"
-          ? "HI"
-          : geoHandle(cell.rowPath.at(-1) ?? "") === "US"
-            ? "US"
-            : null;
-      if (geo)
-        out.push({
-          cell,
-          geo,
-          rowDims: cell.rowPath.slice(0, -1),
-          colDims: cell.colPath,
-        });
-    }
-    return out;
-  }
-
-  const geoCols = geoAxis(leaves((c) => c.colPath));
-  const geoRows = geoCols ? null : geoAxis(rowLeaves);
-
-  const out: Assigned[] = [];
-  for (const cell of cells) {
-    const colLeaf = cell.colPath.at(-1) ?? "";
-    const rowLeaf = cell.rowPath.at(-1) ?? "";
-    if (geoCols?.has(colLeaf)) {
-      out.push({
-        cell,
-        geo: geoCols.get(colLeaf)!,
-        rowDims: cell.rowPath,
-        colDims: cell.colPath.slice(0, -1),
-      });
-    } else if (geoRows?.has(rowLeaf)) {
-      // Drop every geography label from the path (counties nest under
-      // "State total"), so all geographies share one measurement.
-      out.push({
-        cell,
-        geo: geoRows.get(rowLeaf)!,
-        rowDims: cell.rowPath.filter((r) => !geoRows.has(r)),
-        colDims: cell.colPath,
-      });
-    } else if (
-      geoRows &&
-      cell.rowPath.slice(0, -1).some((r) => geoRows.has(r))
-    ) {
-      continue; // sub-county row (judicial district, tract, …)
-    } else {
-      out.push({
-        cell,
-        geo: "HI",
-        rowDims: cell.rowPath,
-        colDims: cell.colPath,
-      });
-    }
-  }
-  return out;
-}
-
-const US_STATES = new Set([
-  "alabama",
-  "alaska",
-  "arizona",
-  "arkansas",
-  "california",
-  "colorado",
-  "connecticut",
-  "delaware",
-  "district of columbia",
-  "florida",
-  "georgia",
-  "hawaii",
-  "idaho",
-  "illinois",
-  "indiana",
-  "iowa",
-  "kansas",
-  "kentucky",
-  "louisiana",
-  "maine",
-  "maryland",
-  "massachusetts",
-  "michigan",
-  "minnesota",
-  "mississippi",
-  "missouri",
-  "montana",
-  "nebraska",
-  "nevada",
-  "new hampshire",
-  "new jersey",
-  "new mexico",
-  "new york",
-  "north carolina",
-  "north dakota",
-  "ohio",
-  "oklahoma",
-  "oregon",
-  "pennsylvania",
-  "rhode island",
-  "south carolina",
-  "south dakota",
-  "tennessee",
-  "texas",
-  "utah",
-  "vermont",
-  "virginia",
-  "washington",
-  "west virginia",
-  "wisconsin",
-  "wyoming",
-]);
-
 function colLetter(cellAddr: string): string {
   const m = cellAddr.match(/!\$?([A-Z]+)\$?\d+$/);
   return m ? m[1] : "";
-}
-
-function measurementKey(
-  panel: number,
-  rowDims: string[],
-  colDims: string[],
-): string {
-  return JSON.stringify([panel, rowDims.map(labelKey), colDims.map(labelKey)]);
 }
 
 interface Draft {
@@ -279,7 +138,7 @@ interface Draft {
   rowDims: string[];
   colDims: string[];
   firstCol: string;
-  cells: Assigned[];
+  cells: AssignedCell[];
 }
 
 export interface ProposeOptions {
@@ -341,20 +200,36 @@ function proposeTable(
   previousPrefix: Map<string, string>,
   usedPrefixes: Set<string>,
 ): ManifestTable {
-  const assigned = assignGeo(cells);
   const idents = panelIdentities(table);
+  const identOf = (c: IRCell) =>
+    idents.get(c.panel) ?? { id: c.panel, label: "" };
+  // Geography is taken out of every label; what remains identifies the
+  // metric. Panels that differ only by geography ("County" / "Island")
+  // therefore share measurements.
+  const assigned = assignGeographies(cells, (c) => identOf(c).label, {
+    title: table.title,
+  });
+  const nsOf = splitConflictingPanels(assigned, (c) => identOf(c));
+  const namespaceId = new Map<string, number>();
   const drafts = new Map<string, Draft>();
   for (const a of assigned) {
-    const ident = idents.get(a.cell.panel) ?? { id: a.cell.panel, label: "" };
-    const key = measurementKey(ident.id, a.rowDims, a.colDims);
+    const ns = nsOf(a);
+    const nsId = namespaceId.get(ns) ?? identOf(a.cell).id;
+    namespaceId.set(ns, nsId);
+    const key = JSON.stringify([
+      ns,
+      a.rowDims.map(labelKey),
+      a.colDims.map(labelKey),
+    ]);
     let d = drafts.get(key);
     if (!d) {
       drafts.set(
         key,
         (d = {
           key,
-          panel: ident.id,
-          panelLabel: ident.label,
+          panel: nsId,
+          panelLabel:
+            ns === labelKey(a.panelDim) ? a.panelDim : identOf(a.cell).label,
           rowDims: a.rowDims,
           colDims: a.colDims,
           firstCol: colLetter(a.cell.cellAddr),
@@ -431,13 +306,16 @@ function proposeTable(
     ].filter((m) => table.footnotes[m]);
 
     const series = new Map<string, ManifestSeries>();
+    // One label group per geography: if two groups resolve to the same
+    // geography (e.g. "State total" in both a County and an Island panel),
+    // the first one wins.
     for (const a of d.cells) {
       if (series.has(a.geo)) continue;
       series.set(a.geo, {
         name: `${prefix}@${a.geo}.A`,
         geo: a.geo,
         locator: {
-          panel: d.panel,
+          panel: identOf(a.cell).id,
           rowPath: a.cell.rowPath,
           colPath: a.cell.colPath,
         },
@@ -488,6 +366,51 @@ function proposeTable(
       originalLink: table.sourceUrl,
     },
     measurements,
+  };
+}
+
+/**
+ * Panels merge into one measurement when their labels differ only by
+ * geography or period ("Year" / "County: 2024"). If two such panels then
+ * give the same geography different values for the same date, they are
+ * not the same metric after all ("Calendar year" / "Fiscal year"): keep
+ * those panels' own labels apart.
+ */
+function splitConflictingPanels(
+  assigned: AssignedCell[],
+  identOf: (c: IRCell) => { id: number; label: string },
+): (a: AssignedCell) => string {
+  const baseKey = (a: AssignedCell) =>
+    JSON.stringify([
+      labelKey(a.panelDim),
+      a.rowDims.map(labelKey),
+      a.colDims.map(labelKey),
+      a.geo,
+    ]);
+  // key → date → panel id → value
+  const seen = new Map<string, Map<string, Map<number, number>>>();
+  const split = new Set<number>();
+  for (const a of assigned) {
+    if (!a.cell.period.date) continue;
+    const k = baseKey(a);
+    let byDate = seen.get(k);
+    if (!byDate) seen.set(k, (byDate = new Map()));
+    let byPanel = byDate.get(a.cell.period.date);
+    if (!byPanel) byDate.set(a.cell.period.date, (byPanel = new Map()));
+    const id = identOf(a.cell).id;
+    for (const [other, v] of byPanel) {
+      if (other !== id && v !== a.cell.value) {
+        split.add(other);
+        split.add(id);
+      }
+    }
+    byPanel.set(id, a.cell.value);
+  }
+  return (a) => {
+    const ident = identOf(a.cell);
+    return split.has(ident.id) && !a.panelDim
+      ? labelKey(ident.label)
+      : labelKey(a.panelDim);
   };
 }
 

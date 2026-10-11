@@ -1,10 +1,11 @@
 "use client";
 
-import { forwardRef, useMemo, useRef } from "react";
+import { forwardRef, useId, useMemo, useRef } from "react";
 import {
   Area,
   Bar,
   ComposedChart,
+  Customized,
   Line,
   ReferenceLine,
   XAxis,
@@ -34,6 +35,7 @@ import {
   niceTicks,
 } from "../ui/chart-theme";
 import { GrowBar } from "../ui/grow-bar";
+import { PseudoClip, pseudoClipClass, realRanges } from "../ui/pseudo-clip";
 import { PSEUDO_DASH, PseudoHistoryNote } from "../ui/pseudo-history-note";
 import { timeBarLayout, useElementWidth } from "../ui/use-element-width";
 import {
@@ -299,19 +301,29 @@ export const AnalyzerChart = forwardRef<
   );
 
   const legendSpecs = legendShowsHidden ? specs : visible;
-  // Specs with pseudo-history points in the visible rows (columns excluded:
-  // bars have no dashed form).
-  const pseudoIds = new Set(
-    visible
-      .filter(
-        (s) =>
-          s.type !== "column" &&
-          rows.some(
-            (r) => r[pseudoKey(s.id)] != null && r[specKey(s.id)] == null,
-          ),
-      )
-      .map((s) => s.id),
-  );
+  // Solid ranges of specs with pseudo-history points in the visible rows
+  // (columns excluded: bars have no dashed form). Each spec's line is
+  // clipped to its ranges over its dashed pseudoKey copy.
+  const clipBase = useId();
+  const clipId = (id: number) => `${clipBase}-${id}`;
+  const pseudoRanges = useMemo(() => {
+    const out = new Map<number, [number, number][]>();
+    if (!rows.length) return out;
+    const first = rows[0].date;
+    const last = rows[rows.length - 1].date;
+    for (const s of visible) {
+      const p = points.get(s.id);
+      if (s.type === "column" || !p?.pseudo) continue;
+      const pts: { ts: number; pseudo: boolean }[] = [];
+      p.dates.forEach((d, i) => {
+        if (d < first || d > last || p.values[i] == null) return;
+        pts.push({ ts: Date.parse(d), pseudo: !!p.pseudo?.[i] });
+      });
+      if (pts.some((x) => x.pseudo)) out.set(s.id, realRanges(pts));
+    }
+    return out;
+  }, [visible, points, rows]);
+  const pseudoIds = new Set(pseudoRanges.keys());
 
   return (
     <div className={cn("w-full", className)}>
@@ -463,7 +475,17 @@ export const AnalyzerChart = forwardRef<
                       />
                     );
                   }
-                  const pseudo = pseudoIds.has(s.id) && (
+                  const ranges = pseudoRanges.get(s.id);
+                  const clipClass = ranges
+                    ? pseudoClipClass(clipId(s.id))
+                    : undefined;
+                  const pseudo = ranges && [
+                    <Customized
+                      key={`${key}-clip`}
+                      component={
+                        <PseudoClip id={clipId(s.id)} ranges={ranges} />
+                      }
+                    />,
                     <Line
                       key={`${key}-pseudo`}
                       {...LINE_PROPS}
@@ -472,10 +494,11 @@ export const AnalyzerChart = forwardRef<
                       name={`${s.name} (pseudo history)`}
                       stroke={color}
                       strokeDasharray={PSEUDO_DASH}
+                      connectNulls={bridge}
                       activeDot={false}
                       legendType="none"
-                    />
-                  );
+                    />,
+                  ];
                   if (s.type === "area") {
                     return [
                       pseudo,
@@ -490,6 +513,7 @@ export const AnalyzerChart = forwardRef<
                         strokeDasharray={dash}
                         fill={color}
                         fillOpacity={0.14}
+                        className={clipClass}
                         dot={false}
                         activeDot={{ r: 3, strokeWidth: 0 }}
                         isAnimationActive={false}
@@ -508,6 +532,7 @@ export const AnalyzerChart = forwardRef<
                       stroke={color}
                       strokeDasharray={dash}
                       connectNulls={bridge}
+                      className={clipClass}
                     />,
                   ];
                 })}

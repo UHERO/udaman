@@ -232,6 +232,8 @@ export interface SeriesChartRow {
   ytd: number | null;
   c5ma: number | null;
   mom: number | null;
+  /** Level value is pseudo history (computed, not source data). */
+  pseudo?: boolean;
 }
 
 /** Pseudo-history boundary: level values before `date` are pseudo history. */
@@ -253,6 +255,8 @@ export interface SeriesTableRow {
   formattedYtd: string;
   c5maValue: number | null;
   formattedC5ma: string;
+  /** Level value is pseudo history (computed, not source data). */
+  pseudo?: boolean;
 }
 
 /** Summary statistics (series-helper.calculateSeriesSummaryStats). */

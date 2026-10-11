@@ -88,13 +88,18 @@ function pathOf(n: NameInput, withCodes = false): Path {
         : []),
       ...n.rowDims.filter(keepIn(n.rowDims)).map((text) => ({
         axis: "row" as const,
-        text: withRowHeader(text, n.rowHeader),
+        text: withRowHeader(dropCountUnit(text), n.rowHeader),
       })),
       ...n.colDims
         .filter(keepIn(n.colDims))
-        .map((text) => ({ axis: "col" as const, text })),
+        .map((text) => ({ axis: "col" as const, text: dropCountUnit(text) })),
     ],
   };
+}
+
+/** "Population (number)" → "Population": a count needs no unit in its name. */
+function dropCountUnit(text: string): string {
+  return text.replace(/\s*\((number|numbers|count)\)\s*$/i, "") || text;
 }
 
 /** "0" under an "Age" column → "Age 0"; "96816" under "ZIP code" → "ZIP code 96816". */
@@ -133,6 +138,7 @@ function render(p: Path, shown: Set<number>, subject: string): string {
   if (parts.length === 1 && GENERIC.test(parts[0])) parts.unshift(subject);
   // Too long: shorten the longest component, never drop one (each shown
   // component is there to tell this measurement apart).
+  parts[0] = parts[0][0].toUpperCase() + parts[0].slice(1);
   let name = parts.join(": ");
   while (name.length > MAX_PORTAL) {
     const longest = parts.reduce(

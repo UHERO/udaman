@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useId, useMemo, useRef } from "react";
 import {
   Bar,
   Brush,
   ComposedChart,
+  Customized,
   Line,
   ReferenceLine,
   XAxis,
@@ -27,13 +28,14 @@ import {
   seriesColor,
   timeTicks,
 } from "../ui/chart-theme";
+import { PseudoClip, pseudoClipClass, realRanges } from "../ui/pseudo-clip";
 import { PSEUDO_DASH, PseudoHistoryNote } from "../ui/pseudo-history-note";
 import { ChartZoomBar, useChartZoom } from "../ui/use-chart-zoom";
 import { timeBarLayout, useElementWidth } from "../ui/use-element-width";
 import { companionLabel } from "./series-labels";
 import type { SeriesCompanion } from "./series-labels";
 
-type Row = SeriesChartRow & { levelPseudo?: number | null };
+type Row = SeriesChartRow;
 
 const Y_AXIS_WIDTH = 56;
 const MAX_BAR_PX = 64;
@@ -125,23 +127,17 @@ export function SeriesChart({
     enabled: !!onRangeChange,
   });
 
-  const pseudoBoundary = pseudoZones?.length
-    ? pseudoZones[pseudoZones.length - 1].date
-    : null;
-
-  const data = useMemo<Row[]>(() => {
-    const visible = rows.slice(lo, hi + 1);
-    if (!pseudoBoundary) return visible;
-    return visible.map((r) => ({
-      ...r,
-      levelPseudo: r.date <= pseudoBoundary ? r.level : null,
-      level: r.date >= pseudoBoundary ? r.level : null,
-    }));
-  }, [rows, lo, hi, pseudoBoundary]);
+  const data = useMemo<Row[]>(() => rows.slice(lo, hi + 1), [rows, lo, hi]);
+  const hasPseudo = !!pseudoZones?.length && data.some((r) => r.pseudo);
+  const clipId = useId();
+  const solidRanges = useMemo(
+    () => (hasPseudo ? realRanges(data) : []),
+    [hasPseudo, data],
+  );
 
   // Level zero line when level goes negative and no bars own the zero line.
   const levelHasNegative = useMemo(
-    () => data.some((r) => (r.level ?? r.levelPseudo ?? 0) < 0),
+    () => data.some((r) => (r.level ?? 0) < 0),
     [data],
   );
 
@@ -171,11 +167,9 @@ export function SeriesChart({
 
   const barLabel = barKey ? companionLabel(barKey, percent) : "";
   // Note only when pseudo-history points are actually in the visible range.
-  const showPseudoNote =
-    !!pseudoBoundary && data.some((r) => r.date <= pseudoBoundary);
+  const showPseudoNote = hasPseudo;
   const chartConfig = {
     level: { label: "Level", color: stroke },
-    levelPseudo: { label: "Pseudo History", color: stroke },
     ...Object.fromEntries(
       companions.map((c) => [
         c,
@@ -307,13 +301,21 @@ export function SeriesChart({
                 strokeOpacity={0.35}
               />
             )}
-            {pseudoBoundary && (
+            {/* Pseudo history: dashed under everything, solid copy on top
+                clipped to the ranges around real points. */}
+            {hasPseudo && (
+              <Customized
+                component={<PseudoClip id={clipId} ranges={solidRanges} />}
+              />
+            )}
+            {hasPseudo && (
               <Line
                 {...LINE_PROPS}
                 yAxisId="level"
-                dataKey="levelPseudo"
+                dataKey="level"
                 stroke={stroke}
                 strokeDasharray={PSEUDO_DASH}
+                activeDot={false}
               />
             )}
             <Line
@@ -321,6 +323,7 @@ export function SeriesChart({
               yAxisId="level"
               dataKey="level"
               stroke={stroke}
+              className={hasPseudo ? pseudoClipClass(clipId) : undefined}
             />
             <ChartTooltip
               cursor={{
@@ -332,8 +335,8 @@ export function SeriesChart({
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const row = payload[0].payload as Row;
-                const isPseudo = row.level === null && row.levelPseudo != null;
-                const level = row.level ?? row.levelPseudo ?? null;
+                const isPseudo = !!row.pseudo;
+                const level = row.level;
                 return (
                   <div className="bg-card border-border min-w-40 border px-2.5 py-1.5 text-xs shadow-md">
                     <div className="text-foreground mb-1 font-medium">

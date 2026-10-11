@@ -1,10 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Bar,
   CartesianGrid,
   ComposedChart,
+  Customized,
   Line,
   ReferenceLine,
   XAxis,
@@ -30,12 +38,13 @@ import {
   timeTicks,
 } from "./chart-theme";
 import { GrowBar } from "./grow-bar";
+import { PseudoClip, pseudoClipClass, realRanges } from "./pseudo-clip";
 import { PSEUDO_DASH } from "./pseudo-history-note";
 import { timeBarLayout, useElementWidth } from "./use-element-width";
 
 type Companion = "yoy" | "ytd" | "c5ma" | "mom";
 
-type Row = SeriesChartRow & { levelPseudo?: number | null };
+type Row = SeriesChartRow;
 
 /**
  * Minimal level-line chart for category grids and analyzer mini charts —
@@ -48,7 +57,7 @@ type Row = SeriesChartRow & { levelPseudo?: number | null };
  *   none; `.highcharts-series-1 rect.highcharts-point { fill: none }`), so
  *   by default no bars are drawn. `companionBars` draws them as thin muted
  *   bars on a hidden secondary scale (Angular: second y-axis, labels off).
- * - Pseudo-history drawn dashed up to the last pseudo zone.
+ * - Pseudo-history points drawn dashed, real points solid.
  * - Crosshair tooltip with the frequency-formatted date. `tooltip={false}`
  *   keeps only the crosshair and reports the hovered row via `onHoverRow`
  *   (category cards show it in their header instead).
@@ -126,21 +135,23 @@ export function MiniLineChart({
   const wrapRef = useRef<HTMLDivElement>(null);
   const width = useElementWidth(wrapRef);
 
-  const data = useMemo<Row[]>(() => {
-    const visible = rows.filter(
-      (r) =>
-        (!startDate || r.date >= startDate) && (!endDate || r.date <= endDate),
-    );
-    const boundary = pseudoZones?.length
-      ? pseudoZones[pseudoZones.length - 1].date
-      : null;
-    if (!boundary || valueKey !== "level") return visible;
-    return visible.map((r) => ({
-      ...r,
-      levelPseudo: r.date <= boundary ? r.level : null,
-      level: r.date >= boundary ? r.level : null,
-    }));
-  }, [rows, startDate, endDate, pseudoZones, valueKey]);
+  const data = useMemo<Row[]>(
+    () =>
+      rows.filter(
+        (r) =>
+          (!startDate || r.date >= startDate) &&
+          (!endDate || r.date <= endDate),
+      ),
+    [rows, startDate, endDate],
+  );
+  // Pseudo history: dashed level under a solid copy clipped to real points.
+  const splitLevel =
+    !!pseudoZones?.length && valueKey === "level" && data.some((r) => r.pseudo);
+  const clipId = useId();
+  const solidRanges = useMemo(
+    () => (splitLevel ? realRanges(data) : []),
+    [splitLevel, data],
+  );
 
   // Edge ticks: first/last period, min/max plotted value.
   const edge = useMemo(() => {
@@ -150,7 +161,7 @@ export function MiniLineChart({
     let min = Infinity;
     let max = -Infinity;
     for (const r of data) {
-      const v = valueKey === "level" ? (r.level ?? r.levelPseudo) : r[valueKey];
+      const v = valueKey === "level" ? r.level : r[valueKey];
       if (v === null || v === undefined) continue;
       if (v < min) min = v;
       if (v > max) max = v;
@@ -169,8 +180,7 @@ export function MiniLineChart({
     () =>
       (yDomain ? yDomain[0] < 0 : false) ||
       data.some((r) => {
-        const v =
-          valueKey === "level" ? (r.level ?? r.levelPseudo) : r[valueKey];
+        const v = valueKey === "level" ? r.level : r[valueKey];
         return v !== null && v !== undefined && v < 0;
       }),
     [data, valueKey, yDomain],
@@ -202,16 +212,13 @@ export function MiniLineChart({
       if (!onHoverRow || index === hoverIndex.current) return;
       hoverIndex.current = index;
       const row = index === null ? null : data[index];
-      onHoverRow(
-        row ? { ...row, level: row.level ?? row.levelPseudo ?? null } : null,
-      );
+      onHoverRow(row);
     },
     [data, onHoverRow],
   );
 
   const chartConfig = {
     level: { label: levelLabel, color: stroke },
-    levelPseudo: { label: `${levelLabel} (pseudo history)`, color: stroke },
     ...(companion
       ? {
           [companion]: {
@@ -317,17 +324,23 @@ export function MiniLineChart({
               strokeWidth={1}
             />
           )}
-          {pseudoZones?.length && valueKey === "level" ? (
+          {splitLevel && (
+            <Customized
+              component={<PseudoClip id={clipId} ranges={solidRanges} />}
+            />
+          )}
+          {splitLevel && (
             <Line
               {...LINE_PROPS}
               isAnimationActive={animate}
               animationDuration={450}
               yAxisId="level"
-              dataKey="levelPseudo"
+              dataKey="level"
               stroke={stroke}
               strokeDasharray={PSEUDO_DASH}
+              activeDot={false}
             />
-          ) : null}
+          )}
           <Line
             {...LINE_PROPS}
             isAnimationActive={animate}
@@ -335,6 +348,7 @@ export function MiniLineChart({
             yAxisId="level"
             dataKey={valueKey}
             stroke={stroke}
+            className={splitLevel ? pseudoClipClass(clipId) : undefined}
           />
           <ChartTooltip
             cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
@@ -342,7 +356,7 @@ export function MiniLineChart({
             content={({ active, payload }) => {
               if (!tooltip || !active || !payload?.length) return null;
               const row = payload[0].payload as Row;
-              const level = row.level ?? row.levelPseudo ?? null;
+              const level = row.level;
               const comp = companion ? row[companion] : null;
               return (
                 <div className="bg-card border-border min-w-32 border px-2.5 py-1.5 text-xs shadow-md">

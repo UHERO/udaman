@@ -49,6 +49,7 @@ import {
   type PeriodContext,
   type SplitPeriod,
 } from "../labels";
+import { toPercentUnits } from "../meta";
 
 export interface LegacySectionIR {
   tables: IRTable[];
@@ -1459,7 +1460,8 @@ function emitCells(a: EmitArgs): void {
         rowPath,
         colPath: [...measure, ...spec.path],
         period: p,
-        value: v.num!,
+        // Text cells ("17%") already parse to percent units.
+        value: a.sheet[addr]?.t === "n" ? toPercentUnits(v.num!, z) : v.num!,
         cellAddr: `${a.sheetName}!${addr}`,
         ...(z ? { numFmt: z } : {}),
         markers: [

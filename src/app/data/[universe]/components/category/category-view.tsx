@@ -47,6 +47,7 @@ import {
 } from "../selectors/transform-toggle";
 import { CopyButton } from "../ui/copy-button";
 import { PortalCard, PortalCardHeader } from "../ui/portal-card";
+import { ScrollTabs } from "../ui/scroll-tabs";
 import { CategoryChartCard } from "./category-chart-card";
 import { CategoryHelp } from "./category-help";
 import {
@@ -224,11 +225,12 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
             </div>
           </div>
           {showTabs ? (
-            // Tabs sit on the toolbar's top rule; the active tab's underline
-            // overlaps it (-mb-px).
-            <nav
-              aria-label="Subcategories"
-              className="mt-2 flex flex-wrap gap-x-5"
+            // Tabs sit on the toolbar's top rule; the strip overlaps it
+            // (-mb-px) so the active tab's underline covers the rule.
+            <ScrollTabs
+              label="Subcategories"
+              activeKey={activeTabId}
+              className="mt-2 -mb-px"
             >
               {data.subcategories.map((sub) => {
                 const active = sub.id === activeTabId;
@@ -245,7 +247,7 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
                     )}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "-mb-px border-b-2 py-2 text-sm whitespace-nowrap",
+                      "shrink-0 border-b-2 py-2 text-sm whitespace-nowrap",
                       active
                         ? "text-foreground border-(--portal-primary) font-medium"
                         : "text-muted-foreground hover:text-foreground border-transparent",
@@ -255,7 +257,7 @@ export function CategoryView({ data }: { data: CategoryPageData }) {
                   </Link>
                 );
               })}
-            </nav>
+            </ScrollTabs>
           ) : (
             data.dataListPath &&
             data.dataListPath !== data.category.name && (

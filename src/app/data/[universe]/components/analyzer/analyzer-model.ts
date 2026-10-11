@@ -278,7 +278,10 @@ export type AnalyzerChartRow = {
 } & Record<`s${number}` | `p${number}` | `g${number}`, number | null>;
 
 export const specKey = (id: number) => `s${id}` as const;
-/** Pseudo-history values of a series, drawn dashed (level only). */
+/**
+ * Level values of a series with pseudo history, drawn dashed under the
+ * series line; the series line is clipped to its real points (pseudo-clip).
+ */
 export const pseudoKey = (id: number) => `p${id}` as const;
 /** Growth-rate bar values of a series (global YOY/YTD/MOM toggle). */
 export const growthKey = (id: number) => `g${id}` as const;
@@ -306,13 +309,8 @@ export function analyzerChartRows(
         row = { ts: Date.parse(date), date } as AnalyzerChartRow;
         byDate.set(date, row);
       }
-      // Pseudo-history points go to the dashed pseudoKey; each run also
-      // takes its real neighbours so the dashed and solid lines join.
-      const ps = p.pseudo;
-      const isPseudo = !!ps?.[i];
-      const nearPseudo = isPseudo || !!ps?.[i - 1] || !!ps?.[i + 1];
-      row[specKey(spec.id)] = isPseudo ? null : p.values[i];
-      if (nearPseudo) row[pseudoKey(spec.id)] = p.values[i];
+      row[specKey(spec.id)] = p.values[i];
+      if (p.pseudo) row[pseudoKey(spec.id)] = p.values[i];
     });
   }
   const rows = [...byDate.values()].sort((a, b) => a.ts - b.ts);

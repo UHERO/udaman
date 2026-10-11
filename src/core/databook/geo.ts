@@ -1,7 +1,12 @@
 /**
  * Data Book geography labels → DATABOOK universe geography handles.
  *
- * Handles follow UHERO conventions (HI, HON, HAW, KAU, MAU, MAUI, MOL, LAN).
+ * Handles follow UHERO conventions (HI, HON, HAW, KAU, MAU, MAUI, MOL, LAN),
+ * extended with the islands UHERO has no handle for: OAHU, HAWI (Hawaii
+ * Island), KAUI (Kauai Island), NII (Niihau), KAHO (Kahoolawe). Counties
+ * and islands are distinct geographies: HON vs OAHU, MAU vs MAUI/MOL/LAN.
+ * Assignment logic lives in geoassign.ts; the label maps below are only
+ * used by the cross-edition matcher to canonicalize labels.
  * Deliberate simplifications (see docs/2026-10-10-databook-universe-plan.md):
  *  - "Maui County" with a Kalawao footnote is just MAU — Kalawao is never
  *    broken out as its own geography.
@@ -23,7 +28,7 @@ export const DATABOOK_GEOS: DatabookGeo[] = [
   {
     handle: "HI",
     displayName: "State of Hawaii",
-    displayNameShort: "Hawaii",
+    displayNameShort: "State of Hawaii",
     fips: "15",
     geotype: "state",
     listOrder: 0,
@@ -31,7 +36,7 @@ export const DATABOOK_GEOS: DatabookGeo[] = [
   {
     handle: "HON",
     displayName: "City and County of Honolulu",
-    displayNameShort: "Honolulu",
+    displayNameShort: "Honolulu County",
     fips: "15003",
     geotype: "county",
     listOrder: 1,
@@ -39,7 +44,7 @@ export const DATABOOK_GEOS: DatabookGeo[] = [
   {
     handle: "HAW",
     displayName: "Hawaii County",
-    displayNameShort: "Hawaii Co.",
+    displayNameShort: "Hawaii County",
     fips: "15001",
     geotype: "county",
     listOrder: 2,
@@ -47,7 +52,7 @@ export const DATABOOK_GEOS: DatabookGeo[] = [
   {
     handle: "KAU",
     displayName: "Kauai County",
-    displayNameShort: "Kauai",
+    displayNameShort: "Kauai County",
     fips: "15007",
     geotype: "county",
     listOrder: 3,
@@ -55,42 +60,82 @@ export const DATABOOK_GEOS: DatabookGeo[] = [
   {
     handle: "MAU",
     displayName: "Maui County",
-    displayNameShort: "Maui Co.",
+    displayNameShort: "Maui County",
     fips: "15009",
     geotype: "county",
     listOrder: 4,
   },
   {
-    handle: "MAUI",
-    displayName: "Maui Island",
-    displayNameShort: "Maui Isl.",
+    handle: "OAHU",
+    displayName: "Oahu",
+    displayNameShort: "Oahu",
     fips: null,
     geotype: "island",
     listOrder: 5,
   },
   {
-    handle: "MOL",
-    displayName: "Molokai",
-    displayNameShort: "Molokai",
+    handle: "HAWI",
+    displayName: "Hawaii Island",
+    displayNameShort: "Hawaii Island",
     fips: null,
     geotype: "island",
     listOrder: 6,
   },
   {
-    handle: "LAN",
-    displayName: "Lanai",
-    displayNameShort: "Lanai",
+    handle: "MAUI",
+    displayName: "Maui Island",
+    displayNameShort: "Maui Island",
     fips: null,
     geotype: "island",
     listOrder: 7,
   },
   {
+    handle: "MOL",
+    displayName: "Molokai Island",
+    displayNameShort: "Molokai Island",
+    fips: null,
+    geotype: "island",
+    listOrder: 8,
+  },
+  {
+    handle: "LAN",
+    displayName: "Lanai Island",
+    displayNameShort: "Lanai Island",
+    fips: null,
+    geotype: "island",
+    listOrder: 9,
+  },
+  {
+    handle: "KAUI",
+    displayName: "Kauai Island",
+    displayNameShort: "Kauai Island",
+    fips: null,
+    geotype: "island",
+    listOrder: 10,
+  },
+  {
+    handle: "NII",
+    displayName: "Niihau",
+    displayNameShort: "Niihau",
+    fips: null,
+    geotype: "island",
+    listOrder: 11,
+  },
+  {
+    handle: "KAHO",
+    displayName: "Kahoolawe",
+    displayNameShort: "Kahoolawe",
+    fips: null,
+    geotype: "island",
+    listOrder: 12,
+  },
+  {
     handle: "US",
-    displayName: "United States",
-    displayNameShort: "U.S.",
+    displayName: "United States of America",
+    displayNameShort: "USA",
     fips: null,
     geotype: "nation",
-    listOrder: 8,
+    listOrder: 13,
   },
 ];
 

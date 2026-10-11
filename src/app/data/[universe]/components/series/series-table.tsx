@@ -73,19 +73,44 @@ export function SeriesTable({
         id: c.key,
         accessorKey: c.key,
         header: c.label,
-        cell: (ctx) => (ctx.getValue() as string) || "–",
+        cell: (ctx) => {
+          const text = (ctx.getValue() as string) || "–";
+          // Pseudo-history levels: muted italic, keyed above the table.
+          if (c.key !== "formattedValue" || !ctx.row.original.pseudo)
+            return text;
+          return (
+            <span
+              className="text-muted-foreground italic"
+              title="Pseudo history"
+            >
+              {text}
+            </span>
+          );
+        },
       })),
     ],
     [columns, newestFirst],
   );
 
+  const hasPseudo = data.some((r) => r.pseudo);
+
   return (
-    <StatTable
-      data={data}
-      columns={defs}
-      stickyFirstColumn
-      maxHeight="70vh"
-      getRowId={(r) => r.date}
-    />
+    <>
+      {hasPseudo && (
+        <p
+          className="text-muted-foreground mb-2 text-[11px]"
+          title="Pseudo history: values estimated by UHERO outside the source data"
+        >
+          <span className="italic">Italic</span> levels are pseudo history.
+        </p>
+      )}
+      <StatTable
+        data={data}
+        columns={defs}
+        stickyFirstColumn
+        maxHeight="70vh"
+        getRowId={(r) => r.date}
+      />
+    </>
   );
 }

@@ -15,8 +15,9 @@
  * Unmatched cells are kept (series = "") so the review report can show them.
  */
 import { geoHandle } from "./geo";
+import { assignGeographies } from "./geoassign";
 import type { EditionIR, IRCell, IRTable } from "./ir";
-import { labelKey, parsePeriod } from "./labels";
+import { labelKey } from "./labels";
 import type { ManifestSection } from "./manifest";
 import { allSeries } from "./manifest";
 import { panelIdentities } from "./panels";
@@ -31,25 +32,6 @@ const SERIES_THRESHOLD = 0.6;
 export function canonLabel(label: string): string {
   const geo = geoHandle(label);
   return geo ? `@${geo}` : labelKey(label);
-}
-
-/**
- * A row/column path compared as one string: legacy editions split headers
- * into bands (["Civilian labor force", "Female"]) where 2025 flattens them
- * ("Civilian labor force, Female"). A geography leaf canonicalizes to its
- * handle.
- */
-function canonPath(path: string[]): string {
-  if (path.length === 0) return "";
-  const leaf = path[path.length - 1];
-  const geo = geoHandle(leaf);
-  const rest = labelKey((geo ? path.slice(0, -1) : path).join(" "));
-  return geo ? `${rest}@${geo}` : rest;
-}
-
-function canonPanel(label: string): string {
-  if (!label) return "";
-  return parsePeriod(label).basis === "unknown" ? labelKey(label) : "";
 }
 
 function pathKey(path: string[]): string {
@@ -134,18 +116,23 @@ interface RefTable {
 function groupCells(table: IRTable, cells: IRCell[]): Group[] {
   // Year panels share one identity, so their cells form one series.
   const idents = panelIdentities(table);
+  const identOf = (c: IRCell) =>
+    idents.get(c.panel) ?? { id: c.panel, label: "" };
+  // The same geography assignment as the manifest: a series is compared
+  // as its metric labels (geography taken out, legacy header bands joined
+  // the way 2025 flattens them) plus its geography handle.
+  const assigned = assignGeographies(cells, (c) => identOf(c).label, {
+    title: table.title,
+  });
   const groups = new Map<string, Group>();
-  for (const c of cells) {
-    const ident = idents.get(c.panel) ?? { id: c.panel, label: "" };
+  for (const a of assigned) {
+    const c = a.cell;
+    const ident = identOf(c);
     const pl = ident.label;
     const k = `${ident.id}|${pathKey(c.rowPath)}|${pathKey(c.colPath)}`;
     let g = groups.get(k);
     if (!g) {
-      const canon = [
-        canonPanel(pl),
-        canonPath(c.rowPath),
-        canonPath(c.colPath),
-      ].join("|");
+      const panel = labelKey(a.panelDim);
       groups.set(
         k,
         (g = {
@@ -153,11 +140,17 @@ function groupCells(table: IRTable, cells: IRCell[]): Group[] {
           panelLabel: pl,
           rowPath: c.rowPath,
           colPath: c.colPath,
-          canon,
+          canon: [
+            panel,
+            labelKey(a.rowDims.join(" ")),
+            labelKey(a.colDims.join(" ")),
+            a.geo,
+          ].join("|"),
           leaf: [
-            canonPanel(pl),
-            canonPath(c.rowPath.slice(-1)),
-            canonPath(c.colPath.slice(-1)),
+            panel,
+            labelKey(a.rowDims[a.rowDims.length - 1] ?? ""),
+            labelKey(a.colDims[a.colDims.length - 1] ?? ""),
+            a.geo,
           ].join("|"),
           tokens: tokens([pl, ...c.rowPath, ...c.colPath].join(" ")),
           byDate: new Map(),

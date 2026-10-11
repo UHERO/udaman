@@ -92,6 +92,12 @@ export function valueOnDate(
   return i > -1 ? toNumber(t.values[i]) : null;
 }
 
+/** True when the transformation's value on `date` is pseudo history. */
+function pseudoOnDate(t: TransformationResult | undefined, date: string) {
+  if (!t?.pseudoHistory || !t.dates) return false;
+  return !!t.pseudoHistory[binarySearch(t.dates, date)];
+}
+
 /** Round to n decimals, keeping null. Growth rates are rounded to 1 dp. */
 const round = (v: number | null, n: number) =>
   v === null ? null : Math.round(v * 10 ** n) / 10 ** n;
@@ -114,6 +120,7 @@ export function buildSeriesChartRows(
     ytd: round(valueOnDate(ytd, date), GROWTH_DECIMALS),
     c5ma: valueOnDate(c5ma, date),
     mom: round(valueOnDate(mom, date), GROWTH_DECIMALS),
+    pseudo: pseudoOnDate(level, date),
   }));
 }
 
@@ -185,6 +192,7 @@ export function buildSeriesTable(
       formattedYtd: formatNum(ytdValue, GROWTH_DECIMALS, universe),
       c5maValue,
       formattedC5ma: formatNum(c5maValue, decimals, universe),
+      pseudo: pseudoOnDate(level, date),
     };
   });
 }
