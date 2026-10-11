@@ -195,7 +195,9 @@ export async function proxy(request: NextRequest) {
     // If the path already contains the internal prefix (from app-generated
     // links or redirects like `redirect("/udaman/uhero/series")`), strip it
     // so the browser URL stays clean.
-    if (pathname.startsWith(`/${app}`)) {
+    // Whole segment only: `/databook` on the data subdomain is a universe,
+    // not `/data` + "book".
+    if (pathname === `/${app}` || pathname.startsWith(`/${app}/`)) {
       let cleanPath = pathname.slice(app.length + 1) || "/";
       // Collapse /data/uhero/… → /… in one hop (see below).
       if (app === "data")
