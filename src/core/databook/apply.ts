@@ -433,9 +433,12 @@ async function ensureLoaders(
  * that fell under the edition threshold). Data points, loaders and links
  * go with them. Only touches the DATABOOK universe.
  */
-export async function pruneManifest(
-  sections: ManifestSection[],
-): Promise<{ series: number; measurements: number }> {
+export async function pruneManifest(sections: ManifestSection[]): Promise<{
+  series: number;
+  measurements: number;
+  sources: number;
+  sourceDetails: number;
+}> {
   const keepSeries = new Set<string>();
   const keepPrefixes = new Set<string>();
   for (const s of sections)
@@ -467,9 +470,27 @@ export async function pruneManifest(
     await MeasurementCollection.delete(m.id);
     measurements++;
   }
-  log.info(
-    { series, measurements },
-    "Pruned DATABOOK rows not in the manifest",
+  // Sources / source details nothing in the universe points at any more.
+  const sources = await rawQuery(
+    `DELETE FROM sources WHERE universe = ?
+       AND id NOT IN (SELECT source_id FROM series WHERE universe = ? AND source_id IS NOT NULL)
+       AND id NOT IN (SELECT source_id FROM measurements WHERE universe = ? AND source_id IS NOT NULL)`,
+    [DATABOOK, DATABOOK, DATABOOK],
   );
-  return { series, measurements };
+  const details = await rawQuery(
+    `DELETE FROM source_details WHERE universe = ?
+       AND id NOT IN (SELECT source_detail_id FROM series WHERE universe = ? AND source_detail_id IS NOT NULL)
+       AND id NOT IN (SELECT source_detail_id FROM measurements WHERE universe = ? AND source_detail_id IS NOT NULL)`,
+    [DATABOOK, DATABOOK, DATABOOK],
+  );
+  const affected = (r: unknown) =>
+    Number((r as { affectedRows?: number }).affectedRows ?? 0);
+  const out = {
+    series,
+    measurements,
+    sources: affected(sources),
+    sourceDetails: affected(details),
+  };
+  log.info(out, "Pruned DATABOOK rows not in the manifest");
+  return out;
 }

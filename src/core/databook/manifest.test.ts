@@ -78,7 +78,11 @@ describe("propose", () => {
       "DB0106@MAU.A",
     ]);
     expect(m.dataPortalName).toBe("Resident Population");
-    expect(sec.tables[0].source.agency).toBe("U.S. Census Bureau");
+    expect(sec.tables[0].source.agency).toBe("DBEDT State of Hawaii Data Book");
+    expect(sec.tables[0].source.originalAgency).toBe("U.S. Census Bureau");
+    expect(sec.tables[0].source.detail).toBe(
+      "Data Book Table 1.06 (2025 edition). Original source: U.S. Census Bureau, records <https://www.census.gov/x>",
+    );
   });
 
   it("uses column letters for plain long tables", () => {

@@ -25,6 +25,9 @@ import { describe, portalNames } from "./naming";
 import { panelIdentities } from "./panels";
 import { databookDir } from "./store";
 
+export const DATABOOK_SOURCE = "DBEDT State of Hawaii Data Book";
+export const DATABOOK_URL = "https://dbedt.hawaii.gov/economic/databook/";
+
 export const SECTION_NAMES: Record<number, string> = {
   1: "Population",
   2: "Vital Statistics and Health",
@@ -96,7 +99,19 @@ export interface ManifestTable {
   layout: IRTable["layout"];
   headnote: string;
   footnotes: Record<string, string>;
-  source: { agency: string; link: string | null; detail: string };
+  /**
+   * `agency`/`link` are the DBEDT Data Book itself — that is where udaman
+   * gets the data, and citing it keeps users from thinking UHERO compiled
+   * the tables. `detail` carries the table number and DBEDT's own citation
+   * of the original source; `original*` keep that agency/URL for reference.
+   */
+  source: {
+    agency: string;
+    link: string | null;
+    detail: string;
+    originalAgency: string;
+    originalLink: string | null;
+  };
   measurements: ManifestMeasurement[];
 }
 
@@ -460,15 +475,17 @@ function proposeTable(
     headnote: table.headnote,
     footnotes: table.footnotes,
     source: {
-      agency: sourceAgency(table.source),
-      link: table.sourceUrl,
+      agency: DATABOOK_SOURCE,
+      link: DATABOOK_URL,
       detail: truncate(
-        table.source
+        `Data Book Table ${Number(table.tableNum.slice(0, 2))}.${table.tableNum.slice(3)} (${table.edition} edition). Original source: ${table.source
           .replace(/^\s*sources?:\s*/i, "")
           .replace(/\s+/g, " ")
-          .trim(),
+          .trim()}`,
         1000,
       ),
+      originalAgency: sourceAgency(table.source),
+      originalLink: table.sourceUrl,
     },
     measurements,
   };

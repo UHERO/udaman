@@ -245,7 +245,7 @@ editions ──► adapter (2025: accessible │ 2002–2024: legacy) ──► 
 | `unit` | Headnote hints, `$` in the number format, header words (rate, per 1,000, index, median), else "Number". Normalized to ~30 units. |
 | `percent` / `decimals` | Cell number format: `0.0%` → `percent = true`, 1 decimal. Values are stored as the fractions DBEDT publishes; udaman's percent field takes care of multiplying by 100 for display. |
 | `xseries.units` (scale) | "in thousands" / "in millions" in the headnote. |
-| `source` / `source_link` / `source_detail` | The `Source:` footer: agency phrase → source (~100 deduped); first `<https://…>` → link; full citation → detail. |
+| `source` / `source_link` / `source_detail` | **Source is always "DBEDT State of Hawaii Data Book"**, linked to https://dbedt.hawaii.gov/economic/databook/, because that is where we get the data and citing it means users won't think UHERO compiled the tables. **`source_detail`** = "Data Book Table 1.07 (2025 edition). Original source: " + DBEDT's citation from the table's `Source:` footer. The original agency and URL are also kept in the manifest (`originalAgency` / `originalLink`). |
 | `seasonal_adjustment` | `not_applicable` |
 | Categories | `Databook` → `§N section` (Narrative text) → `Table NN.TT` (one data_list per table). |
 | `list_order` / `indent` | Table order; `Level N` clamped to indent0–3. |
