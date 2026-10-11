@@ -173,7 +173,7 @@ export async function loadHistory(
   };
 
   // Bounded concurrency; order only matters within a series.
-  const limit = Math.max(1, opts.concurrency ?? 4);
+  const limit = Math.max(1, opts.concurrency ?? 2);
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(limit, list.length) }, async () => {

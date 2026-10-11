@@ -2115,10 +2115,9 @@ class SeriesCollection {
    * history itself is written by the databook history job, not by this.
    */
   static async loadFromDatabook(seriesName: string): Promise<Series> {
-    const { getVintageIndex, latestObserved } =
-      await import("@/core/databook/store");
+    const { latestFor } = await import("@/core/databook/store");
     const name = String(seriesName).trim();
-    const data = latestObserved(getVintageIndex().get(name));
+    const data = latestFor(name);
     if (data.size === 0) {
       throw new Error(`No Data Book data for ${name}`);
     }

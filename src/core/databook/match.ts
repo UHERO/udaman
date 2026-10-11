@@ -317,6 +317,12 @@ export function matchEditions(
   editionYears: number[],
   loadEdition: (edition: number) => EditionIR,
   manifestEdition = Math.max(...editionYears),
+  /**
+   * Receives each edition's rows as soon as it is matched. When given,
+   * rows are not accumulated (`result.rows` stays empty), which keeps
+   * memory to about one edition at a time.
+   */
+  sink?: (rows: VintageRow[], edition: number) => void,
 ): MatchResult {
   const older = editionYears
     .filter((y) => y < manifestEdition)
@@ -349,7 +355,13 @@ export function matchEditions(
     );
   }
 
+  const flush = (edition: number) => {
+    if (!sink) return;
+    sink(rows.splice(0, rows.length), edition);
+  };
+
   for (const edition of years) {
+    if (sink && rows.length) flush(years[years.indexOf(edition) - 1]);
     const refs = edition > manifestEdition ? forwardRefs : backRefs;
     const ir = loadEdition(edition);
     const byTable = cellsByTable(ir);
@@ -553,6 +565,7 @@ export function matchEditions(
     }
   }
 
+  if (sink && rows.length) flush(years[years.length - 1]);
   return { rows, editions, tables: reports };
 }
 

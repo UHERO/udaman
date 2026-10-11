@@ -22,7 +22,9 @@ import {
   indexVintages,
   latestObserved,
   vintagesPath,
-  writeVintages,
+  VintageWriter,
+  writeLatest,
+  type VintageIndex,
 } from "@/core/databook/store";
 import { createLogger } from "@/core/observability/logger";
 
@@ -50,8 +52,10 @@ DBEDT Data Book → DATABOOK universe (docs/2026-10-10-databook-universe-plan.md
   apply    [--execute] [--prune]
                               Upsert the manifest into the database (dry run by default);
                               --prune deletes DATABOOK series/measurements not in it
-  history  [--execute] [--no-public-sync] [--edition Y ...] [--series NAME ...]
-                              Load vintages oldest-first into data_points (dry run by default)
+  history  [--execute] [--no-public-sync] [--concurrency N] [--edition Y ...] [--series NAME ...]
+                              Load vintages oldest-first into data_points (dry run by default).
+                              Resumable: re-running skips what is already loaded.
+                              --concurrency: series loaded in parallel (default 2)
   annual   --edition Y [--execute] [--no-public-sync]
                               New/re-issued edition: fetch, extract, match, apply, load
                               that edition's vintage. Series that exist only in editions
@@ -68,6 +72,7 @@ interface Args {
   execute: boolean;
   publicSync: boolean;
   prune: boolean;
+  concurrency?: number;
   series: string[];
 }
 
@@ -104,6 +109,12 @@ function parseArgs(argv: string[]): Args {
       case "--prune":
         args.prune = true;
         break;
+      case "--concurrency": {
+        const v = Number(rest[++i]);
+        if (!Number.isInteger(v) || v < 1) usage();
+        args.concurrency = v;
+        break;
+      }
       case "--series": {
         const v = rest[++i];
         if (!v) usage();
@@ -125,15 +136,27 @@ function runMatch(): void {
   const editions = availableEditions(2002);
   if (!editions.includes(MANIFEST_EDITION))
     throw new Error(`No IR for ${MANIFEST_EDITION}`);
+  // Stream rows to disk per edition and keep only a compact index of the
+  // matched values — the full row set (~1.7M) never sits in memory.
+  const writer = new VintageWriter();
+  const index: VintageIndex = new Map();
   const res = matchEditions(
     manifest,
     editions,
-    (e) => readIR(e),
+    (e) => {
+      // Each edition's IR is ~200 MB of objects once parsed; collect the
+      // previous one before parsing the next so peak memory stays low.
+      Bun.gc(true);
+      return readIR(e);
+    },
     MANIFEST_EDITION,
+    (rows) => {
+      writer.write(rows);
+      indexVintages(rows, index);
+    },
   );
-  writeVintages(res.rows);
-
-  const index = indexVintages(res.rows);
+  writer.close();
+  writeLatest(index);
   for (const s of manifest)
     for (const t of s.tables)
       for (const m of t.measurements)
@@ -267,6 +290,7 @@ async function run(args: Args): Promise<void> {
       const stats = await loadHistory({
         editions: [edition],
         publicSync: args.publicSync,
+        concurrency: args.concurrency,
       });
       console.log(
         JSON.stringify({ ...stats, errors: stats.errors.slice(0, 20) }),
@@ -293,6 +317,7 @@ async function run(args: Args): Promise<void> {
         series: args.series.length ? args.series : undefined,
         dryRun: !args.execute,
         publicSync: args.publicSync,
+        concurrency: args.concurrency,
       });
       console.log(
         JSON.stringify({ ...stats, errors: stats.errors.slice(0, 20) }),
