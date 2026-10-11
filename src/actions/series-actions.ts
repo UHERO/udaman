@@ -445,18 +445,16 @@ export async function bulkCreateSeries(
     successCount = await transaction(async () => {
       let count = 0;
       for (const { name, evalExpression } of parsed) {
-        // Find or create the series
-        let series;
-        try {
-          series = await SeriesCollection.getByName(name);
-        } catch {
-          // Series doesn't exist, create it
-          series = await SeriesCollection.create({
+        // Find or create the series in the target universe. Series names are
+        // only unique per universe, so an unscoped lookup would attach the
+        // loader to a same-named series elsewhere (e.g. UHERO).
+        const series =
+          (await SeriesCollection.findByNameAndUniverse(name, universe)) ??
+          (await SeriesCollection.create({
             name,
             universe,
             ...sharedMeta,
-          });
-        }
+          }));
 
         // Create the loader with the eval expression
         await LoaderCollection.create({

@@ -1702,15 +1702,40 @@ class SeriesCollection {
    *  - Brand-new dates are inserted directly.
    *  - The sentinel value (1e15) means "no data" and marks existing
    *    points as non-current.
+   *
+   * `vintageAt` (HST wall-clock, "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS")
+   * stamps new points' created_at with the date the data was published
+   * instead of NOW(), so successive editions of a publication (e.g. the
+   * annual DBEDT Data Book) can be loaded back-to-back as distinct
+   * vintages. Load them oldest first. Per date, against this loader's own
+   * latest point:
+   *  - an older vintageAt never overwrites it (the date is skipped);
+   *  - the same vintageAt with a different value corrects that vintage's
+   *    row in place (a re-issued file of the same edition).
+   * updated_at stays NOW() so public data point sync still sees the change.
    */
   static async updateData(opts: {
     xseriesId: number;
     data: Map<string, number>;
     dataSourceId: number;
     pseudoHistory: boolean;
+    vintageAt?: string;
   }): Promise<{ inserted: number; changed: boolean }> {
     const { xseriesId, data, dataSourceId, pseudoHistory } = opts;
     const SENTINEL = 1.0e15;
+
+    let vintageAt: string | null = null;
+    if (opts.vintageAt != null) {
+      const m = opts.vintageAt
+        .trim()
+        .match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}:\d{2}))?$/);
+      if (!m) {
+        throw new Error(
+          `updateData: invalid vintageAt "${opts.vintageAt}" (expected YYYY-MM-DD[ HH:MM:SS])`,
+        );
+      }
+      vintageAt = `${m[1]} ${m[2] ?? "00:00:00"}`;
+    }
 
     // Only allow finite numbers into the database.
     // NaN, Infinity, null, undefined are all skipped — no data point is created.
@@ -1742,14 +1767,18 @@ class SeriesCollection {
     const ownRows = await mysql<{
       date: Date;
       value: number | null;
-      created_at: Date;
+      created_at_str: string;
     }>`
-      SELECT date, value, created_at
+      SELECT date, value,
+             DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at_str
       FROM data_points
       WHERE xseries_id = ${xseriesId} AND data_source_id = ${dataSourceId}
       ORDER BY created_at DESC
     `;
     const ownLatestByDate = new Map<string, number | null>();
+    // created_at of the same row as stored wall-clock "YYYY-MM-DD HH:MM:SS",
+    // formatted in SQL to avoid Bun SQL's DATETIME→Date timezone handling.
+    const ownLatestAtByDate = new Map<string, string>();
     for (const row of ownRows) {
       const dateStr =
         row.date instanceof Date
@@ -1760,6 +1789,7 @@ class SeriesCollection {
           dateStr,
           row.value != null ? Number(row.value) : null,
         );
+        ownLatestAtByDate.set(dateStr, String(row.created_at_str));
       }
     }
 
@@ -1805,8 +1835,29 @@ class SeriesCollection {
     const demoteDates: string[] = []; // SET current = 0 WHERE date IN (...)
     const promoteDates: string[] = []; // SET current = 1 on own latest row
     const insertRows: { date: string; value: number }[] = [];
+    const correctRows: { date: string; value: number }[] = []; // same-vintage fix
+    let skippedOlderVintage = 0;
 
     for (const [dateStr, newValue] of cleanData) {
+      if (vintageAt) {
+        const ownLatestAt = ownLatestAtByDate.get(dateStr);
+        if (ownLatestAt != null && ownLatestAt > vintageAt) {
+          skippedOlderVintage++;
+          continue;
+        }
+        const ownLatest = ownLatestByDate.get(dateStr);
+        if (
+          ownLatestAt === vintageAt &&
+          newValue !== SENTINEL &&
+          (ownLatest == null || round6(ownLatest) !== round6(newValue))
+        ) {
+          // Inserting would collide on the (xseries_id, date, created_at,
+          // data_source_id) key — this is a correction of that vintage.
+          correctRows.push({ date: dateStr, value: round6(newValue) });
+          continue;
+        }
+      }
+
       if (newValue === SENTINEL) {
         // Sentinel means "no data" — mark existing points as non-current
         demoteDates.push(dateStr);
@@ -1865,10 +1916,18 @@ class SeriesCollection {
     // changed. Skip the BEGIN/COMMIT and the pool checkout; keep the
     // repair pass so orphaned dates left by a clear or a vintage delete are
     // still healed on the next reload.
+    if (skippedOlderVintage > 0) {
+      log.warn(
+        { xseriesId, dataSourceId, vintageAt, skippedOlderVintage },
+        "updateData: skipped dates that already have a newer vintage from this loader",
+      );
+    }
+
     if (
       demoteDates.length === 0 &&
       promoteDates.length === 0 &&
-      insertRows.length === 0
+      insertRows.length === 0 &&
+      correctRows.length === 0
     ) {
       await this.repairDataPoints({ id: xseriesId });
       return { inserted: 0, changed: false };
@@ -1894,14 +1953,37 @@ class SeriesCollection {
         `;
       }
 
+      for (const r of correctRows) {
+        await tx`
+          UPDATE data_points SET value = ${r.value}, updated_at = NOW()
+          WHERE xseries_id = ${xseriesId} AND date = ${r.date}
+            AND data_source_id = ${dataSourceId} AND created_at = ${vintageAt}
+        `;
+      }
+
       for (let i = 0; i < insertRows.length; i += CHUNK) {
         const rows = insertRows.slice(i, i + CHUNK);
         const placeholders = rows
-          .map(() => "(?, ?, ?, NOW(), NOW(), 1, ?, ?)")
+          .map(() =>
+            vintageAt
+              ? "(?, ?, ?, ?, NOW(), 1, ?, ?)"
+              : "(?, ?, ?, NOW(), NOW(), 1, ?, ?)",
+          )
           .join(",");
         const params: (string | number)[] = [];
         for (const r of rows) {
-          params.push(xseriesId, r.date, r.value, pseudo, dataSourceId);
+          if (vintageAt) {
+            params.push(
+              xseriesId,
+              r.date,
+              r.value,
+              vintageAt,
+              pseudo,
+              dataSourceId,
+            );
+          } else {
+            params.push(xseriesId, r.date, r.value, pseudo, dataSourceId);
+          }
         }
         await tx.unsafe(
           `INSERT INTO data_points
@@ -1918,7 +2000,7 @@ class SeriesCollection {
       await this.repairDataPoints({ id: xseriesId, exec: tx });
     });
 
-    return { inserted: insertRows.length, changed: true };
+    return { inserted: insertRows.length + correctRows.length, changed: true };
   }
 
   // ─── Static loader stubs (eval-callable) ─────────────────────────
@@ -2021,6 +2103,26 @@ class SeriesCollection {
     const result = new Series({
       name: `Factbook: ${prefix} @ ${geoHandle}`,
     });
+    result.data = data;
+    result.frequency = "year";
+    return result;
+  }
+
+  /**
+   * Load a DATABOOK series from the combined Data Book vintage file
+   * (data-dir/databook/vintages.csv): the latest-vintage value for each
+   * date. Eval: `Series.load_from_databook "DB0106@HON.A"`. The vintage
+   * history itself is written by the databook history job, not by this.
+   */
+  static async loadFromDatabook(seriesName: string): Promise<Series> {
+    const { getVintageIndex, latestObserved } =
+      await import("@/core/databook/store");
+    const name = String(seriesName).trim();
+    const data = latestObserved(getVintageIndex().get(name));
+    if (data.size === 0) {
+      throw new Error(`No Data Book data for ${name}`);
+    }
+    const result = new Series({ name: `Data Book: ${name}` });
     result.data = data;
     result.frequency = "year";
     return result;

@@ -19,6 +19,7 @@ export const UNIVERSES = [
   "COH",
   "CCOM",
   "HHF",
+  "DATABOOK",
 ] as const;
 export type Universe = (typeof UNIVERSES)[number];
 export type Frequency = "A" | "S" | "Q" | "M" | "W" | "D";

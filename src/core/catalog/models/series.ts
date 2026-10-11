@@ -1451,6 +1451,66 @@ class Series {
   }
 
   /**
+   * Fill interior gaps at the series' own frequency with linear
+   * interpolation. Returns ONLY the filled-in points — never the original
+   * observations, and nothing before the first or after the last one — so
+   * it can run as a lower-priority pseudo_history loader alongside the
+   * loader that supplies the real observations (e.g. decennial census
+   * values with the intercensal years filled in).
+   * Usage in eval: "SERIES@HI.A".ts.fill_missing_linear
+   */
+  fillMissingLinear(): Series {
+    const freq = normalizeFreq(this.frequency ?? "");
+    const monthStep: Record<string, number> = {
+      year: 12,
+      semi: 6,
+      quarter: 3,
+      month: 1,
+    };
+    const dayStep: Record<string, number> = { week: 7, day: 1 };
+    if (monthStep[freq] == null && dayStep[freq] == null) {
+      throw new Error(
+        `fill_missing_linear: unsupported frequency ${this.frequency}`,
+      );
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null && isFinite(v))
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const newData = new Map<string, number>();
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const [date1, val1] = sorted[i];
+      const [date2, val2] = sorted[i + 1];
+
+      let periods: number;
+      let dateAt: (k: number) => string;
+      if (monthStep[freq] != null) {
+        const step = monthStep[freq];
+        const ym1 = parseYM(date1);
+        const ym2 = parseYM(date2);
+        periods = Math.round(
+          (ym2.year * 12 + ym2.month - (ym1.year * 12 + ym1.month)) / step,
+        );
+        dateAt = (k) => addMonthsStr(date1, k * step);
+      } else {
+        const step = dayStep[freq];
+        periods = Math.round(daysBetweenStr(date2, date1) / step);
+        dateAt = (k) => addDaysStr(date1, k * step);
+      }
+
+      for (let k = 1; k < periods; k++) {
+        newData.set(dateAt(k), val1 + ((val2 - val1) * k) / periods);
+      }
+    }
+
+    const s = new Series({ name: `Linear gap fill for ${this.name}` });
+    s.data = newData;
+    s.frequency = freq;
+    return s;
+  }
+
+  /**
    * Insert a missing data point by interpolating from adjacent observations.
    * Usage in eval: "SERIES".ts.add_missing_dp("2023-07-01", :average)
    */

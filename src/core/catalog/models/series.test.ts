@@ -102,3 +102,75 @@ describe("Series.getLastIncompleteYear", () => {
     });
   });
 });
+
+describe("Series.fillMissingLinear", () => {
+  it("fills decennial annual gaps with only the interpolated years", () => {
+    const s = build(
+      "year",
+      [
+        ["2000-01-01", 100],
+        ["2010-01-01", 200],
+        ["2020-01-01", 150],
+      ],
+      "TEST@HI.A",
+    );
+    const r = s.fillMissingLinear();
+    expect(r.frequency).toBe("year");
+    expect(r.data.size).toBe(18);
+    expect(r.data.has("2000-01-01")).toBe(false);
+    expect(r.data.has("2010-01-01")).toBe(false);
+    expect(r.data.get("2001-01-01")).toBeCloseTo(110);
+    expect(r.data.get("2009-01-01")).toBeCloseTo(190);
+    expect(r.data.get("2015-01-01")).toBeCloseTo(175);
+  });
+
+  it("never extrapolates past the first or last observation", () => {
+    const s = build(
+      "year",
+      [
+        ["2017-01-01", 10],
+        ["2022-01-01", 20],
+      ],
+      "TEST@HI.A",
+    );
+    expect(dates(s.fillMissingLinear())).toEqual([
+      "2018-01-01",
+      "2019-01-01",
+      "2020-01-01",
+      "2021-01-01",
+    ]);
+  });
+
+  it("returns nothing for a series without gaps", () => {
+    const s = build(
+      "quarter",
+      [
+        ["2024-01-01", 1],
+        ["2024-04-01", 2],
+        ["2024-07-01", 3],
+      ],
+      "TEST@HI.Q",
+    );
+    expect(s.fillMissingLinear().data.size).toBe(0);
+  });
+
+  it("steps by the series frequency (quarterly)", () => {
+    const s = build(
+      "Q",
+      [
+        ["2024-01-01", 0],
+        ["2025-01-01", 4],
+      ],
+      "TEST@HI.Q",
+    );
+    const r = s.fillMissingLinear();
+    expect(dates(r)).toEqual(["2024-04-01", "2024-07-01", "2024-10-01"]);
+    expect(r.data.get("2024-07-01")).toBeCloseTo(2);
+  });
+
+  it("rejects unsupported frequencies", () => {
+    expect(() =>
+      build("bogus", [["2024-01-01", 1]]).fillMissingLinear(),
+    ).toThrow();
+  });
+});
