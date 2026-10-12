@@ -82,12 +82,15 @@ const PAGE_SIZE = 50;
 function StatsBar({ counts }: { counts: AppLogCounts }) {
   return (
     <div className="flex flex-wrap gap-3">
-      <div className="rounded-md border px-3 py-1.5">
+      <div className="bg-background rounded-md border px-3 py-1.5">
         <span className="text-muted-foreground text-xs">Total</span>
         <p className="text-sm font-semibold">{counts.total.toLocaleString()}</p>
       </div>
       {(["info", "warn", "error"] as const).map((level) => (
-        <div key={level} className="rounded-md border px-3 py-1.5">
+        <div
+          key={level}
+          className="bg-background rounded-md border px-3 py-1.5"
+        >
           <LevelBadge level={level} />
           <p className="mt-0.5 text-sm font-semibold">
             {(counts.byLevel[level] ?? 0).toLocaleString()}
@@ -279,7 +282,7 @@ function DatabaseLogsTab({
       {data.logs.length === 0 ? (
         <p className="text-muted-foreground text-sm">No log entries found.</p>
       ) : (
-        <div className="rounded-md border">
+        <div className="bg-background rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -445,7 +448,7 @@ function ServerLogsTab({ initialLines }: { initialLines: string[] }) {
           No log file entries found.
         </p>
       ) : (
-        <div className="rounded-md border">
+        <div className="bg-background rounded-md border">
           <div className="max-h-[600px] overflow-auto">
             <Table>
               <TableHeader>

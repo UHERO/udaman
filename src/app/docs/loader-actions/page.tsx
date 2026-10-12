@@ -35,7 +35,7 @@ function MethodBlock({
   example?: string;
 }) {
   return (
-    <div className="mt-6 rounded-lg border border-stone-200 p-4 dark:border-stone-700">
+    <div className="bg-background mt-6 rounded-lg border border-stone-200 p-4 dark:border-stone-700">
       <div className="flex items-baseline gap-2">
         <code className="text-sm font-semibold text-stone-900 dark:text-stone-100">
           {evalName ?? name}

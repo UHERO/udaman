@@ -121,7 +121,7 @@ export default function UsersPanel({ users }: { users: SerializedUser[] }) {
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      <div className="bg-background rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>

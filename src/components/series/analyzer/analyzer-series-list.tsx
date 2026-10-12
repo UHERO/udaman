@@ -49,7 +49,7 @@ export function AnalyzerSeriesList({
 
   if (entries.length === 0) {
     return (
-      <div className="flex h-20 items-center justify-center rounded-md border border-dashed">
+      <div className="bg-background flex h-20 items-center justify-center rounded-md border border-dashed">
         <p className="text-muted-foreground text-sm">
           Search for series to add them to the chart
         </p>
@@ -72,7 +72,7 @@ export function AnalyzerSeriesList({
   );
 
   return (
-    <div className="max-h-[300px] overflow-y-auto rounded-md border p-1">
+    <div className="bg-background max-h-[300px] overflow-y-auto rounded-md border p-1">
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-0.5">
           <span className="text-muted-foreground px-1 text-[10px] font-medium tracking-wide uppercase">

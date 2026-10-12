@@ -247,7 +247,7 @@ export function ResultsTable({ result, loading }: ResultsTableProps) {
         </CollapsibleContent>
       </Collapsible>
 
-      <div className="max-h-[70vh] w-full overflow-auto rounded-md border">
+      <div className="bg-background max-h-[70vh] w-full overflow-auto rounded-md border">
         <RawTable className="w-auto min-w-0">
           <TableHeader className="bg-background sticky top-0 z-10 shadow-[0_1px_0_0_var(--border)]">
             {table.getHeaderGroups().map((hg) => (

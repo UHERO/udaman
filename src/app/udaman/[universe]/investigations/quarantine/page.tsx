@@ -28,7 +28,7 @@ export default async function QuarantinePage({
           <ChevronDown className="size-4 transition-transform" />
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="text-muted-foreground mt-2 max-w-2xl space-y-3 rounded-md border p-4 text-sm">
+          <div className="text-muted-foreground bg-background mt-2 max-w-2xl space-y-3 rounded-md border p-4 text-sm">
             <p>
               Series may be added and removed from the quarantine manually from
               the series page.

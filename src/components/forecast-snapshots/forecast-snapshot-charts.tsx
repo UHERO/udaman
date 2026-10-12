@@ -549,7 +549,7 @@ export function ForecastSnapshotCharts({
           };
 
         return (
-          <details key={name} className="rounded-md border">
+          <details key={name} className="bg-background rounded-md border">
             <summary className="cursor-pointer px-4 py-3 select-none">
               <span className="text-base font-semibold">
                 {chartIndex + 1}. {desc}

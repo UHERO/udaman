@@ -205,7 +205,7 @@ export function HhdbSummaries({
     <div>
       {/* Docs: table-level documentation, above the frequency table */}
       {tableDocs && (
-        <div className="mb-6 rounded-md border p-4">
+        <div className="bg-background mb-6 rounded-md border p-4">
           <h3 className="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-xs font-medium tracking-wide uppercase">
             <BookOpen className="h-3.5 w-3.5" />
             Docs

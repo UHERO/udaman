@@ -102,7 +102,7 @@ export const DetailBlock = ({
 }) => (
   <dl
     className={cn(
-      "my-4 divide-y divide-stone-200 rounded-lg border border-stone-200 text-sm dark:divide-stone-700 dark:border-stone-700",
+      "bg-background my-4 divide-y divide-stone-200 rounded-lg border border-stone-200 text-sm dark:divide-stone-700 dark:border-stone-700",
       className,
     )}
     {...props}

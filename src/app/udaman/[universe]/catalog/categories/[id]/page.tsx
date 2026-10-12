@@ -45,7 +45,7 @@ export default async function CategoryPage({
         <p className="text-muted-foreground mt-2">{category.description}</p>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-md border">
+      <div className="bg-background mt-4 overflow-hidden rounded-md border">
         <Table>
           <TableBody>
             <TableRow className="odd:bg-muted">

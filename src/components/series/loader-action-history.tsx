@@ -47,7 +47,7 @@ export function LoaderActionHistory({
         {actions.length === 0 ? (
           <p className="text-muted-foreground text-sm">No loader history</p>
         ) : (
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

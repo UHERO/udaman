@@ -154,7 +154,24 @@ export function AnalyzeDataTable({
 
     // ── Compare mode: one column per series ──────────────────────────
     if (isCompareMode) {
+      // The same series added twice (say, level on the left axis and QTD %
+      // on the right) would repeat its level column under a "(2)" name.
+      // Show each distinct level column once; later copies point at the
+      // first, so their transform columns are labelled with its name.
+      const sameLevels = (a: number, b: number) =>
+        rows.every((r) => r[`series_${a}`] === r[`series_${b}`]);
+      const canonical = seriesNames.map((_, i) => i);
+      for (let i = 1; i < seriesNames.length; i++) {
+        for (let j = 0; j < i; j++) {
+          if (canonical[j] === j && sameLevels(i, j)) {
+            canonical[i] = j;
+            break;
+          }
+        }
+      }
+
       for (let i = 0; i < seriesNames.length; i++) {
+        if (canonical[i] !== i) continue;
         const key = `series_${i}`;
         const name = seriesNames[i];
         const color = SERIES_COLORS[i % SERIES_COLORS.length];
@@ -179,13 +196,18 @@ export function AnalyzeDataTable({
 
       // Add transform columns for each series (per-axis transforms)
       if (activeTransformation || rightTransformation) {
+        const shown = new Set<string>();
         for (let i = 0; i < seriesNames.length; i++) {
           const isRight = seriesAxisMap?.get(i) === "right";
           const tx = isRight ? rightTransformation : activeTransformation;
           if (!tx) continue;
+          // Same series, same transform → same column
+          const dedupeKey = `${canonical[i]}:${tx}`;
+          if (shown.has(dedupeKey)) continue;
+          shown.add(dedupeKey);
           const transformLabel = TRANSFORMATION_LABELS[tx];
           const tKey = `transformed_${i}`;
-          const name = seriesNames[i];
+          const name = seriesNames[canonical[i]];
           const color = SERIES_COLORS[i % SERIES_COLORS.length];
           push(
             {
@@ -374,6 +396,7 @@ export function AnalyzeDataTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isCompareMode,
+    rows,
     seriesNames,
     activeOverlays,
     activeTransformation,

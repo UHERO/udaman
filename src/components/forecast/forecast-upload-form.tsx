@@ -271,7 +271,7 @@ export default function ForecastUploadForm() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="max-h-64 overflow-y-auto rounded border">
+              <div className="bg-background max-h-64 overflow-y-auto rounded border">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50 sticky top-0">
                     <tr>

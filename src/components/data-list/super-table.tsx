@@ -390,7 +390,7 @@ export function SuperTable({ data }: SuperTableProps) {
           No series found for the selected filters.
         </p>
       ) : (
-        <ScrollArea className="rounded-md border">
+        <ScrollArea className="bg-background rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>

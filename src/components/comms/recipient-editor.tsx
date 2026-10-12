@@ -320,7 +320,7 @@ export function RecipientEditor({
       {value.length ? (
         <div className="grid items-start gap-3 sm:col-span-2 sm:grid-cols-2">
           {columns.map((column, c) => (
-            <ul key={c} className="divide-y rounded-md border">
+            <ul key={c} className="bg-background divide-y rounded-md border">
               {column.map((address) => {
                 const name = names[address.toLowerCase()];
                 return (
@@ -359,7 +359,7 @@ export function RecipientEditor({
           ))}
         </div>
       ) : (
-        <p className="text-muted-foreground rounded-md border border-dashed p-3 text-sm sm:col-start-1">
+        <p className="text-muted-foreground bg-background rounded-md border border-dashed p-3 text-sm sm:col-start-1">
           No recipients — nobody will be notified.
         </p>
       )}

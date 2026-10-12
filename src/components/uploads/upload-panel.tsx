@@ -917,7 +917,7 @@ export default function UploadPanel({
               {summary.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-md border p-2 text-center"
+                  className="bg-background rounded-md border p-2 text-center"
                 >
                   <p className="text-lg font-bold">{stat.value}</p>
                   <p className="text-muted-foreground text-xs">{stat.label}</p>
@@ -1040,7 +1040,7 @@ export default function UploadPanel({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="max-h-80 overflow-y-auto rounded border">
+            <div className="bg-background max-h-80 overflow-y-auto rounded border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 sticky top-0">
                   <tr>
@@ -1091,7 +1091,7 @@ export default function UploadPanel({
               {summary.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-md border p-3 text-center"
+                  className="bg-background rounded-md border p-3 text-center"
                 >
                   <p className="text-2xl font-bold">{stat.value}</p>
                   <p className="text-muted-foreground text-sm">{stat.label}</p>
@@ -1117,7 +1117,7 @@ export default function UploadPanel({
           {uploads.length === 0 ? (
             <p className="text-muted-foreground text-sm">No uploads yet.</p>
           ) : (
-            <div className="max-h-96 overflow-y-auto rounded border">
+            <div className="bg-background max-h-96 overflow-y-auto rounded border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 sticky top-0">
                   <tr>

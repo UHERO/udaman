@@ -222,7 +222,7 @@ function WorkerProcesses({
           <span className="text-foreground font-medium">{uptimeStr}</span>
         </p>
       )}
-      <div className="rounded-md border">
+      <div className="bg-background rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -705,7 +705,7 @@ export default function WorkersPanel({
       {groups.length === 0 ? (
         <p className="text-muted-foreground text-sm">No jobs found.</p>
       ) : (
-        <div className="rounded-md border">
+        <div className="bg-background rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>

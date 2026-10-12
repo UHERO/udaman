@@ -123,7 +123,7 @@ export function HhdbDataTable<T>({
         <HhdbColumnToggle table={table} />
       </div>
 
-      <div className="relative overflow-hidden rounded-md border">
+      <div className="bg-background relative overflow-hidden rounded-md border">
         {loading && (
           <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center">
             <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />

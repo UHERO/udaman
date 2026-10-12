@@ -139,7 +139,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
         />
       </div>
 
-      <fieldset className="space-y-4 rounded-md border p-4">
+      <fieldset className="bg-background space-y-4 rounded-md border p-4">
         <legend className="px-2 text-sm font-medium">New Forecast TSD</legend>
         <div className="flex flex-row items-center space-x-4">
           <div className="basis-2/3 space-y-2">
@@ -171,7 +171,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
         </div>
       </fieldset>
 
-      <fieldset className="space-y-4 rounded-md border p-4">
+      <fieldset className="bg-background space-y-4 rounded-md border p-4">
         <legend className="px-2 text-sm font-medium">Old Forecast TSD</legend>
         <div className="flex flex-row items-center space-x-4">
           <div className="basis-2/3 space-y-2">
@@ -202,7 +202,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
         </div>
       </fieldset>
 
-      <fieldset className="space-y-4 rounded-md border p-4">
+      <fieldset className="bg-background space-y-4 rounded-md border p-4">
         <legend className="px-2 text-sm font-medium">History TSD</legend>
         <div className="flex flex-row items-center space-x-4">
           <div className="basis-2/3 space-y-2">

@@ -102,6 +102,7 @@ function transformUnitLabel(t: Transformation | null): string | null {
       return "AGR %";
     case "yoy":
     case "ytd":
+    case "qtd":
     case "pop":
     case "zScore":
     case "logLevel":
@@ -412,6 +413,7 @@ const VALID_TRANSFORMATIONS = new Set<Transformation>([
   "hpTrend",
   "yoy",
   "ytd",
+  "qtd",
   "pop",
   "levelChange",
   "cagr",
@@ -1076,7 +1078,7 @@ function ChartTypeToggle({
   onChange: (v: "line" | "column") => void;
 }) {
   return (
-    <div className="inline-flex rounded-md border">
+    <div className="bg-background inline-flex rounded-md border">
       <button
         type="button"
         onClick={() => onChange("line")}
@@ -1240,6 +1242,20 @@ const PRIMARY_TRANSFORMS: Array<{
       </span>
     ),
     description: "Year-over-year % change in YTD total",
+  },
+  {
+    value: "qtd",
+    label: "QTD %",
+    formula: (
+      <span>
+        (QTD<sub>t</sub> / QTD<sub>t−1yr</sub> − 1) × 100,
+        <br />
+        where QTD<sub>t</sub> = x<sub>first month of qtr(t)</sub> + ⋯ + x
+        <sub>t</sub>
+      </span>
+    ),
+    description:
+      "Year-over-year % change in quarter-to-date total (monthly series)",
   },
   {
     value: "pop",
@@ -1550,15 +1566,14 @@ function AxisColumn({
     [dataPPY],
   );
 
-  const visibleTransforms =
-    showChangeTransforms !== false
-      ? PRIMARY_TRANSFORMS
-      : PRIMARY_TRANSFORMS.filter(
-          (t) =>
-            !["yoy", "ytd", "pop", "levelChange", "cagr", "agr"].includes(
-              t.value,
-            ),
-        );
+  // QTD only means something below quarterly frequency
+  const showQtd = freqCode == null || freqCode === "M";
+  const visibleTransforms = PRIMARY_TRANSFORMS.filter((t) =>
+    t.value === "qtd"
+      ? showQtd && showChangeTransforms !== false
+      : showChangeTransforms !== false ||
+        !["yoy", "ytd", "pop", "levelChange", "cagr", "agr"].includes(t.value),
+  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -2876,7 +2891,7 @@ export function AnalyzeControls({
         return (
           <div className="grid grid-cols-2 gap-4">
             {/* Left Axis panel */}
-            <div className="flex flex-col gap-2 rounded-md border p-2">
+            <div className="bg-background flex flex-col gap-2 rounded-md border p-2">
               <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
                 Left Axis
               </span>
@@ -2903,7 +2918,7 @@ export function AnalyzeControls({
               />
             </div>
             {/* Right Axis panel */}
-            <div className="flex flex-col gap-2 rounded-md border p-2">
+            <div className="bg-background flex flex-col gap-2 rounded-md border p-2">
               <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
                 Right Axis
               </span>
@@ -2934,7 +2949,7 @@ export function AnalyzeControls({
       })()}
 
       {/* Multi-series level chart with brush */}
-      <div className="w-full py-2">
+      <div className="bg-background w-full rounded-md py-2">
         <LevelChart
           data={compareFullDataWithOverlays}
           decimals={decimals}

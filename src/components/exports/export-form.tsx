@@ -256,7 +256,7 @@ export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
             No series in this export.
           </p>
         ) : (
-          <div className="overflow-auto rounded-md border">
+          <div className="bg-background overflow-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -339,7 +339,7 @@ export function DataListEditForm({
             No measurements in this data list.
           </p>
         ) : (
-          <div className="overflow-auto rounded-md border">
+          <div className="bg-background overflow-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

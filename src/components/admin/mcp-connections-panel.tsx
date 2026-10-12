@@ -92,7 +92,7 @@ export default function McpConnectionsPanel({
         </p>
       </div>
 
-      <div className="rounded-md border">
+      <div className="bg-background rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>

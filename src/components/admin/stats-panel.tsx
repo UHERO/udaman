@@ -58,7 +58,7 @@ export default function StatsPanel({
         {/* Top Pages */}
         <section>
           <h2 className="mb-2 text-sm font-semibold">Top Pages</h2>
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -96,7 +96,7 @@ export default function StatsPanel({
         {/* Most Viewed Series */}
         <section>
           <h2 className="mb-2 text-sm font-semibold">Most Viewed Series</h2>
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -139,7 +139,7 @@ export default function StatsPanel({
         {/* Most Active Users */}
         <section>
           <h2 className="mb-2 text-sm font-semibold">Most Active Users</h2>
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -175,7 +175,7 @@ export default function StatsPanel({
         {/* Top Actions */}
         <section>
           <h2 className="mb-2 text-sm font-semibold">Top Actions</h2>
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -214,7 +214,7 @@ export default function StatsPanel({
       {/* Daily Activity — full width */}
       <section>
         <h2 className="mb-2 text-sm font-semibold">Daily Activity</h2>
-        <div className="rounded-md border">
+        <div className="bg-background rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>

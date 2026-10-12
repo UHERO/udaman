@@ -31,7 +31,7 @@ export function CompareSeriesBadges({
         return (
           <span
             key={name}
-            className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs"
+            className="bg-background inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs"
           >
             {id ? (
               <a

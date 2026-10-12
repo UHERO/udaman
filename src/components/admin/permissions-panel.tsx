@@ -227,7 +227,7 @@ export default function PermissionsPanel({
               item&apos;s finer-grained resources unless a more specific rule
               exists below.
             </p>
-            <div className="max-w-3xl rounded-md border">
+            <div className="bg-background max-w-3xl rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -280,7 +280,7 @@ export default function PermissionsPanel({
                 Wildcards, fine-grained resources, and non-CRUD actions. A
                 specific rule beats a sidebar-item rule, which beats a wildcard.
               </p>
-              <div className="max-w-lg rounded-md border">
+              <div className="bg-background max-w-lg rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>

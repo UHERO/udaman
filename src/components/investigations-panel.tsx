@@ -233,7 +233,7 @@ export default function InvestigationsPanel({
         {reloadJobs.length === 0 ? (
           <p className="text-muted-foreground text-sm">No reload jobs found.</p>
         ) : (
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -310,7 +310,7 @@ export default function InvestigationsPanel({
         {loadErrors.length === 0 ? (
           <p className="text-muted-foreground text-sm">No load errors.</p>
         ) : (
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

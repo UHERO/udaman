@@ -72,7 +72,7 @@ export default function FeatureTogglesPanel({ toggles }: Props) {
 
       {universes.map((universe) => (
         <TabsContent key={universe} value={universe}>
-          <div className="rounded-md border">
+          <div className="bg-background rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

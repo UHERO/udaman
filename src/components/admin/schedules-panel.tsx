@@ -213,7 +213,7 @@ export default function SchedulesPanel({
       {schedulers.length === 0 ? (
         <p className="text-muted-foreground text-sm">No scheduled jobs.</p>
       ) : (
-        <div className="rounded-md border">
+        <div className="bg-background rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>

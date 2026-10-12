@@ -35,7 +35,7 @@ export function AnalyzerCalculate({ onSubmit }: AnalyzerCalculateProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full max-w-lg items-center overflow-hidden rounded-sm border"
+      className="bg-background flex w-full max-w-lg items-center overflow-hidden rounded-sm border"
     >
       <HoverCard openDelay={200}>
         <HoverCardTrigger asChild>

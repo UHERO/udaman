@@ -123,7 +123,7 @@ export function CompareSearchInput({ currentNames }: CompareSearchInputProps) {
         <PopoverTrigger asChild>
           <form
             onSubmit={handleSubmit}
-            className="flex w-full items-center rounded-sm border"
+            className="bg-background flex w-full items-center rounded-sm border"
           >
             <HoverCard openDelay={200}>
               <HoverCardTrigger asChild>

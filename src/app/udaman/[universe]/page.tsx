@@ -111,7 +111,7 @@ export default async function UniversePage({
           ))}
         </div>
       ) : (
-        <div className="mt-8 rounded-lg border border-dashed p-8 text-center">
+        <div className="bg-background mt-8 rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground">
             Your account does not have access to any tools yet. New accounts
             start with limited permissions — contact a UDAMAN administrator to

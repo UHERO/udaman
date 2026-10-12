@@ -141,7 +141,7 @@ export default async function ConsentPage({
           </Lead>
         </div>
 
-        <dl className="grid gap-3 rounded-md border p-4 text-sm">
+        <dl className="bg-background grid gap-3 rounded-md border p-4 text-sm">
           <div className="grid gap-0.5">
             <dt className="text-muted-foreground text-xs">Signed in as</dt>
             <dd className="font-medium break-all">{email}</dd>

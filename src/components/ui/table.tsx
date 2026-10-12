@@ -8,7 +8,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="bg-background relative w-full overflow-x-auto"
     >
       <table
         data-slot="table"
@@ -22,7 +22,7 @@ function RawTable({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <table
       data-slot="table"
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn("bg-background w-full caption-bottom text-sm", className)}
       {...props}
     />
   );

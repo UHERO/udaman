@@ -111,7 +111,7 @@ export function AliasManager({
                   Current Universes
                 </h4>
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                  <div className="bg-background flex items-center justify-between rounded-md border px-3 py-2">
                     <span className="font-bold">{currentUniverse}</span>
                     <span className="text-muted-foreground text-xs">
                       primary
@@ -120,7 +120,7 @@ export function AliasManager({
                   {aliases.map((alias) => (
                     <div
                       key={alias.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2"
+                      className="bg-background flex items-center justify-between rounded-md border px-3 py-2"
                     >
                       <span>{alias.universe}</span>
                       <Button

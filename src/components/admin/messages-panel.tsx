@@ -152,7 +152,7 @@ export function MessagesPanel({
   return (
     <div className="space-y-8">
       {/* Send form */}
-      <div className="rounded-lg border p-6">
+      <div className="bg-background rounded-lg border p-6">
         <h2 className="mb-4 text-lg font-semibold">Send Message</h2>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FieldSet className="m-0 gap-1 p-0">
@@ -279,7 +279,7 @@ export function MessagesPanel({
         {initialMessages.length === 0 ? (
           <p className="text-muted-foreground text-sm">No messages sent yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="bg-background overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b">

@@ -109,6 +109,7 @@ export type Transformation =
   | "hpTrend"
   | "yoy"
   | "ytd"
+  | "qtd"
   | "pop"
   | "levelChange"
   | "cagr"
@@ -779,29 +780,39 @@ export function applyTransformationMulti(
         });
         break;
       }
-      case "ytd": {
-        // Mirrors Series.ytd() (= ytdSum().yoy()): cumulative sum from each
+      case "ytd":
+      case "qtd": {
+        // YTD mirrors Series.ytd() (= ytdSum().yoy()): cumulative sum from each
         // calendar-year start, then % change vs the same date one year
         // earlier — so the chart agrees with the YTD column in the table.
+        // QTD is the same thing restarting each calendar quarter: m1, m1+m2,
+        // m1+m2+m3, each vs the same months a year earlier. Sum vs average
+        // doesn't matter — both years cover the same months, so the ratio is
+        // identical either way.
+        const periodOf =
+          transform === "ytd"
+            ? (d: string) => d.slice(0, 4)
+            : (d: string) =>
+                `${d.slice(0, 4)}Q${Math.ceil(Number(d.slice(5, 7)) / 3)}`;
         const orig = rows.map((r) => r[key] as number | null);
-        const ytdSum = new Map<string, number>();
-        let trackYear = "";
+        const toDateSum = new Map<string, number>();
+        let trackPeriod = "";
         let cumSum = 0;
         rows.forEach((row, i) => {
           const v = orig[i];
           if (v == null) return;
-          const yr = row.date.slice(0, 4);
-          if (yr !== trackYear) {
-            trackYear = yr;
+          const period = periodOf(row.date);
+          if (period !== trackPeriod) {
+            trackPeriod = period;
             cumSum = 0;
           }
           cumSum += v;
-          ytdSum.set(row.date, cumSum);
+          toDateSum.set(row.date, cumSum);
         });
         rows = rows.map((row) => {
-          const cur = ytdSum.get(row.date);
+          const cur = toDateSum.get(row.date);
           if (cur == null) return { ...row, [key]: null };
-          const prior = ytdSum.get(addMonthsStr(row.date, -12));
+          const prior = toDateSum.get(addMonthsStr(row.date, -12));
           if (prior == null) return { ...row, [key]: null };
           // Near-zero denominator guard, same as the model's pctChange
           if (Math.abs(prior) < 1e-10)
@@ -884,6 +895,7 @@ export const TRANSFORMATION_LABELS: Record<Transformation, string> = {
   hpTrend: "HP Trend",
   yoy: "YOY %",
   ytd: "YTD %",
+  qtd: "QTD %",
   pop: "PoP %",
   levelChange: "LVL Chg",
   cagr: "CAGR",

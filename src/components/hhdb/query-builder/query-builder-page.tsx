@@ -268,7 +268,7 @@ export function QueryBuilderPage({ schema }: QueryBuilderPageProps) {
         <ResultsTable result={result} loading={pending} />
       ) : (
         !error && (
-          <div className="text-muted-foreground rounded-md border border-dashed px-4 py-10 text-center text-sm">
+          <div className="text-muted-foreground bg-background rounded-md border border-dashed px-4 py-10 text-center text-sm">
             Build a query above and press{" "}
             <span className="font-medium">Run query</span>.
           </div>
