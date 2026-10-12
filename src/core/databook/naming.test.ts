@@ -170,3 +170,23 @@ group("portalNames codes", () => {
     ]);
   });
 });
+
+group("portalNames units", () => {
+  const n = (colDims: string[]) => ({ panelLabel: "", rowDims: [], colDims });
+  it("drops unit parentheticals unless they tell measurements apart", () => {
+    expect(
+      portalNames(
+        [
+          n(["Average weekly earnings (dollars)"]),
+          n(["Land area (sq. km.)"]),
+          n(["Land area (sq. mi.)"]),
+        ],
+        "TITLE",
+      ),
+    ).toEqual([
+      "Average weekly earnings",
+      "Land area (sq. km.)",
+      "Land area (sq. mi.)",
+    ]);
+  });
+});

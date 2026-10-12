@@ -8,7 +8,7 @@
  * apart. `description` carries the full context: the table title (without
  * its year ranges) and the whole label path.
  */
-import { titleCase } from "./meta";
+import { splitLabelUnit, titleCase } from "./meta";
 
 export interface NameInput {
   panelLabel: string;
@@ -73,7 +73,9 @@ interface Path {
   comps: Array<{ axis: "panel" | "row" | "col"; text: string }>;
 }
 
-function pathOf(n: NameInput, withCodes = false): Path {
+function pathOf(n: NameInput, withCodes = false, keepUnits = false): Path {
+  const unitless = (text: string) =>
+    keepUnits ? text : splitLabelUnit(text).text;
   // Codes are dropped only when the axis also has a text label ("62 >
   // Health care…"); a row labelled just "96816" (ZIP) or "1-4" (ages) keeps it.
   const keepIn = (dims: string[]) => {
@@ -84,22 +86,22 @@ function pathOf(n: NameInput, withCodes = false): Path {
   return {
     comps: [
       ...(cleanPanelLabel(n.panelLabel)
-        ? [{ axis: "panel" as const, text: cleanPanelLabel(n.panelLabel) }]
+        ? [
+            {
+              axis: "panel" as const,
+              text: unitless(cleanPanelLabel(n.panelLabel)),
+            },
+          ]
         : []),
       ...n.rowDims.filter(keepIn(n.rowDims)).map((text) => ({
         axis: "row" as const,
-        text: withRowHeader(dropCountUnit(text), n.rowHeader),
+        text: withRowHeader(unitless(text), n.rowHeader),
       })),
       ...n.colDims
         .filter(keepIn(n.colDims))
-        .map((text) => ({ axis: "col" as const, text: dropCountUnit(text) })),
+        .map((text) => ({ axis: "col" as const, text: unitless(text) })),
     ],
   };
-}
-
-/** "Population (number)" → "Population": a count needs no unit in its name. */
-function dropCountUnit(text: string): string {
-  return text.replace(/\s*\((number|numbers|count)\)\s*$/i, "") || text;
 }
 
 /** "0" under an "Age" column → "Age 0"; "96816" under "ZIP code" → "ZIP code 96816". */
@@ -162,7 +164,26 @@ function render(p: Path, shown: Set<number>, subject: string): string {
  */
 export function portalNames(inputs: NameInput[], title: string): string[] {
   const subject = tableSubject(title);
-  const paths = inputs.map((n) => pathOf(n));
+  // Units live in the measurement's unit field, so names drop them
+  // ("Average weekly earnings (dollars)" → "Average weekly earnings") —
+  // unless that would make two measurements' labels identical
+  // ("Sales (dollars)" / "Sales (percent)").
+  const pathKey = (n: NameInput, keepUnits: boolean) =>
+    pathOf(n, true, keepUnits)
+      .comps.map((c) => `${c.axis}:${c.text.toLowerCase()}`)
+      .join("|");
+  const tally = (keys: string[]) => {
+    const m = new Map<string, number>();
+    for (const k of keys) m.set(k, (m.get(k) ?? 0) + 1);
+    return m;
+  };
+  const bare = inputs.map((n) => pathKey(n, false));
+  const full = inputs.map((n) => pathKey(n, true));
+  const bareN = tally(bare);
+  const fullN = tally(full);
+  const paths = inputs.map((n, i) =>
+    pathOf(n, false, bareN.get(bare[i])! > fullN.get(full[i])!),
+  );
   const orders = paths.map(expansionOrder);
   const shown = paths.map((p, i) => {
     const hasRow = p.comps.some((c) => c.axis === "row");
@@ -220,7 +241,7 @@ export function describe(
   n: NameInput,
   basis: string | null,
 ): string {
-  const path = pathOf(n, true).comps.map((c) => c.text);
+  const path = pathOf(n, true, true).comps.map((c) => c.text);
   const s = `${titleCase(stripTitlePeriods(title))}${path.length ? " — " + path.join(" > ") : ""}${basis ? ` (${basis})` : ""}`;
   return s.length <= 500 ? s : s.slice(0, 499) + "…";
 }
