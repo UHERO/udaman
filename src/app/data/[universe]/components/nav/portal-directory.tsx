@@ -29,7 +29,8 @@ type DirectoryEntry = { slug: string; name: string; description: string };
  * Public portals listed in the directory, grouped and in display order.
  * `dvw`/`dbedt` are the custom dashboards under /data. Curated rather than
  * read from the `universes` table so internal universes never surface on
- * the public site.
+ * the public site; universes flagged internal-only are also filtered out at
+ * render time (except the one being viewed).
  */
 const DIRECTORY_GROUPS: { label: string; entries: DirectoryEntry[] }[] = [
   {
@@ -84,7 +85,13 @@ const entryHref = (slug: string) =>
  * Header and footer bands use the theme color.
  */
 export function PortalDirectory({ onNavigate }: { onNavigate?: () => void }) {
-  const { config } = usePortalConfig();
+  const { config, internalUniverses } = usePortalConfig();
+  const groups = DIRECTORY_GROUPS.map((group) => ({
+    ...group,
+    entries: group.entries.filter(
+      (p) => p.slug === config.universe || !internalUniverses.includes(p.slug),
+    ),
+  })).filter((group) => group.entries.length > 0);
   const external: { name: string; url: string; description?: string }[] = [
     { name: "UHERO Dashboard Project", url: DASHBOARD_PROJECT_URL },
     ...config.otherDashboardLinks.filter(
@@ -116,7 +123,7 @@ export function PortalDirectory({ onNavigate }: { onNavigate?: () => void }) {
         </DialogHeader>
 
         <div className="py-1">
-          {DIRECTORY_GROUPS.map((group) => (
+          {groups.map((group) => (
             <section key={group.label} aria-label={group.label}>
               <h3 className="text-muted-foreground px-5 pt-2.5 pb-1 text-[10px] font-semibold tracking-wider uppercase">
                 {group.label}

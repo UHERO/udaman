@@ -3,6 +3,8 @@ import UniverseCollection from "@catalog/collections/universe-collection";
 import { GoogleAnalytics } from "@next/third-parties/google";
 
 import { fetchPortalCategories } from "@/actions/data-portal/portal";
+import { getSession } from "@/lib/auth/dal";
+import { normalizeUniverse } from "@/lib/auth/roles";
 
 import { HashRedirect } from "../components/hash-redirect";
 import { portalCssVars } from "../components/ui/chart-theme";
@@ -21,24 +23,67 @@ import type { PortalCategories } from "../lib/types";
  */
 
 /**
- * Look up a universe in the DB `universe` table (deduped per request). If
- * the DB is unreachable (the public portal otherwise only needs the REST
- * API), fall back to the config registry so the portal stays up.
+ * All universes from the DB `universe` table (deduped per request), or null
+ * when the DB is unreachable — the public portal otherwise only needs the
+ * REST API, so callers fall back to the config registry.
  */
+const listUniverses = cache(async () => {
+  try {
+    return await UniverseCollection.list();
+  } catch (e) {
+    console.error("data portal: universe lookup failed, using registry", e);
+    return null;
+  }
+});
+
+/** Look up a universe by portal slug. */
 export const lookupUniverse = cache(
   async (
     slug: string,
-  ): Promise<{ exists: boolean; description: string | null }> => {
-    try {
-      const all = await UniverseCollection.list();
-      const row = all.find((u) => u.name.toLowerCase() === slug);
-      return { exists: !!row, description: row?.description ?? null };
-    } catch (e) {
-      console.error("data portal: universe lookup failed, using registry", e);
-      return { exists: slug in PORTAL_CONFIGS, description: null };
+  ): Promise<{
+    exists: boolean;
+    description: string | null;
+    internalOnly: boolean;
+  }> => {
+    const all = await listUniverses();
+    if (!all) {
+      return {
+        exists: slug in PORTAL_CONFIGS,
+        description: null,
+        internalOnly: false,
+      };
     }
+    const row = all.find((u) => u.name.toLowerCase() === slug);
+    return {
+      exists: !!row,
+      description: row?.description ?? null,
+      internalOnly: row?.internalOnly ?? false,
+    };
   },
 );
+
+/** Lowercase slugs of internal-only universes (hidden from the directory). */
+async function internalUniverseSlugs(): Promise<string[]> {
+  const all = await listUniverses();
+  return (all ?? [])
+    .filter((u) => u.internalOnly)
+    .map((u) => u.name.toLowerCase());
+}
+
+/**
+ * May the current visitor see an internal-only universe's portal? Requires a
+ * udaman login; UHERO users see every universe, everyone else only their own
+ * (the same cross-universe policy as src/proxy.ts).
+ */
+export async function canViewInternalPortal(slug: string): Promise<boolean> {
+  const session = await getSession();
+  if (!session) return false;
+  const home = normalizeUniverse(session.user.universe ?? "UHERO");
+  return (
+    home === "UHERO" ||
+    home === normalizeUniverse(getPortalConfig(slug).dbUniverse)
+  );
+}
 
 export async function universeLayoutMetadata(slug: string) {
   const { description } =
@@ -55,6 +100,7 @@ export async function UniverseLayout({
   children: React.ReactNode;
 }) {
   const config = getPortalConfig(universe);
+  const internalUniverses = await internalUniverseSlugs();
 
   let categories: PortalCategories;
   try {
@@ -65,7 +111,11 @@ export async function UniverseLayout({
   }
 
   return (
-    <PortalConfigProvider config={config} categories={categories}>
+    <PortalConfigProvider
+      config={config}
+      categories={categories}
+      internalUniverses={internalUniverses}
+    >
       <Suspense>
         <AnalyzerProvider universe={universe}>
           <HashRedirect universe={universe} />
