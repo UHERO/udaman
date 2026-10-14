@@ -48,6 +48,7 @@ const downloadSchema = z.object({
   sheetOverride: z.string(),
   postParameters: z.string(),
   notes: z.string(),
+  historical: z.boolean(),
 });
 
 type DownloadFormValues = z.infer<typeof downloadSchema>;
@@ -95,6 +96,7 @@ export function DownloadForm({
       sheetOverride: download?.sheetOverride ?? "",
       postParameters: download?.postParameters ?? "",
       notes: download?.notes ?? "",
+      historical: download?.historical ?? false,
     },
   });
 
@@ -111,6 +113,7 @@ export function DownloadForm({
       sheetOverride: values.sheetOverride || null,
       postParameters: values.postParameters || null,
       notes: values.notes || null,
+      historical: values.historical,
     };
 
     try {
@@ -185,6 +188,17 @@ export function DownloadForm({
                 }
               />
               <FieldLabel htmlFor="freezeFile">Freeze file</FieldLabel>
+            </Field>
+
+            <Field orientation="horizontal">
+              <Checkbox
+                id="historical"
+                checked={form.watch("historical")}
+                onCheckedChange={(checked) =>
+                  form.setValue("historical", checked === true)
+                }
+              />
+              <FieldLabel htmlFor="historical">Historical</FieldLabel>
             </Field>
           </div>
 

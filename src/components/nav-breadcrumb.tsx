@@ -26,6 +26,7 @@ const segmentLabels: Record<string, string> = {
   "data-loaders": "Data Loaders",
   clipboard: "Clipboard",
   downloads: "Downloads",
+  downloaders: "Downloaders",
   analyze: "Analyze",
   compare: "Compare",
   calculate: "Calculate",
