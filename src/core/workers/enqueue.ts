@@ -10,6 +10,7 @@ import {
   type ClipboardActionJobData,
   type ClipboardLoaderReloadJobData,
   type DbedtUploadJobData,
+  type DownloaderRunJobData,
   type DownloadJobData,
   type DvwUploadJobData,
   type QpubReparseJobData,
@@ -106,6 +107,25 @@ export function enqueueTargetedReload(data: TargetedReloadJobData) {
 
 export function enqueueDownload(data: DownloadJobData) {
   return defaultQueue.add(JobName.DOWNLOAD, data);
+}
+
+/**
+ * Manual downloader run. A deterministic jobId collapses repeated clicks
+ * while one is waiting; a finished job is removed first so the next click
+ * runs again. (The downloaders.running_since claim guards the cron-vs-
+ * manual case across processes.)
+ */
+export async function enqueueDownloaderRun(data: DownloaderRunJobData) {
+  const jobId = `downloader-${data.handle}${data.full ? "-full" : ""}`;
+  const existing = await defaultQueue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (state === "waiting" || state === "delayed" || state === "active") {
+      return existing;
+    }
+    await existing.remove();
+  }
+  return defaultQueue.add(JobName.DOWNLOADER_RUN, data, { jobId });
 }
 
 export function enqueueKauaiExport() {

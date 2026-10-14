@@ -235,6 +235,35 @@ export async function fetchSeriesBatch(
   startYear: number,
   endYear: number,
 ): Promise<BlsBatchResult> {
+  const detailed = await fetchSeriesBatchDetailed(
+    seriesIds,
+    startYear,
+    endYear,
+  );
+  const result: BlsBatchResult = new Map();
+  for (const [sid, { data }] of detailed) result.set(sid, data);
+  return result;
+}
+
+/**
+ * BLS period code → one-letter frequency. Annual-average periods (M13,
+ * Q05, S03) are only returned when `annualaverage` is requested, which we
+ * never do; they are skipped so they can't collide with M01 / Q1 / S1.
+ */
+function blsPeriodFreq(period: string): string | null {
+  if (/^M(0[1-9]|1[0-2])$/.test(period)) return "M";
+  if (/^Q0[1-4]$/.test(period)) return "Q";
+  if (/^S0[12]$/.test(period)) return "S";
+  if (/^A01$/.test(period)) return "A";
+  return null;
+}
+
+/** Like fetchSeriesBatch, plus each series' frequency from its period codes. */
+export async function fetchSeriesBatchDetailed(
+  seriesIds: string[],
+  startYear: number,
+  endYear: number,
+): Promise<Map<string, { data: Map<string, number>; freq: string | null }>> {
   if (seriesIds.length === 0) return new Map();
   if (seriesIds.length > 50) {
     throw new Error(
@@ -242,7 +271,10 @@ export async function fetchSeriesBatch(
     );
   }
 
-  const result: BlsBatchResult = new Map();
+  const result = new Map<
+    string,
+    { data: Map<string, number>; freq: string | null }
+  >();
 
   await withKeyRetry(async (apiKey) => {
     const url = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
@@ -284,14 +316,17 @@ export async function fetchSeriesBatch(
       if (!sid) continue;
 
       const data = new Map<string, number>();
+      let freq: string | null = null;
       for (const dp of s.data ?? []) {
+        if (/^(M13|Q05|S03)$/.test(dp.period)) continue;
+        freq ??= blsPeriodFreq(dp.period);
         const date = grokDate(dp.year, dp.period);
         const value = parseFloat(String(dp.value).replace(/,/g, ""));
         if (!isNaN(value)) {
           data.set(date, value);
         }
       }
-      result.set(sid, data);
+      result.set(sid, { data, freq });
     }
   });
 
@@ -300,6 +335,86 @@ export async function fetchSeriesBatch(
     "BLS batch fetch complete",
   );
   return result;
+}
+
+export type BlsHistoryResult = {
+  /** BLS series ID → date→value (merged across windows) */
+  data: Map<string, Map<string, number>>;
+  freq: Map<string, string>;
+  /** BLS series ID → error message (a failed window, or no data at all) */
+  failed: Map<string, string>;
+  /** Earliest window start year actually requested per series */
+  windowStart: Map<string, number>;
+  requests: number;
+};
+
+/**
+ * Batched history walk: 50 IDs per POST, 20-year windows walking back from
+ * `endYear`. With `earliestYear` the walk stops there (a recent-window
+ * refresh: one window for refetchYears = 20); without it, each series is
+ * walked until a window comes back empty (full history). A failed request
+ * fails every ID in that batch and drops them from further windows.
+ */
+export async function fetchSeriesBatchHistory(
+  seriesIds: string[],
+  opts: {
+    endYear?: number;
+    earliestYear?: number;
+    log?: (msg: string) => void;
+  } = {},
+): Promise<BlsHistoryResult> {
+  const BLS_BATCH_SIZE = 50;
+  const BLS_MAX_SPAN = 20;
+  const out: BlsHistoryResult = {
+    data: new Map(),
+    freq: new Map(),
+    failed: new Map(),
+    windowStart: new Map(),
+    requests: 0,
+  };
+  let endYear = opts.endYear ?? new Date().getFullYear();
+  const floor = opts.earliestYear ?? 1900;
+  let active = [...new Set(seriesIds)];
+
+  while (active.length > 0 && endYear >= floor) {
+    const startYear = Math.max(endYear - BLS_MAX_SPAN + 1, floor);
+    opts.log?.(
+      `BLS: fetching ${active.length} series for ${startYear}–${endYear}`,
+    );
+    const stillActive: string[] = [];
+    for (let i = 0; i < active.length; i += BLS_BATCH_SIZE) {
+      const batch = active.slice(i, i + BLS_BATCH_SIZE);
+      try {
+        const res = await fetchSeriesBatchDetailed(batch, startYear, endYear);
+        out.requests++;
+        for (const id of batch) {
+          const r = res.get(id);
+          if (!r || r.data.size === 0) continue; // walked past its start
+          const merged = out.data.get(id) ?? new Map<string, number>();
+          for (const [d, v] of r.data) merged.set(d, v);
+          out.data.set(id, merged);
+          if (r.freq) out.freq.set(id, r.freq);
+          out.windowStart.set(id, startYear);
+          stillActive.push(id);
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        out.requests++;
+        opts.log?.(`BLS batch error (${startYear}–${endYear}): ${msg}`);
+        log.error({ startYear, endYear, err: msg }, "BLS batch chunk failed");
+        for (const id of batch) out.failed.set(id, msg);
+      }
+    }
+    active = stillActive;
+    endYear = startYear - 1;
+  }
+
+  for (const id of seriesIds) {
+    if (!out.data.has(id) && !out.failed.has(id)) {
+      out.failed.set(id, `No BLS data returned for ${id}`);
+    }
+  }
+  return out;
 }
 
 /**

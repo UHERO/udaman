@@ -24,6 +24,7 @@ export const JobName = {
   RELOAD_VAP_HI: "reload.vap_hi",
   RELOAD_UIC: "reload.uic",
   DOWNLOAD: "download.file",
+  DOWNLOADER_RUN: "downloader.run",
   KAUAI_EXPORT: "export.kauai",
   QPUB_REPARSE: "qpub.reparse",
   MLS_DAILY: "mls.daily",
@@ -100,6 +101,17 @@ export type TargetedReloadJobData = {
 
 export type DownloadJobData = {
   handle: string;
+};
+
+/** Run a downloader (src/core/downloaders). */
+export type DownloaderRunJobData = {
+  handle: string;
+  /** Keyed run: only these keys (downloaders that support it) */
+  keys?: string[];
+  /** Ignore skip-if-unchanged shortcuts */
+  force?: boolean;
+  /** Ignore historical marks / history state: refetch everything */
+  full?: boolean;
 };
 
 export type KauaiExportJobData = Record<string, never>;

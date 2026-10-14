@@ -18,6 +18,7 @@ import {
 import { processDbedtUpload } from "./dbedt-upload";
 import { processDependencyReset } from "./dependency-reset";
 import { processDownload } from "./download";
+import { processDownloaderRun } from "./downloader-run";
 import { processDvwUpload } from "./dvw-upload";
 import { processKauaiExport } from "./kauai-export";
 import { processMlsDaily } from "./mls-daily";
@@ -128,6 +129,9 @@ export const processors: Record<string, Processor> = {
   [JobName.RELOAD_VAP_HI]: heavy(processTargetedReload),
   [JobName.RELOAD_UIC]: heavy(processTargetedReload),
   [JobName.DOWNLOAD]: processDownload,
+  // Network + file writes only (no data_points), so no heavy lock; the
+  // downloaders.running_since claim serializes runs of one downloader.
+  [JobName.DOWNLOADER_RUN]: processDownloaderRun,
   [JobName.KAUAI_EXPORT]: processKauaiExport,
   [JobName.CLIPBOARD_ACTION]: processClipboardAction,
   [JobName.CLIPBOARD_LOADER_RELOAD]: processClipboardLoaderReload,

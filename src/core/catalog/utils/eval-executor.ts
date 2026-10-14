@@ -124,6 +124,11 @@ const ALLOWED_STATIC_METHODS = new Set([
   "loadApiEiaSteo",
   "loadApiDvw",
   "loadFromTG",
+  // Downloader load methods (src/core/downloaders)
+  "loadFromBlsApi",
+  "loadFromDotaxSheet",
+  "loadFromDotaxCurrent",
+  "loadFromDotaxArchive",
 ]);
 
 /** Arithmetic operator → Series method name */
@@ -139,6 +144,7 @@ const OP_TO_METHOD: Record<string, string> = {
 
 async function resolveArg(
   arg: EvalArg,
+  universe: string,
 ): Promise<
   | string
   | number
@@ -158,7 +164,7 @@ async function resolveArg(
       return arg.value;
     case "series_ref": {
       try {
-        const series = await SeriesCollection.getByName(arg.name);
+        const series = await SeriesCollection.getByName(arg.name, universe);
         await SeriesCollection.loadCurrentData(series);
         return series;
       } catch (e) {
@@ -177,8 +183,11 @@ async function resolveArg(
   }
 }
 
-async function resolveArgs(args: EvalArg[]): Promise<unknown[]> {
-  return Promise.all(args.map(resolveArg));
+async function resolveArgs(
+  args: EvalArg[],
+  universe: string,
+): Promise<unknown[]> {
+  return Promise.all(args.map((a) => resolveArg(a, universe)));
 }
 
 // ─── TSD file helper ─────────────────────────────────────────────────
@@ -255,7 +264,7 @@ class EvalExecutor {
     switch (node.type) {
       case "series_ref": {
         try {
-          const series = await SeriesCollection.getByName(node.name);
+          const series = await SeriesCollection.getByName(node.name, universe);
           await SeriesCollection.loadCurrentData(series);
           return series;
         } catch (e) {
@@ -284,7 +293,7 @@ class EvalExecutor {
           node.target.type === "static_method" &&
           node.target.method === "search"
         ) {
-          const searchArgs = await resolveArgs(node.target.args);
+          const searchArgs = await resolveArgs(node.target.args, universe);
           const text = String(searchArgs[0] ?? "");
           const results = await SeriesCollection.search({ text, universe });
 
@@ -328,7 +337,7 @@ class EvalExecutor {
 
         // File loading methods: read file server-side, extract series data
         if (methodName === "loadFrom") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           const path = String(args[0]);
 
           // TSD files have a fundamentally different structure — handle directly
@@ -356,7 +365,7 @@ class EvalExecutor {
         }
 
         if (methodName === "loadSaFrom") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           const path = String(args[0]);
 
           // Extract sheet kwarg or default to "sadata"
@@ -379,7 +388,7 @@ class EvalExecutor {
 
         // Mean-corrected SA file loading: read file + DB lookup for NS series
         if (methodName === "loadMeanCorrectedSaFrom") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           const path = String(args[0]);
           const sheet =
             args[1] && typeof args[1] === "object"
@@ -395,7 +404,7 @@ class EvalExecutor {
           demetra.frequency = reader.frequency;
 
           // Load the actual NS series from DB
-          const nsSeries = await SeriesCollection.getByName(nsName);
+          const nsSeries = await SeriesCollection.getByName(nsName, universe);
           await SeriesCollection.loadCurrentData(nsSeries);
 
           // Mean correct: demetra / demetra.annualSum * nsSeries.annualSum
@@ -413,7 +422,7 @@ class EvalExecutor {
 
         // County share allocation: needs DB access to look up state/county series
         if (methodName === "mcMaCountyShareFor") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           const countyCode = String(args[0]);
           const parsedName = target.parseName();
           const prefix = args[1] ? String(args[1]) : parsedName.prefix;
@@ -421,14 +430,14 @@ class EvalExecutor {
 
           // Load state series (NS variant at HI geography)
           const stateName = Series.buildName(prefix + "NS", "HI", freq);
-          const state = await SeriesCollection.getByName(stateName);
+          const state = await SeriesCollection.getByName(stateName, universe);
           await SeriesCollection.loadCurrentData(state);
 
           // Load county series (sibling of state for the given geo code)
           const countyName = state.buildName({
             geo: countyCode.toUpperCase(),
           });
-          const county = await SeriesCollection.getByName(countyName);
+          const county = await SeriesCollection.getByName(countyName, universe);
           await SeriesCollection.loadCurrentData(county);
 
           // Date range from county data
@@ -466,7 +475,7 @@ class EvalExecutor {
         //
         // Ports Series#mc_price_share_for (tmp/lib/series_sharing.rb).
         if (methodName === "mcPriceShareFor") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           const countyCode = String(args[0]);
           const parsedName = target.parseName();
 
@@ -478,14 +487,14 @@ class EvalExecutor {
             countyCode.toUpperCase(),
             parsedName.freq,
           );
-          const county = await SeriesCollection.getByName(countyName);
+          const county = await SeriesCollection.getByName(countyName, universe);
           await SeriesCollection.loadCurrentData(county);
 
           // target's own NS counterpart — raise if it doesn't exist.
           const myNsName = target.nsSeriesName;
           let myNs: Series;
           try {
-            myNs = await SeriesCollection.getByName(myNsName);
+            myNs = await SeriesCollection.getByName(myNsName, universe);
             await SeriesCollection.loadCurrentData(myNs);
           } catch {
             throw new EvalExecuteError(`No NS series corresponds to ${target}`);
@@ -537,21 +546,21 @@ class EvalExecutor {
 
         // Annual-average county share allocation: needs DB access
         if (methodName === "aaStateBasedCountyShareFor") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           const countyCode = String(args[0]);
           const parsedName = target.parseName();
           const prefix = args[1] ? String(args[1]) : parsedName.prefix;
 
           // Load state series (NS variant, monthly, HI geography)
           const stateName = Series.buildName(prefix + "NS", "HI", "M");
-          const state = await SeriesCollection.getByName(stateName);
+          const state = await SeriesCollection.getByName(stateName, universe);
           await SeriesCollection.loadCurrentData(state);
 
           // Load county series (sibling of state for the given geo code)
           const countyName = state.buildName({
             geo: countyCode.toUpperCase(),
           });
-          const county = await SeriesCollection.getByName(countyName);
+          const county = await SeriesCollection.getByName(countyName, universe);
           await SeriesCollection.loadCurrentData(county);
 
           // Compute: county.annualAverage / state.annualAverage * target
@@ -577,14 +586,14 @@ class EvalExecutor {
         //
         // Ports Series#extend_last_fwd_to_match (tmp/lib/series_interpolation.rb).
         if (methodName === "extendLastFwdToMatch") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           if (args.length !== 1) {
             throw new EvalExecuteError(
               `extendLastFwdToMatch expects 1 arg (series name), got ${args.length}`,
             );
           }
           const refName = String(args[0]);
-          const refSeries = await SeriesCollection.getByName(refName);
+          const refSeries = await SeriesCollection.getByName(refName, universe);
           await SeriesCollection.loadCurrentData(refSeries);
           return target.extendLastFwdToMatch(refSeries);
         }
@@ -599,7 +608,10 @@ class EvalExecutor {
           const annualName = target.buildName({ freq: "A" });
           let annualSeries: Series;
           try {
-            annualSeries = await SeriesCollection.getByName(annualName);
+            annualSeries = await SeriesCollection.getByName(
+              annualName,
+              universe,
+            );
             await SeriesCollection.loadCurrentData(annualSeries);
           } catch {
             throw new EvalExecuteError(
@@ -608,7 +620,7 @@ class EvalExecutor {
           }
 
           // Optional date arg: .rebase(2020) or .rebase("2020-01-01")
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           let date: string | undefined;
           if (args.length > 0 && args[0] !== undefined) {
             const raw = args[0];
@@ -635,7 +647,7 @@ class EvalExecutor {
           methodName === "per1kcap" ||
           methodName === "perCapCivilian"
         ) {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
 
           let popPrefix = "NR";
           let multiplier = 100;
@@ -654,7 +666,7 @@ class EvalExecutor {
             if (first instanceof Series) {
               popSeries = first;
             } else if (typeof first === "string") {
-              popSeries = await SeriesCollection.getByName(first);
+              popSeries = await SeriesCollection.getByName(first, universe);
               await SeriesCollection.loadCurrentData(popSeries);
             } else if (typeof first === "object") {
               // kwargs: { pop: "NRC", multiplier: 1000 }
@@ -683,7 +695,7 @@ class EvalExecutor {
               parsed.freq,
             );
             try {
-              popSeries = await SeriesCollection.getByName(popName);
+              popSeries = await SeriesCollection.getByName(popName, universe);
             } catch {
               throw new EvalExecuteError(
                 `No population series found: ${popName}`,
@@ -711,7 +723,7 @@ class EvalExecutor {
           }
 
           // Parse args: positional (rangeStart, rangeEnd) and/or kwargs (from:, to:)
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           let rangeStart: string | undefined;
           let rangeEnd: string | undefined;
           let kwargs: Record<string, string> = {};
@@ -728,7 +740,7 @@ class EvalExecutor {
           let semi: Series | null = null;
           try {
             const semiName = target.buildName({ freq: "S" });
-            semi = await SeriesCollection.getByName(semiName);
+            semi = await SeriesCollection.getByName(semiName, universe);
             await SeriesCollection.loadCurrentData(semi);
           } catch {
             semi = null;
@@ -817,7 +829,7 @@ class EvalExecutor {
         // factors to the NS counterpart's newer observations.
         // Port of Rails `apply_seasonal_adjustment` (series_seasonal_adjustment.rb:3).
         if (methodName === "applySeasonalAdjustment") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           const application = String(args[0] ?? "").toLowerCase();
           if (application !== "additive" && application !== "multiplicative") {
             throw new EvalExecuteError(
@@ -831,7 +843,7 @@ class EvalExecutor {
           const nsName = target.nsSeriesName;
           let nsSeries: Series;
           try {
-            nsSeries = await SeriesCollection.getByName(nsName);
+            nsSeries = await SeriesCollection.getByName(nsName, universe);
           } catch {
             throw new EvalExecuteError(
               `No NS series corresponds to ${target} (looked for ${nsName})`,
@@ -913,7 +925,7 @@ class EvalExecutor {
         if (methodName === "applyNsGrowthRateSa") {
           // Find the NS (non-seasonally-adjusted) counterpart
           const nsName = target.nsSeriesName;
-          const nsSeries = await SeriesCollection.getByName(nsName);
+          const nsSeries = await SeriesCollection.getByName(nsName, universe);
           await SeriesCollection.loadCurrentData(nsSeries);
 
           // Shift target forward by 1 year (so shifted.at(date) = target.at(date - 1yr))
@@ -958,13 +970,16 @@ class EvalExecutor {
 
         // Real conversion (deflation): needs DB access to look up price index series
         if (methodName === "convertToReal" || methodName === "convertToRealB") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
 
           // Resolve index prefix
           let indexPrefix = "CPI";
           if (args[0] && typeof args[0] === "string") {
             // Positional arg: explicit series name — load directly
-            const idxSeries = await SeriesCollection.getByName(args[0]);
+            const idxSeries = await SeriesCollection.getByName(
+              args[0],
+              universe,
+            );
             await SeriesCollection.loadCurrentData(idxSeries);
             return target.divide(idxSeries).multiply(100);
           }
@@ -1003,14 +1018,14 @@ class EvalExecutor {
             // Try HON first, fall back to HI
             const honName = Series.buildName(indexPrefix, "HON", freq);
             try {
-              idxSeries = await SeriesCollection.getByName(honName);
+              idxSeries = await SeriesCollection.getByName(honName, universe);
             } catch {
               const hiName = Series.buildName(indexPrefix, "HI", freq);
-              idxSeries = await SeriesCollection.getByName(hiName);
+              idxSeries = await SeriesCollection.getByName(hiName, universe);
             }
           } else {
             const idxName = Series.buildName(indexPrefix, geo, freq);
-            idxSeries = await SeriesCollection.getByName(idxName);
+            idxSeries = await SeriesCollection.getByName(idxName, universe);
           }
 
           await SeriesCollection.loadCurrentData(idxSeries);
@@ -1023,7 +1038,7 @@ class EvalExecutor {
         // into an options arg `{before: ..., after: ...}`. The TS method
         // takes positional `(startDate?, endDate?)`, so extract the kwargs.
         if (methodName === "trim") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           let startDate: string | undefined;
           let endDate: string | undefined;
           for (const a of args) {
@@ -1050,7 +1065,7 @@ class EvalExecutor {
         // be expressions, so `indicator:` takes a series NAME and is loaded
         // from the DB here; a positional `.ts` expression also works.
         if (methodName === "disaggregate") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           let frequency: string | undefined;
           const opts: Record<string, unknown> = {};
           for (const a of args) {
@@ -1072,7 +1087,10 @@ class EvalExecutor {
             opts.method = opts.method.replace(/_/g, "-");
           }
           if (typeof opts.indicator === "string") {
-            const indicator = await SeriesCollection.getByName(opts.indicator);
+            const indicator = await SeriesCollection.getByName(
+              opts.indicator,
+              universe,
+            );
             await SeriesCollection.loadCurrentData(indicator);
             opts.indicator = indicator;
           }
@@ -1094,7 +1112,7 @@ class EvalExecutor {
           methodName === "backwardLookingMovingAverage" ||
           methodName === "forwardLookingMovingAverage"
         ) {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           let window: number | undefined;
           for (const a of args) {
             if (a && typeof a === "object" && !(a instanceof Series)) {
@@ -1119,7 +1137,7 @@ class EvalExecutor {
           );
         }
 
-        const args = await resolveArgs(node.args);
+        const args = await resolveArgs(node.args, universe);
         const result = await fn.call(target, ...args);
         return result instanceof Series ? result : target;
       }
@@ -1146,7 +1164,7 @@ class EvalExecutor {
         // file + DB hybrid handlers like loadMeanCorrectedSaFrom, since
         // SeriesCollection only owns the pure API loaders.
         if (methodName === "addDemetraSeriesAndMeanCorrect") {
-          const args = await resolveArgs(node.args);
+          const args = await resolveArgs(node.args, universe);
           if (args.length !== 4) {
             throw new EvalExecuteError(
               `Series.add_demetra_series_and_mean_correct expects 4 args (series1, series2, mcSeries, file), got ${args.length}`,
@@ -1164,7 +1182,7 @@ class EvalExecutor {
           // the file. Mirrors `load_sa_from` semantics at line 266 above:
           // when the target isn't already NS, look up by `nsSeriesName`.
           const loadOne = async (name: string): Promise<Series> => {
-            const dbSeries = await SeriesCollection.getByName(name);
+            const dbSeries = await SeriesCollection.getByName(name, universe);
             const lookupName = dbSeries.isNS
               ? dbSeries.name
               : dbSeries.nsSeriesName;
@@ -1182,7 +1200,7 @@ class EvalExecutor {
           const asSum = as1.add(as2);
 
           // Mean correct against the annual sum of mcSeries
-          const mcSeries = await SeriesCollection.getByName(mcName);
+          const mcSeries = await SeriesCollection.getByName(mcName, universe);
           await SeriesCollection.loadCurrentData(mcSeries);
 
           const meanCorrected = asSum
@@ -1212,7 +1230,7 @@ class EvalExecutor {
           );
         }
 
-        const args = await resolveArgs(node.args);
+        const args = await resolveArgs(node.args, universe);
         return fn.call(SeriesCollection, ...args) as Promise<Series>;
       }
 

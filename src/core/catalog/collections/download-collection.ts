@@ -1,5 +1,7 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
+
+import { format } from "date-fns";
 
 import { buildUpdateObject, mysql } from "@/lib/mysql/helpers";
 
@@ -64,7 +66,9 @@ class DownloadCollection {
     return rows.map((row) => {
       const dl = new Download(row);
       let hasRelatedSeries = true; // date-sensitive downloads default to true (never orphaned)
-      if (!dl.dateSensitive && dl.handle) {
+      // Downloader-owned rows are read through the downloader's load
+      // method, never by handle — skip the eval scan for them.
+      if (!dl.dateSensitive && dl.handle && dl.downloaderId == null) {
         hasRelatedSeries = evals.some((e) => e.includes(dl.handle!));
       }
       return { download: dl, hasRelatedSeries };
@@ -156,6 +160,10 @@ class DownloadCollection {
    */
   static async downloadToServer(
     id: number,
+    opts: {
+      /** When the content changed, move the previous copy here (timestamp-prefixed) instead of discarding it. */
+      keepSupersededIn?: string;
+    } = {},
   ): Promise<{ status: number; changed: boolean; htmlPage?: boolean }> {
     const dl = await this.getById(id);
     if (dl.freezeFile) {
@@ -197,6 +205,15 @@ class DownloadCollection {
           dataChanged = !body.equals(existing);
         } else {
           dataChanged = true;
+        }
+
+        if (dataChanged && opts.keepSupersededIn && existsSync(savePath)) {
+          const stamp = format(now, "yyyyMMddHHmmss");
+          mkdirSync(opts.keepSupersededIn, { recursive: true });
+          copyFileSync(
+            savePath,
+            join(opts.keepSupersededIn, `${stamp}_${basename(savePath)}`),
+          );
         }
 
         // Ensure directory exists and write file
@@ -381,7 +398,7 @@ class DownloadCollection {
       INSERT INTO downloads (
         handle, url, filename_ext, date_sensitive, freeze_file,
         sort1, sort2, file_to_extract, sheet_override,
-        post_parameters, notes, created_at, updated_at
+        post_parameters, notes, historical, created_at, updated_at
       ) VALUES (
         ${payload.handle ?? null},
         ${payload.url ?? null},
@@ -394,6 +411,7 @@ class DownloadCollection {
         ${payload.sheetOverride ?? null},
         ${payload.postParameters ?? null},
         ${payload.notes ?? null},
+        ${payload.historical ? 1 : 0},
         NOW(), NOW()
       )
     `;
@@ -443,6 +461,8 @@ export type CreateDownloadPayload = {
   sheetOverride?: string | null;
   postParameters?: string | null;
   notes?: string | null;
+  /** Final: an owning downloader never refetches it */
+  historical?: boolean;
 };
 
 export type UpdateDownloadPayload = Partial<CreateDownloadPayload>;

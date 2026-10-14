@@ -11,6 +11,7 @@ model universe {
   name             String             @id @db.VarChar(10)
   description      String?            @db.Text
   data_portal_url  String?            @db.VarChar(255)
+  internal_only    Boolean            @default(false)
   api_applications api_applications[]
   categories       categories[]
   data_lists       data_lists[]
@@ -258,6 +259,32 @@ model downloads {
   file_to_extract  String?                 @db.VarChar(255)
   sheet_override   String?                 @db.VarChar(255)
   notes            String?                 @db.Text
+  downloader_id    Int?
+  downloader_role  downloads_downloader_role?
+  historical       Boolean                 @default(false)
+
+  @@index([downloader_id], map: "index_downloads_on_downloader_id")
+}
+
+model downloaders {
+  id               Int       @id @default(autoincrement())
+  handle           String    @unique(map: "index_downloaders_on_handle") @db.VarChar(64)
+  config           Json?
+  state            Json?
+  enabled          Boolean   @default(true)
+  reload_on_change Boolean   @default(false)
+  max_age_minutes  Int?      @default(1440)
+  running_since    DateTime? @db.DateTime(0)
+  last_run_at      DateTime? @db.DateTime(0)
+  last_success_at  DateTime? @db.DateTime(0)
+  last_change_at   DateTime? @db.DateTime(0)
+  last_error       String?   @db.VarChar(500)
+  last_error_at    DateTime? @db.DateTime(0)
+  last_run_seconds Decimal?  @db.Decimal(10, 3)
+  last_stats       Json?
+  notes            String?   @db.Text
+  created_at       DateTime? @db.DateTime(0)
+  updated_at       DateTime? @db.DateTime(0)
 }
 
 model dsd_log_entries {
@@ -872,6 +899,11 @@ enum nta_uploads_series_status {
   processing
   ok
   fail
+}
+
+enum downloads_downloader_role {
+  source
+  output
 }
 
 enum downloads_filename_ext {

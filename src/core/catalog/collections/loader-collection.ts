@@ -355,6 +355,7 @@ class LoaderCollection {
           (${loaderType} = 'pseudo_history' AND ds.pseudo_history = 1) OR
           (${loaderType} != 'pseudo_history' AND ds.pseudo_history = 0 AND
            CASE
+             WHEN ds.eval REGEXP 'load_from_(bls_api|dotax_)' THEN 'download'
              WHEN ds.eval REGEXP 'load_api' THEN 'api'
              WHEN ds.eval REGEXP 'forecast' THEN 'forecast'
              WHEN ds.eval REGEXP 'load_from_download' THEN 'download'

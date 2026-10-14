@@ -19,6 +19,9 @@ export type DownloadAttrs = {
   file_to_extract?: string | null;
   sheet_override?: string | null;
   notes?: string | null;
+  downloader_id?: number | null;
+  downloader_role?: "source" | "output" | null;
+  historical?: boolean | number | null;
 };
 
 class Download {
@@ -38,6 +41,11 @@ class Download {
   fileToExtract: string | null;
   sheetOverride: string | null;
   notes: string | null;
+  /** Downloader that owns this row (fetched it as a source, or writes it as its output) */
+  downloaderId: number | null;
+  downloaderRole: "source" | "output" | null;
+  /** Final: the owning downloader never refetches it (unlike freezeFile, a manual hold) */
+  historical: boolean;
 
   constructor(attrs: DownloadAttrs) {
     this.id = attrs.id;
@@ -64,6 +72,9 @@ class Download {
     this.fileToExtract = attrs.file_to_extract ?? null;
     this.sheetOverride = attrs.sheet_override ?? null;
     this.notes = attrs.notes ?? null;
+    this.downloaderId = attrs.downloader_id ?? null;
+    this.downloaderRole = attrs.downloader_role ?? null;
+    this.historical = Boolean(attrs.historical);
   }
 
   /** Root directory for raw downloaded files */
@@ -132,6 +143,11 @@ class Download {
       fileToExtract: this.fileToExtract,
       sheetOverride: this.sheetOverride,
       notes: this.notes,
+      downloaderId: this.downloaderId,
+      downloaderRole: this.downloaderRole,
+      historical: this.historical,
+      lastDownloadAt: this.lastDownloadAt,
+      lastChangeAt: this.lastChangeAt,
     };
   }
 }

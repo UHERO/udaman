@@ -138,17 +138,32 @@ class ClientDataFileReader {
       for (let col = 2; col <= this.lastColumn; col++) {
         const raw = this.cell(1, col);
         if (!raw || typeof raw !== "string" || !raw.includes("@")) continue;
-        this._headers.set(raw.toUpperCase(), col);
+        this.addHeader(raw, col);
       }
     } else {
       for (let row = 2; row <= this.lastRow; row++) {
         const raw = this.cell(row, 1);
         if (!raw || typeof raw !== "string" || !raw.includes("@")) continue;
-        this._headers.set(raw.toUpperCase(), row);
+        this.addHeader(raw, row);
       }
     }
 
     return this._headers;
+  }
+
+  /**
+   * Series names can't contain "-", so a slugged header like
+   * `ge-base-subtotal1@hi.m` is also registered as GE_BASE_SUBTOTAL1@HI.M,
+   * the name the series is stored under. An exact header always wins.
+   */
+  private addHeader(raw: string, index: number): void {
+    const headers = this._headers!;
+    const key = raw.toUpperCase();
+    headers.set(key, index);
+    if (key.includes("-")) {
+      const alias = key.replace(/-/g, "_");
+      if (!headers.has(alias)) headers.set(alias, index);
+    }
   }
 
   // ─── Dates map: date_string → row/column index ────────────────────

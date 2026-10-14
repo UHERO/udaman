@@ -35,18 +35,22 @@ export type CreateUniversePayload = {
   name: string;
   description?: string | null;
   dataPortalUrl?: string | null;
+  internalOnly?: boolean;
 };
 
 export type UpdateUniversePayload = {
   description?: string | null;
   dataPortalUrl?: string | null;
+  internalOnly?: boolean;
 };
 
 class UniverseCollection {
   /** Fetch all universes */
   static async list(): Promise<Universe[]> {
     const rows = await mysql<UniverseAttrs>`
-      SELECT name, description, data_portal_url FROM universe ORDER BY name
+      SELECT name, description, data_portal_url, internal_only
+      FROM universe
+      ORDER BY name
     `;
     return rows.map((row) => new Universe(row));
   }
@@ -95,7 +99,7 @@ class UniverseCollection {
   /** Fetch a single universe by name */
   static async getByName(name: string): Promise<Universe> {
     const rows = await mysql<UniverseAttrs>`
-      SELECT name, description, data_portal_url
+      SELECT name, description, data_portal_url, internal_only
       FROM universe
       WHERE name = ${name}
       LIMIT 1
@@ -107,15 +111,20 @@ class UniverseCollection {
 
   /** Create a new universe */
   static async create(payload: CreateUniversePayload): Promise<Universe> {
-    const { name, description = null, dataPortalUrl = null } = payload;
+    const {
+      name,
+      description = null,
+      dataPortalUrl = null,
+      internalOnly = false,
+    } = payload;
     await mysql`
-      INSERT INTO universe (name, description, data_portal_url)
-      VALUES (${name}, ${description}, ${dataPortalUrl})
+      INSERT INTO universe (name, description, data_portal_url, internal_only)
+      VALUES (${name}, ${description}, ${dataPortalUrl}, ${internalOnly ? 1 : 0})
     `;
     return this.getByName(name);
   }
 
-  /** Update mutable fields on a universe (description, data_portal_url) */
+  /** Update mutable fields on a universe (description, data_portal_url, internal_only) */
   static async update(
     name: string,
     updates: UpdateUniversePayload,
