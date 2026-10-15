@@ -27,16 +27,16 @@ from the local `uhero_db_dev` and cover enabled loaders only.
 
 ### 1.1 Downloads (legacy, in prod)
 
-| Aspect | Today | Where |
-| --- | --- | --- |
-| Storage | One flat file per handle: `DATA_DIR/rawdata/<handle with @→_>.<ext>` | `models/download.ts:81-117` |
-| Versions | The previous file is overwritten. Superseded copies are kept only when the caller passes `keepSupersededIn`, which only the staging Downloaders do | `download-collection.ts:210-217` |
-| Change detection | A byte compare with the old file; **no hash** | `download-collection.ts:203-208` |
-| Write | `Bun.write`, not atomic, and it rewrites unchanged files (mtime moves on every fetch) | `:220-221` |
-| Soft-404 guard | `looksLikeHtmlPage` (exported, reusable) | `:495-517` |
-| Fetch log | `dsd_log_entries`, one row per download per day per status | `:239-256` |
-| Date patterns | `%Y@hiwi.org` → `REGEXP` over concrete handles; each year is its own row and file | `:92-120` |
-| Freshness | `ensureFresh` at load time (1 h memo, stale file used if the fetch fails) | `:286-377` |
+| Aspect           | Today                                                                                                                                              | Where                            |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Storage          | One flat file per handle: `DATA_DIR/rawdata/<handle with @→_>.<ext>`                                                                               | `models/download.ts:81-117`      |
+| Versions         | The previous file is overwritten. Superseded copies are kept only when the caller passes `keepSupersededIn`, which only the staging Downloaders do | `download-collection.ts:210-217` |
+| Change detection | A byte compare with the old file; **no hash**                                                                                                      | `download-collection.ts:203-208` |
+| Write            | `Bun.write`, not atomic, and it rewrites unchanged files (mtime moves on every fetch)                                                              | `:220-221`                       |
+| Soft-404 guard   | `looksLikeHtmlPage` (exported, reusable)                                                                                                           | `:495-517`                       |
+| Fetch log        | `dsd_log_entries`, one row per download per day per status                                                                                         | `:239-256`                       |
+| Date patterns    | `%Y@hiwi.org` → `REGEXP` over concrete handles; each year is its own row and file                                                                  | `:92-120`                        |
+| Freshness        | `ensureFresh` at load time (1 h memo, stale file used if the fetch fails)                                                                          | `:286-377`                       |
 
 `load_from_download` runs
 `EvalExecutor` → `SeriesCollection.loadFromDownload` (`series-collection.ts:2023`) →
@@ -53,17 +53,17 @@ sheets.
 already has roughly the spec's Acquire/Extract split, but merged into one
 `impl.run()`:
 
-| Spec concept | Staging Downloaders equivalent | Gap |
-| --- | --- | --- |
-| data_downloaders | `downloaders` row + `DownloaderImpl` in `registry.ts` | One row is *both* fetch and parse. No strategy column; schedules are hard-coded in `scheduler.ts:284-320` |
-| raw_artifacts | Source `downloads` rows (`downloader_role='source'`), plus `superseded/` copies | No hash, no artifact table, file overwritten in place |
-| fetch_runs / extraction_runs | `downloaders.last_*` columns (last run only) + `app_logs` worker rows | No per-run history; CLI runs leave no record |
-| data_extractors | none (parse is inside `run()`) | |
-| Extract output | Output `downloads` row, a long CSV (`tidy.ts`) | Written in merge/replace mode, with no record of which inputs produced it |
-| Skip unchanged | DOTAX `parseFingerprint` (sha1 of path:size:last_change_at) | Per-source, not framework |
-| Validation | DOTAX `checks.ts` with known-issue waivers; `failOnProblems` | Per-source only |
-| load method | One method per source (`load_from_bls_api`, `load_from_dotax_*`) with positional args and label-alias resolution | Spec: one `load_from_extract` with named filters |
-| Load-time freshness | `ensureFreshKey` runs the downloader inline when stale or when a key is missing | Spec: loads read the latest successful extract only |
+| Spec concept                 | Staging Downloaders equivalent                                                                                   | Gap                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| data_downloaders             | `downloaders` row + `DownloaderImpl` in `registry.ts`                                                            | One row is _both_ fetch and parse. No strategy column; schedules are hard-coded in `scheduler.ts:284-320` |
+| raw_artifacts                | Source `downloads` rows (`downloader_role='source'`), plus `superseded/` copies                                  | No hash, no artifact table, file overwritten in place                                                     |
+| fetch_runs / extraction_runs | `downloaders.last_*` columns (last run only) + `app_logs` worker rows                                            | No per-run history; CLI runs leave no record                                                              |
+| data_extractors              | none (parse is inside `run()`)                                                                                   |                                                                                                           |
+| Extract output               | Output `downloads` row, a long CSV (`tidy.ts`)                                                                   | Written in merge/replace mode, with no record of which inputs produced it                                 |
+| Skip unchanged               | DOTAX `parseFingerprint` (sha1 of path:size:last_change_at)                                                      | Per-source, not framework                                                                                 |
+| Validation                   | DOTAX `checks.ts` with known-issue waivers; `failOnProblems`                                                     | Per-source only                                                                                           |
+| load method                  | One method per source (`load_from_bls_api`, `load_from_dotax_*`) with positional args and label-alias resolution | Spec: one `load_from_extract` with named filters                                                          |
+| Load-time freshness          | `ensureFreshKey` runs the downloader inline when stale or when a key is missing                                  | Spec: loads read the latest successful extract only                                                       |
 
 Local DB: **1,905** DOTAX-universe loaders use `load_from_dotax_archive`
 (1,200) / `load_from_dotax_current` (705). No loaders use
@@ -81,7 +81,7 @@ Local DB: **1,905** DOTAX-universe loaders use `load_from_dotax_archive`
 - **Dispatch.** `ALLOWED_STATIC_METHODS` → `SeriesCollection[camelName](...args)`
   (`eval-executor.ts:113-132`, `:1218-1234`).
 - **No target series context.** `EvalExecutor.run` takes only `(eval,
-  universe)`, so a static loader cannot see `@HI.M`. Frequency inference needs a
+universe)`, so a static loader cannot see `@HI.M`. Frequency inference needs a
   new optional context argument, passed from `LoaderCollection.reload` (§3.10).
 - **No save-time validation.** The client zod check is `min(2)`. The eval is
   never parsed when saved. All create paths meet in `LoaderCollection.create`
@@ -92,7 +92,7 @@ Local DB: **1,905** DOTAX-universe loaders use `load_from_dotax_archive`
 - **How errors reach the UI.** A thrown error in the server action is
   rethrown, then the client shows `toast.error(error.message)`. Next.js
   production builds normally redact thrown server-action messages, so a "did
-  you mean" suggestion should be *returned*, not thrown. I have not confirmed
+  you mean" suggestion should be _returned_, not thrown. I have not confirmed
   the redaction in this repo.
 
 ### 1.4 Jobs, scheduling, history
@@ -146,21 +146,21 @@ Local DB: **1,905** DOTAX-universe loaders use `load_from_dotax_archive`
 
 ## 2. How the spec maps onto the codebase
 
-| Spec element | Proposed home | Reuse |
-| --- | --- | --- |
-| 6 tables | Migration `20261015000000_create_data_ingest` + `schema.prisma`; models `DataDownloader`, `RawArtifact`, `FetchRun`, `DataExtractor`, `ExtractorInput`, `ExtractionRun` in `src/core/catalog/models`, collections alongside | Pattern of `downloader-collection.ts` (claim/finish) |
-| Table names | Spec names as written. `data_downloaders` avoids the staging `downloaders` table until Phase 6 drops it | |
-| Source registry | `src/core/ingest/registry.ts`: `source_key → SourceModule` | `downloaders/registry.ts` shape |
-| Source modules | `src/core/ingest/sources/{dotax,bls}/` | Move `downloaders/dotax/{parse,site,config,checks}.ts` and `api-clients/bls.ts` batching |
-| Raw store | `DATA_DIR/ingest/raw/<downloader handle>/<sha256>.<ext>`, content-addressed, atomic write; retention = one file per distinct hash (spec) | `looksLikeHtmlPage`, fetch UA/timeout from `download-collection.ts`; tmp+rename helper |
-| Extract outputs | `DATA_DIR/ingest/extracts/<extractor handle>/<run id>.csv` (§3.11) | CSV writer/reader + mtime/size index cache from `tidy.ts` |
-| Runner | `src/core/ingest/run.ts`: claim → fetch → store/hash → record → for each dependent extractor: skip-if-same-inputs → parse → validate → write → record | Claim/stale-horizon logic from `run.ts` / `downloader-collection.ts` |
-| Jobs | `ingest.fetch` (a downloader plus its dependent extractors) and `ingest.extract` (re-parse only) on `default`; per-handle jobId dedup | `enqueueDownloaderRun` pattern |
-| `schedule` column | The worker reads enabled `data_downloaders` at startup and upserts one scheduler per row (`scheduled:ingest-<handle>`), removing orphans; saving a schedule also upserts it | `scheduler.ts` |
-| CLI | `bun run ingest list | fetch <h> | extract <h> [--force] | show <h>` | `downloaders-cli.ts` (top-level `await`) |
-| load method | `SeriesCollection.loadFromExtract(handle, filters)` + allow-list entry | `fromDownloader` shape |
-| Save-time validation | Called from `LoaderCollection.create` / `update` (when `eval` changes) for evals containing `load_from_extract`; walks the AST like `keys.ts findCalls` | `keys.ts` |
-| UI | Not in the spec's phases; see §3.13 | Staging downloaders pages/components |
+| Spec element         | Proposed home                                                                                                                                                                                                               | Reuse                                                                                    |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 6 tables             | Migration `20261015000000_create_data_ingest` + `schema.prisma`; models `DataDownloader`, `RawArtifact`, `FetchRun`, `DataExtractor`, `ExtractorInput`, `ExtractionRun` in `src/core/catalog/models`, collections alongside | Pattern of `downloader-collection.ts` (claim/finish)                                     |
+| Table names          | Spec names as written. `data_downloaders` avoids the staging `downloaders` table until Phase 6 drops it                                                                                                                     |                                                                                          |
+| Source registry      | `src/core/ingest/registry.ts`: `source_key → SourceModule`                                                                                                                                                                  | `downloaders/registry.ts` shape                                                          |
+| Source modules       | `src/core/ingest/sources/{dotax,bls}/`                                                                                                                                                                                      | Move `downloaders/dotax/{parse,site,config,checks}.ts` and `api-clients/bls.ts` batching |
+| Raw store            | `DATA_DIR/ingest/raw/<downloader handle>/<sha256>.<ext>`, content-addressed, atomic write; retention = one file per distinct hash (spec)                                                                                    | `looksLikeHtmlPage`, fetch UA/timeout from `download-collection.ts`; tmp+rename helper   |
+| Extract outputs      | `DATA_DIR/ingest/extracts/<extractor handle>/<run id>.csv` (§3.11)                                                                                                                                                          | CSV writer/reader + mtime/size index cache from `tidy.ts`                                |
+| Runner               | `src/core/ingest/run.ts`: claim → fetch → store/hash → record → for each dependent extractor: skip-if-same-inputs → parse → validate → write → record                                                                       | Claim/stale-horizon logic from `run.ts` / `downloader-collection.ts`                     |
+| Jobs                 | `ingest.fetch` (a downloader plus its dependent extractors) and `ingest.extract` (re-parse only) on `default`; per-handle jobId dedup                                                                                       | `enqueueDownloaderRun` pattern                                                           |
+| `schedule` column    | The worker reads enabled `data_downloaders` at startup and upserts one scheduler per row (`scheduled:ingest-<handle>`), removing orphans; saving a schedule also upserts it                                                 | `scheduler.ts`                                                                           |
+| CLI                  | `bun run ingest list                                                                                                                                                                                                        | fetch <h>                                                                                | extract <h> [--force] | show <h>` | `downloaders-cli.ts` (top-level `await`) |
+| load method          | `SeriesCollection.loadFromExtract(handle, filters)` + allow-list entry                                                                                                                                                      | `fromDownloader` shape                                                                   |
+| Save-time validation | Called from `LoaderCollection.create` / `update` (when `eval` changes) for evals containing `load_from_extract`; walks the AST like `keys.ts findCalls`                                                                     | `keys.ts`                                                                                |
+| UI                   | Not in the spec's phases; see §3.13                                                                                                                                                                                         | Staging downloaders pages/components                                                     |
 
 All of this is additive. `load_from_download`, Downloads, `ensureFresh` and
 the API loaders stay untouched. The only shared code that changes is the
@@ -174,7 +174,8 @@ Each item gives the conflict and then my recommendation (**Rec**).
 ### 3.1 A downloader yields many files, not one (affects the schema)
 
 **Conflict.** The spec has one artifact per vintage and
-`fetch_runs.raw_artifact_id` (singular). Both pilots fetch *sets*:
+`fetch_runs.raw_artifact_id` (singular). Both pilots fetch _sets_:
+
 - DOTAX current lists about 82 XLSX files (one per report per month).
 - DOTAX archive is about 280 zips.
 - BLS sends 457 distinct series IDs in 50-ID batches, across several year
@@ -184,6 +185,7 @@ A row per file does not work for DOTAX, because the files are discovered and a
 new one appears every month.
 
 **Rec.**
+
 - Add a generic `artifact_key` column to `raw_artifacts`: the logical file
   within the downloader, e.g. `collec/2025-12`, `zip/2019-01`, or a URL-derived
   name for single-file downloaders.
@@ -209,12 +211,14 @@ uses `downloads.historical` for this.
 There are three problems:
 
 **a) The hash changes on every request.**
+
 - The v2 JSON includes `responseTime` and `message`, so a raw-byte hash makes
   a new "vintage" every run.
 - **Rec:** the source module may supply `hashContent(bytes)` (for BLS, hash the
   `Results` part only). The file is still stored unchanged.
 
 **b) Which IDs to fetch.**
+
 - Today the IDs come from the load statements that reference the source
   (`keys.ts`).
 - The alternative is an explicit ID list in `data_downloaders.config`.
@@ -224,6 +228,7 @@ There are three problems:
   principle, and adding a BLS loader keeps "just working" after the next fetch.
 
 **c) Incremental windows.**
+
 - Full history is fetched once per ID; after that only the last 20 years are
   fetched.
 - **Rec:** keep one artifact per request, with `artifact_key` set to the batch
@@ -240,6 +245,7 @@ There are three problems:
 
 **Conflict.** Phase 3 lists `static_url`, `discover_from_page` and
 `legacy_script`.
+
 - DOTAX discovers **many** files across two pages, with politeness delays and
   zip-name guessing for unlinked months.
 - BLS is a batched POST API.
@@ -247,6 +253,7 @@ There are three problems:
 
 **Rec.** Phase 3 implements `static_url`, `discover_from_page`, `custom` and
 `legacy_script`.
+
 - DOTAX and BLS start as `custom`.
 - BLS moves to `api` when that strategy exists.
 - `ctx` provides `get`, `findLinks`, `download(url, artifactKey)` and
@@ -261,6 +268,7 @@ spelling.
 
 **Under the spec.** Filters must match the extract exactly. That removes the
 alias layer, so a DOTAX relabel will:
+
 1. fail the "no series disappeared" check (the old label vanishes), and keep
    the previous extract live;
 2. need a person to update the affected load statements.
@@ -269,10 +277,11 @@ That is the spec's intended "fail loudly", but it needs an **acknowledge
 path**, or the extractor is stuck on the old output forever.
 
 **Rec.**
+
 - The extractor emits one label per series, the latest printed spelling (as
   now).
 - Load-time alias resolution goes away.
-- A failed run whose only failures are *soft* checks (disappeared series,
+- A failed run whose only failures are _soft_ checks (disappeared series,
   large jumps) can be **accepted** from the CLI or UI. That records who
   accepted it and publishes the output.
 - Hard failures (columns, duplicates, non-numeric values, dates) cannot be
@@ -287,6 +296,7 @@ the duplicate-ID and gap checks on those IDs. This violates "extractors never
 reference internal series names".
 
 **Rec.**
+
 - Drop `config/series` from the extractor.
 - Re-express the gap check on source dimensions (type/tax/source/area).
 - Keep the source-only checks: districts sum to the state, header month equals
@@ -304,6 +314,7 @@ match.
 `area` also takes `State` and `Unknown`, so `county` is inaccurate.
 
 **Rec.**
+
 - Keep `type, tax, source, area`.
 - Use **one `dotax` extractor with two inputs** (`dotax_current` and
   `dotax_archive` downloaders). The source's existing month ranking
@@ -321,6 +332,7 @@ match.
 the tidyverse. Their outputs use UDAMAN names as column headers.
 
 **Options.**
+
 - **(a) Run `Rscript`** on the worker host and capture the files it writes as
   raw artifacts. This needs R on the server, plus a per-script declaration of
   its output files.
@@ -343,6 +355,7 @@ stale or a key is missing. The spec's layering says loads read the latest
 successful extract only.
 
 **Rec.**
+
 - No fetch at load time.
 - Schedule and manual runs only.
 - A new BLS ID gets data after the next fetch.
@@ -353,6 +366,7 @@ successful extract only.
 ### 3.10 Frequency inference needs the target series
 
 **Rec.**
+
 - Add an optional third argument, `EvalExecutor.run(eval, universe, { seriesName })`.
 - `LoaderCollection.reload` passes it, and only `loadFromExtract` reads it.
 - An explicit frequency filter always wins.
@@ -367,6 +381,7 @@ built in; the largest expected extract (DOTAX archive and current, about
 100k rows) is a few MB.
 
 **Retention.**
+
 - Keep every successful output: they are small, and they are what "previous
   vintage" checks diff against.
 - Prune failed outputs after 30 days.
@@ -374,6 +389,7 @@ built in; the largest expected extract (DOTAX archive and current, about
 ### 3.12 Normalization and matching rules (minor)
 
 **Rec.**
+
 - The extractor normalizes labels: trim, collapse whitespace, strip footnote
   markers, and curly quotes → ASCII (the same as `DownloadProcessor`'s
   `to_ascii`).
@@ -386,6 +402,7 @@ built in; the largest expected extract (DOTAX archive and current, about
 ### 3.13 Phase 6 removal, the local DOTAX loaders, and the UI
 
 **The removal itself is clean.**
+
 - Staging is ahead of prod, and the `20261013000000_create_downloaders`
   migration was only applied locally.
 - Phase 6 can **delete that migration folder** instead of shipping a drop
@@ -394,6 +411,7 @@ built in; the largest expected extract (DOTAX archive and current, about
   one-off script.
 
 **But two things depend on that code.**
+
 - **The 1,905 local DOTAX loaders** call `load_from_dotax_*`. They must be
   converted to `load_from_extract` (rerunning `convert-dotax-loaders.ts`,
   retargeted) and diffed **before** Phase 6. Otherwise they start failing. The
@@ -432,7 +450,7 @@ built in; the largest expected extract (DOTAX archive and current, about
     is small and self-contained.
   - **Full split:**
     - UHERO's 361 `load_from_download("tax_GE%Y_%m@hawaii.gov" /
-      "tax_collec%Y_%m@hawaii.gov", …)` loaders. These are positional
+"tax_collec%Y_%m@hawaii.gov", …)` loaders. These are positional
       `header_range` row specs plus `.shift_by(-12)` prior-year tricks:
       exactly the brittle case.
     - They move onto the `dotax` extractor, diffed against current values.

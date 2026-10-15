@@ -55,14 +55,14 @@ Principles:
 
 Six tables, one model each. Names are suggestions; match codebase conventions.
 
-| Table             | One row per                    | Key columns                                                                                                                       |
-| ----------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| data_downloaders  | file or endpoint fetched       | handle (unique), source_key, strategy, config (JSON), schedule, enabled                                                           |
-| raw_artifacts     | distinct file fetched (a vintage) | downloader_id, content_hash, storage_path, resolved_url, content_type, size, fetched_at; unique on (downloader_id, content_hash) |
-| fetch_runs        | fetch attempt                  | downloader_id, status (ok / unchanged / failed), error, raw_artifact_id, started_at                                               |
-| data_extractors   | extraction                     | handle (unique), source_key, config (JSON)                                                                                        |
-| extractor_inputs  | extractor-to-downloader link   | extractor_id, downloader_id, role                                                                                                 |
-| extraction_runs   | parse attempt                  | extractor_id, input_artifact_ids, status, error, validation_results (JSON), output_path, output_hash, row_count, created_at       |
+| Table            | One row per                       | Key columns                                                                                                                      |
+| ---------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| data_downloaders | file or endpoint fetched          | handle (unique), source_key, strategy, config (JSON), schedule, enabled                                                          |
+| raw_artifacts    | distinct file fetched (a vintage) | downloader_id, content_hash, storage_path, resolved_url, content_type, size, fetched_at; unique on (downloader_id, content_hash) |
+| fetch_runs       | fetch attempt                     | downloader_id, status (ok / unchanged / failed), error, raw_artifact_id, started_at                                              |
+| data_extractors  | extraction                        | handle (unique), source_key, config (JSON)                                                                                       |
+| extractor_inputs | extractor-to-downloader link      | extractor_id, downloader_id, role                                                                                                |
+| extraction_runs  | parse attempt                     | extractor_id, input_artifact_ids, status, error, validation_results (JSON), output_path, output_hash, row_count, created_at      |
 
 - source_key names the source module to run (see next section).
 - extractor_inputs exists so one extractor can read several downloads, and one
