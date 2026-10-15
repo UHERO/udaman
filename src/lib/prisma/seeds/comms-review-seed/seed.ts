@@ -10,7 +10,7 @@
  * Existing `[SAMPLE]` rows from a prior run are deleted first so the script
  * is idempotent — re-running it always leaves exactly this data set.
  *
- * Run: bun run src/lib/prisma/migrations/comms-review-seed/seed.ts [--execute]
+ * Run: bun run src/lib/prisma/seeds/comms-review-seed/seed.ts [--execute]
  *
  * Without --execute, runs in dry-run mode (prints what would be created).
  */

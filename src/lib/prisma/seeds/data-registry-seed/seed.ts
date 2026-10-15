@@ -5,7 +5,7 @@
  * testing the /data-registry page
  *
  *
- * Run: bun run src/lib/prisma/migrations/data-registry-seed/seed.ts [--execute]
+ * Run: bun run src/lib/prisma/seeds/data-registry-seed/seed.ts [--execute]
  *
  * Without --execute, runs in dry-run mode (prints what would be created).
  */

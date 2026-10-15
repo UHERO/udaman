@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { PageViewLogger } from "@/components/page-view-logger";
 import { Toaster } from "@/components/ui/sonner";
+import { APP_ENV } from "@/lib/app-env";
 
 import "@/app/globals.css";
 
@@ -28,10 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      data-app-env={process.env.NEXT_PUBLIC_APP_ENV ?? process.env.APP_ENV}
-    >
+    <html lang="en" data-app-env={APP_ENV}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

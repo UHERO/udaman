@@ -3,6 +3,7 @@ import UniverseCollection from "@catalog/collections/universe-collection";
 import { GoogleAnalytics } from "@next/third-parties/google";
 
 import { fetchPortalCategories } from "@/actions/data-portal/portal";
+import { isProduction } from "@/lib/app-env";
 import { getSession } from "@/lib/auth/dal";
 import { normalizeUniverse } from "@/lib/auth/roles";
 
@@ -128,11 +129,11 @@ export async function UniverseLayout({
           </div>
         </AnalyzerProvider>
       </Suspense>
-      {/* GA4 for this universe only (production builds). Client-side
+      {/* GA4 for this universe only (APP_ENV=production). Client-side
           navigations are counted by GA4 enhanced measurement ("page changes
           based on browser history events"); /graph embeds report too, as the
           Angular SPA did. */}
-      {config.googleAnalyticsId && process.env.NODE_ENV === "production" && (
+      {config.googleAnalyticsId && isProduction && (
         <GoogleAnalytics gaId={config.googleAnalyticsId} />
       )}
     </PortalConfigProvider>

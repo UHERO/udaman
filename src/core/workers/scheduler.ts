@@ -1,4 +1,5 @@
 import { createLogger } from "@/core/observability/logger";
+import { APP_ENV, isProduction } from "@/lib/app-env";
 
 import { syncIngestSchedules } from "./ingest-schedules";
 import { defaultQueue, heavyQueue, JobName } from "./queues";
@@ -7,7 +8,7 @@ const log = createLogger("worker.scheduler");
 
 /**
  * Remove all job schedulers from Redis. Called outside production
- * (NEXT_PUBLIC_APP_ENV !== "production") to prevent stale schedulers (persisted from prior runs)
+ * (APP_ENV !== "production") to prevent stale schedulers (persisted from prior runs)
  * from firing unexpectedly.
  */
 async function removeAllSchedulers(): Promise<void> {
@@ -59,14 +60,10 @@ async function removeMovedSchedulers(): Promise<void> {
  * All cron times are in Pacific/Honolulu (HST, UTC-10, no DST).
  */
 export async function registerSchedules(): Promise<void> {
-  // Gate on NEXT_PUBLIC_APP_ENV, not NODE_ENV: staging builds run with
-  // NODE_ENV=production, but only the real production worker should fire
-  // scheduled jobs. Stage/local jobs are triggered manually.
-  if (process.env.NEXT_PUBLIC_APP_ENV !== "production") {
-    log.info(
-      "Skipping cron schedules (NEXT_PUBLIC_APP_ENV=%s)",
-      process.env.NEXT_PUBLIC_APP_ENV,
-    );
+  // Only the real production worker fires scheduled jobs. Staging/local
+  // jobs are triggered manually.
+  if (!isProduction) {
+    log.info("Skipping cron schedules (APP_ENV=%s)", APP_ENV);
     await removeAllSchedulers();
     return;
   }

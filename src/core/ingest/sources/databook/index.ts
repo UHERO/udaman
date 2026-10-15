@@ -23,6 +23,8 @@ const PARSER_VERSION = 2;
 export const databookSource: SourceModule = {
   key: "databook",
   description: "DBEDT State of Hawaii Data Book, 2002 to the current edition",
+  label: "Data Book",
+  nameDimensions: ["name", "geo"],
   version: PARSER_VERSION,
   frequency: "A",
   fetch: fetchDatabook,

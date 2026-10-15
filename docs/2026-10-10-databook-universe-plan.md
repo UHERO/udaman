@@ -36,7 +36,7 @@ The fetch and parse steps below now run as the ingest source `databook`
 The rest of this document still describes the design; the commands changed.
 Details are in `docs/2026-10-14-downloaders-extractors-phase1.md` §12.
 
-- **Downloader `databook`** (`bun run ingest fetch databook`, weekly) stores
+- **Downloader `databook`** (`bun run ingest fetch databook`, monthly, 03:30 on the 15th) stores
   each edition's 24 section workbooks as raw artifacts
   (`db<YYYY>/section<NN>`). Older editions are final; the newest is
   refetched every run.
@@ -208,7 +208,7 @@ The file "last modified" dates show edition _Y_ is published around **August of 
 
 **Convention: vintage date = `{Y+1}-08-01`** for edition _Y_, i.e. the year it was released. It's simple, monotonic, and within a few weeks of the real date. It is **not** the file's last-modified date.
 
-DBEDT also **edits the current edition's files after publishing** (2025 files were modified into October 2026). So the annual job hashes the files and reloads whenever the current edition changes. That reload uses the same vintage date, and `updateData` corrects the vintage's rows in place (see §3.3).
+DBEDT **may edit the current edition's files after publishing**: the 2025 files were modified Sept 27 – Oct 6, 2026, while the edition was going out, but the files fetched on Oct 10 and Oct 14 were identical. The monthly fetch hashes the files, so a later revision becomes a new vintage. That reload uses the same vintage date, and `updateData` corrects the vintage's rows in place (see §3.3).
 
 ---
 
@@ -321,7 +321,7 @@ Legacy editions don't change metadata, with one exception: §3.3 records each ma
   - Insert a `universe` row `DATABOOK`. No migration is needed (it's a lookup table).
   - Add `DATABOOK` to `UNIVERSES` in `src/core/catalog/types/shared.ts`, to `src/core/catalog/utils/validators.ts`, and to `src/components/compare/parse-filter-names.ts`. That last one is a separate list, which also misses HHF.
   - Check `normalizeUniverse` in `src/lib/auth/roles.ts`.
-- **Don't** reuse the wipe-and-rebuild `universe-upload.ts` pattern (DBEDT/Factbook). Stable IDs matter here. `src/lib/prisma/migrations/factbook-seed/seed.ts` (dry-run plus `--execute`) is the closest template for `apply`.
+- **Don't** reuse the wipe-and-rebuild `universe-upload.ts` pattern (DBEDT/Factbook). Stable IDs matter here. `src/lib/prisma/seeds/factbook-seed/seed.ts` (dry-run plus `--execute`) is the closest template for `apply`.
 - **`bulkCreateSeries` is fixed** (`src/actions/series-actions.ts`).
   - It now looks up existing series with `SeriesCollection.findByNameAndUniverse(name, universe)`.
   - Before, it used the unscoped `getByName`, which attached loaders to a same-named series in another universe. The old `try/catch` also treated any database error as "not found".
@@ -427,7 +427,7 @@ Some series only have observations every 10 years (census: 1.01, 1.05, 1.46, …
 
 ### 3.6 Annual run (once an edition is published, ~Aug–Oct)
 
-1. Download the 24 files. Hash them; re-run whenever the current edition's files change, since DBEDT edits after publishing.
+1. Download the 24 files. Hash them; re-run whenever the current edition's files change, in case DBEDT revises them in place.
 2. Run the adapter (accessible, or legacy if DBEDT reverts) and validate: every table has a header and a Source line.
 3. Match the new edition to the previous one (§3.2) and to the manifest: matched / moved / new / missing / unit changed / large revisions → review.
 4. Approve. New series get IDs (manifest append + `apply`). Missing series are marked discontinued, never deleted.

@@ -98,7 +98,13 @@ export type FetchOptions = {
   full?: boolean;
   /** Run dependent extractors afterwards (default true) */
   extract?: boolean;
-  /** schedule | cli | user:<id> */
+  /**
+   * Fetch only these filters instead of everything the load statements ask
+   * for (a load of a series not downloaded yet). Sources that fetch from
+   * the load statements only (BLS, FRED, …).
+   */
+  only?: Array<Record<string, string>>;
+  /** schedule | cli | user:<id> | load */
   triggeredBy?: string | null;
   /** Extra sink for progress lines (BullMQ job.log, CLI stdout) */
   log?: (msg: string) => void;
@@ -140,7 +146,7 @@ export function runFetch(
   opts: FetchOptions = {},
 ): Promise<FetchOutcome> {
   return dedup(
-    `fetch|${handle}|${opts.force ? 1 : 0}|${opts.full ? 1 : 0}|${opts.extract === false ? 0 : 1}`,
+    `fetch|${handle}|${opts.force ? 1 : 0}|${opts.full ? 1 : 0}|${opts.extract === false ? 0 : 1}|${opts.only ? JSON.stringify(opts.only) : ""}`,
     () => fetchOnce(handle, opts),
   );
 }
@@ -177,12 +183,17 @@ async function fetchOnce(
     }
     runId = await env.db.startFetchRun(downloader.id, opts.triggeredBy ?? null);
     emit(
-      `fetch ${handle} (${downloader.strategy})${opts.force ? " force" : ""}${opts.full ? " full" : ""}`,
+      `fetch ${handle} (${downloader.strategy})${opts.force ? " force" : ""}${opts.full ? " full" : ""}${opts.only ? ` only ${JSON.stringify(opts.only)}` : ""}`,
     );
     const { ctx, collected } = createFetchContext(
       downloader,
       { db: env.db, store: env.store, http: env.http, sleep: env.sleep },
-      { force: Boolean(opts.force), full: Boolean(opts.full), log: emit },
+      {
+        force: Boolean(opts.force),
+        full: Boolean(opts.full),
+        only: opts.only ?? null,
+        log: emit,
+      },
     );
 
     let fatal: string | null = null;

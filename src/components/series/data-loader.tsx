@@ -113,6 +113,18 @@ const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
     <>
       {segments.map((segment, segIdx) => {
         if (segment.type === "link") {
+          // in-app pages (the extract a load read) open in place
+          if (segment.href.startsWith("/")) {
+            return (
+              <Link
+                key={`seg-${segIdx}`}
+                href={segment.href}
+                className="underline hover:opacity-70"
+              >
+                {segment.label}
+              </Link>
+            );
+          }
           return (
             <a
               key={`seg-${segIdx}`}

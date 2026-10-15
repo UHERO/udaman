@@ -8,7 +8,7 @@
 -- Prerequisite: seed.sql must have been run first (categories, data lists,
 -- measurements, geographies).
 --
--- Run: mysql -u root uhero_db_dev < src/lib/prisma/migrations/factbook-seed/seed-series.sql
+-- Run: mysql -u root uhero_db_dev < src/lib/prisma/seeds/factbook-seed/seed-series.sql
 
 DELIMITER //
 

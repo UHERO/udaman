@@ -2130,7 +2130,7 @@ class SeriesCollection {
   static async loadFromExtract(
     handle: unknown,
     filters: unknown,
-    context: { seriesName?: string | null } = {},
+    context: { seriesName?: string | null; universe?: string | null } = {},
   ): Promise<Series> {
     const { loadFromExtract } = await import("@/core/ingest/load");
     const { data, frequency, description } = await loadFromExtract(

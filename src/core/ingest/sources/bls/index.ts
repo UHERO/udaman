@@ -16,6 +16,10 @@ import { parseBls } from "./parse";
 export const blsSource: SourceModule = {
   key: "bls",
   description: "BLS v2 API (series IDs from the load statements)",
+  label: "BLS",
+  nameDimensions: ["series_id"],
+  sourceUrl: (d) =>
+    `https://data.bls.gov/timeseries/${encodeURIComponent(d.series_id)}`,
   version: 1,
   inputVintages: "all",
   fetchesReferencedFilters: true,

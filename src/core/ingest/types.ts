@@ -102,7 +102,9 @@ export interface FetchContext {
   /**
    * Filters of the enabled load statements that read an extractor fed by
    * this downloader, e.g. [{ series_id: "CUSR0000SA0" }] — for sources
-   * whose fetch list comes from the load statements (BLS).
+   * whose fetch list comes from the load statements (BLS, FRED, BEA, EIA,
+   * e-Stat). A filter without `frequency` gets the target series' one
+   * from its name. The downloader's config.extraFilters are appended.
    */
   referencedFilters(): Promise<Array<Record<string, string>>>;
   /** Implementation-owned state from the last run; persisted on success. */
@@ -162,6 +164,25 @@ export interface SourceModule {
   /** Registry key (= source_key on data_downloaders / data_extractors) */
   key: string;
   description: string;
+  /** The source's name in load errors: "BLS", "e-Stat" (default: the key) */
+  label?: string;
+  /**
+   * The dimensions that name a series in load messages, most general
+   * first: BLS ["series_id"] → "Loaded CUSR0000SA0 from BLS". Default:
+   * every dimension but frequency.
+   */
+  nameDimensions?: readonly string[];
+  /**
+   * A series in plain words, when one dimension list can't say it (BEA:
+   * "CAINC5N line 201 for GeoFips 15007"). Overrides nameDimensions.
+   */
+  describeSeries?(dims: Record<string, string>): string;
+  /**
+   * The series' page at the source, linked from the loader description
+   * (BLS: data.bls.gov/timeseries/<id>). Without one the description
+   * links only to the extract.
+   */
+  sourceUrl?(dims: Record<string, string>): string | null;
   /**
    * Parser version. Bump it whenever the same raw files would parse
    * differently (code or bundled config change): it is part of the

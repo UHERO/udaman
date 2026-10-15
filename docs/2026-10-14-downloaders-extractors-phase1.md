@@ -981,13 +981,14 @@ ingest source. The local DATABOOK universe was converted in place, so its
 
 ### Source `databook` (`src/core/ingest/sources/databook/`)
 
-- **Downloader `databook`** (custom fetch, `{"firstEdition": 2002}`, Mondays
-  03:30). It stores each edition's 24 section workbooks under
+- **Downloader `databook`** (custom fetch, `{"firstEdition": 2002}`, schedule
+  `30 3 15 * *`: 03:30 on the 15th of each month). It stores each edition's 24 section workbooks under
   `db<YYYY>/section<NN>`.
   - It tries the current location first, then the archive.
   - Editions older than the newest are final.
-  - The newest edition is refetched every run, since DBEDT edits it after
-    publishing.
+  - The newest edition is refetched every run, in case DBEDT revises it in
+    place. No revision has been observed: the 2025 files fetched on Oct 10
+    and Oct 14 hash the same.
   - The next edition is probed each run; its absence is not a failure.
   - First live fetch: 576 workbooks in 6 minutes.
 - **Extractor `databook`**, config
@@ -1114,3 +1115,143 @@ DATABOOK has 299 units (was 72).
   41% of cells, 2024: 70%).
 - Deploy: apply `20261015000000_seed_databook_ingest`, fetch, extract,
   `sync`, `apply`, `history`.
+
+## 13. API sources: FRED, BEA, EIA, e-Stat (2026-10-15)
+
+Four source modules on the BLS pattern: the fetch list comes from the
+`load_from_extract("<handle>", …)` load statements, requests are batched
+as far as each API allows, and every series is stored as its own artifact
+so a hash depends on that series alone. Not committed. Seeds
+`20261015120000_seed_fred_ingest` and `20261015130000_seed_api_ingest` are
+applied locally only.
+
+| Source  | Load statement filters                                        | Requests (current loaders)                                                              | Artifact key                            |
+| ------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------- |
+| fred    | series_id, frequency, aggregation (avg default)               | 1 per series/freq/agg: 66 (no multi-series endpoint)                                    | `<id>/<freq>/<agg>`                     |
+| bea     | dataset, table, line, geo (`-` for NIPA), frequency           | 1 per Regional table×geo (LineCode=ALL), 1 per NIPA table (A,Q,M): ~40 for 1021 loaders | `<dataset>/<table>/<line>/<geo>/<freq>` |
+| eia     | route, scenario (`-` for steo), series_id, frequency          | 1 per route×frequency, every id and scenario: 2 for 8 loaders                           | `<route>/<scenario>/<id>/<freq>`        |
+| estatjp | stats_data_id, tab, cat01, cat02, cat03, area (`-` if absent) | 1 per table, codes unioned into comma lists: 3 for 6 loaders                            | `<statsDataId>/<class>=<code>,…`        |
+
+Frequency may be left out of every load statement: it comes from the target
+series' name.
+
+### Framework changes
+
+- `referencedFilters` now fills `frequency` from the target series' name,
+  the same rule the load uses. FRED, BEA and EIA need the frequency to
+  fetch.
+- A downloader's `config.extraFilters` is appended to
+  `ctx.referencedFilters()`. Use it to fetch series no load statement asks
+  for yet.
+- `HttpError` masks API-key query params (`api_key`, `UserID`, `appId`, …)
+  and carries the first 300 characters of the body, where the APIs put
+  their error message.
+
+### What each stored body leaves out
+
+Stored bodies are a normalized subset of the response. Otherwise unchanged
+data would hash as new every run:
+
+- **FRED:** `realtime_start`/`realtime_end`, which are today's date on every
+  response and observation.
+- **BEA:** the `Request` echo, which holds the key in plaintext, and
+  `UTCProductionTime`.
+- **EIA:** the request echo and `apiVersion`.
+- **e-Stat:** `RESULT.DATE` and the table's `UPDATED_DATE`. `UPDATED_DATE`
+  moves for every series on each release, so it goes in the metadata
+  instead.
+
+### Rejected requests
+
+A request rejected as invalid is a warning, not a failed key, so one bad
+load statement does not block extraction for every other series. This is
+the same policy as a BLS series with no data. Rejected means FRED 400 or
+BEA code 40.
+
+BEA also has these protections:
+
+- Requests are paced by response size, at about 80 MB/minute.
+- The run stops after 5 API errors in a row (BEA locks you out for an hour
+  at 30 errors/minute).
+
+### Live check against the legacy loaders
+
+`extraFilters` was set to each legacy eval's filters and the configs were
+reset afterwards. Each extract was compared with the loaders' current
+points, scale applied:
+
+- **e-Stat:** 2,238 of 2,250 equal. The rest are the 2 newest months, which
+  the stale local DB lacks.
+- **EIA:** 1,038 of 1,074 equal. All 36 differences are STEO, which is
+  revised monthly.
+- **FRED:** dates line up. The differences are revisions (ANFCI, PCEPI, …)
+  and loaders not run since 2022. SP500 history is short because FRED only
+  serves 10 years.
+- **BEA:** 44,959 of 55,230 points equal. Every difference traced was one of:
+  - Legacy zeros. In Sep 2023, before flagged points were skipped, the
+    legacy loader stored BEA `(NA)`/`(D)` points as `0`. For example,
+    SQINC4 pre-2010, and CAINC5N lines for Hawaii county that are
+    suppressed every year.
+  - The 2026 annual revision.
+  - T20805, last written in 2018 under an old scale.
+
+### Found along the way
+
+- **BEA dropped MARPI** (real personal income by MSA) from the API. The 3
+  legacy loaders have failed with the same error since at least 2026-08-01.
+  MAIRPD (deflators) is the nearest table; there is no direct replacement.
+- **AEO 2026 is published, with new scenario names.** It has no `ref2026`,
+  `lowprice` or `highprice`; it has `cb2026`, `highogs`/`lowogs`, `hm2026`,
+  … The loaders stay on `aeo/2025`.
+- **FRED has an "API v2".** It is one endpoint, `release/observations`, a
+  whole release per call with no frequency or aggregation parameters. It
+  doesn't fit; v1 per series stays.
+- **Legacy `estat-jp.ts`** reads `@time` with slice(0,4)+slice(-2). That
+  would read a quarterly code (`2026000709`) as September. The ingest parser
+  uses the strict monthly form `YYYY00MMMM`. The legacy client is
+  unchanged.
+
+### Load errors (follow-up)
+
+A load_from_extract error now has two forms:
+
+- **The loader's error** is plain English in the legacy style, for example
+  `No BLS data returned for CUSR0000SA0 (did you mean series_id "CUSR0000SA0"?)`
+  or `3 DOTAX series match collec / Refunds; also filter by tax and area`.
+  It does not repeat the load statement, which the UI shows right below it.
+- **The full account** goes to `app_logs` (category `loader`, name
+  `loader.reload_error`, subject `data_sources`). It holds the call, the
+  closest labels and the extract run id.
+
+A load of a series that has never been fetched now fetches it first. This
+applies to sources whose fetch list comes from the load statements (BLS,
+FRED, BEA, EIA, e-Stat). The load calls `runFetch(handle, { only: [filters],
+triggeredBy: "load" })`, which fetches only that series and then extracts,
+and then it matches again. So a new load statement works on its first load
+and doesn't wait for the schedule. For ID-keyed sources there is no "did you
+mean" suggestion, because a nearby ID is a different series.
+
+The loader description reads like this:
+
+```
+Loaded CUURS35DSA0 from <a href="https://data.bls.gov/timeseries/CUURS35DSA0">BLS</a> (cached <a href="/udaman/UHERO/ingest/extractors/bls">Oct 15, 2026</a>)
+```
+
+The series name comes from the source's `nameDimensions` (or from
+`describeSeries` when one column can't name it; BEA and e-Stat use this).
+The source name links to the series' public page (`sourceUrl`): BLS
+timeseries, FRED series, the e-Stat DB view, the EIA API browser, BEA
+iTable. These links never point at an API URL, so no key leaks; the legacy
+API descriptions linked the raw URL with the key in it. The date is the
+extract's run date and links to the extractor page. In-app links open in
+place.
+
+Each source module names itself (`label`) and can render a series in plain
+words (`describeSeries`). Save-time validation uses the same plain messages.
+
+### Still open
+
+- **No loaders converted yet.** `load_api_fred/bea/eia_*/estatjp` →
+  `load_from_extract` is the same open item as BLS. The translation used
+  for the live check is mechanical.
+- **Deploy:** apply both seeds.

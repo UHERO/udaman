@@ -28,6 +28,8 @@ const PARSER_VERSION = 2;
 export const dotaxSource: SourceModule = {
   key: "dotax",
   description: "DOTAX monthly tax reports (current page XLSX + archive zips)",
+  label: "DOTAX",
+  nameDimensions: ["tax", "source", "area"],
   get version() {
     return Number.parseInt(
       sha256(`${PARSER_VERSION}|${configFingerprint()}`).slice(0, 8),

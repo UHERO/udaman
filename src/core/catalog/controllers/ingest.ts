@@ -36,6 +36,7 @@ import {
   enqueueIngestExtract,
   enqueueIngestFetch,
 } from "@/core/workers/enqueue";
+import { isProduction } from "@/lib/app-env";
 
 const log = createLogger("catalog.ingest");
 
@@ -451,7 +452,7 @@ function checkDownloader(f: DownloaderFormData) {
 
 /** Re-register the schedules (production only; other envs have none). */
 async function syncSchedules() {
-  if (process.env.NEXT_PUBLIC_APP_ENV !== "production") return;
+  if (!isProduction) return;
   const { syncIngestSchedules } =
     await import("@/core/workers/ingest-schedules");
   await syncIngestSchedules();

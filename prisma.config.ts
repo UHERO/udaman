@@ -24,5 +24,9 @@ export default defineConfig({
   },
   datasource: {
     url: process.env.DB_MYSQL_URL ?? urlFromParts(),
+    // Empty scratch DB that `migrate dev` / `migrate diff --from-migrations`
+    // replay the history into. Local only; leave unset on servers, which
+    // only ever run `migrate deploy`.
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

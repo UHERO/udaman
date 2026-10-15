@@ -184,6 +184,25 @@ describe("bls source", () => {
     expect(latest.rows.some((r) => r.date === `${y(25)}-01-01`)).toBe(true);
   });
 
+  test("only: a load fetches just its own series", async () => {
+    const { env, requests } = blsSetup(
+      {
+        CUUR0000SA0: [{ year: y(0), period: "M01", value: "1" }],
+        CUURS35DSA0: [{ year: y(0), period: "M01", value: "2" }],
+      },
+      [{ series_id: "CUUR0000SA0" }],
+    );
+    const out = await runFetch("bls", {
+      env,
+      only: [{ series_id: "CUURS35DSA0", frequency: "M" }],
+    });
+    expect(out.status).toBe("ok");
+    expect(requests).toEqual([
+      `${y(19)}-${y(0)} CUURS35DSA0`,
+      `${y(39)}-${y(20)} CUURS35DSA0`,
+    ]);
+  });
+
   test("a failed request fails those keys and the fetch", async () => {
     const { env, db } = blsSetup({}, [{ series_id: "CUUR0000SA0" }]);
     env.http = async () => new Response("boom", { status: 500 });

@@ -4,17 +4,25 @@
  * by writing a module under ./sources and listing it here.
  */
 
+import { beaSource } from "./sources/bea";
 import { blsSource } from "./sources/bls";
 import { databookSource } from "./sources/databook";
 import { dotaxSource } from "./sources/dotax";
 import { dotaxSheetSource } from "./sources/dotax_sheet";
+import { eiaSource } from "./sources/eia";
+import { estatjpSource } from "./sources/estatjp";
+import { fredSource } from "./sources/fred";
 import type { SourceModule } from "./types";
 
 const MODULES: readonly SourceModule[] = [
+  beaSource,
   blsSource,
   databookSource,
   dotaxSource,
   dotaxSheetSource,
+  eiaSource,
+  estatjpSource,
+  fredSource,
 ];
 
 export const SOURCES: Readonly<Record<string, SourceModule>> =

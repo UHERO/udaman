@@ -9,7 +9,7 @@
  * Uses rawQuery throughout to avoid Bun SQL connection pool issues with the
  * Collection methods' insertAndGetId + getById transaction pattern.
  *
- * Run: bun run src/lib/prisma/migrations/factbook-seed/seed.ts [--execute]
+ * Run: bun run src/lib/prisma/seeds/factbook-seed/seed.ts [--execute]
  *
  * Without --execute, runs in dry-run mode (prints what would be created).
  */

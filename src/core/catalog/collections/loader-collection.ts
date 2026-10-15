@@ -8,6 +8,7 @@ import type { LoaderAttrs } from "../models/loader";
 import type { SourceMapNode, Universe } from "../types/shared";
 import type { CreateLoaderPayload } from "../types/sources";
 import EvalExecutor from "../utils/eval-executor";
+import { AppLogCollection } from "./app-log-collection";
 import SeriesCollection from "./series-collection";
 import type { DeleteByMode } from "./series-collection";
 
@@ -538,6 +539,28 @@ class LoaderCollection {
       );
       updateProps.lastError = message.slice(0, 254);
       updateProps.lastErrorAt = t;
+      // load errors stay plain English; the full account goes to the admin logs
+      const detail =
+        err instanceof Error &&
+        "detail" in err &&
+        typeof err.detail === "string"
+          ? err.detail
+          : null;
+      if (detail && detail !== message) {
+        void AppLogCollection.log({
+          level: "error",
+          category: "loader",
+          name: "loader.reload_error",
+          subject: "data_sources",
+          subjectId: loader.id,
+          metadata: {
+            seriesId: loader.seriesId,
+            eval: loader.eval,
+            message,
+            detail,
+          },
+        });
+      }
       return { status: "error", message };
     } finally {
       // No re-read (the caller never uses the row), and updated_at only

@@ -57,6 +57,11 @@ Rules that hold for every source:
   was read but has no such row), or `failed` (the period could not be read;
   only possible when a known issue waived the failure). So in a published
   extract, a hole is never an unnoticed read or download failure.
+- API sources (BLS, FRED, BEA, EIA, e-Stat) fetch what their load statements
+  ask for (`ctx.referencedFilters()`, plus the downloader's
+  `config.extraFilters`). They batch requests as far as the API allows, store
+  one artifact per series, and leave volatile response fields and API keys
+  out of the stored body.
 - Bump `version` in `index.ts` whenever the same raw files would parse
   differently. It is part of the inputs hash, so a bump forces a re-parse.
 

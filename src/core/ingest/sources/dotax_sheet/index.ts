@@ -16,6 +16,8 @@ import { parseSheet } from "./parse";
 export const dotaxSheetSource: SourceModule = {
   key: "dotax_sheet",
   description: "DOTAX Collections Portal Export Data (Google Sheet)",
+  label: "DOTAX",
+  nameDimensions: ["tax", "source"],
   version: 1,
   frequency: "M",
   fetch: fetchSheet,

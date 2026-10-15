@@ -65,17 +65,26 @@ export function extractCallsIn(evalStr: string): ExtractCall[] {
   }
 }
 
+/** One-letter frequency from a series name: "TGBRTNS@HI.M" → "M". */
+function nameFrequency(name: string | null | undefined): string | null {
+  const m = /@[^.@]+\.([ASQMWD])$/i.exec(name?.trim() ?? "");
+  return m ? m[1].toUpperCase() : null;
+}
+
 /**
  * Distinct filters (values as strings) of enabled load statements that
- * read any of `handles`.
+ * read any of `handles`, as the load resolves them: a filter without
+ * `frequency` gets the target series' frequency from its name (sources
+ * without a frequency dimension ignore it; FRED needs it to fetch).
  */
 export async function referencedFilters(
   handles: string[],
 ): Promise<Array<Record<string, string>>> {
   if (handles.length === 0) return [];
-  const rows = await mysql<{ eval: string }>`
-    SELECT eval FROM data_sources
-    WHERE NOT disabled AND eval LIKE ${`%${LOAD_METHOD}%`}
+  const rows = await mysql<{ eval: string; name: string | null }>`
+    SELECT ds.eval, s.name FROM data_sources ds
+    LEFT JOIN series s ON s.id = ds.series_id
+    WHERE NOT ds.disabled AND ds.eval LIKE ${`%${LOAD_METHOD}%`}
   `;
   const wanted = new Set(handles);
   const seen = new Map<string, Record<string, string>>();
@@ -85,6 +94,8 @@ export async function referencedFilters(
       const f = Object.fromEntries(
         Object.entries(call.filters).map(([k, v]) => [k, String(v)]),
       );
+      const freq = nameFrequency(r.name);
+      if (f.frequency === undefined && freq) f.frequency = freq;
       seen.set(JSON.stringify(Object.entries(f).sort()), f);
     }
   }

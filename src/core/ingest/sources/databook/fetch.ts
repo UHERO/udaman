@@ -10,8 +10,10 @@
  *
  *  - Editions older than the newest stored one are final after their next
  *    fetch: the archive doesn't change.
- *  - The newest edition is refetched every run: DBEDT edits its files for
- *    weeks after publishing, and an edit is a new vintage.
+ *  - The newest edition is refetched every run, in case DBEDT revises its
+ *    files in place (the 2025 files were modified while the edition was
+ *    being published; no revision since has been seen). A revision is a
+ *    new vintage.
  *  - The edition after the newest is probed every run: until DBEDT
  *    publishes it (around August of the following year) its first section
  *    is a 404, which is not a failure.

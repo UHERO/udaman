@@ -2,7 +2,13 @@ import EvalParser from "@catalog/utils/eval-parser";
 import { describe, expect, test } from "bun:test";
 
 import { indexExtract } from "./extract-file";
-import { closest, frequencyOfName, matchSeries } from "./load";
+import {
+  closest,
+  frequencyOfName,
+  loadDescription,
+  matchSeries,
+  seriesNaming,
+} from "./load";
 import { extractCallsIn, findExtractCalls } from "./references";
 
 const dotax = indexExtract({
@@ -77,8 +83,11 @@ describe("matchSeries", () => {
     expect(m.ok).toBe(false);
     if (m.ok) return;
     expect(m.reason).toBe("none");
-    expect(m.message).toContain('no series with source "Refundz"');
-    expect(m.message).toContain('closest source: "Refunds"');
+    expect(m.message).toBe(
+      'No dotax data returned for collec / Income-Ind. / Refundz / State (did you mean source "Refunds"?)',
+    );
+    expect(m.detail).toContain('no series with source "Refundz"');
+    expect(m.detail).toContain('closest source: "Refunds"');
   });
 
   test("more than one match lists what still varies", () => {
@@ -86,17 +95,19 @@ describe("matchSeries", () => {
     expect(m.ok).toBe(false);
     if (m.ok) return;
     expect(m.reason).toBe("many");
-    expect(m.message).toContain("matches 3 series");
-    expect(m.message).toContain('tax ("Income-Ind.", "Income-Corp.")');
-    expect(m.message).toContain('area ("State", "Maui")');
+    expect(m.message).toBe(
+      "3 dotax series match collec / Refunds; also filter by tax and area",
+    );
+    expect(m.detail).toContain('tax ("Income-Ind.", "Income-Corp.")');
+    expect(m.detail).toContain('area ("State", "Maui")');
   });
 
   test("keys must be declared dimensions; filters must be an object", () => {
     const bad = match({ type: "collec", county: "Maui" });
-    expect(!bad.ok && bad.message).toContain('unknown filter "county"');
-    expect(!bad.ok && bad.message).toContain(
-      "filters by type, tax, source, area",
+    expect(!bad.ok && bad.message).toBe(
+      'dotax can\'t be filtered by "county"; use type, tax, source, area',
     );
+    expect(!bad.ok && bad.detail).toContain('unknown filter "county"');
     expect(match("collec").ok).toBe(false);
     expect(match({}).ok).toBe(false);
     expect(match(undefined).ok).toBe(false);
@@ -107,8 +118,8 @@ describe("matchSeries", () => {
       { type: "fuels", source: "Aviation fuel" },
       { seriesName: "TFAVNS@KAU.Q" },
     );
-    expect(!m.ok && m.message).toContain(
-      "TFAVNS@KAU.Q is Q but the extract series is M",
+    expect(!m.ok && m.message).toBe(
+      "TFAVNS@KAU.Q is quarterly but the dotax data for fuels / Aviation fuel is monthly",
     );
   });
 
@@ -127,8 +138,29 @@ describe("matchSeries", () => {
     const many = matchSeries("bls", ["series_id", "frequency"], bls, {
       series_id: "CUUR0000SA0",
     });
-    expect(!many.ok && many.message).toContain('frequency ("M", "S")');
+    expect(!many.ok && many.detail).toContain('frequency ("M", "S")');
   });
+});
+
+test("a source names itself and its series in plain words", () => {
+  const m = matchSeries(
+    "bls",
+    ["series_id", "frequency"],
+    bls,
+    { series_id: "CUUR0000SAX" },
+    { seriesName: "CPI@US.M" },
+    null,
+    seriesNaming("bls", {
+      label: "BLS",
+      describeSeries: (f) => f.series_id,
+      fetchesReferencedFilters: true,
+    }),
+  );
+  // ids: a nearby id is another series, so no "did you mean"
+  expect(!m.ok && m.message).toBe("No BLS data returned for CUUR0000SAX");
+  // the load statement itself is only in the detail
+  expect(!m.ok && m.message).not.toContain("load_from_extract");
+  expect(!m.ok && m.detail).toContain('load_from_extract("bls"');
 });
 
 test("frequencyOfName", () => {
@@ -169,5 +201,61 @@ describe("finding load_from_extract calls", () => {
     );
     expect(call.filters).toEqual({});
     expect(match(call.filters).ok).toBe(false);
+  });
+});
+
+describe("loadDescription", () => {
+  const run = {
+    id: 7,
+    finishedAt: "2026-10-15 06:20:00",
+    startedAt: "2026-10-15 06:19:00",
+  };
+  const describe_ = (
+    handle: string,
+    source: Record<string, unknown>,
+    dims: Record<string, string>,
+  ) =>
+    loadDescription(
+      {
+        extractor: { handle } as never,
+        source: { key: handle, ...source } as never,
+        run: run as never,
+      },
+      dims,
+      { universe: "UHERO" },
+    );
+
+  test("names the series, links the source page and the extract", () => {
+    expect(
+      describe_(
+        "bls",
+        {
+          label: "BLS",
+          nameDimensions: ["series_id"],
+          sourceUrl: (d: Record<string, string>) =>
+            `https://data.bls.gov/timeseries/${d.series_id}`,
+        },
+        { series_id: "CUURS35DSA0", frequency: "M" },
+      ),
+    ).toBe(
+      'Loaded CUURS35DSA0 from <a href="https://data.bls.gov/timeseries/CUURS35DSA0">BLS</a> (cached <a href="/udaman/UHERO/ingest/extractors/bls">Oct 15, 2026</a>)',
+    );
+  });
+
+  test("without a source page only the extract is linked; labels stay readable", () => {
+    expect(
+      describe_(
+        "dotax",
+        { label: "DOTAX", nameDimensions: ["tax", "source", "area"] },
+        {
+          type: "collec",
+          tax: "General Excise & Use",
+          source: "General Excise & Use",
+          area: "State",
+        },
+      ),
+    ).toBe(
+      'Loaded General Excise & Use / General Excise & Use / State from DOTAX (cached <a href="/udaman/UHERO/ingest/extractors/dotax">Oct 15, 2026</a>)',
+    );
   });
 });

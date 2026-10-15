@@ -35,7 +35,13 @@ export function createFetchContext(
     http: HttpFetch;
     sleep: (ms: number) => Promise<void>;
   },
-  opts: { force: boolean; full: boolean; log: (msg: string) => void },
+  opts: {
+    force: boolean;
+    full: boolean;
+    /** Restrict referencedFilters() to these (a load fetching one series) */
+    only?: Array<Record<string, string>> | null;
+    log: (msg: string) => void;
+  },
 ): { ctx: FetchContext; collected: FetchCollector } {
   const { db, store, http } = deps;
   const collected: FetchCollector = {
@@ -118,8 +124,26 @@ export function createFetchContext(
     finalKeys: () => db.finalKeys(downloader.id),
     markFinal: (key) => db.markFinal(downloader.id, key),
     async referencedFilters() {
+      if (opts.only) return opts.only.map((f) => ({ ...f }));
       const extractors = await db.dependentsOf(downloader.id);
-      return db.referencedFilters(extractors.map((e) => e.handle));
+      const fromLoads = await db.referencedFilters(
+        extractors.map((e) => e.handle),
+      );
+      // config.extraFilters: fetch these too (no load statement yet)
+      const extra = downloader.config.extraFilters;
+      const extras = Array.isArray(extra)
+        ? extra
+            .filter((f) => f && typeof f === "object" && !Array.isArray(f))
+            .map((f) =>
+              Object.fromEntries(
+                Object.entries(f as Record<string, unknown>).map(([k, v]) => [
+                  k,
+                  String(v),
+                ]),
+              ),
+            )
+        : [];
+      return [...fromLoads, ...extras];
     },
     state: { ...downloader.state },
     setState(patch) {

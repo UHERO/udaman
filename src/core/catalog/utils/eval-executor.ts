@@ -1243,11 +1243,10 @@ class EvalExecutor {
               `load_from_extract takes an extractor handle and a filters object, e.g. load_from_extract("dotax", { type: "collec" })`,
             );
           }
-          return SeriesCollection.loadFromExtract(
-            args[0],
-            args[1],
-            evalContext.getStore() ?? {},
-          );
+          return SeriesCollection.loadFromExtract(args[0], args[1], {
+            ...evalContext.getStore(),
+            universe,
+          });
         }
         return fn.call(SeriesCollection, ...args) as Promise<Series>;
       }

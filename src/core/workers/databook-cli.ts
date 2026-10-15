@@ -61,7 +61,7 @@ Setting up from scratch (needs DATA_DIR and the ingest migrations; peaks at ~1.8
   Then clear the REST API cache:
   redis-cli --scan --pattern '*u=databook*' | xargs -r redis-cli del
 
-Each later year, when DBEDT publishes edition Y (the weekly fetch picks it up):
+Each later year, when DBEDT publishes edition Y (the monthly fetch picks it up):
 
   bun run databook annual --edition Y --execute
 `);

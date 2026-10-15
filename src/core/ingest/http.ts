@@ -11,13 +11,35 @@ export const USER_AGENT =
 /** The fetch signature strategies use (globalThis.fetch in production). */
 export type HttpFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
+/** Query parameters that carry an API key (FRED, BEA, EIA, e-Stat). */
+const SECRET_PARAMS = /^(api_?key|userid|appid|registrationkey|key|token)$/i;
+
+/** The URL with API-key query parameters masked, for logs and run records. */
+export function redactUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const k of [...u.searchParams.keys()]) {
+      if (SECRET_PARAMS.test(k)) u.searchParams.set(k, "***");
+    }
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export class HttpError extends Error {
+  /** The URL with API keys masked */
+  readonly url: string;
   constructor(
     readonly status: number,
-    readonly url: string,
+    url: string,
+    /** Start of the response body (APIs put their error message there) */
+    readonly body: string = "",
   ) {
-    super(`HTTP ${status} for ${url}`);
+    const safe = redactUrl(url);
+    super(`HTTP ${status} for ${safe}${body ? `: ${body}` : ""}`);
     this.name = "HttpError";
+    this.url = safe;
   }
 }
 
@@ -37,7 +59,10 @@ export async function httpRequest(
     ...init,
     headers,
   });
-  if (!res.ok) throw new HttpError(res.status, url);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new HttpError(res.status, url, body.trim().slice(0, 300));
+  }
   return res;
 }
 
