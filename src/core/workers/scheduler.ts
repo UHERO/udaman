@@ -6,7 +6,7 @@ const log = createLogger("worker.scheduler");
 
 /**
  * Remove all job schedulers from Redis. Called outside production
- * (NEXT_PUBLIC_APP_ENV !== "production") to prevent stale schedulers (persisted from prior runs)
+ * (see `appEnv`) to prevent stale schedulers (persisted from prior runs)
  * from firing unexpectedly.
  */
 async function removeAllSchedulers(): Promise<void> {
@@ -58,14 +58,15 @@ async function removeMovedSchedulers(): Promise<void> {
  * All cron times are in Pacific/Honolulu (HST, UTC-10, no DST).
  */
 export async function registerSchedules(): Promise<void> {
-  // Gate on NEXT_PUBLIC_APP_ENV, not NODE_ENV: staging builds run with
+  // Gate on APP_ENV, not NODE_ENV: staging builds run with
   // NODE_ENV=production, but only the real production worker should fire
-  // scheduled jobs. Stage/local jobs are triggered manually.
-  if (process.env.NEXT_PUBLIC_APP_ENV !== "production") {
-    log.info(
-      "Skipping cron schedules (NEXT_PUBLIC_APP_ENV=%s)",
-      process.env.NEXT_PUBLIC_APP_ENV,
-    );
+  // scheduled jobs. Stage/local jobs are triggered manually. APP_ENV is the
+  // server-side var; NEXT_PUBLIC_APP_ENV is a fallback only — the prod env
+  // file carries a stale NEXT_PUBLIC_APP_ENV='local', and gating on it alone
+  // (2026-10-11) made every prod worker restart wipe the schedulers.
+  const appEnv = process.env.APP_ENV ?? process.env.NEXT_PUBLIC_APP_ENV;
+  if (appEnv !== "production") {
+    log.info("Skipping cron schedules (APP_ENV=%s)", appEnv);
     await removeAllSchedulers();
     return;
   }
