@@ -10,9 +10,10 @@ import {
   type ClipboardActionJobData,
   type ClipboardLoaderReloadJobData,
   type DbedtUploadJobData,
-  type DownloaderRunJobData,
   type DownloadJobData,
   type DvwUploadJobData,
+  type IngestExtractJobData,
+  type IngestFetchJobData,
   type QpubReparseJobData,
   type ReloadJobData,
   type SeriesReloadJobData,
@@ -110,13 +111,12 @@ export function enqueueDownload(data: DownloadJobData) {
 }
 
 /**
- * Manual downloader run. A deterministic jobId collapses repeated clicks
- * while one is waiting; a finished job is removed first so the next click
- * runs again. (The downloaders.running_since claim guards the cron-vs-
+ * Manual ingest fetch / extract. A deterministic jobId collapses repeated
+ * clicks while one is waiting; a finished job is removed first so the
+ * next click runs again. (The running_since claims guard the cron-vs-
  * manual case across processes.)
  */
-export async function enqueueDownloaderRun(data: DownloaderRunJobData) {
-  const jobId = `downloader-${data.handle}${data.full ? "-full" : ""}`;
+async function addOnce<T>(name: string, jobId: string, data: T) {
   const existing = await defaultQueue.getJob(jobId);
   if (existing) {
     const state = await existing.getState();
@@ -125,7 +125,19 @@ export async function enqueueDownloaderRun(data: DownloaderRunJobData) {
     }
     await existing.remove();
   }
-  return defaultQueue.add(JobName.DOWNLOADER_RUN, data, { jobId });
+  return defaultQueue.add(name, data, { jobId });
+}
+
+export function enqueueIngestFetch(data: IngestFetchJobData) {
+  return addOnce(
+    JobName.INGEST_FETCH,
+    `ingest-fetch-${data.handle}${data.full ? "-full" : ""}`,
+    data,
+  );
+}
+
+export function enqueueIngestExtract(data: IngestExtractJobData) {
+  return addOnce(JobName.INGEST_EXTRACT, `ingest-extract-${data.handle}`, data);
 }
 
 export function enqueueKauaiExport() {

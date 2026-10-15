@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -10,6 +11,15 @@ import EvalParser, { EvalParseError } from "./eval-parser";
 import type { EvalArg, EvalNode } from "./eval-parser";
 import { addMonthsStr } from "./time";
 import { parseTsdContent } from "./tsd-reader";
+
+/**
+ * What the eval is being run for. Only load methods that need it read it
+ * (load_from_extract infers a frequency filter from the series name);
+ * every other method behaves the same with or without it.
+ */
+export type EvalContext = { seriesName?: string | null };
+
+const evalContext = new AsyncLocalStorage<EvalContext>();
 
 // ─── Ruby → TypeScript method name mapping ──────────────────────────
 
@@ -114,7 +124,6 @@ const ALLOWED_STATIC_METHODS = new Set([
   "loadFromDownload",
   "loadFromFile",
   "loadFromFactbook",
-  "loadFromDatabook",
   "loadApiBls",
   "loadApiBlsV2",
   "loadApiFred",
@@ -124,11 +133,8 @@ const ALLOWED_STATIC_METHODS = new Set([
   "loadApiEiaSteo",
   "loadApiDvw",
   "loadFromTG",
-  // Downloader load methods (src/core/downloaders)
-  "loadFromBlsApi",
-  "loadFromDotaxSheet",
-  "loadFromDotaxCurrent",
-  "loadFromDotaxArchive",
+  // Ingest: one generic method over every extractor (src/core/ingest)
+  "loadFromExtract",
 ]);
 
 /** Arithmetic operator → Series method name */
@@ -1231,6 +1237,18 @@ class EvalExecutor {
         }
 
         const args = await resolveArgs(node.args, universe);
+        if (methodName === "loadFromExtract") {
+          if (args.length !== 2) {
+            throw new EvalExecuteError(
+              `load_from_extract takes an extractor handle and a filters object, e.g. load_from_extract("dotax", { type: "collec" })`,
+            );
+          }
+          return SeriesCollection.loadFromExtract(
+            args[0],
+            args[1],
+            evalContext.getStore() ?? {},
+          );
+        }
         return fn.call(SeriesCollection, ...args) as Promise<Series>;
       }
 
@@ -1288,13 +1306,17 @@ class EvalExecutor {
     }
   }
 
-  /** Top-level convenience: parse + execute. */
+  /**
+   * Top-level convenience: parse + execute. `context` describes the series
+   * the eval fills (LoaderCollection.reload passes its name).
+   */
   static async run(
     evalStr: string,
     universe: string = "UHERO",
+    context: EvalContext = {},
   ): Promise<Series> {
     const node = EvalParser.parse(evalStr);
-    return this.execute(node, universe);
+    return evalContext.run(context, () => this.execute(node, universe));
   }
 }
 

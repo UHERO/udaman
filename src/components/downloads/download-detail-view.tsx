@@ -21,8 +21,6 @@ import {
 import { toast } from "sonner";
 
 import { downloadToServer } from "@/actions/download-actions";
-import { setDownloadHistoricalAction } from "@/actions/downloader-actions";
-import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -184,39 +182,6 @@ function SeriesSection({
   );
 }
 
-function HistoricalToggle({
-  id,
-  historical,
-}: {
-  id: number;
-  historical: boolean;
-}) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  return (
-    <label className="mt-1 flex items-center gap-2 text-sm">
-      <Switch
-        checked={historical}
-        disabled={pending}
-        onCheckedChange={(v) =>
-          start(async () => {
-            try {
-              const res = await setDownloadHistoricalAction(id, v);
-              toast.success(res.message);
-              router.refresh();
-            } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Update failed");
-            }
-          })
-        }
-      />
-      {historical
-        ? "historical (never refetched)"
-        : "live (refetched by its downloader)"}
-    </label>
-  );
-}
-
 export function DownloadDetailView({
   detail,
   universe,
@@ -294,17 +259,6 @@ export function DownloadDetailView({
             )}
           </div>
         </section>
-
-        {detail.downloaderRole === "source" && (
-          <section>
-            <h2 className="text-xl font-semibold">Historical</h2>
-            <HistoricalToggle id={detail.id} historical={detail.historical} />
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              Historical files are final: the downloader never refetches them.
-              download-to-server still works for a deliberate refetch.
-            </p>
-          </section>
-        )}
 
         {detail.notes && (
           <section>

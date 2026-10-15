@@ -1,5 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 
+import { syncIngestSchedules } from "./ingest-schedules";
 import { defaultQueue, heavyQueue, JobName } from "./queues";
 
 const log = createLogger("worker.scheduler");
@@ -281,43 +282,9 @@ export async function registerSchedules(): Promise<void> {
   );
   log.info("Registered schedule: download-pvhon (daily 9:15 AM HST)");
 
-  // ─── Downloaders ───────────────────────────────────────────────────
-  // Refresh downloader outputs ahead of the off-hours reloads that read
-  // them. Runs never trigger reloads themselves. Most sources update
-  // weekly or monthly on unknown days, so they are checked daily; a stale
-  // output is also refreshed at load time (downloaders.max_age_minutes).
-
-  // DOTAX Google Sheet + current reports — 5:00 / 5:10 AM HST daily
-  await defaultQueue.upsertJobScheduler(
-    "scheduled:downloader-dotax_sheet",
-    { pattern: "0 5 * * *", tz },
-    { name: JobName.DOWNLOADER_RUN, data: { handle: "dotax_sheet" } },
-  );
-  await defaultQueue.upsertJobScheduler(
-    "scheduled:downloader-dotax_current",
-    { pattern: "10 5 * * *", tz },
-    { name: JobName.DOWNLOADER_RUN, data: { handle: "dotax_current" } },
-  );
-  // DOTAX archive zips appear about monthly — Sundays 4:00 AM HST
-  await defaultQueue.upsertJobScheduler(
-    "scheduled:downloader-dotax_archive",
-    { pattern: "0 4 * * 0", tz },
-    { name: JobName.DOWNLOADER_RUN, data: { handle: "dotax_archive" } },
-  );
-  // BLS — 6:15 and 10:10 AM HST, ahead of the 6:30 / 10:20 BLS reloads
-  await defaultQueue.upsertJobScheduler(
-    "scheduled:downloader-bls_api-morning",
-    { pattern: "15 6 * * *", tz },
-    { name: JobName.DOWNLOADER_RUN, data: { handle: "bls_api" } },
-  );
-  await defaultQueue.upsertJobScheduler(
-    "scheduled:downloader-bls_api-midday",
-    { pattern: "10 10 * * *", tz },
-    { name: JobName.DOWNLOADER_RUN, data: { handle: "bls_api" } },
-  );
-  log.info(
-    "Registered schedules: downloaders (dotax_sheet 05:00, dotax_current 05:10, dotax_archive Sun 04:00, bls_api 06:15 + 10:10 HST)",
-  );
+  // ─── Ingest (data_downloaders.schedule) ────────────────────────────
+  // Fetch, then extract the dependent extractors. Never triggers reloads.
+  await syncIngestSchedules();
 
   // ─── Scrapers ──────────────────────────────────────────────────────
 

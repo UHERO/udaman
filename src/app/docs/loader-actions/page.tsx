@@ -770,22 +770,10 @@ Series.search("TOUR").first`}
             example={`Series.load_from_factbook("ZMEDPRICE", "96822")\nSeries.load_from_factbook("MEDSALEPRICE", "honolulu")`}
           />
           <MethodBlock
-            name="Series.load_from_bls_api"
-            evalName="Series.load_from_bls_api"
-            description="Load a BLS series from the bls_api Downloader, which batches API requests and caches the results (see Downloaders). Pass the BLS series ID and its frequency."
-            example={`Series.load_from_bls_api("CUSR0000SA0", "M")`}
-          />
-          <MethodBlock
-            name="Series.load_from_dotax_current / load_from_dotax_archive"
-            evalName="Series.load_from_dotax_current"
-            description="Load a DOTAX monthly report row from the dotax_current (current-year reports) or dotax_archive (zipped monthly archives) Downloader. Arguments are type (the report: collec, ge, liab_ge, liab_tat, fuels, liq, tob, liqtob), tax (the heading the row sits under, or the row itself when it has none), source (the row label) and area (State, Honolulu, Maui, Hawaii, Kauai; default State). Any spelling DOTAX has printed works."
-            example={`Series.load_from_dotax_current("collec", "General Excise & Use", "General Excise & Use")\nSeries.load_from_dotax_current("collec", "Income-Ind.", "Refunds", "State")\nSeries.load_from_dotax_archive("ge", "Base", "Retailing", "Maui")`}
-          />
-          <MethodBlock
-            name="Series.load_from_dotax_sheet"
-            evalName="Series.load_from_dotax_sheet"
-            description="Load preliminary statewide collections from the DOTAX Collections Portal Google Sheet (dotax_sheet Downloader). Pass the type, tax and source columns as written on the sheet."
-            example={`Series.load_from_dotax_sheet("Collection", "General Excise", "General Excise & Use")`}
+            name="Series.load_from_extract"
+            evalName="Series.load_from_extract"
+            description="Load one series from an extractor's latest successful extract (see Ingest). Pass the extractor handle and a filters object naming every dimension needed to pick exactly one series; the extractor page lists its dimensions. Labels are the source's own, with one fixed spelling per row. A filter that matches no series (the source relabeled) or several (a dimension is missing) is an error. A frequency dimension may be left out: it is taken from the series name (@HI.M → M)."
+            example={`Series.load_from_extract("dotax", { type: "collec", tax: "Income-Ind.", source: "Refunds", area: "State" })\nSeries.load_from_extract("dotax", { type: "ge", tax: "Base", source: "Retailing", area: "Maui" })\nSeries.load_from_extract("dotax_sheet", { type: "Collection", tax: "General Excise", source: "General Excise & Use" })\nSeries.load_from_extract("bls", { series_id: "CUSR0000SA0" })`}
           />
           <MethodBlock
             name="Series.load_api_bls"

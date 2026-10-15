@@ -38,6 +38,8 @@ npm-debug.log*
 *.xls
 *.xlsx
 data-dir/
+# ingest test fixtures: stored raw files the tests parse
+!src/core/ingest/sources/*/fixtures/**
 
 # Logs
 ## logs/

@@ -2,6 +2,8 @@ import { SQL } from "bun";
 
 import { createLogger } from "@/core/observability/logger";
 
+import { withSessionTz } from "./session-tz";
+
 const log = createLogger("database.dvw");
 
 const READ_ONLY = process.env.UDAMAN_READ_ONLY === "true";
@@ -40,11 +42,13 @@ function rawQuery<T = Record<string, unknown>>(
   assertNotReadOnly(sql);
   const start = performance.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (getConnection() as any).unsafe(sql, params).then((result: T[]) => {
-    const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, rows: result.length }, "dvw query");
-    return result;
-  });
+  return (getConnection() as any)
+    .unsafe(withSessionTz(sql), params)
+    .then((result: T[]) => {
+      const durationMs = +(performance.now() - start).toFixed(2);
+      log.debug({ durationMs, rows: result.length }, "dvw query");
+      return result;
+    });
 }
 
 export { rawQuery };

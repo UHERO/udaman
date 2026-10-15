@@ -2119,76 +2119,30 @@ class SeriesCollection {
     return result;
   }
 
+  // ─── Ingest ────────────────────────────────────────────────────────
+
   /**
-   * Load a DATABOOK series from the combined Data Book vintage file
-   * (data-dir/databook/vintages.csv): the latest-vintage value for each
-   * date. Eval: `Series.load_from_databook "DB0106@HON.A"`. The vintage
-   * history itself is written by the databook history job, not by this.
+   * Series.load_from_extract("dotax", { type: "collec", tax: "Income-Ind.", source: "Refunds", area: "State" })
+   * One series from an extractor's latest ok extract, picked by named
+   * filters (src/core/ingest/load.ts). `context.seriesName` (the series
+   * the loader fills) supplies a missing frequency filter.
    */
-  static async loadFromDatabook(seriesName: string): Promise<Series> {
-    const { latestFor } = await import("@/core/databook/store");
-    const name = String(seriesName).trim();
-    const data = latestFor(name);
-    if (data.size === 0) {
-      throw new Error(`No Data Book data for ${name}`);
-    }
-    const result = new Series({ name: `Data Book: ${name}` });
-    result.data = data;
-    result.frequency = "year";
-    return result;
-  }
-
-  // ─── Downloader load methods ──────────────────────────────────────
-  // Each reads one key from a downloader's output Download (see
-  // src/core/downloaders); arguments mirror the source so a person can
-  // look the data up there.
-
-  private static async fromDownloader(
-    handle: string,
-    args: unknown[],
+  static async loadFromExtract(
+    handle: unknown,
+    filters: unknown,
+    context: { seriesName?: string | null } = {},
   ): Promise<Series> {
-    const { loadFromDownloader } = await import("@/core/downloaders/load");
-    const { data, freq, description } = await loadFromDownloader(handle, args);
+    const { loadFromExtract } = await import("@/core/ingest/load");
+    const { data, frequency, description } = await loadFromExtract(
+      handle,
+      filters,
+      context,
+    );
     const result = new Series({ name: description });
     result.data = data;
-    const f = Series.frequencyFromCode(freq);
+    const f = Series.frequencyFromCode(frequency);
     if (f) result.frequency = f;
     return result;
-  }
-
-  /** Series.load_from_bls_api("CUSR0000SA0", "M") — BLS via the bls_api downloader. */
-  static async loadFromBlsApi(seriesId: string, frequency?: string) {
-    return this.fromDownloader("bls_api", [seriesId, frequency]);
-  }
-
-  /** Series.load_from_dotax_sheet("Collection", "General Excise", "General Excise & Use") */
-  static async loadFromDotaxSheet(
-    type: string,
-    tax: string,
-    source: string,
-    area?: string,
-  ) {
-    return this.fromDownloader("dotax_sheet", [type, tax, source, area]);
-  }
-
-  /** Series.load_from_dotax_current("collec", "Income-Ind.", "Refunds", "State") */
-  static async loadFromDotaxCurrent(
-    type: string,
-    tax: string,
-    source: string,
-    area?: string,
-  ) {
-    return this.fromDownloader("dotax_current", [type, tax, source, area]);
-  }
-
-  /** Series.load_from_dotax_archive("ge", "Base", "Retailing", "Maui") */
-  static async loadFromDotaxArchive(
-    type: string,
-    tax: string,
-    source: string,
-    area?: string,
-  ) {
-    return this.fromDownloader("dotax_archive", [type, tax, source, area]);
   }
 
   /** Load from the BLS v2 API with full history (walks backwards in 20-year chunks). */

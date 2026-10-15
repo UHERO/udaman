@@ -35,20 +35,6 @@ export default async function DownloadDetailPage({
             Download temporarily frozen
           </p>
         )}
-        {detail.downloader && (
-          <p className="mt-2 text-sm">
-            {detail.downloaderRole === "output"
-              ? "Parsed output"
-              : "Source file"}{" "}
-            of downloader{" "}
-            <Link
-              href={`/udaman/${universe}/downloaders/${detail.downloader.id}`}
-              className="font-mono hover:underline"
-            >
-              {detail.downloader.handle}
-            </Link>
-          </p>
-        )}
       </div>
 
       <DownloadDetailView detail={detail} universe={universe} />

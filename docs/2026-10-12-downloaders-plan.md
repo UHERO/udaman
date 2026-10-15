@@ -1,3 +1,11 @@
+> **Superseded and removed (2026-10-14).** The Downloaders described here
+> were replaced by DataDownloaders / DataExtractors and
+> `Series.load_from_extract` (`src/core/ingest`, see
+> `docs/2026-10-14-downloaders-extractors-spec.md` and
+> `docs/2026-10-14-downloaders-extractors-phase1.md`). The code, UI, load
+> methods, job and migration below no longer exist; this document is kept
+> for history.
+
 # Downloaders — design (rev 5, 2026-10-13)
 
 A **Downloader** is code that fetches data from an outside source, using

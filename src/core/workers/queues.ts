@@ -24,7 +24,8 @@ export const JobName = {
   RELOAD_VAP_HI: "reload.vap_hi",
   RELOAD_UIC: "reload.uic",
   DOWNLOAD: "download.file",
-  DOWNLOADER_RUN: "downloader.run",
+  INGEST_FETCH: "ingest.fetch",
+  INGEST_EXTRACT: "ingest.extract",
   KAUAI_EXPORT: "export.kauai",
   QPUB_REPARSE: "qpub.reparse",
   MLS_DAILY: "mls.daily",
@@ -103,15 +104,23 @@ export type DownloadJobData = {
   handle: string;
 };
 
-/** Run a downloader (src/core/downloaders). */
-export type DownloaderRunJobData = {
+/** Fetch a data downloader, then extract its dependents (src/core/ingest). */
+export type IngestFetchJobData = {
   handle: string;
-  /** Keyed run: only these keys (downloaders that support it) */
-  keys?: string[];
-  /** Ignore skip-if-unchanged shortcuts */
+  /** Refetch even when a source's shortcut says nothing changed */
   force?: boolean;
-  /** Ignore historical marks / history state: refetch everything */
+  /** Also refetch keys marked final */
   full?: boolean;
+  /** schedule | user:<id> */
+  triggeredBy?: string;
+};
+
+/** Re-run a data extractor on its stored inputs (src/core/ingest). */
+export type IngestExtractJobData = {
+  handle: string;
+  /** Parse even when the inputs match the last ok run */
+  force?: boolean;
+  triggeredBy?: string;
 };
 
 export type KauaiExportJobData = Record<string, never>;

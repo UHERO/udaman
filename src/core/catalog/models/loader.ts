@@ -102,8 +102,8 @@ class Loader {
 
   static getLoaderType(evalExpr: string, pseudoHistory = false): LoaderType {
     if (pseudoHistory) return "pseudo_history";
-    // Downloader load methods read a cached output Download
-    if (/load_from_(bls_api|dotax_\w+)/.test(evalExpr)) return "download";
+    // load_from_extract reads a downloaded source's parsed extract
+    if (/load_from_extract/.test(evalExpr)) return "download";
     if (/load_api/.test(evalExpr)) return "api";
     if (/forecast/i.test(evalExpr)) return "forecast";
     if (/load_from_download/.test(evalExpr)) return "download";
@@ -194,12 +194,12 @@ class Loader {
       return `loaded from static file <${filePath}>`;
     }
 
-    // Handle downloader loading: Series.load_from_bls_api("ID", "M")
-    const downloaderMatch = evalExpr.match(
-      /Series\.load_from_(bls_api|dotax_\w+)\b/,
+    // Handle extract loading: Series.load_from_extract("dotax", { … })
+    const extractMatch = evalExpr.match(
+      /Series\.load_from_extract\(\s*"([^"]+)"/,
     );
-    if (downloaderMatch) {
-      return `loaded from downloader ${downloaderMatch[1]} with parameters shown`;
+    if (extractMatch) {
+      return `loaded from extract ${extractMatch[1]} with filters shown`;
     }
 
     // Handle API loading: Series.load_api_bls_NEW("ID", "FREQ")

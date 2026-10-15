@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createDataLoader } from "@/actions/data-loaders";
@@ -27,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 
 import { H2 } from "../typography";
 
@@ -68,11 +70,18 @@ export function CreateLoaderForm({ universe }: { universe: string }) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    await createDataLoader(
-      { universe: universe as Universe, seriesId: Number(seriesId) },
-      values,
-    );
-    nav.push(`/udaman/${universe}/series/${seriesId}`);
+    try {
+      const result = unwrapAction(
+        await createDataLoader(
+          { universe: universe as Universe, seriesId: Number(seriesId) },
+          values,
+        ),
+      );
+      for (const w of result.warnings) toast.warning(w);
+      nav.push(`/udaman/${universe}/series/${seriesId}`);
+    } catch (error) {
+      toastActionError(error, "Failed to create loader");
+    }
   }
 
   const presaveHooks = ["update_full_years_top_priority"];

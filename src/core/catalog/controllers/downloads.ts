@@ -9,8 +9,6 @@ import type {
   RelatedSeries,
   UpdateDownloadPayload,
 } from "@catalog/collections/download-collection";
-import DownloaderCollection from "@catalog/collections/downloader-collection";
-import type Download from "@catalog/models/download";
 
 export type DownloadSummary = {
   id: number;
@@ -23,9 +21,6 @@ export type DownloadSummary = {
   lastChangeAt: string | null;
   notes: string | null;
   hasRelatedSeries: boolean;
-  downloaderId: number | null;
-  downloaderRole: "source" | "output" | null;
-  historical: boolean;
 };
 
 export type DomainGroup = {
@@ -35,26 +30,15 @@ export type DomainGroup = {
 };
 
 function toSummary(dl: {
-  download: Download;
+  download: { toJSON: () => Record<string, unknown>; domain: string | null };
   hasRelatedSeries: boolean;
 }): DownloadSummary {
-  const d = dl.download;
+  const json = dl.download.toJSON() as DownloadSummary;
   return {
-    id: d.id,
-    handle: d.handle,
-    url: d.url,
-    filenameExt: d.filenameExt,
-    dateSensitive: d.dateSensitive,
-    freezeFile: d.freezeFile,
-    lastDownloadAt: d.lastDownloadAt?.toISOString() ?? null,
-    lastChangeAt: d.lastChangeAt?.toISOString() ?? null,
-    notes: d.notes,
-    // downloader-owned files are referenced through the downloader's load
-    // method, not by handle — never orphans
-    hasRelatedSeries: dl.hasRelatedSeries || d.downloaderId != null,
-    downloaderId: d.downloaderId,
-    downloaderRole: d.downloaderRole,
-    historical: d.historical,
+    ...json,
+    lastDownloadAt: json.lastDownloadAt ? String(json.lastDownloadAt) : null,
+    lastChangeAt: json.lastChangeAt ? String(json.lastChangeAt) : null,
+    hasRelatedSeries: dl.hasRelatedSeries,
   };
 }
 
@@ -93,9 +77,6 @@ export type DownloadDetail = {
   fileToExtract: string | null;
   sheetOverride: string | null;
   notes: string | null;
-  historical: boolean;
-  downloaderRole: "source" | "output" | null;
-  downloader: { id: number; handle: string } | null;
   savePath: string;
   savePathRelative: string;
   logEntries: LogEntrySerialized[];
@@ -117,12 +98,9 @@ export async function getDownloadDetail({
 }): Promise<DownloadDetail> {
   const download = await DownloadCollection.getById(id);
 
-  const [logEntries, relatedSeries, downloader] = await Promise.all([
+  const [logEntries, relatedSeries] = await Promise.all([
     DownloadCollection.getLogEntries(id),
     download.handle ? DownloadCollection.getRelatedSeries(download.handle) : [],
-    download.downloaderId
-      ? DownloaderCollection.getById(download.downloaderId).catch(() => null)
-      : null,
   ]);
 
   return {
@@ -135,11 +113,6 @@ export async function getDownloadDetail({
     fileToExtract: download.fileToExtract,
     sheetOverride: download.sheetOverride,
     notes: download.notes,
-    historical: download.historical,
-    downloaderRole: download.downloaderRole,
-    downloader: downloader
-      ? { id: downloader.id, handle: downloader.handle }
-      : null,
     savePath: download.savePath(),
     savePathRelative: `rawdata/${download.sanitizeHandle()}.${download.filenameExt ?? "ext"}`,
     logEntries: logEntries.map((e) => ({
@@ -171,7 +144,6 @@ export type DownloadFormData = {
   sheetOverride: string;
   postParameters: string;
   notes: string;
-  historical: boolean;
 };
 
 export async function getDownloadForEdit({
@@ -193,7 +165,6 @@ export async function getDownloadForEdit({
     sheetOverride: dl.sheetOverride ?? "",
     postParameters: dl.postParameters ?? "",
     notes: dl.notes ?? "",
-    historical: dl.historical,
   };
 }
 

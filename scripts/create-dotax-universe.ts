@@ -1,24 +1,40 @@
 /**
- * Populates the DOTAX universe from the parsed DOTAX report files:
- *
- *   data-dir/dotax/dotax.csv              one column per series, monthly
- *   data-dir/dotax/dotax_series_info.csv  one row of metadata per column
+ * Populates the DOTAX universe from the dotax extract (the parsed DOTAX
+ * report files, src/core/ingest/sources/dotax):
  *
  * Creates or updates, in order: the universe row, geographies (copied from
  * UHERO, plus UNK for the GE liability reports' "Unknown district"
- * column), units, the DOTAX source, categories (root → report family →
- * one data list per table), measurements + data list membership, series
- * + measurement links, and loaders. Idempotent: everything is keyed on
- * (universe, name / prefix / meta), so re-running after editing the
- * config below updates rows in place. Loaders are created but NOT run.
+ * column), units, the DOTAX source, measurements, series + measurement
+ * links, loaders, and categories (root → report family → one data list
+ * per table). Idempotent: everything is keyed on (universe, name / prefix /
+ * meta), so re-running after editing the config below updates rows in
+ * place. Loaders are created but NOT run.
  *
- * Naming:
- *  - Info rows marked "series id (load)" keep their udaman name
- *    (TGBCMNS@HAW.M). Their measurement prefix drops the NS suffix, as in
- *    UHERO (TGBCM), so they can be aliased into UHERO later.
- *  - Slugged rows (ge-base-subtotal1@hi.m) become GE_BASE_SUBTOTAL1@HI.M:
- *    series names can't contain "-". The CSV reader matches the
- *    hyphenated header to the underscore name.
+ * Series and loaders: SERIES_MAP lists which DOTAX rows build which series
+ * (type / section / item as the parser names them, the geography, an
+ * optional month window). Each row becomes a loader
+ *
+ *   Series.load_from_extract("dotax", { type, tax, source, area })
+ *
+ * with the extract's printed labels (src/core/ingest/sources/dotax/labels),
+ * trimmed to the window. A series is created where the extract has data.
+ *
+ * Naming (UHERO's DOTAX names, extended):
+ *  - T for tax, then R (revenue: collections) or D (distribution /
+ *    allocation), then a code for the line: two letters for one word
+ *    (BO Boating), else the first letter of each word, up to three
+ *    (TDCHC Community Health Centers), leaving out "Fund", "Special Fund",
+ *    "and" and "&". A clash takes the second letter of the first word
+ *    (TDCR Cancer Research, TDCOR Compliance Resolution). Names UHERO
+ *    already uses are kept (TDCV Convention Center, TDTT TAT Trust).
+ *  - Report families add a stem before the line code: TGB / TGR (GE base /
+ *    collections, as UHERO), TGFB / TGFL (GE base / liabilities by filing
+ *    period), TTFB / TTFL (TAT, by filing period), TRFU / TRFUS / TRFUC
+ *    (fuel tax collections: total / state / county), TQFU (fuel
+ *    quantities), TDFU / TDFUT (fuel tax allocation: amount / total tax),
+ *    TRLI, TRTB (liquor, tobacco) and TDTB (tobacco tax allocations).
+ *  - Monthly series end in NS (TDCRNS@HI.M), the measurement prefix drops
+ *    it (TDCR), as in UHERO.
  *
  * Units: dollar series are stored in thousands ($Thous, loader scale
  * 0.001), as the UHERO series they will replace are. Quantities (gallons,
@@ -30,21 +46,18 @@
  *   TGBCMNS@HI.Q   "TGBCMNS@HI.M".ts.aggregate(:quarter, :sum)
  *   TGBCM@HI.A     "TGBCMNS@HI.M".ts.aggregate(:year, :sum)
  *
- * (annual names drop the NS suffix; slug names just change frequency:
- * GE_BASE_SUBTOTAL1@HI.Q / .A). Every DOTAX unit is a flow, so all sum.
+ * Every DOTAX unit is a flow, so all sum.
  *
- * Series with fewer than MIN_OBSERVATIONS points are skipped (single-month
- * parse artifacts, e.g. a one-off misspelled fund label); measurements
+ * Series with fewer than MIN_OBSERVATIONS points are skipped; measurements
  * left with no series are dropped from their lists.
  *
- * Loaders: this creates the original `.tsn.load_from("dotax/dotax.csv")`
- * file loaders; scripts/convert-dotax-loaders.ts then switches them to the
- * DOTAX downloaders' load methods (and disables these). Re-running this
- * script does not bring them back: it only creates loaders that are missing.
+ * Descriptions and investigation notes come from
+ * data-dir/dotax/dotax_series_info.csv (the rprocess dotax.R metadata)
+ * where it has the row; it is optional.
  *
  * Usage: bun run scripts/create-dotax-universe.ts [--dry-run] [--verbose] [--include-sparse]
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import LoaderCollection from "@catalog/collections/loader-collection";
@@ -52,8 +65,11 @@ import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 import type { Universe } from "@catalog/types/shared";
-import DataFileReader from "@catalog/utils/data-file-reader";
 
+import { seriesKey } from "@/core/ingest/extract-file";
+import { latestExtract, matchSeries } from "@/core/ingest/load";
+import { parseCsvRecords } from "@/core/ingest/sources/dotax/config";
+import { dotaxDisplay, fixedLabel } from "@/core/ingest/sources/dotax/labels";
 import { getDataDir } from "@/lib/data-dir";
 import { insertAndGetId, rawQuery } from "@/lib/mysql/db";
 
@@ -62,19 +78,19 @@ const VERBOSE = process.argv.includes("--verbose");
 const INCLUDE_SPARSE = process.argv.includes("--include-sparse");
 
 const DOTAX: Universe = "DOTAX";
-/** Relative to DATA_DIR; also the path the loaders read. */
-const DATA_FILE = "dotax/dotax.csv";
+const EXTRACTOR = "dotax";
+/** Relative to DATA_DIR; metadata only. */
 const INFO_FILE = "dotax/dotax_series_info.csv";
 const MIN_OBSERVATIONS = 2;
 const LOADER_PRIORITY = 100;
+/** Loaders that fill months the series' own rows lack. */
+const FILL_PRIORITY = 90;
 
 const SOURCE = {
   description: "State of Hawaii Dept. of Taxation",
   link: "https://tax.hawaii.gov/",
 };
 const REPORTS_LINK = "https://tax.hawaii.gov/stats/a5_3txcolrpt/";
-const PORTAL_DETAIL =
-  "Recent and preliminary months from the DOTAX Collections Portal export, which supersedes the monthly report files where both have values.";
 
 // ─── Units ───────────────────────────────────────────────────────────
 
@@ -85,33 +101,40 @@ type UnitDef = {
   decimals: number;
 };
 
-/** Keyed by the info file's `unit` column. */
-const UNITS: Record<string, UnitDef> = {
-  Dollars: {
+const UNITS = {
+  dollars: {
     shortLabel: "$Thous",
     longLabel: "Thousands of current dollars",
     scale: 0.001,
     decimals: 1,
   },
-  Gallons: {
+  gallons: {
     shortLabel: "Gallons",
     longLabel: "Gallons",
     scale: 1,
     decimals: 0,
   },
-  "Barrels (printed in the GALLONS column)": {
+  barrels: {
     shortLabel: "Barrels",
     longLabel: "Barrels (42 U.S. gallons)",
     scale: 1,
     decimals: 0,
   },
-  "MMBtu (printed in the GALLONS column)": {
+  mmbtu: {
     shortLabel: "MMBtu",
     longLabel: "Millions of British thermal units",
     scale: 1,
     decimals: 0,
   },
-};
+} satisfies Record<string, UnitDef>;
+
+/** The fuel report's GALLONS column also carries barrels and MMBtu. */
+function unitOf(c: Pick<Coord, "type" | "section" | "item">): UnitDef {
+  if (c.type !== "fuels" || c.section !== "base_gallons") return UNITS.dollars;
+  if (c.item === "ert_petroleum") return UNITS.barrels;
+  if (c.item === "ert_fossil") return UNITS.mmbtu;
+  return UNITS.gallons;
+}
 
 // ─── Geographies ─────────────────────────────────────────────────────
 
@@ -177,129 +200,431 @@ const UNK_GEO: GeoDef = {
   listOrder: null,
 };
 
-// ─── Category tree, data lists, measurement names ────────────────────
+const GEOS = ["HI", "HON", "MAU", "HAW", "KAU", "UNK"];
+const COUNTIES = ["HON", "MAU", "HAW", "KAU"];
+
+// ─── Series map: DOTAX rows → series ─────────────────────────────────
 //
-// Rows are [file prefix, indent, portal name]. The file prefix is the
-// info file id before "@". A measurement may sit in several lists; give
-// its portal name on the first row and omit it after. Order and indent
-// follow the DOTAX report layout (totals first, components indented).
+// type / section / item are the parser's names (the extract's labels are
+// looked up from them). geo: all, county, or one handle; the series id's
+// {geo} takes the row's geography. from / to (YYYY-MM, inclusive) trim the
+// loader. fill: the loader sits under the series' own rows.
+
+/**
+ * The collections report, and rows that build series out of several
+ * reports. Started as rprocess dotax_series.csv (dotax.R's item → UDAMAN id
+ * map).
+ */
+const SERIES_CSV = String.raw`type,section,item,geo,from,to,id,fill
+collec,coll_total,total,all,,,TRNS@{geo}.M,
+collec,collections,general_excise,all,,,TRGTNS@{geo}.M,
+collec,collections,tat,all,,,TRTTNS@{geo}.M,
+collec,collections,tat_fees,all,,,TRTFNS@{geo}.M,
+collec,collections,ind_withholding,all,,,TRINWHNS@{geo}.M,
+collec,collections,ind_decl_est,all,,,TRINESNS@{geo}.M,
+collec,collections,ind_pay_returns,all,,,TRINPRNS@{geo}.M,
+collec,collections,ind_refunds,all,,,TRINRFNS@{geo}.M,
+collec,collections,corp_decl_est,all,,,TRCOESNS@{geo}.M,
+collec,collections,corp_pay_returns,all,,,TRCOPRNS@{geo}.M,
+collec,collections,corp_refunds,all,,,TRCORFNS@{geo}.M,
+collec,collections,banks,all,,,TRFINS@{geo}.M,
+collec,collections,conveyance,all,,,TRCVNS@{geo}.M,
+collec,collections,employment_security,all,,,TREMNS@{geo}.M,
+collec,collections,fuel,all,,,TRFUENS@{geo}.M,
+collec,collections,environmental,all,,,TRENNS@{geo}.M,
+collec,collections,fuel_environmental,all,,,TRFENS@{geo}.M,
+collec,collections,ge_license,all,,,TRGLNS@{geo}.M,
+collec,collections,inheritance,all,,,TRIHNS@{geo}.M,
+collec,collections,insurance_premiums,all,,,TRISNS@{geo}.M,
+collec,collections,insurance_fees,all,,,TRIFNS@{geo}.M,
+collec,collections,liquor,HI,,,TRLINS@HI.M,
+collec,collections,liquor,county,,2017-12,TRLINS@{geo}.M,
+liqtob,liquor,total,county,2018-01,,TRLINS@{geo}.M,
+liq,liquor,total,county,,,TRLINS@{geo}.M,
+collec,collections,motor_vehicle,all,,2020-02,TRMTNS@{geo}.M,
+collec,collections,motor_vehicle,HI,2020-03,,TRMTVRNS@HI.M,
+collec,collections,rental_vehicle,HI,2020-03,,TRMTRVNS@HI.M,
+collec,collections,public_service,all,,,TRPSNS@{geo}.M,
+collec,collections,tobacco,HI,,,TRTBNS@HI.M,
+collec,collections,tobacco,county,,2017-12,TRTBNS@{geo}.M,
+liqtob,tobacco,total,county,2018-01,,TRTBNS@{geo}.M,
+tob,tobacco,total,county,,,TRTBNS@{geo}.M,
+collec,collections,county_surcharge,HI,,,TRHSNS@HI.M,
+collec,collections,all_others,all,,,TROTNS@{geo}.M,
+collec,county_surcharge,surcharge_hon,HI,,,TRHSNS@HON.M,
+collec,county_surcharge,surcharge_haw,HI,,,TRHSNS@HAW.M,
+collec,county_surcharge,surcharge_kau,HI,,,TRHSNS@KAU.M,
+collec,county_surcharge,surcharge_mau,HI,,,TRHSNS@MAU.M,
+collec,collections,county_surcharge,county,,,TRHSNS@{geo}.M,1
+collec,county_surcharge,honolulu_surcharge,HI,2018-01,2018-12,TRHSNS@HON.M,1
+collec,county_surcharge,surcharge_haw,HI,,,TRHASNS@HI.M,
+collec,county_surcharge,surcharge_kau,HI,,,TRKSNS@HI.M,
+collec,county_surcharge,surcharge_mau,HI,,,TRMSNS@HI.M,
+collec,county_surcharge,honolulu_surcharge,HI,,,TRHCSNS@HI.M,
+collec,county_surcharge,county_surcharges,HI,,,TRCSNS@HI.M,
+collec,grand_total,grand_total,HI,,,TDNS@HI.M,
+collec,distribution,subtotal,HI,,,TDSTNS@HI.M,
+collec,distribution,general_fund,HI,,,TDGFNS@HI.M,
+collec,distribution,agricultural_development_and_food_security_fund,HI,,,TDADFNS@HI.M,
+collec,distribution,airport_fund,HI,,,TDAPNS@HI.M,
+collec,distribution,boating_fund,HI,,,TDBONS@HI.M,
+collec,distribution,cancer_research_fund,HI,,,TDCRNS@HI.M,
+collec,distribution,cigarette_stamp_admin_fund,HI,,,TDCANS@HI.M,
+collec,distribution,cigarette_stamp_enforcement_fund,HI,,,TDCENS@HI.M,
+collec,distribution,community_health_centers_fund,HI,,,TDCHCNS@HI.M,
+collec,distribution,compliance_resolution_fund,HI,,,TDCORNS@HI.M,
+collec,distribution,convention_center_fund,HI,,,TDCVNS@HI.M,
+collec,distribution,domestic_violence_fund,HI,,,TDDVCNS@HI.M,
+collec,distribution,election_campaign_fund,HI,,,TDECNS@HI.M,
+collec,distribution,electric_vehicle_charging_system_subaccount,HI,,,TDEVCNS@HI.M,
+collec,distribution,emergency_medical_service_fund,HI,,,TDEMSNS@HI.M,
+collec,distribution,employment_security_fund,HI,,,TDEMNS@HI.M,
+collec,distribution,energy_security_fund,HI,,,TDESNS@HI.M,
+collec,distribution,energy_systems_development_fund,HI,,,TDESDNS@HI.M,
+collec,distribution,environmental_fund,HI,,,TDEVNS@HI.M,
+collec,distribution,highway_fund,HI,,,TDHWNS@HI.M,
+collec,distribution,hurricane_relief_fund,HI,,,TDHRNS@HI.M,
+collec,distribution,hydrogen_fueling_system_subaccount,HI,,,TDHFSNS@HI.M,
+collec,distribution,land_and_development_fund,HI,,,TDLDNS@HI.M,
+collec,distribution,land_conservation_fund,HI,,,TDLCNS@HI.M,
+collec,distribution,mass_transit_fund,HI,,,TDMTNS@HI.M,
+collec,distribution,natural_area_reserve_fund,HI,,,TDNANS@HI.M,
+collec,distribution,public_libraries_fund,HI,,,TDPLNS@HI.M,
+collec,distribution,rental_housing_fund,HI,,,TDRHNS@HI.M,
+collec,distribution,school_repairs_fund,HI,,,TDSMRNS@HI.M,
+collec,distribution,tax_administration_fund,HI,,,TDTANS@HI.M,
+collec,distribution,tat_trust_fund,HI,,,TDTTNS@HI.M,
+collec,distribution,tourism_emergency_special_fund,HI,,,TDTENS@HI.M,
+collec,distribution,tourism_special_fund,HI,,,TDTSNS@HI.M,
+collec,distribution,trauma_system_fund,HI,,,TDTRSNS@HI.M,
+collec,distribution,turtle_bay_conservation_easement_fund,HI,,,TDTBCNS@HI.M,
+collec,county_revenue,county_revenue_total,HI,,,TDCTNS@HI.M,
+collec,county_revenue,county_fuel_tax,HI,,,TDCTFUNS@HI.M,
+collec,county_revenue,county_fuel_tax,HI,,,TRCTFUNS@HI.M,
+collec,county_revenue,county_tat,HI,,,TDCTTTNS@HI.M,
+collec,county_revenue,county_tat,HI,,,TRCTTTNS@HI.M,
+fuels,alloc_total,county_fuel_tax,county,,,TDCTFUNS@{geo}.M,
+fuels,alloc_total,county_fuel_tax_maui,MAU,,,TDCTFUNS@MAU.M,
+fuels,alloc_total,county_fuel_tax,HI,,,TDFUTCTNS@HI.M,
+ge,base,all_others_4,HI,,,TGBAONS@HI.M,
+ge,collections,all_others_4,HI,,,TGRAONS@HI.M,
+`;
+
+/** GE business activities, by UHERO's TGB / TGR codes. */
+const GE_ACTIVITIES: Record<string, string> = {
+  grand_total: "",
+  subtotal1: "4", // 4% activities
+  retailing: "RT",
+  services: "SV",
+  contracting: "CT",
+  theater: "TH",
+  commissions: "CM",
+  hotel_rentals: "HT",
+  other_rentals: "OR",
+  interest_all_others: "ITO",
+  interest: "IT",
+  all_others_4: "OT",
+  use_4: "U4",
+  subtotal2: "LR", // lower-rate activities
+  producing: "PD",
+  manufacturing: "MN",
+  wholesaling: "WT",
+  services_intermediary: "SI",
+  services_wholesale: "SW",
+  insurance_solicitors: "IS",
+  use_half: "U5",
+  sugar_processing: "SU",
+  pineapple_canning: "PI",
+  allocated: "AL",
+  unallocated: "UA",
+};
+
+const TAT_LINES: Record<string, string> = {
+  total: "",
+  transient_accommodations: "TA",
+  timeshare: "TS",
+};
+
+const FUEL_TYPES: Record<string, string> = {
+  total: "",
+  subtotal1: "FT", // fuel types
+  gasoline: "GA",
+  diesel_highway: "DH",
+  diesel_off_highway: "DO",
+  lpg_highway: "LH",
+  lpg_off_highway: "LO",
+  aviation: "AV",
+  small_boat_gasoline: "BG",
+  small_boat_diesel: "BD",
+  other_fuel: "OF",
+  subtotal2: "ER", // environmental response tax
+  ert_petroleum: "EP",
+  ert_fossil: "EF",
+};
+
+/** Fuel tax allocation funds; UHERO's TD codes where it has one. */
+const FUEL_FUNDS: Record<string, string> = {
+  total: "",
+  subtotal1: "FT",
+  highway_fund: "HW",
+  airport_fund: "AP",
+  boating_fund: "BO",
+  general_fund: "GF",
+  environmental_fund: "EV",
+  energy_security_fund: "ES",
+  energy_systems_fund: "ESD",
+  agricultural_fund: "ADF",
+  ev_charging_fund: "EVC",
+  hydrogen_fund: "HFS",
+  county_fuel_tax: "CT",
+  county_fuel_tax_maui: "CTMA",
+  county_fuel_tax_molokai: "CTMO",
+  county_fuel_tax_lanai: "CTLA",
+};
+/** The TOTAL TAX column's county fuel tax rows are TDCTFU (SERIES_CSV). */
+const FUEL_FUNDS_TOTAL = Object.fromEntries(
+  Object.entries(FUEL_FUNDS).filter(([item]) => !item.startsWith("county_")),
+);
+
+const LIQUOR_LINES: Record<string, string> = {
+  total: "TC",
+  wholesale: "WH",
+  permits: "PF",
+  penalties: "PI",
+};
+
+const TOBACCO_LINES: Record<string, string> = {
+  total: "TC",
+  cigarettes: "CG",
+  little_cigars: "LC",
+  cigars: "CI",
+  e_liquids: "EL",
+  other_tobacco: "OT",
+  licenses: "LF",
+  retail_permits: "RP",
+  penalties: "PI",
+  unallocated: "UA",
+};
+
+/** Tobacco tax allocations; same codes as the collections report's funds. */
+const TOBACCO_FUNDS: Record<string, string> = {
+  fund_cancer_research: "CR",
+  fund_cigarette_stamp_admin: "CA",
+  fund_cigarette_stamp_enforcement: "CE",
+  fund_community_health: "CHC",
+  fund_emergency_medical: "EMS",
+  fund_trauma: "TRS",
+  fund_tobacco_enforcement: "TE",
+};
+
+/**
+ * [type, section, stem, lines]: one series per line and geography, named
+ * stem + line code. The liquor and tobacco reports split in July 2019
+ * (liqtob through 2019-06; liq and tob from 2019-07), so both feed the
+ * same series; the newer report is listed first (it supplies the
+ * description).
+ */
+const FAMILIES: [string, string, string, Record<string, string>][] = [
+  ["ge", "base", "TGB", GE_ACTIVITIES],
+  ["ge", "collections", "TGR", GE_ACTIVITIES],
+  ["liab_ge", "base", "TGFB", GE_ACTIVITIES],
+  ["liab_ge", "liability", "TGFL", GE_ACTIVITIES],
+  ["liab_tat", "base", "TTFB", TAT_LINES],
+  ["liab_tat", "liability", "TTFL", TAT_LINES],
+  ["fuels", "base_total", "TRFU", FUEL_TYPES],
+  ["fuels", "base_state", "TRFUS", FUEL_TYPES],
+  ["fuels", "base_county", "TRFUC", FUEL_TYPES],
+  ["fuels", "base_gallons", "TQFU", FUEL_TYPES],
+  ["fuels", "alloc_amount", "TDFU", FUEL_FUNDS],
+  ["fuels", "alloc_total", "TDFUT", FUEL_FUNDS_TOTAL],
+  ["liq", "liquor", "TRLI", LIQUOR_LINES],
+  ["liqtob", "liquor", "TRLI", LIQUOR_LINES],
+  ["tob", "tobacco", "TRTB", TOBACCO_LINES],
+  ["liqtob", "tobacco", "TRTB", TOBACCO_LINES],
+  ["tob", "tobacco", "TDTB", TOBACCO_FUNDS],
+  ["liqtob", "tobacco", "TDTB", TOBACCO_FUNDS],
+];
+
+type MapRow = {
+  type: string;
+  section: string;
+  item: string;
+  geo: string;
+  /** YYYY-MM, inclusive */
+  from: string | null;
+  to: string | null;
+  id: string;
+  fill: boolean;
+  /** From FAMILIES: a line the report lacks is skipped, not an error */
+  family: boolean;
+};
+
+function seriesMap(): MapRow[] {
+  const rows: MapRow[] = parseCsvRecords(SERIES_CSV).map((r) => ({
+    type: r.type,
+    section: r.section,
+    item: r.item,
+    geo: r.geo,
+    from: r.from || null,
+    to: r.to || null,
+    id: r.id,
+    fill: r.fill === "1",
+    family: false,
+  }));
+  for (const [type, section, stem, lines] of FAMILIES)
+    for (const [item, code] of Object.entries(lines))
+      rows.push({
+        type,
+        section,
+        item,
+        geo: "all",
+        from: null,
+        to: null,
+        id: `${stem}${code}NS@{geo}.M`,
+        fill: false,
+        family: true,
+      });
+  return rows;
+}
+
+/** Continuity fills from dotax.R: [series prefix, part items]. */
+const GE_FILLS: [string, string[]][] = [
+  ["ITO", ["interest", "all_others_4"]],
+  ["SI", ["services_wholesale"]],
+];
+
+/** Loaders beyond the DOTAX rows, by series name. */
+const EXTRA_LOADERS: Record<string, { code: string; priority: number }[]> = {
+  // Combined line through 2020-02; DOTAX splits it from 2020-03.
+  "TRMTNS@HI.M": [
+    {
+      code: `"TRMTVRNS@HI.M".ts + "TRMTRVNS@HI.M".ts`,
+      priority: FILL_PRIORITY,
+    },
+  ],
+};
+
+/**
+ * Statewide series the DOTAX Collections Portal sheet supersedes where it
+ * has values (dotax_collec.R source_to_id): [type, source, series]. Its
+ * loader goes on top, and the series' other loaders step down 10, once the
+ * dotax_sheet extractor has output; until then they are left out (rerun
+ * this script after its first extraction).
+ */
+const SHEET_EXTRACTOR = "dotax_sheet";
+const SHEET_SOURCES: [string, string, string][] = [
+  ["Collection", "General Excise & Use", "TRGTNS@HI.M"],
+  ["Collection", "Decl. of Est. Taxes-Ind", "TRINESNS@HI.M"],
+  ["Collection", "Payment W/ Returns-Ind", "TRINPRNS@HI.M"],
+  ["Collection", "WH Tax on Wages-Ind", "TRINWHNS@HI.M"],
+  ["Collection", "Refunds-Ind", "TRINRFNS@HI.M"],
+  ["Collection", "Decl. of Est. Taxes-Corp", "TRCOESNS@HI.M"],
+  ["Collection", "Payment W/ Returns-Corp", "TRCOPRNS@HI.M"],
+  ["Collection", "Refunds-Corp", "TRCORFNS@HI.M"],
+  ["Collection", "Trans. Accomm. Tax/Time Share Occup. Tax", "TRTTNS@HI.M"],
+  ["Collection", "County Surcharges", "TRHSNS@HI.M"],
+  ["Distribution", "City and County of Honolulu", "TRHSNS@HON.M"],
+  ["Distribution", "County of Hawaii", "TRHSNS@HAW.M"],
+  ["Distribution", "County of Hawaii", "TRHASNS@HI.M"],
+  ["Distribution", "County of Kauai", "TRHSNS@KAU.M"],
+  ["Distribution", "County of Kauai", "TRKSNS@HI.M"],
+  ["Distribution", "County of Maui", "TRHSNS@MAU.M"],
+  ["Distribution", "County of Maui", "TRMSNS@HI.M"],
+  ["Distribution", "State General Fund", "TDGFNS@HI.M"],
+];
+
+/**
+ * Reload order. batchReload runs the deepest series first, but
+ * assignDependencyDepth only covers UHERO, so DOTAX's depths are set here:
+ * the aggregates (0) after the monthly series (1), after the monthly
+ * series other loaders read (2).
+ */
+const LOADER_INPUTS = new Set(
+  Object.values(EXTRA_LOADERS).flatMap((ls) =>
+    ls.flatMap((l) => [...l.code.matchAll(/"([^"]+)"\.ts/g)].map((m) => m[1])),
+  ),
+);
+
+// ─── Category tree, data lists, portal names ─────────────────────────
+//
+// Rows are [measurement prefix, indent, portal name]. A measurement may
+// sit in several lists; give its portal name on the first row and omit it
+// after. Order and indent follow the DOTAX report layout (totals first,
+// components indented).
 
 type Row = [prefix: string, indent: 0 | 1 | 2 | 3, portalName?: string];
 type ListDef = { key: string; name: string; description?: string; rows: Row[] };
 type SectionDef = { key: string; name: string; lists: ListDef[] };
 
-const geActivities = (
-  fam: string,
-  label: string,
-  indent: 0 | 1 | 2 | 3,
-): Row[] =>
-  (
-    [
-      ["retailing", "Retailing"],
-      ["services", "Services"],
-      ["contracting", "Contracting"],
-      ["theater", "Theater, Amusement, Radio, etc."],
-      ["commissions", "Commissions"],
-      ["hotel-rentals", "Hotel Rentals"],
-      ["other-rentals", "All Other Rentals"],
-      ["interest-all-others", "Interest & All Others"],
-      ["use-4", "Use (4%)"],
-    ] as const
-  ).map(([k, l]) => [`${fam}-${k}`, indent, `${label}: ${l}`]);
-
-const geLowerRate = (
-  fam: string,
-  label: string,
-  indent: 0 | 1 | 2 | 3,
-): Row[] =>
-  (
-    [
-      ["producing", "Producing"],
-      ["manufacturing", "Manufacturing"],
-      ["wholesaling", "Wholesaling"],
-      ["services-intermediary", "Services (Intermediary)"],
-      ["services-wholesale", "Services (Wholesale)"],
-      ["insurance-solicitors", "Insurance Solicitors"],
-      ["use-half", "Use (1/2%)"],
-    ] as const
-  ).map(([k, l]) => [`${fam}-${k}`, indent, `${label}: ${l}`]);
-
-/** udaman-named GE activity rows: [base prefix, collections prefix, label]. */
-const GE_4PCT: [string, string, string][] = [
-  ["TGBRTNS", "TGRRTNS", "Retailing"],
-  ["TGBSVNS", "TGRSVNS", "Services"],
-  ["TGBCTNS", "TGRCTNS", "Contracting"],
-  ["TGBTHNS", "TGRTHNS", "Theater, Amusement, Radio, etc."],
-  ["TGBCMNS", "TGRCMNS", "Commissions"],
-  ["TGBHTNS", "TGRHTNS", "Hotel Rentals"],
-  ["TGBORNS", "TGRORNS", "All Other Rentals"],
-  ["TGBITONS", "TGRITONS", "Interest & All Others"],
-  ["TGBITNS", "TGRITNS", "Interest"],
-  ["TGBOTNS", "TGROTNS", "All Others (4%)"],
-  ["TGBU4NS", "TGRU4NS", "Use (4%)"],
+const GE_4PCT: [string, string][] = [
+  ["RT", "Retailing"],
+  ["SV", "Services"],
+  ["CT", "Contracting"],
+  ["TH", "Theater, Amusement, Radio, etc."],
+  ["CM", "Commissions"],
+  ["HT", "Hotel Rentals"],
+  ["OR", "All Other Rentals"],
+  ["ITO", "Interest & All Others"],
+  ["IT", "Interest"],
+  ["OT", "All Others (4%)"],
+  ["U4", "Use (4%)"],
 ];
-const GE_LOWER: [string, string, string][] = [
-  ["TGBPDNS", "TGRPDNS", "Producing"],
-  ["TGBMNNS", "TGRMNNS", "Manufacturing"],
-  ["TGBWTNS", "TGRWTNS", "Wholesaling"],
-  ["TGBSINS", "TGRSINS", "Services (Intermediary)"],
-  ["TGBSWNS", "TGRSWNS", "Services (Wholesale)"],
-  ["TGBISNS", "TGRISNS", "Insurance Solicitors"],
-  ["TGBU5NS", "TGRU5NS", "Use (1/2%)"],
-  ["TGBSUNS", "TGRSUNS", "Sugar Processing"],
-  ["TGBPINS", "TGRPINS", "Pineapple Canning"],
+const GE_LOWER: [string, string][] = [
+  ["PD", "Producing"],
+  ["MN", "Manufacturing"],
+  ["WT", "Wholesaling"],
+  ["SI", "Services (Intermediary)"],
+  ["SW", "Services (Wholesale)"],
+  ["IS", "Insurance Solicitors"],
+  ["U5", "Use (1/2%)"],
+  ["SU", "Sugar Processing"],
+  ["PI", "Pineapple Canning"],
 ];
 /** Interest and All Others (4%) were printed separately until 2016-17 and sum to Interest & All Others. */
-const geIndent = (label: string, base: 2 | 3): 0 | 1 | 2 | 3 =>
-  label === "Interest" || label === "All Others (4%)" ? 3 : base;
+const geIndent = (code: string, base: 2 | 3): 0 | 1 | 2 | 3 =>
+  code === "IT" || code === "OT" ? 3 : base;
 
-const fuelTypes = (fam: string, label: string, indent: 0 | 1 | 2 | 3): Row[] =>
-  (
-    [
-      ["gasoline", "Gasoline"],
-      ["diesel-highway", "Diesel Oil (Highway)"],
-      ["diesel-off-highway", "Diesel Oil (Off-Highway)"],
-      ["lpg-highway", "Liquefied Petroleum Gas (Highway)"],
-      ["lpg-off-highway", "Liquefied Petroleum Gas (Off-Highway)"],
-      ["aviation", "Aviation Fuel"],
-      ["small-boat-gasoline", "Small Boats (Gasoline)"],
-      ["small-boat-diesel", "Small Boats (Diesel Oil)"],
-      ["other-fuel", "Other Fuel"],
-    ] as const
-  ).map(([k, l]) => [`${fam}-${k}`, indent, `${label}: ${l}`]);
+/** A GE table's rows: total, 4% activities, lower-rate activities. */
+function geRows(
+  stem: string,
+  label: string,
+  indent: 0 | 1,
+  totalName: string,
+): Row[] {
+  const i = (n: number) => (indent + n) as 0 | 1 | 2 | 3;
+  return [
+    [stem, indent, totalName],
+    [`${stem}4`, i(1), `${label}: 4% Activities Subtotal`],
+    ...GE_4PCT.map(([c, l]): Row => [
+      `${stem}${c}`,
+      geIndent(c, i(2) as 2 | 3),
+      `${label}: ${l}`,
+    ]),
+    [`${stem}LR`, i(1), `${label}: Lower-Rate Activities Subtotal`],
+    ...GE_LOWER.map(([c, l]): Row => [`${stem}${c}`, i(2), `${label}: ${l}`]),
+  ];
+}
 
-const ertRows = (fam: string, label: string): Row[] => [
-  [`${fam}-subtotal2`, 1, `${label}: Environmental Response Tax Subtotal`],
-  [
-    `${fam}-ert-petroleum`,
-    2,
-    `${label}: Environmental Response Tax, Petroleum Products`,
-  ],
-  [
-    `${fam}-ert-fossil`,
-    2,
-    `${label}: Environmental Response Tax, Fossil Fuels`,
-  ],
+const FUEL_TYPE_ROWS: [string, string][] = [
+  ["GA", "Gasoline"],
+  ["DH", "Diesel Oil (Highway)"],
+  ["DO", "Diesel Oil (Off-Highway)"],
+  ["LH", "Liquefied Petroleum Gas (Highway)"],
+  ["LO", "Liquefied Petroleum Gas (Off-Highway)"],
+  ["AV", "Aviation Fuel"],
+  ["BG", "Small Boats (Gasoline)"],
+  ["BD", "Small Boats (Diesel Oil)"],
+  ["OF", "Other Fuel"],
 ];
 
-const tobaccoFunds = (fam: string, period: string): Row[] =>
-  (
-    [
-      ["cancer-research", "Hawaii Cancer Research Fund"],
-      ["cigarette-stamp-admin", "Cigarette Stamp Administrative Fund"],
-      ["cigarette-stamp-enforcement", "Cigarette Stamp Enforcement Fund"],
-      ["community-health", "Community Health Centers Fund"],
-      ["emergency-medical", "Emergency Medical Service Fund"],
-      ["trauma", "Trauma System Fund"],
-      ["tobacco-enforcement", "Tobacco Enforcement Fund"],
-    ] as const
-  )
-    .filter(([k]) => fam === "tob-tobacco-fund" || k !== "tobacco-enforcement")
-    .map(([k, l]) => [
-      `${fam}-${k}`,
-      0,
-      `Tobacco Tax Allocation: ${l} (${period})`,
-    ]);
+const fuelTypes = (stem: string, label: string, indent: 0 | 1 | 2 | 3): Row[] =>
+  FUEL_TYPE_ROWS.map(([c, l]) => [`${stem}${c}`, indent, `${label}: ${l}`]);
+
+const ertRows = (stem: string, label: string): Row[] => [
+  [`${stem}ER`, 1, `${label}: Environmental Response Tax Subtotal`],
+  [`${stem}EP`, 2, `${label}: Environmental Response Tax, Petroleum Products`],
+  [`${stem}EF`, 2, `${label}: Environmental Response Tax, Fossil Fuels`],
+];
 
 const SECTIONS: SectionDef[] = [
   {
@@ -310,185 +635,89 @@ const SECTIONS: SectionDef[] = [
         key: "COLLECTIONS",
         name: "Tax Collections by Source",
         rows: [
-          ["TRNS", 0, "Total Tax Collections"],
-          ["TRGTNS", 1, "General Excise & Use Tax Collections"],
+          ["TR", 0, "Total Tax Collections"],
+          ["TRGT", 1, "General Excise & Use Tax Collections"],
           [
-            "TRTTNS",
+            "TRTT",
             1,
             "Transient Accommodations & Timeshare Occupancy Tax Collections",
           ],
-          ["TRTFNS", 1, "Transient Accommodations & Timeshare Occupancy Fees"],
-          ["TRINWHNS", 1, "Individual Income Tax: Withholding on Wages"],
+          ["TRTF", 1, "Transient Accommodations & Timeshare Occupancy Fees"],
+          ["TRINWH", 1, "Individual Income Tax: Withholding on Wages"],
+          ["TRINES", 1, "Individual Income Tax: Declarations of Estimated Tax"],
+          ["TRINPR", 1, "Individual Income Tax: Payments with Returns"],
+          ["TRINRF", 1, "Individual Income Tax: Refunds"],
+          ["TRCOES", 1, "Corporate Income Tax: Declarations of Estimated Tax"],
+          ["TRCOPR", 1, "Corporate Income Tax: Payments with Returns"],
+          ["TRCORF", 1, "Corporate Income Tax: Refunds"],
+          ["TRFI", 1, "Banks & Financial Corporations Tax Collections"],
+          ["TRCV", 1, "Conveyance Tax Collections"],
+          ["TREM", 1, "Employment Security Contributions"],
+          ["TRFUE", 1, "Fuel Tax Collections"],
+          ["TREN", 1, "Environmental Response Tax Collections"],
           [
-            "TRINESNS",
-            1,
-            "Individual Income Tax: Declarations of Estimated Tax",
-          ],
-          ["TRINPRNS", 1, "Individual Income Tax: Payments with Returns"],
-          ["TRINRFNS", 1, "Individual Income Tax: Refunds"],
-          [
-            "TRCOESNS",
-            1,
-            "Corporate Income Tax: Declarations of Estimated Tax",
-          ],
-          ["TRCOPRNS", 1, "Corporate Income Tax: Payments with Returns"],
-          ["TRCORFNS", 1, "Corporate Income Tax: Refunds"],
-          ["TRFINS", 1, "Banks & Financial Corporations Tax Collections"],
-          ["TRCVNS", 1, "Conveyance Tax Collections"],
-          ["TREMNS", 1, "Employment Security Contributions"],
-          ["collec-collections-fuel", 1, "Fuel Tax Collections"],
-          [
-            "collec-collections-environmental",
-            1,
-            "Environmental Response Tax Collections",
-          ],
-          [
-            "collec-collections-fuel-environmental",
+            "TRFE",
             1,
             "Fuel & Environmental Response Tax Collections (Jan-Feb 2020)",
           ],
-          ["TRGLNS", 1, "General Excise Licenses & Fees"],
-          ["TRIHNS", 1, "Inheritance & Estate Tax Collections"],
-          ["TRISNS", 1, "Insurance Premiums Tax Collections"],
-          ["collec-collections-insurance-fees", 1, "Insurance Fees"],
-          ["TRLINS", 1, "Liquor Tax & Permit Collections"],
-          ["TRMTNS", 1, "Motor Vehicle & Rental Vehicle Taxes & Fees"],
-          ["TRMTVRNS", 2, "Motor Vehicle Taxes & Fees"],
-          ["TRMTRVNS", 2, "Rental Vehicle Taxes & Fees"],
-          ["TRPSNS", 1, "Public Service Company Tax Collections"],
-          ["TRTBNS", 1, "Cigarette & Tobacco Tax Collections"],
-          ["TRHSNS", 1, "County Surcharge on GE Tax"],
-          ["TROTNS", 1, "All Other Tax Collections"],
+          ["TRGL", 1, "General Excise Licenses & Fees"],
+          ["TRIH", 1, "Inheritance & Estate Tax Collections"],
+          ["TRIS", 1, "Insurance Premiums Tax Collections"],
+          ["TRIF", 1, "Insurance Fees"],
+          ["TRLI", 1, "Liquor Tax & Permit Collections"],
+          ["TRMT", 1, "Motor Vehicle & Rental Vehicle Taxes & Fees"],
+          ["TRMTVR", 2, "Motor Vehicle Taxes & Fees"],
+          ["TRMTRV", 2, "Rental Vehicle Taxes & Fees"],
+          ["TRPS", 1, "Public Service Company Tax Collections"],
+          ["TRTB", 1, "Cigarette & Tobacco Tax Collections"],
+          ["TRHS", 1, "County Surcharge on GE Tax"],
+          ["TROT", 1, "All Other Tax Collections"],
         ],
       },
       {
         key: "DISTRIBUTION",
         name: "Distribution of Tax Collections",
         rows: [
-          [
-            "collec-grand-total-grand-total",
-            0,
-            "Total Distribution of Tax Collections",
-          ],
-          [
-            "collec-distribution-subtotal",
-            1,
-            "Distribution to State Funds, Subtotal",
-          ],
-          ["TDGFNS", 2, "State General Fund"],
-          [
-            "collec-distribution-agricultural-development-and-food-security-fund",
-            2,
-            "Agricultural Development & Food Security Fund",
-          ],
-          ["TDAPNS", 2, "State Airport Fund"],
-          ["TDBONS", 2, "Boating Special Fund"],
-          [
-            "collec-distribution-cancer-research-fund",
-            2,
-            "Cancer Research Fund",
-          ],
-          ["TDCANS", 2, "Cigarette Stamp Administrative Fund"],
-          ["TDCENS", 2, "Cigarette Stamp Enforcement Fund"],
-          [
-            "collec-distribution-community-health-centers-fund",
-            2,
-            "Community Health Centers Fund",
-          ],
-          [
-            "collec-distribution-compliance-resolution-fund",
-            2,
-            "Compliance Resolution Fund",
-          ],
-          ["TDCVNS", 2, "Convention Center Enterprise Fund"],
-          [
-            "collec-distribution-domestic-violence-fund",
-            2,
-            "Domestic Violence & Child Abuse and Neglect Funds",
-          ],
-          [
-            "collec-distribution-election-campaign-fund",
-            2,
-            "Election Campaign Fund",
-          ],
-          [
-            "collec-distribution-electric-vehicle-charging-system-subaccount",
-            2,
-            "Electric Vehicle Charging System Subaccount",
-          ],
-          [
-            "collec-distribution-emergency-medical-service-fund",
-            2,
-            "Emergency Medical Service Fund",
-          ],
-          ["TDEMNS", 2, "Employment Security Fund"],
-          [
-            "collec-distribution-energy-security-fund",
-            2,
-            "Energy Security Fund",
-          ],
-          [
-            "collec-distribution-energy-systems-development-fund",
-            2,
-            "Energy Systems Development Fund",
-          ],
-          ["TDEVNS", 2, "Environmental Fund"],
-          ["TDHWNS", 2, "State Highway Fund"],
-          [
-            "collec-distribution-hurricane-relief-fund",
-            2,
-            "Hurricane Relief Fund",
-          ],
-          [
-            "collec-distribution-hydrogen-fueling-system-subaccount",
-            2,
-            "Hydrogen Fueling System Subaccount",
-          ],
-          [
-            "collec-distribution-land-and-development-fund",
-            2,
-            "Land and Development Fund",
-          ],
-          [
-            "collec-distribution-land-conservation-fund",
-            2,
-            "Land Conservation Fund",
-          ],
-          ["collec-distribution-mass-transit-fund", 2, "Mass Transit Fund"],
-          ["TDNANS", 2, "Natural Area Reserve Fund"],
-          [
-            "collec-distribution-public-libraries-fund",
-            2,
-            "Public Libraries Fund",
-          ],
-          ["TDRHNS", 2, "Rental Housing Fund"],
-          [
-            "collec-distribution-school-repairs-fund",
-            2,
-            "School Minor Repairs & Maintenance Fund",
-          ],
-          [
-            "collec-distribution-tax-administration-fund",
-            2,
-            "Tax Administration Fund",
-          ],
-          ["TDTTNS", 2, "TAT Trust Fund"],
-          [
-            "collec-distribution-tourism-emergency-special-fund",
-            2,
-            "Tourism Emergency Special Fund",
-          ],
-          ["TDTSNS", 2, "Tourism Special Fund"],
-          ["collec-distribution-trauma-system-fund", 2, "Trauma System Fund"],
-          [
-            "collec-distribution-turtle-bay-conservation-easement-fund",
-            2,
-            "Turtle Bay Conservation Easement Fund",
-          ],
-          ["TRHSNS", 1],
-          ["TDCTNS", 1, "Other County Revenue, Total"],
-          ["TDCTFUNS", 2, "County Fuel Tax Revenue"],
-          ["TDCTTTNS", 2, "County Share of Transient Accommodations Tax"],
+          ["TD", 0, "Total Distribution of Tax Collections"],
+          ["TDST", 1, "Distribution to State Funds, Subtotal"],
+          ["TDGF", 2, "State General Fund"],
+          ["TDADF", 2, "Agricultural Development & Food Security Fund"],
+          ["TDAP", 2, "State Airport Fund"],
+          ["TDBO", 2, "Boating Special Fund"],
+          ["TDCR", 2, "Cancer Research Fund"],
+          ["TDCA", 2, "Cigarette Stamp Administrative Fund"],
+          ["TDCE", 2, "Cigarette Stamp Enforcement Fund"],
+          ["TDCHC", 2, "Community Health Centers Fund"],
+          ["TDCOR", 2, "Compliance Resolution Fund"],
+          ["TDCV", 2, "Convention Center Enterprise Fund"],
+          ["TDDVC", 2, "Domestic Violence & Child Abuse and Neglect Funds"],
+          ["TDEC", 2, "Election Campaign Fund"],
+          ["TDEVC", 2, "Electric Vehicle Charging System Subaccount"],
+          ["TDEMS", 2, "Emergency Medical Service Fund"],
+          ["TDEM", 2, "Employment Security Fund"],
+          ["TDES", 2, "Energy Security Fund"],
+          ["TDESD", 2, "Energy Systems Development Fund"],
+          ["TDEV", 2, "Environmental Fund"],
+          ["TDHW", 2, "State Highway Fund"],
+          ["TDHR", 2, "Hurricane Relief Fund"],
+          ["TDHFS", 2, "Hydrogen Fueling System Subaccount"],
+          ["TDLD", 2, "Land and Development Fund"],
+          ["TDLC", 2, "Land Conservation Fund"],
+          ["TDMT", 2, "Mass Transit Fund"],
+          ["TDNA", 2, "Natural Area Reserve Fund"],
+          ["TDPL", 2, "Public Libraries Fund"],
+          ["TDRH", 2, "Rental Housing Fund"],
+          ["TDSMR", 2, "School Minor Repairs & Maintenance Fund"],
+          ["TDTA", 2, "Tax Administration Fund"],
+          ["TDTT", 2, "TAT Trust Fund"],
+          ["TDTE", 2, "Tourism Emergency Special Fund"],
+          ["TDTS", 2, "Tourism Special Fund"],
+          ["TDTRS", 2, "Trauma System Fund"],
+          ["TDTBC", 2, "Turtle Bay Conservation Easement Fund"],
+          ["TRHS", 1],
+          ["TDCT", 1, "Other County Revenue, Total"],
+          ["TDCTFU", 2, "County Fuel Tax Revenue"],
+          ["TDCTTT", 2, "County Share of Transient Accommodations Tax"],
         ],
       },
       {
@@ -497,17 +726,13 @@ const SECTIONS: SectionDef[] = [
         description:
           "State of Hawaii is statewide county surcharge collections; each county is the surcharge distributed to that county.",
         rows: [
-          ["TRHSNS", 0],
-          ["TRHASNS", 1, "County Surcharge Distributed to Hawaii County"],
-          ["TRKSNS", 1, "County Surcharge Distributed to Kauai County"],
-          ["TRMSNS", 1, "County Surcharge Distributed to Maui County"],
+          ["TRHS", 0],
+          ["TRHAS", 1, "County Surcharge Distributed to Hawaii County"],
+          ["TRKS", 1, "County Surcharge Distributed to Kauai County"],
+          ["TRMS", 1, "County Surcharge Distributed to Maui County"],
+          ["TRHCS", 1, "Honolulu County Surcharge Distribution (2007-2018)"],
           [
-            "collec-county-surcharge-honolulu-surcharge",
-            1,
-            "Honolulu County Surcharge Distribution (2007-2017)",
-          ],
-          [
-            "collec-county-surcharge-county-surcharges",
+            "TRCS",
             1,
             "County Surcharge Distribution, All Counties (Jan-Jun 2019)",
           ],
@@ -522,45 +747,16 @@ const SECTIONS: SectionDef[] = [
       {
         key: "GE_BASE",
         name: "GE Tax Base by Business Activity",
-        rows: [
-          ["TGBNS", 0, "Total GE & Use Tax Base"],
-          ["ge-base-subtotal1", 1, "GE Tax Base: 4% Activities Subtotal"],
-          ...GE_4PCT.map(([b, , l]): Row => [
-            b,
-            geIndent(l, 2),
-            `GE Tax Base: ${l}`,
-          ]),
-          [
-            "ge-base-subtotal2",
-            1,
-            "GE Tax Base: Lower-Rate Activities Subtotal",
-          ],
-          ...GE_LOWER.map(([b, , l]): Row => [b, 2, `GE Tax Base: ${l}`]),
-        ],
+        rows: geRows("TGB", "GE Tax Base", 0, "Total GE & Use Tax Base"),
       },
       {
         key: "GE_COLLECTIONS",
         name: "GE Tax Collections by Business Activity",
         rows: [
-          ["TGRNS", 0, "Total GE & Use Tax Collections"],
-          ["TGRALNS", 1, "GE Tax Collections: Allocated"],
-          [
-            "ge-collections-subtotal1",
-            2,
-            "GE Tax Collections: 4% Activities Subtotal",
-          ],
-          ...GE_4PCT.map(([, c, l]): Row => [c, 3, `GE Tax Collections: ${l}`]),
-          [
-            "ge-collections-subtotal2",
-            2,
-            "GE Tax Collections: Lower-Rate Activities Subtotal",
-          ],
-          ...GE_LOWER.map(([, c, l]): Row => [
-            c,
-            3,
-            `GE Tax Collections: ${l}`,
-          ]),
-          ["TGRUANS", 1, "GE Tax Collections: Unallocated"],
+          ["TGR", 0, "Total GE & Use Tax Collections"],
+          ["TGRAL", 1, "GE Tax Collections: Allocated"],
+          ...geRows("TGR", "GE Tax Collections", 1, "").slice(1),
+          ["TGRUA", 1, "GE Tax Collections: Unallocated"],
         ],
       },
       {
@@ -568,25 +764,12 @@ const SECTIONS: SectionDef[] = [
         name: "GE Tax Base by Filing Period",
         description:
           "Tax base for GE and use tax liabilities incurred in the filing period (by period of activity rather than month collected).",
-        rows: [
-          [
-            "liab-ge-base-grand-total",
-            0,
-            "Total GE Tax Base, by Filing Period",
-          ],
-          [
-            "liab-ge-base-subtotal1",
-            1,
-            "GE Tax Base by Filing Period: 4% Activities Subtotal",
-          ],
-          ...geActivities("liab-ge-base", "GE Tax Base by Filing Period", 2),
-          [
-            "liab-ge-base-subtotal2",
-            1,
-            "GE Tax Base by Filing Period: Lower-Rate Activities Subtotal",
-          ],
-          ...geLowerRate("liab-ge-base", "GE Tax Base by Filing Period", 2),
-        ],
+        rows: geRows(
+          "TGFB",
+          "GE Tax Base by Filing Period",
+          0,
+          "Total GE Tax Base, by Filing Period",
+        ),
       },
       {
         key: "GE_LIAB",
@@ -594,24 +777,13 @@ const SECTIONS: SectionDef[] = [
         description:
           "GE and use tax liabilities incurred in the filing period (by period of activity rather than month collected).",
         rows: [
-          ["liab-ge-liability-grand-total", 0, "Total GE Tax Liabilities"],
-          [
-            "liab-ge-liability-subtotal1",
-            1,
-            "GE Tax Liabilities: 4% Activities Subtotal",
-          ],
-          ...geActivities("liab-ge-liability", "GE Tax Liabilities", 2),
-          [
-            "liab-ge-liability-subtotal2",
-            1,
-            "GE Tax Liabilities: Lower-Rate Activities Subtotal",
-          ],
-          ...geLowerRate("liab-ge-liability", "GE Tax Liabilities", 2),
-          [
-            "liab-ge-liability-unallocated",
-            1,
-            "GE Tax Liabilities: Unallocated",
-          ],
+          ...geRows(
+            "TGFL",
+            "GE Tax Liabilities",
+            0,
+            "Total GE Tax Liabilities",
+          ),
+          ["TGFLUA", 1, "GE Tax Liabilities: Unallocated"],
         ],
       },
     ],
@@ -624,28 +796,12 @@ const SECTIONS: SectionDef[] = [
         key: "TAT_LIAB",
         name: "TAT Base & Liabilities by Filing Period",
         rows: [
-          ["liab-tat-base-total", 0, "Total TAT Base, by Filing Period"],
-          [
-            "liab-tat-base-transient-accommodations",
-            1,
-            "TAT Base by Filing Period: Transient Accommodations",
-          ],
-          [
-            "liab-tat-base-timeshare",
-            1,
-            "TAT Base by Filing Period: Timeshare Occupancy",
-          ],
-          ["liab-tat-liability-total", 0, "Total TAT Liabilities"],
-          [
-            "liab-tat-liability-transient-accommodations",
-            1,
-            "TAT Liabilities: Transient Accommodations",
-          ],
-          [
-            "liab-tat-liability-timeshare",
-            1,
-            "TAT Liabilities: Timeshare Occupancy",
-          ],
+          ["TTFB", 0, "Total TAT Base, by Filing Period"],
+          ["TTFBTA", 1, "TAT Base by Filing Period: Transient Accommodations"],
+          ["TTFBTS", 1, "TAT Base by Filing Period: Timeshare Occupancy"],
+          ["TTFL", 0, "Total TAT Liabilities"],
+          ["TTFLTA", 1, "TAT Liabilities: Transient Accommodations"],
+          ["TTFLTS", 1, "TAT Liabilities: Timeshare Occupancy"],
         ],
       },
     ],
@@ -658,63 +814,43 @@ const SECTIONS: SectionDef[] = [
         key: "FUEL_QUANTITY",
         name: "Liquid Fuel Taxed",
         rows: [
+          ["TQFUFT", 0, "Liquid Fuel Taxed: Total Gallons"],
+          ...fuelTypes("TQFU", "Liquid Fuel Taxed", 1),
           [
-            "fuels-base-gallons-subtotal1",
-            0,
-            "Liquid Fuel Taxed: Total Gallons",
-          ],
-          ...fuelTypes("fuels-base-gallons", "Liquid Fuel Taxed", 1),
-          [
-            "fuels-base-gallons-ert-petroleum",
+            "TQFUEP",
             0,
             "Petroleum Products Subject to Environmental Response Tax",
           ],
-          [
-            "fuels-base-gallons-ert-fossil",
-            0,
-            "Fossil Fuels Subject to Environmental Response Tax",
-          ],
+          ["TQFUEF", 0, "Fossil Fuels Subject to Environmental Response Tax"],
         ],
       },
       {
         key: "FUEL_TOTAL",
         name: "Liquid Fuel Tax Collections, State & County",
         rows: [
-          ["TRFUNS", 0, "Total Liquid Fuel Tax Collections"],
-          [
-            "fuels-base-total-subtotal1",
-            1,
-            "Fuel Tax Collections: Fuel Types Subtotal",
-          ],
-          ...fuelTypes("fuels-base-total", "Fuel Tax Collections", 2),
-          ...ertRows("fuels-base-total", "Fuel Tax Collections"),
+          ["TRFU", 0, "Total Liquid Fuel Tax Collections"],
+          ["TRFUFT", 1, "Fuel Tax Collections: Fuel Types Subtotal"],
+          ...fuelTypes("TRFU", "Fuel Tax Collections", 2),
+          ...ertRows("TRFU", "Fuel Tax Collections"),
         ],
       },
       {
         key: "FUEL_STATE",
         name: "Liquid Fuel Tax Collections, State Tax",
         rows: [
-          ["fuels-base-state-total", 0, "Total State Fuel Tax Collections"],
-          [
-            "fuels-base-state-subtotal1",
-            1,
-            "State Fuel Tax: Fuel Types Subtotal",
-          ],
-          ...fuelTypes("fuels-base-state", "State Fuel Tax", 2),
-          ...ertRows("fuels-base-state", "State Fuel Tax"),
+          ["TRFUS", 0, "Total State Fuel Tax Collections"],
+          ["TRFUSFT", 1, "State Fuel Tax: Fuel Types Subtotal"],
+          ...fuelTypes("TRFUS", "State Fuel Tax", 2),
+          ...ertRows("TRFUS", "State Fuel Tax"),
         ],
       },
       {
         key: "FUEL_COUNTY",
         name: "Liquid Fuel Tax Collections, County Tax",
         rows: [
-          ["fuels-base-county-total", 0, "Total County Fuel Tax Collections"],
-          [
-            "fuels-base-county-subtotal1",
-            1,
-            "County Fuel Tax: Fuel Types Subtotal",
-          ],
-          ...fuelTypes("fuels-base-county", "County Fuel Tax", 2),
+          ["TRFUC", 0, "Total County Fuel Tax Collections"],
+          ["TRFUCFT", 1, "County Fuel Tax: Fuel Types Subtotal"],
+          ...fuelTypes("TRFUC", "County Fuel Tax", 2),
         ],
       },
       {
@@ -722,82 +858,54 @@ const SECTIONS: SectionDef[] = [
         name: "Liquid Fuel Tax Allocation by Fund",
         description: "AMOUNT column of the fuel tax allocation table.",
         rows: [
+          ["TDFUHW", 0, "Fuel Tax Allocation: State Highway Special Fund"],
+          ["TDFUAP", 0, "Fuel Tax Allocation: State Airports Special Fund"],
+          ["TDFUBO", 0, "Fuel Tax Allocation: State Boating Special Fund"],
+          ["TDFUGF", 0, "Fuel Tax Allocation: General Fund"],
           [
-            "fuels-alloc-amount-highway-fund",
-            0,
-            "Fuel Tax Allocation: State Highway Special Fund",
-          ],
-          [
-            "fuels-alloc-amount-airport-fund",
-            0,
-            "Fuel Tax Allocation: State Airports Special Fund",
-          ],
-          [
-            "fuels-alloc-amount-boating-fund",
-            0,
-            "Fuel Tax Allocation: State Boating Special Fund",
-          ],
-          [
-            "fuels-alloc-amount-general-fund",
-            0,
-            "Fuel Tax Allocation: General Fund",
-          ],
-          [
-            "fuels-alloc-amount-environmental-fund",
+            "TDFUEV",
             0,
             "Fuel Tax Allocation: Environmental Response Revolving Fund",
           ],
+          ["TDFUES", 0, "Fuel Tax Allocation: Energy Security Special Fund"],
           [
-            "fuels-alloc-amount-energy-security-fund",
-            0,
-            "Fuel Tax Allocation: Energy Security Special Fund",
-          ],
-          [
-            "fuels-alloc-amount-energy-systems-fund",
+            "TDFUESD",
             0,
             "Fuel Tax Allocation: Energy Systems Development Special Fund",
           ],
           [
-            "fuels-alloc-amount-agricultural-fund",
+            "TDFUADF",
             0,
             "Fuel Tax Allocation: Agricultural Development & Food Security Fund",
           ],
           [
-            "fuels-alloc-amount-ev-charging-fund",
+            "TDFUEVC",
             0,
             "Fuel Tax Allocation: Electric Vehicle Charging System Subaccount",
           ],
           [
-            "fuels-alloc-amount-hydrogen-fund",
+            "TDFUHFS",
             0,
             "Fuel Tax Allocation: Hydrogen Fueling System Subaccount",
           ],
-          ["TDCTFUNS", 0],
+          ["TDCTFU", 0],
           [
-            "fuels-alloc-amount-county-fuel-tax-maui",
+            "TDFUCTMA",
             1,
             "Fuel Tax Allocation: County Fuel Tax, Island of Maui",
           ],
           [
-            "fuels-alloc-amount-county-fuel-tax-molokai",
+            "TDFUCTMO",
             1,
             "Fuel Tax Allocation: County Fuel Tax, Island of Molokai",
           ],
           [
-            "fuels-alloc-amount-county-fuel-tax-lanai",
+            "TDFUCTLA",
             1,
             "Fuel Tax Allocation: County Fuel Tax, Island of Lanai",
           ],
-          [
-            "fuels-alloc-amount-county-fuel-tax",
-            0,
-            "Fuel Tax Allocation: County Fuel Tax",
-          ],
-          [
-            "fuels-alloc-amount-subtotal1",
-            0,
-            "Fuel Tax Allocation: Fuel Types Subtotal",
-          ],
+          ["TDFUCT", 0, "Fuel Tax Allocation: County Fuel Tax"],
+          ["TDFUFT", 0, "Fuel Tax Allocation: Fuel Types Subtotal"],
         ],
       },
       {
@@ -805,30 +913,18 @@ const SECTIONS: SectionDef[] = [
         name: "Liquid Fuel Tax Allocation, Total Tax",
         description: "TOTAL TAX column of the fuel tax allocation table.",
         rows: [
-          ["fuels-alloc-total-total", 0, "Total Liquid Fuel Tax Allocated"],
+          ["TDFUT", 0, "Total Liquid Fuel Tax Allocated"],
+          ["TDFUTFT", 1, "Fuel Tax Allocation, Total Tax: Fuel Types Subtotal"],
+          ["TDCTFU", 1],
+          ["TDFUTCT", 1, "Fuel Tax Allocation, Total Tax: County Fuel Tax"],
           [
-            "fuels-alloc-total-subtotal1",
-            1,
-            "Fuel Tax Allocation, Total Tax: Fuel Types Subtotal",
-          ],
-          ["TDCTFUNS", 1],
-          [
-            "fuels-alloc-total-county-fuel-tax",
-            1,
-            "Fuel Tax Allocation, Total Tax: County Fuel Tax",
-          ],
-          [
-            "fuels-alloc-total-boating-fund",
+            "TDFUTBO",
             1,
             "Fuel Tax Allocation, Total Tax: State Boating Special Fund",
           ],
+          ["TDFUTGF", 1, "Fuel Tax Allocation, Total Tax: General Fund"],
           [
-            "fuels-alloc-total-general-fund",
-            1,
-            "Fuel Tax Allocation, Total Tax: General Fund",
-          ],
-          [
-            "fuels-alloc-total-environmental-fund",
+            "TDFUTEV",
             1,
             "Fuel Tax Allocation, Total Tax: Environmental Tax Fund",
           ],
@@ -843,41 +939,14 @@ const SECTIONS: SectionDef[] = [
       {
         key: "LIQUOR",
         name: "Liquor Tax Collections",
-        description: "DOTAX changed the liquor report format in July 2019.",
+        description:
+          "From the liquor tax report (the combined liquor & tobacco report through June 2019).",
         rows: [
-          ["TRLINS", 0],
-          [
-            "liq-liquor-total",
-            1,
-            "Liquor Tax: Total Collections (from Jul 2019)",
-          ],
-          ["liq-liquor-wholesale", 2, "Liquor Tax: Wholesale (from Jul 2019)"],
-          ["liq-liquor-permits", 2, "Liquor Tax: Permit Fees (from Jul 2019)"],
-          [
-            "liq-liquor-penalties",
-            2,
-            "Liquor Tax: Penalties & Interest (from Jul 2019)",
-          ],
-          [
-            "liqtob-liquor-total",
-            1,
-            "Liquor Tax: Total Collections (through Jun 2019)",
-          ],
-          [
-            "liqtob-liquor-wholesale",
-            2,
-            "Liquor Tax: Wholesale (through Jun 2019)",
-          ],
-          [
-            "liqtob-liquor-permits",
-            2,
-            "Liquor Tax: Permit Fees (through Jun 2019)",
-          ],
-          [
-            "liqtob-liquor-penalties",
-            2,
-            "Liquor Tax: Penalties & Interest (through Jun 2019)",
-          ],
+          ["TRLI", 0],
+          ["TRLITC", 1, "Liquor Tax: Total Collections"],
+          ["TRLIWH", 2, "Liquor Tax: Wholesale"],
+          ["TRLIPF", 2, "Liquor Tax: Permit Fees"],
+          ["TRLIPI", 2, "Liquor Tax: Penalties & Interest"],
         ],
       },
     ],
@@ -889,98 +958,49 @@ const SECTIONS: SectionDef[] = [
       {
         key: "TOBACCO",
         name: "Cigarette & Tobacco Tax Collections",
-        description: "DOTAX changed the tobacco report format in July 2019.",
+        description:
+          "From the tobacco tax report (the combined liquor & tobacco report through June 2019).",
         rows: [
-          ["TRTBNS", 0],
-          [
-            "tob-tobacco-total",
-            1,
-            "Tobacco Tax: Total Net Collections (from Jul 2019)",
-          ],
-          [
-            "tob-tobacco-cigarettes",
-            2,
-            "Tobacco Tax: Cigarettes (from Jul 2019)",
-          ],
-          [
-            "tob-tobacco-little-cigars",
-            2,
-            "Tobacco Tax: Little Cigars (from Jul 2019)",
-          ],
-          ["tob-tobacco-cigars", 2, "Tobacco Tax: Cigars (from Jul 2019)"],
-          [
-            "tob-tobacco-e-liquids",
-            2,
-            "Tobacco Tax: E-Liquids (from Jul 2019)",
-          ],
-          [
-            "tob-tobacco-other-tobacco",
-            2,
-            "Tobacco Tax: All Other Tobacco Products (from Jul 2019)",
-          ],
-          [
-            "tob-tobacco-licenses",
-            2,
-            "Tobacco Tax: License Fees (from Jul 2019)",
-          ],
-          [
-            "tob-tobacco-retail-permits",
-            2,
-            "Tobacco Tax: Retail Permits (from Jul 2019)",
-          ],
-          [
-            "tob-tobacco-unallocated",
-            2,
-            "Tobacco Tax: Unallocated Net Collections (from Jul 2019)",
-          ],
-          [
-            "liqtob-tobacco-total",
-            1,
-            "Tobacco Tax: Total Collections (through Jun 2019)",
-          ],
-          [
-            "liqtob-tobacco-cigarettes",
-            2,
-            "Tobacco Tax: Cigarettes (through Jun 2019)",
-          ],
-          [
-            "liqtob-tobacco-little-cigars",
-            2,
-            "Tobacco Tax: Little Cigars (through Jun 2019)",
-          ],
-          [
-            "liqtob-tobacco-cigars",
-            2,
-            "Tobacco Tax: Cigars (through Jun 2019)",
-          ],
-          [
-            "liqtob-tobacco-other-tobacco",
-            2,
-            "Tobacco Tax: All Other Tobacco Products (through Jun 2019)",
-          ],
-          [
-            "liqtob-tobacco-licenses",
-            2,
-            "Tobacco Tax: License Fees (through Jun 2019)",
-          ],
-          [
-            "liqtob-tobacco-retail-permits",
-            2,
-            "Tobacco Tax: Retail Permits (through Jun 2019)",
-          ],
-          [
-            "liqtob-tobacco-penalties",
-            2,
-            "Tobacco Tax: Penalties & Interest (through Jun 2019)",
-          ],
+          ["TRTB", 0],
+          ["TRTBTC", 1, "Tobacco Tax: Total Net Collections"],
+          ["TRTBCG", 2, "Tobacco Tax: Cigarettes"],
+          ["TRTBLC", 2, "Tobacco Tax: Little Cigars"],
+          ["TRTBCI", 2, "Tobacco Tax: Cigars"],
+          ["TRTBEL", 2, "Tobacco Tax: E-Liquids"],
+          ["TRTBOT", 2, "Tobacco Tax: All Other Tobacco Products"],
+          ["TRTBLF", 2, "Tobacco Tax: License Fees"],
+          ["TRTBRP", 2, "Tobacco Tax: Retail Permits"],
+          ["TRTBPI", 2, "Tobacco Tax: Penalties & Interest"],
+          ["TRTBUA", 2, "Tobacco Tax: Unallocated Net Collections"],
         ],
       },
       {
         key: "TOBACCO_FUNDS",
         name: "Cigarette & Tobacco Tax Special Fund Allocations",
         rows: [
-          ...tobaccoFunds("tob-tobacco-fund", "from Jul 2019"),
-          ...tobaccoFunds("liqtob-tobacco-fund", "through Jun 2019"),
+          ["TDTBCR", 0, "Tobacco Tax Allocation: Hawaii Cancer Research Fund"],
+          [
+            "TDTBCA",
+            0,
+            "Tobacco Tax Allocation: Cigarette Stamp Administrative Fund",
+          ],
+          [
+            "TDTBCE",
+            0,
+            "Tobacco Tax Allocation: Cigarette Stamp Enforcement Fund",
+          ],
+          [
+            "TDTBCHC",
+            0,
+            "Tobacco Tax Allocation: Community Health Centers Fund",
+          ],
+          [
+            "TDTBEMS",
+            0,
+            "Tobacco Tax Allocation: Emergency Medical Service Fund",
+          ],
+          ["TDTBTRS", 0, "Tobacco Tax Allocation: Trauma System Fund"],
+          ["TDTBTE", 0, "Tobacco Tax Allocation: Tobacco Enforcement Fund"],
         ],
       },
     ],
@@ -989,97 +1009,90 @@ const SECTIONS: SectionDef[] = [
 
 /**
  * Measurements created but kept off the data lists: each carries the same
- * values as a listed measurement under an older udaman name (see the info
- * file notes), so listing both would show duplicate rows.
+ * values as a listed measurement under an older UHERO name, so listing
+ * both would show duplicate rows.
  */
 const UNLISTED: Record<string, string> = {
-  TRCTFUNS: "County Fuel Tax Revenue",
-  TRCTTTNS: "County Share of Transient Accommodations Tax",
-  TGBAONS: "GE Tax Base: All Others (4%)",
-  TGRAONS: "GE Tax Collections: All Others (4%)",
-  "collec-distribution-domestic-viloence-child-abuse-neglect-funds":
-    "Domestic Violence & Child Abuse Neglect Funds (Jan 2006 label)",
+  TRCTFU: "County Fuel Tax Revenue",
+  TRCTTT: "County Share of Transient Accommodations Tax",
+  TGBAO: "GE Tax Base: All Others (4%)",
+  TGRAO: "GE Tax Collections: All Others (4%)",
 };
 
-/** Loaders beyond the file load, by series name (see the info file notes). */
-const EXTRA_LOADERS: Record<string, { code: string; priority: number }[]> = {
-  // Combined line through 2020-02; DOTAX splits it from 2020-03.
-  "TRMTNS@HI.M": [
-    { code: `"TRMTVRNS@HI.M".ts + "TRMTRVNS@HI.M".ts`, priority: 90 },
-  ],
+// ─── Extract labels ──────────────────────────────────────────────────
+
+type Coord = {
+  type: string;
+  section: string;
+  sub: string;
+  item: string;
+  geo: string;
 };
 
-/**
- * Reload order. batchReload runs the deepest series first, but
- * assignDependencyDepth only covers UHERO, so DOTAX's depths are set here:
- * the aggregates (0) after the monthly series (1), after the monthly
- * series other loaders read (2).
- */
-const LOADER_INPUTS = new Set(
-  Object.values(EXTRA_LOADERS).flatMap((ls) =>
-    ls.flatMap((l) => [...l.code.matchAll(/"([^"]+)"\.ts/g)].map((m) => m[1])),
-  ),
-);
+/** The collections report splits individual and corporate income tax. */
+function subOf(type: string, section: string, item: string): string {
+  if (type !== "collec" || section !== "collections") return "";
+  if (item.startsWith("corp_")) return "corp";
+  if (item.startsWith("ind_")) return "ind";
+  return "";
+}
 
-// ─── Info file ───────────────────────────────────────────────────────
+/** A row's labels in the extract, or null when the parser has no such row. */
+function filtersOf(c: Coord): Record<string, string> | null {
+  const label = fixedLabel(c.type, c.section, c.sub, c.item);
+  if (label === null) return null;
+  // c.type is checked by fixedLabel: only report types have labels
+  const d = dotaxDisplay(c as Parameters<typeof dotaxDisplay>[0], label);
+  return { type: c.type, tax: d.tax, source: d.source, area: d.area };
+}
+
+function extractCall(
+  filters: Record<string, string>,
+  from?: string | null,
+  to?: string | null,
+  handle = EXTRACTOR,
+): string {
+  const args = Object.entries(filters)
+    .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+    .join(", ");
+  let code = `Series.load_from_extract("${handle}", { ${args} })`;
+  if (from || to) {
+    const start = from ? `${from}-01` : "1000-01-01";
+    code += to ? `.trim("${start}", "${to}-01")` : `.trim("${start}")`;
+  }
+  return code;
+}
+
+// ─── Info file (metadata only) ───────────────────────────────────────
 
 type InfoRow = Record<string, string>;
 
-/** RFC 4180 CSV → rows of fields (quoted fields may hold commas, "" and newlines). */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (quoted) {
-      if (ch === '"' && text[i + 1] === '"') {
-        field += '"';
-        i++;
-      } else if (ch === '"') quoted = false;
-      else field += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ",") {
-      row.push(field);
-      field = "";
-    } else if (ch === "\n" || ch === "\r") {
-      if (ch === "\r" && text[i + 1] === "\n") i++;
-      row.push(field);
-      if (row.some((f) => f !== "")) rows.push(row);
-      row = [];
-      field = "";
-    } else field += ch;
+function readInfo(): InfoRow[] {
+  const path = join(getDataDir(), INFO_FILE);
+  if (!existsSync(path)) {
+    console.warn(`  ${INFO_FILE} not found: no descriptions or notes`);
+    return [];
   }
-  row.push(field);
-  if (row.some((f) => f !== "")) rows.push(row);
-  return rows;
+  return parseCsvRecords(readFileSync(path, "utf-8").replace(/^\uFEFF/, ""));
 }
 
-function readInfo(): InfoRow[] {
-  const text = readFileSync(join(getDataDir(), INFO_FILE), "utf-8").replace(
-    /^\uFEFF/,
-    "",
-  );
-  const [header, ...rows] = parseCsv(text);
-  return rows.map((r) =>
-    Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""])),
-  );
-}
+const infoKey = (type: string, section: string, item: string, geo: string) =>
+  `${type}|${section}|${item}|${geo}`;
 
 // ─── Plan ────────────────────────────────────────────────────────────
 
+type LoaderSpec = { code: string; priority: number; scale: number };
+
 type SeriesSpec = {
-  fileId: string;
   name: string;
   geo: string;
-  filePrefix: string;
+  coords: Coord[];
+  loaders: LoaderSpec[];
   observations: number;
-  info: InfoRow;
+  info: InfoRow[];
 };
 
 type MeasurementSpec = {
-  filePrefix: string;
   prefix: string;
   portalName: string;
   unit: UnitDef;
@@ -1094,8 +1107,6 @@ function clip(v: string | null | undefined, n: number): string | null {
   return v.length <= n ? v : v.slice(0, n - 3) + "...";
 }
 
-const isUdamanNamed = (info: InfoRow) => info.mnemonic.startsWith("series id");
-
 type AggregateSpec = {
   name: string;
   frequency: "quarter" | "year";
@@ -1107,53 +1118,185 @@ const AGGREGATES = [
   { frequency: "year", suffix: "A", period: ":year" },
 ] as const;
 
+/** UHERO measurement prefixes drop the NS suffix (TGBCMNS@HI.M → TGBCM). */
+const measurementPrefix = (name: string) =>
+  name.split("@")[0].replace(/NS$/, "");
+
 /** The quarterly and annual sums of a monthly series. */
 function aggregates(s: SeriesSpec): AggregateSpec[] {
   const { prefix } = Series.parseName(s.name);
   return AGGREGATES.map((a) => ({
-    name: `${a.suffix === "A" ? measurementPrefix(s.name, isUdamanNamed(s.info)) : prefix}@${s.geo}.${a.suffix}`,
+    name: `${a.suffix === "A" ? measurementPrefix(s.name) : prefix}@${s.geo}.${a.suffix}`,
     frequency: a.frequency,
     code: `"${s.name}".ts.aggregate(${a.period}, :sum)`,
   }));
-}
-
-/** Series names can't hold "-"; udaman names upper-case everything. */
-function seriesName(fileId: string): string {
-  return fileId.toUpperCase().replace(/-/g, "_");
-}
-
-/** UHERO measurement prefixes drop the NS suffix (TGBCMNS@HI.M → TGBCM). */
-function measurementPrefix(name: string, udamanNamed: boolean): string {
-  const prefix = name.split("@")[0];
-  return udamanNamed ? prefix.replace(/NS$/, "") : prefix;
 }
 
 /** "1/ Other fuel includes ..." → "Other fuel includes ..." */
 const cleanFootnote = (f: string) => f.replace(/^\s*\d+\/\s*/, "").trim();
 
 /** The DOTAX monthly reports page covers the collections, GE, fuel, liquor and tobacco reports. */
-const reportLink = (info: InfoRow) =>
-  info.report_type.startsWith("liab_") ? null : REPORTS_LINK;
+const reportLink = (type: string) =>
+  type.startsWith("liab_") ? null : REPORTS_LINK;
 
-function describeSeries(info: InfoRow): string | null {
-  const foot = cleanFootnote(info.footnote);
-  return clip(foot ? `${info.name}. ${foot}` : info.name, 500);
+function describeSeries(s: SeriesSpec, portalName: string): string | null {
+  const i = s.info[0];
+  if (!i) return clip(`${portalName}, ${s.geo}`, 500);
+  const foot = cleanFootnote(i.footnote);
+  return clip(foot ? `${i.name}. ${foot}` : i.name, 500);
 }
 
 function investigationNotes(s: SeriesSpec): string | null {
-  const i = s.info;
-  const parts = [
-    s.fileId !== s.name ? `File column: ${s.fileId}.` : "",
+  const parts = s.info.flatMap((i) => [
     i.note ? `Note: ${i.note}.` : "",
     `Source: ${i.source}.`,
     `Table: ${i.report_title} > ${i.table} > ${i.column} > row "${i.row_label_variants}".`,
-  ];
+  ]);
   return clip(parts.filter(Boolean).join(" "), 500);
 }
 
-function plan(info: InfoRow[], reader: DataFileReader) {
+async function plan() {
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  const extract = await latestExtract(EXTRACTOR);
+  const { dims, index } = extract;
+  const used = new Set<string>();
+  /** Points of an extract series inside a month window. */
+  const pointsIn = (
+    key: string,
+    from: string | null,
+    to: string | null,
+  ): string[] =>
+    [...(index.series.get(key)?.data.keys() ?? [])].filter(
+      (d) => (!from || d >= `${from}-01`) && (!to || d <= `${to}-01`),
+    );
+
+  const info = readInfo();
+  const infoById = new Map(info.map((r) => [r.id, r]));
+  const infoByKey = new Map<string, InfoRow>();
+  for (const r of info) {
+    const k = infoKey(r.report_type, r.parse_section, r.parse_item, r.geo);
+    if (!infoByKey.has(k)) infoByKey.set(k, r);
+  }
+
+  // Series from the map.
+  const series = new Map<string, SeriesSpec & { dates: Set<string> }>();
+  for (const row of seriesMap()) {
+    const geos =
+      row.geo === "all" ? GEOS : row.geo === "county" ? COUNTIES : [row.geo];
+    for (const geo of geos) {
+      const c: Coord = {
+        type: row.type,
+        section: row.section,
+        sub: subOf(row.type, row.section, row.item),
+        item: row.item,
+        geo,
+      };
+      const filters = filtersOf(c);
+      if (!filters) {
+        if (row.family) break;
+        errors.push(
+          `SERIES_MAP: no DOTAX row ${row.type} / ${row.section} / ${row.item} (not in config/canonical)`,
+        );
+        break;
+      }
+      const key = seriesKey(dims, filters);
+      const dates = pointsIn(key, row.from, row.to);
+      if (dates.length === 0) continue;
+      used.add(key);
+      const name = row.id.replace("{geo}", geo);
+      if (!Series.isValidName(name)) {
+        errors.push(`Invalid series name: ${name}`);
+        continue;
+      }
+      if (Object.values(filters).some((v) => v.includes('"')))
+        errors.push(`${name}: a label contains a double quote`);
+      let s = series.get(name);
+      if (!s) {
+        s = {
+          name,
+          geo: Series.parseName(name).geo,
+          coords: [],
+          loaders: [],
+          observations: 0,
+          info: [],
+          dates: new Set(),
+        };
+        series.set(name, s);
+      }
+      s.coords.push(c);
+      for (const d of dates) s.dates.add(d);
+      const code = extractCall(filters, row.from, row.to);
+      if (!s.loaders.some((l) => l.code === code))
+        s.loaders.push({
+          code,
+          priority: row.fill ? FILL_PRIORITY : LOADER_PRIORITY,
+          scale: unitOf(c).scale,
+        });
+      const i =
+        infoById.get(name) ??
+        infoByKey.get(infoKey(c.type, c.section, c.item, c.geo));
+      if (i && !s.info.includes(i)) s.info.push(i);
+    }
+  }
+
+  // Continuity fills and extra loaders.
+  for (const s of series.values()) {
+    const m = s.name.match(/^(TG[BR])([A-Z0-9]+)NS@([A-Z]+)\.M$/);
+    const fill = m && GE_FILLS.find(([code]) => code === m[2]);
+    if (m && fill) {
+      const section = m[1] === "TGR" ? "collections" : "base";
+      const parts = fill[1].map((item) =>
+        filtersOf({ type: "ge", section, sub: "", item, geo: m[3] }),
+      );
+      if (parts.every((p) => p && index.series.has(seriesKey(dims, p))))
+        s.loaders.push({
+          code: parts.map((p) => extractCall(p!)).join(" + "),
+          priority: FILL_PRIORITY,
+          scale: UNITS.dollars.scale,
+        });
+    }
+    for (const l of EXTRA_LOADERS[s.name] ?? [])
+      s.loaders.push({ ...l, scale: 1 });
+    s.observations = s.dates.size;
+  }
+
+  // The Collections Portal sheet, on top.
+  const sheet = await latestExtract(SHEET_EXTRACTOR).catch(() => null);
+  if (!sheet)
+    warnings.push(
+      `${SHEET_EXTRACTOR} has no extract yet: ${SHEET_SOURCES.length} sheet loaders left out (rerun after its first extraction)`,
+    );
+  for (const [type, source, name] of sheet ? SHEET_SOURCES : []) {
+    const filters = { type, source };
+    const match = matchSeries(
+      SHEET_EXTRACTOR,
+      sheet!.dims,
+      sheet!.index,
+      filters,
+      {
+        seriesName: name,
+      },
+    );
+    const s = series.get(name);
+    if (!match.ok || !s) {
+      errors.push(`${name}: ${match.ok ? "no such series" : match.message}`);
+      continue;
+    }
+    for (const l of s.loaders) l.priority -= 10;
+    s.loaders.unshift({
+      code: extractCall(filters, null, null, SHEET_EXTRACTOR),
+      priority: LOADER_PRIORITY,
+      scale: UNITS.dollars.scale,
+    });
+  }
+
+  for (const [key, s] of index.series)
+    if (!used.has(key))
+      warnings.push(
+        `extract series not loaded: ${dims.map((d) => s.dims[d]).join(" / ")}`,
+      );
 
   // Portal names and list membership from the config.
   const portalNames = new Map<string, string>();
@@ -1169,92 +1312,62 @@ function plan(info: InfoRow[], reader: DataFileReader) {
     if (portalNames.has(p)) errors.push(`${p} is both listed and UNLISTED`);
     portalNames.set(p, n);
   }
-
-  // Series, grouped by file prefix.
-  const groups = new Map<string, SeriesSpec[]>();
-  const skipped: SeriesSpec[] = [];
-  const names = new Set<string>();
-  for (const row of info) {
-    const name = seriesName(row.id);
-    if (!Series.isValidName(name)) errors.push(`Invalid series name: ${name}`);
-    if (names.has(name)) errors.push(`Duplicate series name: ${name}`);
-    names.add(name);
-    if (!/\.M$/.test(name)) errors.push(`${name}: expected monthly`);
-    if (!UNITS[row.unit]) errors.push(`${name}: unknown unit "${row.unit}"`);
-
-    let observations = 0;
-    try {
-      observations = reader.series(name).size;
-    } catch {
-      errors.push(`${name}: no column in ${DATA_FILE}`);
-    }
-    const spec: SeriesSpec = {
-      fileId: row.id,
-      name,
-      geo: Series.parseName(name).geo,
-      filePrefix: row.id.split("@")[0],
-      observations,
-      info: row,
-    };
-    if (!INCLUDE_SPARSE && observations < MIN_OBSERVATIONS) {
-      skipped.push(spec);
-      continue;
-    }
-    for (const a of aggregates(spec)) {
-      if (!Series.isValidName(a.name))
-        errors.push(`Invalid series name: ${a.name}`);
-      if (names.has(a.name))
-        errors.push(`Duplicate series name: ${a.name} (from ${name})`);
-      names.add(a.name);
-    }
-    const g = groups.get(spec.filePrefix) ?? [];
-    g.push(spec);
-    groups.set(spec.filePrefix, g);
-  }
-
-  const known = new Set(info.map((r) => r.id.split("@")[0]));
+  const mapped = new Set(
+    seriesMap().map((r) => measurementPrefix(r.id.replace("{geo}", "X"))),
+  );
   for (const p of portalNames.keys())
-    if (!known.has(p))
-      errors.push(`Config names ${p}, which is not in ${INFO_FILE}`);
+    if (!mapped.has(p))
+      errors.push(`Config names ${p}, which SERIES_MAP lacks`);
 
   // Measurements.
+  const skipped: SeriesSpec[] = [];
+  const names = new Set<string>();
   const measurements = new Map<string, MeasurementSpec>();
-  const prefixes = new Map<string, string>();
-  for (const [filePrefix, series] of groups) {
-    const portalName = portalNames.get(filePrefix);
+  for (const s of series.values()) {
+    if (!INCLUDE_SPARSE && s.observations < MIN_OBSERVATIONS) {
+      skipped.push(s);
+      continue;
+    }
+    const prefix = measurementPrefix(s.name);
+    const portalName = portalNames.get(prefix);
     if (!portalName) {
       errors.push(
-        `No portal name / list for ${filePrefix} (add it to SECTIONS or UNLISTED)`,
+        `No portal name / list for ${prefix} (add it to SECTIONS or UNLISTED)`,
       );
       continue;
     }
-    const units = new Set(series.map((s) => s.info.unit));
+    for (const n of [s.name, ...aggregates(s).map((a) => a.name)]) {
+      if (!Series.isValidName(n)) errors.push(`Invalid series name: ${n}`);
+      if (names.has(n)) errors.push(`Duplicate series name: ${n}`);
+      names.add(n);
+    }
+    const units = new Set(s.coords.map((c) => unitOf(c)));
+    let m = measurements.get(prefix);
+    if (!m) {
+      m = {
+        prefix,
+        portalName,
+        unit: [...units][0],
+        notes: null,
+        sourceLink: reportLink(s.coords[0].type),
+        series: [],
+      };
+      measurements.set(prefix, m);
+    }
+    units.add(m.unit);
     if (units.size > 1)
-      errors.push(`${filePrefix}: mixed units ${[...units].join(" / ")}`);
-    const prefix = measurementPrefix(
-      series[0].name,
-      isUdamanNamed(series[0].info),
-    );
-    if (prefixes.has(prefix))
       errors.push(
-        `Measurement prefix ${prefix} used by ${filePrefix} and ${prefixes.get(prefix)}`,
+        `${prefix}: mixed units ${[...units].map((u) => u.shortLabel).join(" / ")}`,
       );
-    prefixes.set(prefix, filePrefix);
-    const footnotes = [
-      ...new Set(
-        series.map((s) => cleanFootnote(s.info.footnote)).filter(Boolean),
+    m.series.push(s);
+  }
+  for (const m of measurements.values()) {
+    const footnotes = new Set(
+      m.series.flatMap((s) =>
+        s.info.map((i) => cleanFootnote(i.footnote)).filter(Boolean),
       ),
-    ];
-    const hi = series.find((s) => s.geo === "HI") ?? series[0];
-    measurements.set(filePrefix, {
-      filePrefix,
-      prefix,
-      portalName,
-      unit: UNITS[[...units][0]],
-      notes: clip(footnotes.join(" "), 500),
-      sourceLink: reportLink(hi.info),
-      series,
-    });
+    );
+    m.notes = clip([...footnotes].join(" "), 500);
   }
 
   // Lists keep only measurements that still have series.
@@ -1274,18 +1387,31 @@ function plan(info: InfoRow[], reader: DataFileReader) {
           `${list.name}: dropped ${list.rows
             .filter(([p]) => !measurements.has(p))
             .map(([p]) => p)
-            .join(", ")} (no series left)`,
+            .join(", ")} (no series)`,
         );
       return { ...list, rows };
     }),
   }));
+  const listed = new Set(
+    lists.flatMap((sec) => sec.lists.flatMap((l) => l.rows.map(([p]) => p))),
+  );
+  for (const p of measurements.keys())
+    if (!listed.has(p) && !(p in UNLISTED))
+      errors.push(`${p} is in no data list (add it to SECTIONS or UNLISTED)`);
 
   // udaman's text columns are latin1; the config should stay ASCII.
   for (const m of measurements.values())
     if (/[^\x20-\x7e]/.test(m.portalName))
       errors.push(`Non-ASCII portal name: ${m.portalName}`);
 
-  return { measurements, lists, skipped, errors, warnings };
+  return {
+    run: extract.run.id,
+    measurements,
+    lists,
+    skipped,
+    errors,
+    warnings,
+  };
 }
 
 // ─── Database helpers ────────────────────────────────────────────────
@@ -1377,21 +1503,7 @@ async function ensureGeographies(
   return ids;
 }
 
-type LoaderSpec = { code: string; priority: number; scale: number };
-
-/** A monthly series' file loader (and any extra loaders). */
-function monthlyLoaders(s: SeriesSpec, unit: UnitDef): LoaderSpec[] {
-  return [
-    {
-      code: `"${s.name}".tsn.load_from("${DATA_FILE}")`,
-      priority: LOADER_PRIORITY,
-      scale: unit.scale,
-    },
-    ...(EXTRA_LOADERS[s.name] ?? []).map((l) => ({ ...l, scale: 1 })),
-  ];
-}
-
-/** Create the wanted loaders if missing; fix a drifted scale. */
+/** Create the wanted loaders if missing; fix a drifted scale or priority. */
 async function ensureLoaders(
   seriesId: number,
   want: LoaderSpec[],
@@ -1401,8 +1513,11 @@ async function ensureLoaders(
   for (const w of want) {
     const found = existing.find((l) => l.eval === w.code);
     if (found) {
-      if (parseFloat(found.scale) !== w.scale)
-        await LoaderCollection.update(found.id, { scale: String(w.scale) });
+      if (parseFloat(found.scale) !== w.scale || found.priority !== w.priority)
+        await LoaderCollection.update(found.id, {
+          scale: String(w.scale),
+          priority: w.priority,
+        });
       continue;
     }
     await LoaderCollection.create({
@@ -1423,26 +1538,20 @@ async function ensureLoaders(
 // ─── Main ────────────────────────────────────────────────────────────
 
 async function main() {
-  const info = readInfo();
-  const reader = DataFileReader.fromFile(DATA_FILE);
-  if (reader.frequency !== "month")
-    throw new Error(
-      `${DATA_FILE}: expected monthly data, got ${reader.frequency}`,
-    );
-
-  const { measurements, lists, skipped, errors, warnings } = plan(info, reader);
+  const { run, measurements, lists, skipped, errors, warnings } = await plan();
 
   const series = [...measurements.values()].flatMap((m) => m.series);
   const aggregateCount = series.length * AGGREGATES.length;
   const listed = new Set(
     lists.flatMap((s) => s.lists.flatMap((l) => l.rows.map(([p]) => p))),
   );
-  console.log(`${INFO_FILE}: ${info.length} series`);
+  const loaderCount = series.reduce((n, s) => n + s.loaders.length, 0);
+  console.log(`Extract: ${EXTRACTOR} run #${run}`);
   console.log(
     `Plan: ${lists.length} sections, ${lists.reduce((n, s) => n + s.lists.length, 0)} data lists, ` +
       `${measurements.size} measurements (${measurements.size - [...measurements.keys()].filter((p) => listed.has(p)).length} unlisted), ` +
       `${series.length} monthly series + ${aggregateCount} quarterly/annual, ` +
-      `${series.length + aggregateCount + series.filter((s) => EXTRA_LOADERS[s.name]).length} loaders`,
+      `${loaderCount + aggregateCount} loaders`,
   );
   if (skipped.length) {
     console.log(
@@ -1465,6 +1574,10 @@ async function main() {
         }
       }
     }
+    console.log("\nLoaders");
+    for (const s of series)
+      for (const l of s.loaders)
+        console.log(`  ${s.name.padEnd(16)} ${l.priority}  ${l.code}`);
   }
   if (errors.length) {
     console.error(`\n${errors.length} problem(s):`);
@@ -1505,12 +1618,6 @@ async function main() {
     [DOTAX, SOURCE.description],
     "INSERT INTO sources (universe, description, link, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
     [DOTAX, SOURCE.description, SOURCE.link],
-  );
-  const portalDetailId = await upsertId(
-    "SELECT id FROM source_details WHERE universe = ? AND description = ? LIMIT 1",
-    [DOTAX, PORTAL_DETAIL],
-    "INSERT INTO source_details (universe, description, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
-    [DOTAX, PORTAL_DETAIL],
   );
   console.log(
     `Geographies: ${[...geoIds.keys()].join(", ")}; units: ${unitIds.size}; source: ${sourceId}`,
@@ -1553,19 +1660,17 @@ async function main() {
       ).id;
       stats.measurements.created++;
     }
-    measurementIds.set(m.filePrefix, measurementId);
+    measurementIds.set(m.prefix, measurementId);
 
     for (const s of m.series) {
       const sFields = {
         dataPortalName: m.portalName,
-        description: describeSeries(s.info),
+        description: describeSeries(s, m.portalName),
         decimals: m.unit.decimals,
         unitId,
         sourceId,
-        sourceDetailId: s.info.source.includes("Collections Portal")
-          ? portalDetailId
-          : null,
-        sourceLink: reportLink(s.info),
+        sourceDetailId: null,
+        sourceLink: reportLink(s.coords[0].type),
         investigationNotes: investigationNotes(s),
       };
       const want = [
@@ -1573,7 +1678,7 @@ async function main() {
           name: s.name,
           frequency: "month",
           depth: LOADER_INPUTS.has(s.name) ? 2 : 1,
-          loaders: monthlyLoaders(s, m.unit),
+          loaders: s.loaders,
         },
         ...aggregates(s).map((a) => ({
           name: a.name,
@@ -1699,7 +1804,7 @@ async function main() {
   );
 
   console.log(
-    `\nDone. Loaders read ${DATA_FILE} under DATA_DIR and have not been run; reload the DOTAX series to load data (the quarterly/annual aggregates depend on the monthly series).`,
+    `\nDone. Loaders read the ${EXTRACTOR} extract and have not been run; reload the DOTAX series to load data (the quarterly/annual aggregates depend on the monthly series).`,
   );
   process.exit(0);
 }

@@ -17,7 +17,7 @@ import {
   Building2,
   ChartLine,
   ClipboardList,
-  CloudDownload,
+  DatabaseZap,
   FileSpreadsheet,
   Library,
   LineChart,
@@ -188,10 +188,10 @@ export const ROUTES: RouteEntry[] = [
     roles: FULL_ACCESS_ROLES,
   },
   {
-    label: "Downloaders",
-    resource: "downloader",
-    path: "/downloaders",
-    icon: CloudDownload,
+    label: "Ingest",
+    resource: "ingest",
+    path: "/ingest",
+    icon: DatabaseZap,
     roles: FULL_ACCESS_ROLES,
   },
   {

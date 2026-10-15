@@ -29,7 +29,36 @@ Sources:
 
 ---
 
-## Implementation status (2026-10-10)
+## Ported to the ingest framework (2026-10-15)
+
+The fetch and parse steps below now run as the ingest source `databook`
+(`src/core/ingest/sources/databook/`), and the loaders read its extract.
+The rest of this document still describes the design; the commands changed.
+Details are in `docs/2026-10-14-downloaders-extractors-phase1.md` §12.
+
+- **Downloader `databook`** (`bun run ingest fetch databook`, weekly) stores
+  each edition's 24 section workbooks as raw artifacts
+  (`db<YYYY>/section<NN>`). Older editions are final; the newest is
+  refetched every run.
+- **Extractor `databook`** (`bun run ingest extract databook`) parses every
+  stored edition, matches them to the 2025 edition's series and writes the
+  latest-edition value per date, with columns section, table, name, geo,
+  unit, date and value.
+- **Loaders** read it by table, name and geography, e.g.
+  `Series.load_from_extract("databook", { table: "20.04", name: "Pounds landed of commercial fish", geo: "HI" })`,
+  plus `.fill_missing_linear` for pseudo-history. `Series.load_from_databook`
+  is gone.
+- **Universe tooling** (`bun run databook`): `sync` (was propose + match:
+  refreshes the manifest from the stored files, keeping names), `apply`,
+  `history` (vintages from the stored files), `publish`, `annual`.
+  `vintages.csv`, `latest.json` and `ir/` in data-dir/databook are no longer
+  written or read.
+- **Units:** the unit rules now also read measure words in labels, bare
+  headnote units, ranks, and what a count counts ("Number of Employees",
+  Persons, Units, Jobs). "Number" went from 8,490 to 3,927 of 14,416
+  measurements.
+
+## Implementation status (2026-10-10) — superseded, see above
 
 Built in `src/core/databook/`. The CLI is `bun run databook <cmd>` (`src/core/workers/databook-cli.ts`). Everything has been run end to end against the **local dev DB** (`uhero_db_dev`).
 

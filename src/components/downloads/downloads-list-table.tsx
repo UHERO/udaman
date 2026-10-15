@@ -7,7 +7,7 @@ import type {
   DomainGroup,
   DownloadSummary,
 } from "@catalog/controllers/downloads";
-import { Archive, Ban, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Ban, ChevronsUpDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -16,7 +16,6 @@ import {
 } from "@/actions/download-actions";
 import { DeleteDownloadDialog } from "@/components/downloads/delete-download-dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Collapsible,
   CollapsibleContent,
@@ -87,20 +86,6 @@ function DownloadRow({
             <Ban className="text-destructive ml-1 inline size-3.5" />
           </span>
         )}
-        {dl.historical && (
-          <span title="Historical: never refetched by its downloader">
-            <Archive className="text-muted-foreground ml-1 inline size-3.5" />
-          </span>
-        )}
-        {dl.downloaderRole && (
-          <span className="text-muted-foreground ml-1 text-xs">
-            (
-            {dl.downloaderRole === "output"
-              ? "downloader output"
-              : "downloader source"}
-            )
-          </span>
-        )}
       </TableCell>
       <TableCell>
         <Link
@@ -163,29 +148,10 @@ function DownloadRow({
   );
 }
 
-export function DownloadsListTable({
-  domains: allDomains,
-}: {
-  domains: DomainGroup[];
-}) {
+export function DownloadsListTable({ domains }: { domains: DomainGroup[] }) {
   const params = useParams();
   const universe = params.universe as string;
   const [openSet, setOpenSet] = useState<Set<string>>(new Set());
-  // Downloader-owned rows (DOTAX alone adds hundreds of source files) are
-  // managed from the Downloaders page; hide them unless asked.
-  const [showOwned, setShowOwned] = useState(false);
-  const ownedCount = allDomains.reduce(
-    (n, g) => n + g.downloads.filter((d) => d.downloaderId != null).length,
-    0,
-  );
-  const domains = showOwned
-    ? allDomains
-    : allDomains
-        .map((g) => ({
-          ...g,
-          downloads: g.downloads.filter((d) => d.downloaderId == null),
-        }))
-        .filter((g) => g.downloads.length > 0);
   const allOpen = openSet.size === domains.length;
 
   function toggleAll() {
@@ -207,16 +173,7 @@ export function DownloadsListTable({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end gap-4">
-        {ownedCount > 0 && (
-          <label className="text-muted-foreground flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={showOwned}
-              onCheckedChange={(c) => setShowOwned(c === true)}
-            />
-            Show {ownedCount} downloader files
-          </label>
-        )}
+      <div className="flex justify-end">
         <Button variant="ghost" size="sm" onClick={toggleAll}>
           {allOpen ? "Collapse all" : "Expand all"}
         </Button>

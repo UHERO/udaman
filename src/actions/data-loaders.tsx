@@ -2,6 +2,7 @@
 
 import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import { LoaderActionCollection } from "@catalog/collections/loader-action-collection";
+import { LoadStatementError } from "@catalog/collections/loader-collection";
 import type { DeleteByMode } from "@catalog/collections/series-collection";
 import {
   clearLoaderDataPoints as clearLoaderCtrl,
@@ -22,14 +23,22 @@ import { Queue } from "bullmq";
 import { createLogger } from "@/core/observability/logger";
 import { redisConnection } from "@/core/workers/connection";
 import { enqueueSeriesReload } from "@/core/workers/enqueue";
+import type { ActionResult } from "@/lib/action-result";
 import { requireAuth } from "@/lib/auth/dal";
 
 const log = createLogger("action.data-loaders");
 
+type SavedLoader = Awaited<ReturnType<typeof createDataLoaderCtrl>>;
+
+/**
+ * Create a loader. A load statement that does not resolve (save-time
+ * validation of load_from_extract) comes back as `ok: false` with the
+ * reason and suggestions — Next.js would redact a thrown message.
+ */
 export async function createDataLoader(
   params: { seriesId: number; universe: Universe },
   payload: CreateLoaderFormData,
-) {
+): Promise<ActionResult<SavedLoader>> {
   const { seriesId, universe } = params;
   const session = await requireAuth();
   const userId = parseInt(session.user!.id!);
@@ -58,9 +67,10 @@ export async function createDataLoader(
       subjectId: result.data.id,
     });
 
-    return { message: result.message, data: result.data };
+    return { ok: true, ...result };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
+    if (e instanceof LoadStatementError) return { ok: false, error: message };
     log.error({ seriesId, err: message }, "createDataLoader action failed");
     AppLogCollection.log({
       level: "error",
@@ -275,10 +285,11 @@ export async function enableLoader(loaderId: number) {
   }
 }
 
+/** Update a loader; an unresolvable load statement is `ok: false` (see createDataLoader). */
 export async function updateDataLoader(
   loaderId: number,
   payload: UpdateLoaderFormData,
-) {
+): Promise<ActionResult<Awaited<ReturnType<typeof updateDataLoaderCtrl>>>> {
   const session = await requireAuth();
   const userId = parseInt(session.user!.id!);
   const userEmail = session.user!.email ?? null;
@@ -306,9 +317,10 @@ export async function updateDataLoader(
       subjectId: loaderId,
     });
 
-    return result;
+    return { ok: true, ...result };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
+    if (e instanceof LoadStatementError) return { ok: false, error: message };
     log.error({ loaderId, err: message }, "updateDataLoader action failed");
     AppLogCollection.log({
       level: "error",

@@ -337,6 +337,78 @@ export async function fetchSeriesBatchDetailed(
   return result;
 }
 
+/** One series object of a BLS v2 batch response, as BLS sent it. */
+export type BlsRawSeries = {
+  seriesID: string;
+  /** The `Results.series[i]` object, unmodified */
+  raw: Record<string, unknown>;
+  /** Number of data points in it */
+  points: number;
+};
+
+/**
+ * One batch POST (≤ 50 IDs, ≤ 20 years) returning each series' response
+ * object unchanged, for callers that store the raw response (the ingest
+ * BLS source). Shares the key failover and throttle with the parsed
+ * fetchers. `fetchImpl` lets the caller route the request (tests).
+ */
+export async function fetchSeriesBatchRaw(
+  seriesIds: string[],
+  startYear: number,
+  endYear: number,
+  fetchImpl: (url: string, init?: RequestInit) => Promise<Response> = fetch,
+): Promise<{ series: BlsRawSeries[]; messages: string[] }> {
+  if (seriesIds.length === 0) return { series: [], messages: [] };
+  if (seriesIds.length > 50) {
+    throw new Error(
+      `fetchSeriesBatchRaw: max 50 series per request, got ${seriesIds.length}`,
+    );
+  }
+  return withKeyRetry(async (apiKey) => {
+    const response = await fetchImpl(
+      "https://api.bls.gov/publicAPI/v2/timeseries/data/",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seriesid: seriesIds,
+          startyear: String(startYear),
+          endyear: String(endYear),
+          registrationkey: apiKey,
+        }),
+        signal: AbortSignal.timeout(120_000),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const json = (await response.json()) as {
+      status?: string;
+      message?: string | string[];
+      Results?: { series?: Array<Record<string, unknown>> };
+    };
+    const messages = Array.isArray(json.message)
+      ? json.message.map(String)
+      : json.message
+        ? [String(json.message)]
+        : [];
+    if (!/succeeded/i.test(json.status ?? "")) {
+      throwBlsError(
+        "BLS batch API error",
+        messages.join(" ") || "Unknown error",
+      );
+    }
+    const series: BlsRawSeries[] = [];
+    for (const s of json.Results?.series ?? []) {
+      const id = typeof s.seriesID === "string" ? s.seriesID : "";
+      if (!id) continue;
+      const data = Array.isArray(s.data) ? s.data : [];
+      series.push({ seriesID: id, raw: s, points: data.length });
+    }
+    return { series, messages };
+  });
+}
+
 export type BlsHistoryResult = {
   /** BLS series ID → date→value (merged across windows) */
   data: Map<string, Map<string, number>>;
