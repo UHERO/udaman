@@ -12,6 +12,8 @@ import {
   type DbedtUploadJobData,
   type DownloadJobData,
   type DvwUploadJobData,
+  type IngestExtractJobData,
+  type IngestFetchJobData,
   type QpubReparseJobData,
   type ReloadJobData,
   type SeriesReloadJobData,
@@ -106,6 +108,36 @@ export function enqueueTargetedReload(data: TargetedReloadJobData) {
 
 export function enqueueDownload(data: DownloadJobData) {
   return defaultQueue.add(JobName.DOWNLOAD, data);
+}
+
+/**
+ * Manual ingest fetch / extract. A deterministic jobId collapses repeated
+ * clicks while one is waiting; a finished job is removed first so the
+ * next click runs again. (The running_since claims guard the cron-vs-
+ * manual case across processes.)
+ */
+async function addOnce<T>(name: string, jobId: string, data: T) {
+  const existing = await defaultQueue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (state === "waiting" || state === "delayed" || state === "active") {
+      return existing;
+    }
+    await existing.remove();
+  }
+  return defaultQueue.add(name, data, { jobId });
+}
+
+export function enqueueIngestFetch(data: IngestFetchJobData) {
+  return addOnce(
+    JobName.INGEST_FETCH,
+    `ingest-fetch-${data.handle}${data.full ? "-full" : ""}`,
+    data,
+  );
+}
+
+export function enqueueIngestExtract(data: IngestExtractJobData) {
+  return addOnce(JobName.INGEST_EXTRACT, `ingest-extract-${data.handle}`, data);
 }
 
 export function enqueueKauaiExport() {

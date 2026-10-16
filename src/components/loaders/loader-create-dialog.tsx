@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 
 const formSchema = z.object({
   code: z.string().min(2, { message: "Code is required." }),
@@ -94,17 +95,18 @@ export function LoaderCreateDialog({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const result = await createDataLoader(
-        { universe: universe as Universe, seriesId },
-        values,
+      const result = unwrapAction(
+        await createDataLoader(
+          { universe: universe as Universe, seriesId },
+          values,
+        ),
       );
       toast.success(result.message);
+      for (const w of result.warnings) toast.warning(w);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to create loader",
-      );
+      toastActionError(error, "Failed to create loader");
     }
   }
 

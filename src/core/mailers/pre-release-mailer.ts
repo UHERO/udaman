@@ -6,6 +6,7 @@ import {
 } from "@catalog/models/approval";
 
 import { createLogger } from "@/core/observability/logger";
+import { isProduction } from "@/lib/app-env";
 
 import { Mailer } from "./mailer";
 import { resolvePreReleaseRecipients } from "./recipients";
@@ -235,10 +236,7 @@ export async function sendPreReleaseSubmitted(
  * Production posts to #communication; local and staging post to
  * #automation, so test submissions never reach the comms team.
  */
-const SLACK_COMMS_CHANNEL =
-  process.env.NEXT_PUBLIC_APP_ENV === "production"
-    ? "communication"
-    : "automation";
+const SLACK_COMMS_CHANNEL = isProduction ? "communication" : "automation";
 
 /** Post a new pre-release form submission to the comms Slack channel. */
 export async function notifyPreReleaseSubmittedSlack(input: {

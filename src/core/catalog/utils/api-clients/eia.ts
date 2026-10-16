@@ -70,3 +70,68 @@ interface EiaResponse {
     data?: Array<Record<string, string>>;
   };
 }
+
+// ─── Raw JSON for ingest (src/core/ingest/sources/eia) ───────────────
+
+/** udaman frequency letter → EIA v2 `frequency` */
+export const EIA_FREQUENCY: Record<string, string> = {
+  A: "annual",
+  Q: "quarterly",
+  M: "monthly",
+  W: "weekly",
+  D: "daily",
+};
+
+const EIA_PAGE = 5000;
+
+/**
+ * GET `/v2/<route>/data` for several series ids (and scenarios) at once,
+ * every page, oldest period first. `fetchImpl` must throw on non-2xx.
+ * Returns the data rows as EIA prints them.
+ */
+export async function fetchRouteDataRaw(
+  route: string,
+  frequency: string,
+  facets: { seriesId: string[]; scenario?: string[] },
+  fetchImpl: (url: string) => Promise<Response>,
+): Promise<Array<Record<string, string | null>>> {
+  const apiKey = process.env.API_KEY_EIA;
+  if (!apiKey) throw new Error("No API key defined for EIA");
+  const freq = EIA_FREQUENCY[frequency];
+  if (!freq) throw new Error(`EIA: unknown frequency "${frequency}"`);
+  const rows: Array<Record<string, string | null>> = [];
+  for (;;) {
+    const offset = rows.length;
+    const params = new URLSearchParams({ api_key: apiKey, frequency: freq });
+    params.append("data[]", "value");
+    for (const s of facets.seriesId) params.append("facets[seriesId][]", s);
+    for (const s of facets.scenario ?? [])
+      params.append("facets[scenario][]", s);
+    params.set("sort[0][column]", "period");
+    params.set("sort[0][direction]", "asc");
+    params.set("offset", String(offset));
+    params.set("length", String(EIA_PAGE));
+    const res = await fetchImpl(
+      `https://api.eia.gov/v2/${route}/data?${params}`,
+    );
+    const json = (await res.json()) as {
+      error?: string | { message?: string };
+      response?: {
+        total?: string | number;
+        data?: Array<Record<string, string | null>>;
+      };
+    };
+    if (json.error) {
+      const msg =
+        typeof json.error === "string"
+          ? json.error
+          : (json.error.message ?? JSON.stringify(json.error));
+      throw new Error(`EIA API error: ${msg}`);
+    }
+    const page = json.response?.data ?? [];
+    rows.push(...page);
+    const total = Number(json.response?.total ?? rows.length);
+    if (page.length === 0 || rows.length >= total) break;
+  }
+  return rows;
+}

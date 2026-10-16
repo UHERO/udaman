@@ -26,12 +26,12 @@ function renderWithLinks(text: string): React.ReactNode {
   let last = 0;
   for (const m of text.matchAll(ANCHOR_RE)) {
     if (m.index > last) parts.push(text.slice(last, m.index));
+    const internal = m[1].startsWith("/");
     parts.push(
       <a
         key={m.index}
         href={m[1]}
-        target="_blank"
-        rel="noopener noreferrer"
+        {...(internal ? {} : { target: "_blank", rel: "noopener noreferrer" })}
         className="text-blue-600 underline hover:text-blue-800"
       >
         {m[2] || m[1]}

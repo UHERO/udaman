@@ -770,6 +770,12 @@ Series.search("TOUR").first`}
             example={`Series.load_from_factbook("ZMEDPRICE", "96822")\nSeries.load_from_factbook("MEDSALEPRICE", "honolulu")`}
           />
           <MethodBlock
+            name="Series.load_from_extract"
+            evalName="Series.load_from_extract"
+            description="Load one series from an extractor's latest successful extract (see Ingest). Pass the extractor handle and a filters object naming every dimension needed to pick exactly one series; the extractor page lists its dimensions. Labels are the source's own, with one fixed spelling per row. A filter that matches no series (the source relabeled) or several (a dimension is missing) is an error. A frequency dimension may be left out: it is taken from the series name (@HI.M → M)."
+            example={`Series.load_from_extract("dotax", { type: "collec", tax: "Income-Ind.", source: "Refunds", area: "State" })\nSeries.load_from_extract("dotax", { type: "ge", tax: "Base", source: "Retailing", area: "Maui" })\nSeries.load_from_extract("dotax_sheet", { type: "Collection", tax: "General Excise", source: "General Excise & Use" })\nSeries.load_from_extract("bls", { series_id: "CUSR0000SA0" })`}
+          />
+          <MethodBlock
             name="Series.load_api_bls"
             evalName="Series.load_api_bls"
             description="Load from the Bureau of Labor Statistics (BLS) API. Fetches full history by walking backwards in 20-year chunks. Pass the BLS series ID and optional start/end years."

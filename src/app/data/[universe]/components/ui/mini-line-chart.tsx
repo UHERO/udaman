@@ -23,7 +23,11 @@ import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 
-import { formatTooltipDate } from "../../lib/dates";
+import {
+  createDateArray,
+  formatTooltipDate,
+  snapToPeriodStart,
+} from "../../lib/dates";
 import { formatAxisNumber, formatNum, GROWTH_DECIMALS } from "../../lib/format";
 import { usePortalConfig } from "../../lib/portal-context";
 import type { FreqCode, PseudoZone, SeriesChartRow } from "../../lib/types";
@@ -45,6 +49,16 @@ import { timeBarLayout, useElementWidth } from "./use-element-width";
 type Companion = "yoy" | "ytd" | "c5ma" | "mom";
 
 type Row = SeriesChartRow;
+
+const emptyRow = (date: string): Row => ({
+  date,
+  ts: Date.parse(date),
+  level: null,
+  yoy: null,
+  ytd: null,
+  c5ma: null,
+  mom: null,
+});
 
 /**
  * Minimal level-line chart for category grids and analyzer mini charts —
@@ -135,7 +149,7 @@ export function MiniLineChart({
   const wrapRef = useRef<HTMLDivElement>(null);
   const width = useElementWidth(wrapRef);
 
-  const data = useMemo<Row[]>(
+  const inRange = useMemo<Row[]>(
     () =>
       rows.filter(
         (r) =>
@@ -144,6 +158,24 @@ export function MiniLineChart({
       ),
     [rows, startDate, endDate],
   );
+  // The x-axis always spans the selected range: periods before the series
+  // starts / after it ends become empty rows (a gap, like missing data
+  // mid-series), so a short series isn't stretched across the full axis.
+  const data = useMemo<Row[]>(() => {
+    if (!inRange.length || !startDate || !endDate) return inRange;
+    const first = inRange[0].date;
+    const last = inRange[inRange.length - 1].date;
+    const grid = createDateArray(
+      snapToPeriodStart(startDate, freq),
+      endDate,
+      freq,
+    );
+    return [
+      ...grid.filter((d) => d.date < first).map((d) => emptyRow(d.date)),
+      ...inRange,
+      ...grid.filter((d) => d.date > last).map((d) => emptyRow(d.date)),
+    ];
+  }, [inRange, startDate, endDate, freq]);
   // Pseudo history: dashed level under a solid copy clipped to real points.
   const splitLevel =
     !!pseudoZones?.length && valueKey === "level" && data.some((r) => r.pseudo);
@@ -229,7 +261,7 @@ export function MiniLineChart({
       : {}),
   } satisfies ChartConfig;
 
-  if (!data.length) {
+  if (!inRange.length) {
     return (
       <div
         className={cn(

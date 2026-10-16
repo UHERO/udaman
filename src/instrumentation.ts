@@ -1,7 +1,17 @@
 import type { Instrumentation } from "next";
 
-// Ensure all server-side date operations use Hawaii Standard Time.
 export function register() {
+  // The server half depends on Bun APIs (Bun SQL, Bun.file, Bun.spawn).
+  // Fail at startup with a clear message instead of a module-resolution error
+  // on the first request. Edge (proxy.ts) never runs on Bun, so skip it there.
+  if (process.env.NEXT_RUNTIME === "nodejs" && !process.versions.bun) {
+    throw new Error(
+      `udaman must run under Bun (use \`bun run dev\` / \`bun --bun next ...\`); ` +
+        `got Node ${process.version}`,
+    );
+  }
+
+  // Ensure all server-side date operations use Hawaii Standard Time.
   process.env.TZ = "Pacific/Honolulu";
 }
 

@@ -107,6 +107,7 @@ export const UNIVERSES = [
   "COH",
   "CCOM",
   "DATABOOK",
+  "DOTAX",
 ] as const;
 
 /** Imperative handle exposed by each builder via forwardRef. */

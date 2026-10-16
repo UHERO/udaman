@@ -9,6 +9,8 @@ interface PortalContextValue {
   config: PortalConfig;
   /** Category tree loaded once in the layout (server-side). */
   categories: PortalCategories;
+  /** Lowercase slugs of internal-only universes (login required). */
+  internalUniverses: string[];
 }
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -20,10 +22,11 @@ const PortalContext = createContext<PortalContextValue | null>(null);
 export function PortalConfigProvider({
   config,
   categories,
+  internalUniverses,
   children,
 }: PortalContextValue & { children: React.ReactNode }) {
   return (
-    <PortalContext.Provider value={{ config, categories }}>
+    <PortalContext.Provider value={{ config, categories, internalUniverses }}>
       {children}
     </PortalContext.Provider>
   );

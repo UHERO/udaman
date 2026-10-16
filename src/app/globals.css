@@ -49,15 +49,15 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   /* ─── UHERO brand palette ─── */
-  --color-ucyan: #7EC4CA;
-  --color-ublue: #1D667F;
-  --color-uorange: #F6A01B;
-  --color-ugreen: #9BBB59;
-  --color-upurple: #8064A2;
-  --color-uteal: #4BACC6;
+  --color-ucyan: #7ec4ca;
+  --color-ublue: #1d667f;
+  --color-uorange: #f6a01b;
+  --color-ugreen: #9bbb59;
+  --color-upurple: #8064a2;
+  --color-uteal: #4bacc6;
   --color-ugray: #505050;
-  --color-ubeige: #EEECE1;
-  --color-dvw: #22767C;
+  --color-ubeige: #eeece1;
+  --color-dvw: #22767c;
   --color-dbedt: #beebff;
 
   /* ─── Universe theme color (text-theme, bg-theme, border-theme) ─── */
@@ -97,16 +97,28 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
-  --theme: #1D667F;
+  --theme: #1d667f;
 }
 
 /* ─── Universe theme color ─── */
-[data-universe="UHERO"]  { --theme: #1D667F; }
-[data-universe="DBEDT"]  { --theme: #8064A2; }
-[data-universe="FC"]     { --theme: #9BBB59; }
-[data-universe="NTA"]    { --theme: #F6A01B; }
-[data-universe="COH"]    { --theme: #4BACC6; }
-[data-universe="CCOM"]   { --theme: #7EC4CA; }
+[data-universe="UHERO"] {
+  --theme: #1d667f;
+}
+[data-universe="DBEDT"] {
+  --theme: #8064a2;
+}
+[data-universe="FC"] {
+  --theme: #9bbb59;
+}
+[data-universe="NTA"] {
+  --theme: #f6a01b;
+}
+[data-universe="COH"] {
+  --theme: #4bacc6;
+}
+[data-universe="CCOM"] {
+  --theme: #7ec4ca;
+}
 
 .dark {
   --background: oklch(0.141 0.005 285.823);

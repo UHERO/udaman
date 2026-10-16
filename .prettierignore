@@ -1,2 +1,4 @@
 src/generated/
 .next/
+**/fixtures/
+**/__fixtures__/

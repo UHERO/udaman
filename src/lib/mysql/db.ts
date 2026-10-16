@@ -2,6 +2,8 @@ import { SQL } from "bun";
 
 import { createLogger } from "@/core/observability/logger";
 
+import { withSessionTz, withSessionTzStrings } from "./session-tz";
+
 const log = createLogger("database");
 
 const READ_ONLY = process.env.UDAMAN_READ_ONLY === "true";
@@ -68,13 +70,15 @@ function mysql(...args: unknown[]) {
   const query = strings.join("?");
   assertNotReadOnly(query);
   const start = performance.now();
-  return (getConnection()(strings, ...values) as Promise<unknown[]>).then(
-    (result) => {
-      const durationMs = +(performance.now() - start).toFixed(2);
-      log.debug({ durationMs, rows: result.length }, query);
-      return result;
-    },
-  );
+  return (
+    getConnection()(withSessionTzStrings(strings), ...values) as Promise<
+      unknown[]
+    >
+  ).then((result) => {
+    const durationMs = +(performance.now() - start).toFixed(2);
+    log.debug({ durationMs, rows: result.length }, query);
+    return result;
+  });
 }
 
 /** Execute a raw SQL string with positional `?` parameters (for dynamic queries). */
@@ -85,11 +89,13 @@ function rawQuery<T = Record<string, unknown>>(
   assertNotReadOnly(sql);
   const start = performance.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (getConnection() as any).unsafe(sql, params).then((result: T[]) => {
-    const durationMs = +(performance.now() - start).toFixed(2);
-    log.debug({ durationMs, rows: result.length }, sql);
-    return result;
-  });
+  return (getConnection() as any)
+    .unsafe(withSessionTz(sql), params)
+    .then((result: T[]) => {
+      const durationMs = +(performance.now() - start).toFixed(2);
+      log.debug({ durationMs, rows: result.length }, sql);
+      return result;
+    });
 }
 
 /**
@@ -113,7 +119,9 @@ function makeTxExecutor(tx: any): TxExecutor {
     const query = strings.join("?");
     assertNotReadOnly(query);
     const start = performance.now();
-    return (tx(strings, ...values) as Promise<unknown[]>).then((result) => {
+    return (
+      tx(withSessionTzStrings(strings), ...values) as Promise<unknown[]>
+    ).then((result) => {
       const durationMs = +(performance.now() - start).toFixed(2);
       log.debug({ durationMs, rows: result.length }, query);
       return result;
@@ -122,7 +130,7 @@ function makeTxExecutor(tx: any): TxExecutor {
   exec.unsafe = (sql: string, params: unknown[] = []) => {
     assertNotReadOnly(sql);
     const start = performance.now();
-    return tx.unsafe(sql, params).then((result: unknown[]) => {
+    return tx.unsafe(withSessionTz(sql), params).then((result: unknown[]) => {
       const durationMs = +(performance.now() - start).toFixed(2);
       log.debug({ durationMs, rows: result.length }, sql);
       return result;
@@ -170,11 +178,13 @@ async function scopedConnection<T>(
   const [result] = await getConnection().begin(async (tx: any) => {
     const exec = (sql: string, params: (string | number | Date)[] = []) => {
       const qStart = performance.now();
-      return tx.unsafe(sql, params).then((rows: Record<string, unknown>[]) => {
-        const durationMs = +(performance.now() - qStart).toFixed(2);
-        log.debug({ durationMs, rows: rows.length }, "scoped query");
-        return rows;
-      });
+      return tx
+        .unsafe(withSessionTz(sql), params)
+        .then((rows: Record<string, unknown>[]) => {
+          const durationMs = +(performance.now() - qStart).toFixed(2);
+          log.debug({ durationMs, rows: rows.length }, "scoped query");
+          return rows;
+        });
     };
     const value = await fn(exec);
     return [value];
@@ -196,7 +206,7 @@ async function insertAndGetId(
   const start = performance.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result] = await getConnection().begin(async (tx: any) => {
-    await tx.unsafe(sql, params);
+    await tx.unsafe(withSessionTz(sql), params);
     const rows: { insertId: number }[] = await tx.unsafe(
       "SELECT LAST_INSERT_ID() as insertId",
     );

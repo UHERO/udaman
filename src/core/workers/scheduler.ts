@@ -1,12 +1,14 @@
 import { createLogger } from "@/core/observability/logger";
+import { APP_ENV, isProduction } from "@/lib/app-env";
 
+import { syncIngestSchedules } from "./ingest-schedules";
 import { defaultQueue, heavyQueue, JobName } from "./queues";
 
 const log = createLogger("worker.scheduler");
 
 /**
  * Remove all job schedulers from Redis. Called outside production
- * (see `appEnv`) to prevent stale schedulers (persisted from prior runs)
+ * (APP_ENV !== "production") to prevent stale schedulers (persisted from prior runs)
  * from firing unexpectedly.
  */
 async function removeAllSchedulers(): Promise<void> {
@@ -58,15 +60,10 @@ async function removeMovedSchedulers(): Promise<void> {
  * All cron times are in Pacific/Honolulu (HST, UTC-10, no DST).
  */
 export async function registerSchedules(): Promise<void> {
-  // Gate on APP_ENV, not NODE_ENV: staging builds run with
-  // NODE_ENV=production, but only the real production worker should fire
-  // scheduled jobs. Stage/local jobs are triggered manually. APP_ENV is the
-  // server-side var; NEXT_PUBLIC_APP_ENV is a fallback only — the prod env
-  // file carries a stale NEXT_PUBLIC_APP_ENV='local', and gating on it alone
-  // (2026-10-11) made every prod worker restart wipe the schedulers.
-  const appEnv = process.env.APP_ENV ?? process.env.NEXT_PUBLIC_APP_ENV;
-  if (appEnv !== "production") {
-    log.info("Skipping cron schedules (APP_ENV=%s)", appEnv);
+  // Only the real production worker fires scheduled jobs. Staging/local
+  // jobs are triggered manually.
+  if (!isProduction) {
+    log.info("Skipping cron schedules (APP_ENV=%s)", APP_ENV);
     await removeAllSchedulers();
     return;
   }
@@ -281,6 +278,10 @@ export async function registerSchedules(): Promise<void> {
     },
   );
   log.info("Registered schedule: download-pvhon (daily 9:15 AM HST)");
+
+  // ─── Ingest (data_downloaders.schedule) ────────────────────────────
+  // Fetch, then extract the dependent extractors. Never triggers reloads.
+  await syncIngestSchedules();
 
   // ─── Scrapers ──────────────────────────────────────────────────────
 

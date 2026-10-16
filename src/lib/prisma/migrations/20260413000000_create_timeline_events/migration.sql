@@ -1,5 +1,5 @@
 -- CreateTable 
-DROP TABLE timeline_events;
+DROP TABLE IF EXISTS timeline_events;
 CREATE TABLE `timeline_events` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `event_type` VARCHAR(50) NOT NULL,

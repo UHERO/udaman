@@ -260,11 +260,13 @@ export function CategoryChartCard({
                 <p className="text-foreground mt-1 tabular-nums">
                   {formatTooltipDate(latest.date, freq)}: {levelLine}
                 </p>
-                {secondary && secondaryValue !== null && (
+                {/* Always rendered (an en dash when empty, e.g. the first
+                    period) so hovering never changes the height. */}
+                {secondary && (
                   <p className="text-muted-foreground tabular-nums">
                     {secondaryLabel(secondary, series.percent, freq)}:{" "}
                     <span className="text-foreground">
-                      {fmtChange(secondary, secondaryValue)}
+                      {fmtChange(secondary, secondaryValue) || "–"}
                     </span>
                   </p>
                 )}

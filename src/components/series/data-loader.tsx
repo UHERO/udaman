@@ -113,6 +113,18 @@ const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
     <>
       {segments.map((segment, segIdx) => {
         if (segment.type === "link") {
+          // in-app pages (the extract a load read) open in place
+          if (segment.href.startsWith("/")) {
+            return (
+              <Link
+                key={`seg-${segIdx}`}
+                href={segment.href}
+                className="underline hover:opacity-70"
+              >
+                {segment.label}
+              </Link>
+            );
+          }
           return (
             <a
               key={`seg-${segIdx}`}
@@ -156,6 +168,24 @@ const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
           const fileMatch = word.match(/^<(.+)>$/);
           if (fileMatch) {
             const filePath = fileMatch[1];
+            // "loaded from download <handle>" — a download handle (possibly a
+            // date-sensitive pattern matching many files), not a file path.
+            if (words[i - 1] === "download" || filePath.includes("@")) {
+              return (
+                <span key={`${segIdx}-${i}`}>
+                  {prefix}
+                  {"<"}
+                  <Link
+                    href={`/udaman/${universe}/downloads`}
+                    className="underline hover:opacity-70"
+                    title="View downloads"
+                  >
+                    {filePath}
+                  </Link>
+                  {">"}
+                </span>
+              );
+            }
             return (
               <span key={`${segIdx}-${i}`}>
                 {prefix}

@@ -23,13 +23,23 @@ const DASHBOARD_PROJECT_URL = "https://uhero.hawaii.edu/analytics-dashboards/";
 /** Public REST API docs (keys are issued on request by email). */
 const REST_API_DOCS_URL = "https://api.uhero.hawaii.edu/docs/#";
 
-type DirectoryEntry = { slug: string; name: string; description: string };
+type DirectoryEntry = {
+  slug: string;
+  name: string;
+  description: string;
+  /**
+   * List it even while the universe is internal-only (visitors without a
+   * login are sent back to the UHERO portal).
+   */
+  listWhenInternal?: boolean;
+};
 
 /**
  * Public portals listed in the directory, grouped and in display order.
  * `dvw`/`dbedt` are the custom dashboards under /data. Curated rather than
  * read from the `universes` table so internal universes never surface on
- * the public site.
+ * the public site; universes flagged internal-only are also filtered out at
+ * render time (except the one being viewed, and `listWhenInternal` ones).
  */
 const DIRECTORY_GROUPS: { label: string; entries: DirectoryEntry[] }[] = [
   {
@@ -55,6 +65,13 @@ const DIRECTORY_GROUPS: { label: string; entries: DirectoryEntry[] }[] = [
         name: "Forecast",
         description: "UHERO forecast series and history",
       },
+      {
+        slug: "dotax",
+        name: "Tax Collections",
+        description:
+          "Hawaiʻi Department of Taxation collections and distributions",
+        listWhenInternal: true,
+      },
     ],
   },
   {
@@ -70,6 +87,12 @@ const DIRECTORY_GROUPS: { label: string; entries: DirectoryEntry[] }[] = [
         name: "Economic Data Warehouse",
         description: "State of Hawaiʻi DBEDT statistics",
       },
+      {
+        slug: "databook",
+        name: "State Data Book",
+        description: "The DBEDT State of Hawaiʻi Data Book, every edition",
+        listWhenInternal: true,
+      },
     ],
   },
 ];
@@ -84,7 +107,16 @@ const entryHref = (slug: string) =>
  * Header and footer bands use the theme color.
  */
 export function PortalDirectory({ onNavigate }: { onNavigate?: () => void }) {
-  const { config } = usePortalConfig();
+  const { config, internalUniverses } = usePortalConfig();
+  const groups = DIRECTORY_GROUPS.map((group) => ({
+    ...group,
+    entries: group.entries.filter(
+      (p) =>
+        p.slug === config.universe ||
+        p.listWhenInternal ||
+        !internalUniverses.includes(p.slug),
+    ),
+  })).filter((group) => group.entries.length > 0);
   const external: { name: string; url: string; description?: string }[] = [
     { name: "UHERO Dashboard Project", url: DASHBOARD_PROJECT_URL },
     ...config.otherDashboardLinks.filter(
@@ -116,7 +148,7 @@ export function PortalDirectory({ onNavigate }: { onNavigate?: () => void }) {
         </DialogHeader>
 
         <div className="py-1">
-          {DIRECTORY_GROUPS.map((group) => (
+          {groups.map((group) => (
             <section key={group.label} aria-label={group.label}>
               <h3 className="text-muted-foreground px-5 pt-2.5 pb-1 text-[10px] font-semibold tracking-wider uppercase">
                 {group.label}

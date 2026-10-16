@@ -102,6 +102,8 @@ class Loader {
 
   static getLoaderType(evalExpr: string, pseudoHistory = false): LoaderType {
     if (pseudoHistory) return "pseudo_history";
+    // load_from_extract reads a downloaded source's parsed extract
+    if (/load_from_extract/.test(evalExpr)) return "download";
     if (/load_api/.test(evalExpr)) return "api";
     if (/forecast/i.test(evalExpr)) return "forecast";
     if (/load_from_download/.test(evalExpr)) return "download";
@@ -190,6 +192,14 @@ class Loader {
     if (loadFromMatch) {
       const [, , filePath] = loadFromMatch;
       return `loaded from static file <${filePath}>`;
+    }
+
+    // Handle extract loading: Series.load_from_extract("dotax", { … })
+    const extractMatch = evalExpr.match(
+      /Series\.load_from_extract\(\s*"([^"]+)"/,
+    );
+    if (extractMatch) {
+      return `loaded from extract ${extractMatch[1]} with filters shown`;
     }
 
     // Handle API loading: Series.load_api_bls_NEW("ID", "FREQ")

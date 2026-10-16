@@ -48,13 +48,15 @@ export async function createDataLoader({
 }) {
   logControllerCall("data-loaders", "createDataLoader", { seriesId, universe });
   log.info({ seriesId, universe }, "creating data loader");
+  // throws LoadStatementError when a load_from_extract call doesn't resolve
+  const warnings = await LoaderCollection.checkEval(payload.code, seriesId);
   const data = await LoaderCollection.create({
     ...payload,
     universe,
     seriesId,
   });
   log.info({ seriesId }, "data loader created");
-  return { message: "data loader created", data: data.toJSON() };
+  return { message: "data loader created", data: data.toJSON(), warnings };
 }
 
 export async function loadDataPoints({
@@ -137,14 +139,21 @@ export async function updateDataLoader({
 }: {
   id: number;
   payload: UpdateLoaderFormData;
-}): Promise<ControllerResponse<SerializedLoader>> {
+}): Promise<ControllerResponse<SerializedLoader> & { warnings: string[] }> {
   logControllerCall("data-loaders", "updateDataLoader", { id });
   log.info({ id }, "updating data loader");
   const { scale, ...rest } = payload;
+  // throws LoadStatementError when a load_from_extract call doesn't resolve
+  const warnings = rest.eval
+    ? await LoaderCollection.checkEval(
+        rest.eval,
+        (await LoaderCollection.getById(id)).seriesId,
+      )
+    : [];
   const loader = await LoaderCollection.update(id, {
     ...rest,
     ...(scale !== undefined ? { scale: String(scale) } : {}),
   });
   log.info({ id }, "data loader updated");
-  return { message: "data loader updated", data: loader.toJSON() };
+  return { message: "data loader updated", data: loader.toJSON(), warnings };
 }

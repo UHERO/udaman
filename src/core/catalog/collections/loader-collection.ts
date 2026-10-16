@@ -8,6 +8,7 @@ import type { LoaderAttrs } from "../models/loader";
 import type { SourceMapNode, Universe } from "../types/shared";
 import type { CreateLoaderPayload } from "../types/sources";
 import EvalExecutor from "../utils/eval-executor";
+import { AppLogCollection } from "./app-log-collection";
 import SeriesCollection from "./series-collection";
 import type { DeleteByMode } from "./series-collection";
 
@@ -67,6 +68,14 @@ export type ReloadResult = {
   message: string;
 };
 
+/** A load statement that does not resolve (shown to the person saving it). */
+export class LoadStatementError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LoadStatementError";
+  }
+}
+
 class LoaderCollection {
   /** List all loaders, optionally filtered by universe */
   static async list(options: { universe?: Universe } = {}): Promise<Loader[]> {
@@ -124,8 +133,38 @@ class LoaderCollection {
     return rows.map((row) => new Loader(row));
   }
 
+  /** The name of a series (for evals that read the target's frequency). */
+  static async seriesNameOf(seriesId: number): Promise<string | null> {
+    const rows = await mysql<{ name: string }>`
+      SELECT name FROM series WHERE id = ${seriesId} LIMIT 1
+    `;
+    return rows[0]?.name ?? null;
+  }
+
+  /**
+   * Save-time check of a load statement. Only evals calling
+   * load_from_extract are checked (the extractor exists, the filter keys
+   * are its dimensions, the filters pick exactly one series of its latest
+   * extract); every other eval passes untouched. Errors throw
+   * LoadStatementError; warnings are returned.
+   */
+  static async checkEval(
+    evalStr: string,
+    seriesId: number | null,
+  ): Promise<string[]> {
+    if (!evalStr.includes("load_from_extract")) return [];
+    const { checkLoadStatement } = await import("@/core/ingest/load");
+    const seriesName = seriesId ? await this.seriesNameOf(seriesId) : null;
+    const { errors, warnings } = await checkLoadStatement(evalStr, {
+      seriesName,
+    });
+    if (errors.length) throw new LoadStatementError(errors.join("\n"));
+    return warnings;
+  }
+
   /** Create a new loader */
   static async create(payload: CreateLoaderPayload): Promise<Loader> {
+    await this.checkEval(payload.code, payload.seriesId);
     const {
       seriesId,
       scale,
@@ -179,6 +218,12 @@ class LoaderCollection {
     id: number,
     updates: UpdateLoaderPayload,
   ): Promise<Loader> {
+    if (updates.eval !== undefined && updates.eval !== null) {
+      const current = await this.getById(id);
+      if (updates.eval !== current.eval) {
+        await this.checkEval(updates.eval, current.seriesId);
+      }
+    }
     await this.updateFields(id, updates);
     return this.getById(id);
   }
@@ -355,6 +400,7 @@ class LoaderCollection {
           (${loaderType} = 'pseudo_history' AND ds.pseudo_history = 1) OR
           (${loaderType} != 'pseudo_history' AND ds.pseudo_history = 0 AND
            CASE
+             WHEN ds.eval REGEXP 'load_from_extract' THEN 'download'
              WHEN ds.eval REGEXP 'load_api' THEN 'api'
              WHEN ds.eval REGEXP 'forecast' THEN 'forecast'
              WHEN ds.eval REGEXP 'load_from_download' THEN 'download'
@@ -420,7 +466,16 @@ class LoaderCollection {
         changed = true;
       }
 
-      const result = await EvalExecutor.run(loader.eval, loader.universe);
+      // load_from_extract reads the target series' frequency from its name
+      const context =
+        loader.seriesId && loader.eval.includes("load_from_extract")
+          ? { seriesName: await this.seriesNameOf(loader.seriesId) }
+          : {};
+      const result = await EvalExecutor.run(
+        loader.eval,
+        loader.universe,
+        context,
+      );
 
       // TODO: apply presave_hook if set (requires porting hook dispatch)
 
@@ -484,6 +539,28 @@ class LoaderCollection {
       );
       updateProps.lastError = message.slice(0, 254);
       updateProps.lastErrorAt = t;
+      // load errors stay plain English; the full account goes to the admin logs
+      const detail =
+        err instanceof Error &&
+        "detail" in err &&
+        typeof err.detail === "string"
+          ? err.detail
+          : null;
+      if (detail && detail !== message) {
+        void AppLogCollection.log({
+          level: "error",
+          category: "loader",
+          name: "loader.reload_error",
+          subject: "data_sources",
+          subjectId: loader.id,
+          metadata: {
+            seriesId: loader.seriesId,
+            eval: loader.eval,
+            message,
+            detail,
+          },
+        });
+      }
       return { status: "error", message };
     } finally {
       // No re-read (the caller never uses the row), and updated_at only

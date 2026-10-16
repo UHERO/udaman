@@ -8,8 +8,11 @@ import { z } from "zod";
 
 import { createUniverse, updateUniverse } from "@/actions/universes";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
+  FieldContent,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -36,6 +39,7 @@ const createSchema = z.object({
   dataPortalUrl: z.string().refine((v) => v === "" || /^https?:\/\//i.test(v), {
     message: "Must be a valid http(s) URL",
   }),
+  internalOnly: z.boolean(),
 });
 
 type FormValues = z.infer<typeof createSchema>;
@@ -44,6 +48,7 @@ interface UniverseData {
   name: string;
   description: string | null;
   dataPortalUrl: string | null;
+  internalOnly: boolean;
 }
 
 interface UniverseFormSheetProps {
@@ -68,6 +73,7 @@ export function UniverseFormSheet({
       name: "",
       description: "",
       dataPortalUrl: "",
+      internalOnly: false,
     },
   });
 
@@ -77,6 +83,7 @@ export function UniverseFormSheet({
         name: universe?.name ?? "",
         description: universe?.description ?? "",
         dataPortalUrl: universe?.dataPortalUrl ?? "",
+        internalOnly: universe?.internalOnly ?? false,
       });
     }
   }, [open, universe, form]);
@@ -88,6 +95,7 @@ export function UniverseFormSheet({
           name: values.name,
           description: values.description || null,
           dataPortalUrl: values.dataPortalUrl || null,
+          internalOnly: values.internalOnly,
         });
         toast.success(result.message);
         onSaved?.(result.data.name);
@@ -95,6 +103,7 @@ export function UniverseFormSheet({
         const result = await updateUniverse(universe.name, {
           description: values.description || null,
           dataPortalUrl: values.dataPortalUrl || null,
+          internalOnly: values.internalOnly,
         });
         toast.success(result.message);
         onSaved?.(result.data.name);
@@ -110,7 +119,7 @@ export function UniverseFormSheet({
   const description =
     mode === "create"
       ? "Universes are top-level tenants. After creation you will be switched to the new universe."
-      : "Update the universe description and data portal URL.";
+      : "Update the universe description and data portal settings.";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -161,6 +170,27 @@ export function UniverseFormSheet({
                   {...form.register("dataPortalUrl")}
                 />
                 <FieldError errors={[form.formState.errors.dataPortalUrl]} />
+              </Field>
+
+              <Field orientation="horizontal">
+                <Checkbox
+                  id="internalOnly"
+                  checked={form.watch("internalOnly")}
+                  onCheckedChange={(c) =>
+                    form.setValue("internalOnly", c === true, {
+                      shouldDirty: true,
+                    })
+                  }
+                />
+                <FieldContent>
+                  <FieldLabel htmlFor="internalOnly">
+                    Internal-only data portal
+                  </FieldLabel>
+                  <FieldDescription>
+                    The /data portal requires a udaman login and is hidden from
+                    the portal directory.
+                  </FieldDescription>
+                </FieldContent>
               </Field>
             </FieldGroup>
           </FieldSet>

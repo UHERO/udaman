@@ -7,9 +7,9 @@
  * sources, source details, categories (Data Book → section → table, one
  * data list per table), measurements + data list membership, series +
  * measurement links, and loaders:
- *  - observed:  Series.load_from_databook("NAME")                     priority 100
- *  - pseudo:    Series.load_from_databook("NAME").fill_missing_linear priority 40,
- *               pseudo_history, only for series flagged `interpolate`
+ *  - observed:  Series.load_from_extract("databook", { table, name, geo })  priority 100
+ *  - pseudo:    the same .fill_missing_linear, priority 40, pseudo_history,
+ *               only for series flagged `interpolate`
  *
  * Snapshot series matched in fewer than MIN_SNAPSHOT_EDITIONS editions are
  * skipped (decision 5).
@@ -19,17 +19,20 @@ import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { Universe } from "@catalog/types/shared";
 
-import { createLogger } from "@/core/observability/logger";
-import { insertAndGetId, rawQuery } from "@/lib/mysql/db";
-
-import { DATABOOK_GEOS } from "./geo";
-import { toAscii } from "./labels";
+import { DATABOOK_GEOS } from "@/core/ingest/sources/databook/geo";
+import { toAscii } from "@/core/ingest/sources/databook/labels";
 import {
   measurementNotes,
   type ManifestMeasurement,
   type ManifestSection,
   type ManifestSeries,
-} from "./manifest";
+  type ManifestTable,
+} from "@/core/ingest/sources/databook/manifest";
+import { measurementName } from "@/core/ingest/sources/databook/parse";
+import { createLogger } from "@/core/observability/logger";
+import { insertAndGetId, rawQuery } from "@/lib/mysql/db";
+
+import { DATABOOK_EXTRACTOR } from "./source";
 
 const log = createLogger("databook.apply");
 
@@ -38,12 +41,37 @@ export const MIN_SNAPSHOT_EDITIONS = 5;
 const OBSERVED_PRIORITY = 100;
 const PSEUDO_PRIORITY = 40;
 
-export function observedEval(name: string): string {
-  return `Series.load_from_databook("${name}")`;
+export type DatabookFilters = { table: string; name: string; geo: string };
+
+/** A series' filters in the databook extract. */
+export function seriesFilters(
+  t: ManifestTable,
+  m: ManifestMeasurement,
+  s: ManifestSeries,
+): DatabookFilters {
+  if (!m.dims)
+    throw new Error(
+      `${m.prefix}: the manifest predates extract filters (run bun run databook sync)`,
+    );
+  return {
+    table: t.tableNum,
+    name: measurementName(t.title, m.dims),
+    geo: s.geo,
+  };
 }
 
-export function pseudoEval(name: string): string {
-  return `Series.load_from_databook("${name}").fill_missing_linear`;
+/** Double quotes, or single when the label has a double quote. */
+const quote = (v: string) => (v.includes('"') ? `'${v}'` : `"${v}"`);
+
+/** Load statements live in data_sources.eval, VARCHAR(500). */
+export const MAX_EVAL = 500;
+
+export function observedEval(f: DatabookFilters): string {
+  return `Series.load_from_extract("${DATABOOK_EXTRACTOR}", { table: ${quote(f.table)}, name: ${quote(f.name)}, geo: ${quote(f.geo)} })`;
+}
+
+export function pseudoEval(f: DatabookFilters): string {
+  return `${observedEval(f)}.fill_missing_linear`;
 }
 
 /**
@@ -159,6 +187,14 @@ export async function applyManifest(
   input: ManifestSection[],
 ): Promise<ApplyStats> {
   const sections = latin1(input);
+  // Filters from the manifest as written (the extract's labels), not the
+  // latin1 copy.
+  const filters = new Map<string, DatabookFilters>();
+  for (const sec of input)
+    for (const t of sec.tables)
+      for (const m of t.measurements)
+        for (const x of includedSeries(m))
+          filters.set(x.name, seriesFilters(t, m, x));
   const stats: ApplyStats = {
     categories: 0,
     dataLists: 0,
@@ -178,23 +214,44 @@ export async function applyManifest(
       "DBEDT State of Hawaii Data Book",
     ]);
   }
+  // Geography names follow UHERO's where it has the handle, so a place
+  // reads the same in every universe.
+  const uhero = new Map(
+    (
+      await rawQuery<{
+        handle: string;
+        display_name: string;
+        display_name_short: string;
+        fips: string | null;
+      }>(
+        "SELECT handle, display_name, display_name_short, fips FROM geographies WHERE universe = 'UHERO'",
+      )
+    ).map((r) => [r.handle, r]),
+  );
   const geoIds = new Map<string, number>();
   for (const g of DATABOOK_GEOS) {
-    const id = await upsertId(
+    const u = uhero.get(g.handle);
+    const names = [
+      u?.display_name ?? g.displayName,
+      u?.display_name_short ?? g.displayNameShort,
+      u?.fips ?? g.fips,
+    ];
+    let id = await findId(
       "SELECT id FROM geographies WHERE universe = ? AND handle = ? LIMIT 1",
       [DATABOOK, g.handle],
-      `INSERT INTO geographies (universe, handle, display_name, display_name_short, fips, geotype, list_order, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [
-        DATABOOK,
-        g.handle,
-        g.displayName,
-        g.displayNameShort,
-        g.fips,
-        g.geotype,
-        g.listOrder,
-      ],
     );
+    if (id) {
+      await rawQuery(
+        "UPDATE geographies SET display_name = ?, display_name_short = ?, fips = ?, updated_at = NOW() WHERE id = ?",
+        [...names, id] as (string | number)[],
+      );
+    } else {
+      id = await insertAndGetId(
+        `INSERT INTO geographies (universe, handle, display_name, display_name_short, fips, geotype, list_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        [DATABOOK, g.handle, ...names, g.geotype, g.listOrder],
+      );
+    }
     geoIds.set(g.handle, id);
   }
 
@@ -404,7 +461,11 @@ export async function applyManifest(
             stats.series.created++;
           }
           await MeasurementCollection.addSeries(measurementId, series.id!);
-          stats.loaders.created += await ensureLoaders(series.id!, s);
+          stats.loaders.created += await ensureLoaders(
+            series.id!,
+            s,
+            filters.get(s.name)!,
+          );
         }
       }
     }
@@ -418,19 +479,23 @@ export async function applyManifest(
 async function ensureLoaders(
   seriesId: number,
   s: ManifestSeries,
+  f: DatabookFilters,
 ): Promise<number> {
   const existing = await LoaderCollection.getBySeriesId(seriesId);
   const evals = new Set(existing.map((l) => l.eval));
   let created = 0;
   const want: Array<{ code: string; priority: number; pseudo: boolean }> = [
-    { code: observedEval(s.name), priority: OBSERVED_PRIORITY, pseudo: false },
+    { code: observedEval(f), priority: OBSERVED_PRIORITY, pseudo: false },
   ];
   if (s.interpolate)
     want.push({
-      code: pseudoEval(s.name),
+      code: pseudoEval(f),
       priority: PSEUDO_PRIORITY,
       pseudo: true,
     });
+  for (const w of want)
+    if (w.code.length > MAX_EVAL)
+      throw new Error(`${s.name}: load statement over ${MAX_EVAL} characters`);
   for (const w of want) {
     if (evals.has(w.code)) continue;
     const loader = await LoaderCollection.create({

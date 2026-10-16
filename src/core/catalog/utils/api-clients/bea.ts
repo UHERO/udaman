@@ -27,7 +27,7 @@ import {
 const BEA_FLAG_CODE = /^\(\w+\)/;
 
 /** True when the data point is invalid/missing and should be dropped. */
-function isMissing(dp: BeaDataPoint): boolean {
+export function isMissing(dp: BeaDataPoint): boolean {
   if (BEA_FLAG_CODE.test(dp.NoteRef?.trim() ?? "")) return true;
   const rawValue = dp.DataValue?.trim() ?? "";
   return rawValue === "" || BEA_FLAG_CODE.test(rawValue);
@@ -123,7 +123,7 @@ interface BeaError {
   ErrorDetail?: { Description?: string };
 }
 
-interface BeaDataPoint {
+export interface BeaDataPoint {
   TimePeriod: string;
   DataValue?: string;
   NoteRef?: string;
@@ -138,4 +138,52 @@ interface BeaResponse {
       Data?: BeaDataPoint[];
     };
   };
+}
+
+// ─── Raw JSON for ingest (src/core/ingest/sources/bea) ───────────────
+
+/** A BEA error (HTTP 200 with BEAAPI.Error); counts toward BEA's 30 errors/minute. */
+export class BeaApiError extends Error {
+  constructor(
+    message: string,
+    /** APIErrorCode; "40" = a missing or invalid parameter (e.g. a retired table) */
+    readonly code: string | null = null,
+  ) {
+    super(message);
+    this.name = "BeaApiError";
+  }
+}
+
+/**
+ * GetData for one request, through `fetchImpl` (must throw on non-2xx).
+ * Returns the data rows and the body size (BEA also limits MB/minute).
+ * The response's Request echo — which holds the key — is never returned.
+ */
+export async function fetchGetDataRaw(
+  dataset: string,
+  params: Record<string, string>,
+  fetchImpl: (url: string) => Promise<Response>,
+): Promise<{ data: BeaDataPoint[]; bytes: number }> {
+  const apiKey = process.env.API_KEY_BEA;
+  if (!apiKey) throw new Error("No API key defined for BEA");
+  const q = new URLSearchParams({
+    UserID: apiKey,
+    method: "GetData",
+    datasetname: dataset,
+    ...params,
+    ResultFormat: "JSON",
+  });
+  const res = await fetchImpl(`https://apps.bea.gov/api/data/?${q}`);
+  const text = await res.text();
+  const json = JSON.parse(text) as BeaResponse;
+  const beaapi = json.BEAAPI;
+  if (!beaapi) throw new BeaApiError("BEA API: major unknown failure");
+  const err = beaapi.Error ?? beaapi.Results?.Error;
+  if (err) {
+    throw new BeaApiError(
+      `BEA API Error: ${err.APIErrorDescription ?? ""} ${err.ErrorDetail?.Description ?? ""} (code=${err.APIErrorCode})`,
+      err.APIErrorCode != null ? String(err.APIErrorCode) : null,
+    );
+  }
+  return { data: beaapi.Results?.Data ?? [], bytes: text.length };
 }

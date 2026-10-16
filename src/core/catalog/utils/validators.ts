@@ -10,6 +10,7 @@ export const universes: Universe[] = [
   "NTA",
   "HHF",
   "DATABOOK",
+  "DOTAX",
 ];
 
 export function isValidUniverse(u: string): u is Universe {

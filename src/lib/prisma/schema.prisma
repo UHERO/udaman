@@ -11,6 +11,7 @@ model universe {
   name             String             @id @db.VarChar(10)
   description      String?            @db.Text
   data_portal_url  String?            @db.VarChar(255)
+  internal_only    Boolean            @default(false)
   api_applications api_applications[]
   categories       categories[]
   data_lists       data_lists[]
@@ -26,15 +27,15 @@ model universe {
 }
 
 model api_applications {
-  id              Int        @id @default(autoincrement())
-  universe        String     @default("UHERO") @db.VarChar(10)
-  name            String?    @db.VarChar(255)
-  hostname        String?    @db.VarChar(255)
-  api_key         String?    @db.VarChar(255)
-  created_at      DateTime   @db.DateTime(0)
-  updated_at      DateTime   @db.DateTime(0)
-  github_nickname String?    @db.VarChar(255)
-  universe_rel    universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_api_applications_universe")
+  id              Int      @id @default(autoincrement())
+  universe        String   @default("UHERO") @db.VarChar(10)
+  name            String?  @db.VarChar(255)
+  hostname        String?  @db.VarChar(255)
+  api_key         String?  @db.VarChar(255)
+  created_at      DateTime @db.DateTime(0)
+  updated_at      DateTime @db.DateTime(0)
+  github_nickname String?  @db.VarChar(255)
+  universe_rel    universe @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_api_applications_universe")
 
   @@unique([universe, name], map: "index_api_applications_on_universe_and_name")
 }
@@ -130,18 +131,18 @@ model data_list_measurements {
 }
 
 model data_lists {
-  id         Int          @id @default(autoincrement())
-  universe   String       @default("UHERO") @db.VarChar(10)
-  name       String?      @db.VarChar(255)
-  startyear  Int?
-  endyear    Int?
-  created_at DateTime?    @db.DateTime(0)
-  updated_at DateTime?    @db.DateTime(0)
-  created_by Int?
-  updated_by Int?
-  owned_by   Int?
-  categories categories[]
-  universe_rel universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_data_lists_universe")
+  id           Int          @id @default(autoincrement())
+  universe     String       @default("UHERO") @db.VarChar(10)
+  name         String?      @db.VarChar(255)
+  startyear    Int?
+  endyear      Int?
+  created_at   DateTime?    @db.DateTime(0)
+  updated_at   DateTime?    @db.DateTime(0)
+  created_by   Int?
+  updated_by   Int?
+  owned_by     Int?
+  categories   categories[]
+  universe_rel universe     @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_data_lists_universe")
 
   @@index([universe], map: "index_data_lists_on_universe")
 }
@@ -150,6 +151,7 @@ model data_lists_series {
   id           Int @id @default(autoincrement())
   data_list_id Int
   series_id    Int
+
   @@index([data_list_id], map: "index_data_lists_series_on_data_list_id")
 }
 
@@ -260,6 +262,106 @@ model downloads {
   notes            String?                 @db.Text
 }
 
+model data_downloaders {
+  id            Int       @id @default(autoincrement())
+  handle        String    @unique(map: "index_data_downloaders_on_handle") @db.VarChar(64)
+  source_key    String?   @db.VarChar(64)
+  strategy      String    @default("custom") @db.VarChar(32)
+  config        String?   @db.LongText
+  state         String?   @db.LongText
+  schedule      String?   @db.VarChar(64)
+  enabled       Boolean   @default(true)
+  running_since DateTime? @db.DateTime(0)
+  notes         String?   @db.Text
+  created_at    DateTime? @db.DateTime(0)
+  updated_at    DateTime? @db.DateTime(0)
+}
+
+model raw_artifacts {
+  id            Int      @id @default(autoincrement())
+  downloader_id Int
+  artifact_key  String   @db.VarChar(255)
+  content_hash  String   @db.Char(64)
+  storage_path  String   @db.VarChar(512)
+  resolved_url  String?  @db.VarChar(1024)
+  original_name String?  @db.VarChar(255)
+  content_type  String?  @db.VarChar(128)
+  size          BigInt
+  final         Boolean  @default(false)
+  metadata      String?  @db.LongText
+  fetched_at    DateTime @db.DateTime(0)
+  last_seen_at  DateTime @db.DateTime(0)
+
+  @@unique([downloader_id, artifact_key, content_hash], map: "idx_raw_artifacts_identity")
+  @@index([downloader_id, artifact_key, last_seen_at], map: "idx_raw_artifacts_latest")
+}
+
+model fetch_runs {
+  id            Int               @id @default(autoincrement())
+  downloader_id Int
+  status        fetch_runs_status @default(running)
+  triggered_by  String?           @db.VarChar(64)
+  error         String?           @db.Text
+  stats         String?           @db.LongText
+  started_at    DateTime          @db.DateTime(0)
+  finished_at   DateTime?         @db.DateTime(0)
+
+  @@index([downloader_id, started_at], map: "idx_fetch_runs_downloader")
+}
+
+model fetch_run_artifacts {
+  fetch_run_id    Int
+  raw_artifact_id Int
+  changed         Boolean @default(false)
+
+  @@id([fetch_run_id, raw_artifact_id])
+  @@index([raw_artifact_id], map: "idx_fetch_run_artifacts_artifact")
+}
+
+model data_extractors {
+  id            Int       @id @default(autoincrement())
+  handle        String    @unique(map: "index_data_extractors_on_handle") @db.VarChar(64)
+  source_key    String    @db.VarChar(64)
+  config        String?   @db.LongText
+  enabled       Boolean   @default(true)
+  running_since DateTime? @db.DateTime(0)
+  notes         String?   @db.Text
+  created_at    DateTime? @db.DateTime(0)
+  updated_at    DateTime? @db.DateTime(0)
+}
+
+model extractor_inputs {
+  extractor_id  Int
+  downloader_id Int
+  role          String? @db.VarChar(32)
+
+  @@id([extractor_id, downloader_id])
+  @@index([downloader_id], map: "idx_extractor_inputs_downloader")
+}
+
+model extraction_runs {
+  id                 Int                    @id @default(autoincrement())
+  extractor_id       Int
+  status             extraction_runs_status @default(running)
+  triggered_by       String?                @db.VarChar(64)
+  fetch_run_id       Int?
+  input_artifact_ids String?                @db.LongText
+  inputs_hash        String?                @db.Char(64)
+  error              String?                @db.Text
+  validation_results String?                @db.LongText
+  stats              String?                @db.LongText
+  output_path        String?                @db.VarChar(512)
+  output_hash        String?                @db.Char(64)
+  row_count          Int?
+  series_count       Int?
+  accepted_by        Int?
+  accepted_at        DateTime?              @db.DateTime(0)
+  started_at         DateTime               @db.DateTime(0)
+  finished_at        DateTime?              @db.DateTime(0)
+
+  @@index([extractor_id, status, id], map: "idx_extraction_runs_latest")
+}
+
 model dsd_log_entries {
   id          Int       @id @default(autoincrement())
   download_id Int?
@@ -306,14 +408,16 @@ model exports {
 }
 
 model feature_toggles {
-  id          Int       @id @default(autoincrement())
-  universe    String    @default("UHERO") @db.VarChar(10)
-  name        String?   @db.VarChar(255)
-  description String?   @db.VarChar(255)
-  status      Boolean?
-  created_at  DateTime  @db.DateTime(0)
-  updated_at  DateTime  @db.DateTime(0)
+  id           Int      @id @default(autoincrement())
+  universe     String   @default("UHERO") @db.VarChar(10)
+  name         String?  @db.VarChar(255)
+  description  String?  @db.VarChar(255)
+  status       Boolean?
+  created_at   DateTime @db.DateTime(0)
+  updated_at   DateTime @db.DateTime(0)
   universe_rel universe @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_feature_toggles_universe")
+
+  @@index([universe], map: "fk_feature_toggles_universe")
 }
 
 model forecast_snapshots {
@@ -346,21 +450,21 @@ model geo_trees {
 }
 
 model geographies {
-  id                                         Int         @id @default(autoincrement())
-  universe                                   String      @default("UHERO") @db.VarChar(10)
-  handle                                     String?     @db.VarChar(255)
-  display_name                               String?     @db.VarChar(255)
-  display_name_short                         String?     @db.VarChar(255)
-  fips                                       String?     @db.VarChar(255)
+  id                                         Int          @id @default(autoincrement())
+  universe                                   String       @default("UHERO") @db.VarChar(10)
+  handle                                     String?      @db.VarChar(255)
+  display_name                               String?      @db.VarChar(255)
+  display_name_short                         String?      @db.VarChar(255)
+  fips                                       String?      @db.VarChar(255)
   list_order                                 Int?
-  geotype                                    String?     @db.VarChar(255)
-  created_at                                 DateTime    @db.DateTime(0)
-  updated_at                                 DateTime    @db.DateTime(0)
+  geotype                                    String?      @db.VarChar(255)
+  created_at                                 DateTime     @db.DateTime(0)
+  updated_at                                 DateTime     @db.DateTime(0)
   categories                                 categories[]
-  geo_trees_geo_trees_parent_idTogeographies geo_trees[] @relation("geo_trees_parent_idTogeographies")
-  geo_trees_geo_trees_child_idTogeographies  geo_trees[] @relation("geo_trees_child_idTogeographies")
+  geo_trees_geo_trees_parent_idTogeographies geo_trees[]  @relation("geo_trees_parent_idTogeographies")
+  geo_trees_geo_trees_child_idTogeographies  geo_trees[]  @relation("geo_trees_child_idTogeographies")
   series                                     series[]
-  universe_rel                               universe    @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_geographies_universe")
+  universe_rel                               universe     @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_geographies_universe")
 
   @@unique([universe, handle], map: "index_geographies_on_universe_and_handle")
 }
@@ -608,28 +712,28 @@ model user_series {
 }
 
 model users {
-  id                     Int        @id @default(autoincrement())
-  universe               String     @default("UHERO") @db.VarChar(10)
-  role                   users_role @default(external)
-  mnemo_search           Boolean    @default(false)
-  email                  String     @unique(map: "index_users_on_email") @default("") @db.VarChar(255)
-  encrypted_password     String     @default("") @db.VarChar(128)
-  password_salt          String?    @default("") @db.VarChar(255)
-  reset_password_token   String?    @unique(map: "index_users_on_reset_password_token") @db.VarChar(255)
-  remember_token         String?    @db.VarChar(255)
-  remember_created_at    DateTime?  @db.DateTime(0)
-  sign_in_count          Int?       @default(0)
-  current_sign_in_at     DateTime?  @db.DateTime(0)
-  last_sign_in_at        DateTime?  @db.DateTime(0)
-  current_sign_in_ip     String?    @db.VarChar(255)
-  last_sign_in_ip        String?    @db.VarChar(255)
-  created_at             DateTime?  @db.DateTime(0)
-  updated_at             DateTime?  @db.DateTime(0)
-  reset_password_sent_at DateTime?  @db.DateTime(0)
-  name                   String?    @db.VarChar(255)
-  email_verified         DateTime?  @db.DateTime(3)
-  image                  String?    @db.VarChar(255)
-  universe_rel           universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_users_universe")
+  id                     Int            @id @default(autoincrement())
+  universe               String         @default("UHERO") @db.VarChar(10)
+  role                   users_role     @default(external)
+  mnemo_search           Boolean        @default(false)
+  email                  String         @unique(map: "index_users_on_email") @default("") @db.VarChar(255)
+  encrypted_password     String         @default("") @db.VarChar(128)
+  password_salt          String?        @default("") @db.VarChar(255)
+  reset_password_token   String?        @unique(map: "index_users_on_reset_password_token") @db.VarChar(255)
+  remember_token         String?        @db.VarChar(255)
+  remember_created_at    DateTime?      @db.DateTime(0)
+  sign_in_count          Int?           @default(0)
+  current_sign_in_at     DateTime?      @db.DateTime(0)
+  last_sign_in_at        DateTime?      @db.DateTime(0)
+  current_sign_in_ip     String?        @db.VarChar(255)
+  last_sign_in_ip        String?        @db.VarChar(255)
+  created_at             DateTime?      @db.DateTime(0)
+  updated_at             DateTime?      @db.DateTime(0)
+  reset_password_sent_at DateTime?      @db.DateTime(0)
+  name                   String?        @db.VarChar(255)
+  email_verified         DateTime?      @db.DateTime(3)
+  image                  String?        @db.VarChar(255)
+  universe_rel           universe       @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_users_universe")
   accounts               accounts[]
   sessions               sessions[]
   DataRegistry           DataRegistry[]
@@ -687,15 +791,15 @@ model verification_tokens {
 }
 
 model app_logs {
-  id         BigInt        @id @default(autoincrement())
+  id         BigInt         @id @default(autoincrement())
   level      app_logs_level @default(info)
-  category   String        @db.VarChar(50)
-  name       String        @db.VarChar(255)
+  category   String         @db.VarChar(50)
+  name       String         @db.VarChar(255)
   user_id    Int?
-  subject    String?       @db.VarChar(50)
+  subject    String?        @db.VarChar(50)
   subject_id Int?
-  metadata   Json?
-  created_at DateTime      @default(now()) @db.Timestamp(0)
+  metadata   String?        @db.LongText
+  created_at DateTime       @default(now()) @db.Timestamp(0)
 
   @@index([category, created_at], map: "idx_app_logs_category_created")
   @@index([user_id, created_at], map: "idx_app_logs_user_created")
@@ -749,9 +853,9 @@ model oauth_clients {
   id                         Int      @id @default(autoincrement())
   client_id                  String   @unique(map: "uniq_oauth_clients_client_id") @db.VarChar(64)
   client_name                String?  @db.VarChar(255)
-  redirect_uris              Json
-  grant_types                Json
-  response_types             Json
+  redirect_uris              String   @db.LongText
+  grant_types                String   @db.LongText
+  response_types             String   @db.LongText
   token_endpoint_auth_method String   @default("none") @db.VarChar(32)
   scope                      String   @default("mcp") @db.VarChar(64)
   created_at                 DateTime @default(now()) @db.DateTime(0)
@@ -874,6 +978,20 @@ enum nta_uploads_series_status {
   fail
 }
 
+enum fetch_runs_status {
+  running
+  ok
+  unchanged
+  failed
+}
+
+enum extraction_runs_status {
+  running
+  ok
+  unchanged
+  failed
+}
+
 enum downloads_filename_ext {
   xlsx
   xls
@@ -941,20 +1059,20 @@ enum messages_status {
 }
 
 model approvals {
-  id                  Int            @id @default(autoincrement())
-  type                approvals_type @default(pre_release)
-  universe            String         @default("UHERO") @db.VarChar(10)
-  name                String         @db.VarChar(500)
-  author              String         @db.VarChar(255)
+  id                  Int                @id @default(autoincrement())
+  type                approvals_type     @default(pre_release)
+  universe            String             @default("UHERO") @db.VarChar(10)
+  name                String             @db.VarChar(500)
+  author              String             @db.VarChar(255)
   author_user_id      Int
-  target_release_date DateTime?      @db.Date
-  review_by_date      DateTime?      @db.Date
-  form_data           Json
-  released_at         DateTime?      @db.DateTime(0)
+  target_release_date DateTime?          @db.Date
+  review_by_date      DateTime?          @db.Date
+  form_data           String             @db.LongText
+  released_at         DateTime?          @db.DateTime(0)
   released_by_user_id Int?
-  deleted_at          DateTime?      @db.DateTime(0)
-  created_at          DateTime       @default(now()) @db.Timestamp(0)
-  updated_at          DateTime       @default(now()) @db.DateTime(0)
+  deleted_at          DateTime?          @db.DateTime(0)
+  created_at          DateTime           @default(now()) @db.Timestamp(0)
+  updated_at          DateTime           @default(now()) @db.DateTime(0)
   reviews             approval_reviews[]
 
   @@index([universe, created_at], map: "idx_approvals_universe_created")
@@ -974,7 +1092,7 @@ model approval_reviews {
   board_status     String    @default("in_progress") @db.VarChar(20)
   created_at       DateTime  @default(now()) @db.Timestamp(0)
   updated_at       DateTime  @default(now()) @db.DateTime(0)
-  approval         approvals @relation(fields: [approval_id], references: [id], onDelete: Cascade, map: "fk_approval_reviews_approval")
+  approval         approvals @relation(fields: [approval_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_approval_reviews_approval")
 
   @@unique([approval_id, reviewer_user_id], map: "uq_approval_reviews_approval_reviewer")
   @@index([reviewer_user_id], map: "idx_approval_reviews_reviewer")

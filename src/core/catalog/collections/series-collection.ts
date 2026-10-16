@@ -399,7 +399,17 @@ class SeriesCollection {
   }
 
   /** Fetch a single series by name, returned as a Series model instance */
-  static async getByName(seriesName: string): Promise<Series> {
+  /**
+   * With `universe` (a loader's `"X@HI.M".ts`), a name that exists in
+   * several universes resolves to that universe's series, then UHERO's (as
+   * Rails' Series.get did). DOTAX holds its own TGRRTNS@HI.M etc. next to
+   * UHERO's; elsewhere duplicate names are aliases sharing one xseries.
+   */
+  static async getByName(
+    seriesName: string,
+    universe?: string,
+  ): Promise<Series> {
+    const prefer = universe ?? "UHERO";
     const rows = await mysql<SeriesAttrs>`
       SELECT
         s.id, s.xseries_id, s.geography_id, s.unit_id, s.source_id,
@@ -415,6 +425,7 @@ class SeriesCollection {
       JOIN xseries x ON s.xseries_id = x.id
       LEFT JOIN units u ON s.unit_id = u.id
       WHERE s.name = ${seriesName}
+      ORDER BY s.universe = ${prefer} DESC, s.universe = 'UHERO' DESC, s.id
       LIMIT 1
     `;
     const row = rows[0];
@@ -2108,22 +2119,29 @@ class SeriesCollection {
     return result;
   }
 
+  // ─── Ingest ────────────────────────────────────────────────────────
+
   /**
-   * Load a DATABOOK series from the combined Data Book vintage file
-   * (data-dir/databook/vintages.csv): the latest-vintage value for each
-   * date. Eval: `Series.load_from_databook "DB0106@HON.A"`. The vintage
-   * history itself is written by the databook history job, not by this.
+   * Series.load_from_extract("dotax", { type: "collec", tax: "Income-Ind.", source: "Refunds", area: "State" })
+   * One series from an extractor's latest ok extract, picked by named
+   * filters (src/core/ingest/load.ts). `context.seriesName` (the series
+   * the loader fills) supplies a missing frequency filter.
    */
-  static async loadFromDatabook(seriesName: string): Promise<Series> {
-    const { latestFor } = await import("@/core/databook/store");
-    const name = String(seriesName).trim();
-    const data = latestFor(name);
-    if (data.size === 0) {
-      throw new Error(`No Data Book data for ${name}`);
-    }
-    const result = new Series({ name: `Data Book: ${name}` });
+  static async loadFromExtract(
+    handle: unknown,
+    filters: unknown,
+    context: { seriesName?: string | null; universe?: string | null } = {},
+  ): Promise<Series> {
+    const { loadFromExtract } = await import("@/core/ingest/load");
+    const { data, frequency, description } = await loadFromExtract(
+      handle,
+      filters,
+      context,
+    );
+    const result = new Series({ name: description });
     result.data = data;
-    result.frequency = "year";
+    const f = Series.frequencyFromCode(frequency);
+    if (f) result.frequency = f;
     return result;
   }
 
@@ -2558,7 +2576,8 @@ class SeriesCollection {
   > {
     const { loaders, job } = opts;
     const { default: LoaderCol } = await import("./loader-collection");
-    const { fetchSeriesBatch } = await import("../utils/api-clients/bls");
+    const { fetchSeriesBatchHistory } =
+      await import("../utils/api-clients/bls");
 
     const results: Array<{
       loaderId: number;
@@ -2568,81 +2587,30 @@ class SeriesCollection {
     }> = [];
 
     // Deduplicate BLS series IDs (multiple loaders may share the same BLS ID)
+    // and walk full history: 50 IDs per POST, 20-year windows backwards.
     const uniqueBlsIds = [...new Set(loaders.map((l) => l.blsSeriesId))];
-
-    // Group into batches of 50 for the POST endpoint
-    const BLS_BATCH_SIZE = 50;
-    const BLS_MAX_SPAN = 20;
-    const currentYear = new Date().getFullYear();
-
-    // Merged data across all chunks: blsSeriesId → date→value
-    const allData = new Map<string, Map<string, number>>();
-
-    // Walk backwards in 20-year chunks
-    let endYear = currentYear;
-    let activeIds = [...uniqueBlsIds];
-    let totalRequests = 0;
-
-    while (activeIds.length > 0 && endYear > 1900) {
-      const startYear = endYear - BLS_MAX_SPAN + 1;
-      job?.log(
-        `BLS batch: fetching ${activeIds.length} series for ${startYear}–${endYear}`,
-      );
-
-      // Split into batches of 50
-      for (let i = 0; i < activeIds.length; i += BLS_BATCH_SIZE) {
-        const batch = activeIds.slice(i, i + BLS_BATCH_SIZE);
-        try {
-          const batchResult = await fetchSeriesBatch(batch, startYear, endYear);
-          totalRequests++;
-
-          for (const [sid, chunkData] of batchResult) {
-            const existing = allData.get(sid) ?? new Map<string, number>();
-            for (const [date, value] of chunkData) {
-              existing.set(date, value);
-            }
-            allData.set(sid, existing);
-          }
-
-          // Track which series returned data in this chunk
-          const emptyInChunk = batch.filter((id) => {
-            const d = batchResult.get(id);
-            return !d || d.size === 0;
-          });
-
-          // Remove series that returned empty from subsequent backward chunks
-          if (emptyInChunk.length > 0) {
-            const emptySet = new Set(emptyInChunk);
-            activeIds = activeIds.filter((id) => !emptySet.has(id));
-          }
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          job?.log(`BLS batch error (${startYear}–${endYear}): ${msg}`);
-          log.error({ startYear, endYear, err: msg }, "BLS batch chunk failed");
-          // On error, remove this batch from activeIds to avoid infinite retries
-          const batchSet = new Set(batch);
-          activeIds = activeIds.filter((id) => !batchSet.has(id));
-
-          // Record errors for loaders in this batch
-          for (const loader of loaders) {
-            if (batchSet.has(loader.blsSeriesId)) {
-              results.push({
-                loaderId: loader.loaderId,
-                status: "error",
-                message: msg,
-                inserted: 0,
-              });
-            }
-          }
-        }
-      }
-
-      endYear = endYear - BLS_MAX_SPAN;
-    }
+    const history = await fetchSeriesBatchHistory(uniqueBlsIds, {
+      log: (msg) => job?.log(msg),
+    });
+    const allData = history.data;
 
     job?.log(
-      `BLS batch: ${totalRequests} API requests, ${allData.size} series with data`,
+      `BLS batch: ${history.requests} API requests, ${allData.size} series with data`,
     );
+
+    // A failed request fails every loader in its batch (empty-data series
+    // are handled per loader below, as before).
+    for (const loader of loaders) {
+      const err = history.failed.get(loader.blsSeriesId);
+      if (err && !/^No BLS data returned/.test(err)) {
+        results.push({
+          loaderId: loader.loaderId,
+          status: "error",
+          message: err,
+          inserted: 0,
+        });
+      }
+    }
 
     // Now write data for each loader
     const erroredLoaderIds = new Set(results.map((r) => r.loaderId));

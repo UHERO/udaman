@@ -38,6 +38,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -113,14 +114,13 @@ export function LoaderEditSheet({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!loader) return;
     try {
-      const result = await updateDataLoader(loader.id, values);
+      const result = unwrapAction(await updateDataLoader(loader.id, values));
       toast.success(result.message);
+      for (const w of result.warnings) toast.warning(w);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update loader",
-      );
+      toastActionError(error, "Failed to update loader");
     }
   }
 

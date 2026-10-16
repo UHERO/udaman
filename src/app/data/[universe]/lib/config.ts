@@ -208,6 +208,12 @@ const ACCESSIBLE_CCOM = ["#1e7a3e", "#2a78d6", "#eb6834", "#4a3aa7", "#eda100"];
 
 const PORTAL_ORIGIN = "https://data.uhero.hawaii.edu";
 
+/** The main UHERO dashboards site; its sidebar entry opens the directory. */
+const UHERO_DASHBOARD_PROJECT = {
+  name: "UHERO Dashboard Project",
+  url: "https://uhero.hawaii.edu/analytics-dashboards/",
+};
+
 // ─── Registry ───────────────────────────────────────────────────────
 
 export const PORTAL_CONFIGS: Record<string, PortalConfig> = {
@@ -259,12 +265,7 @@ export const PORTAL_CONFIGS: Record<string, PortalConfig> = {
       publicUrl: PORTAL_ORIGIN,
     },
     sliderInteraction: true,
-    otherDashboardLinks: [
-      {
-        name: "UHERO Dashboard Project",
-        url: "https://uhero.hawaii.edu/analytics-dashboards/",
-      },
-    ],
+    otherDashboardLinks: [UHERO_DASHBOARD_PROJECT],
     // UHERO Analytics mark on chart exports.
     exportLogo: {
       src: "/data-portal/uhero/Analytics_Logo.svg",
@@ -452,6 +453,15 @@ export function canonicalUniverse(slug: string): string {
 }
 
 /**
+ * Universes with no registry entry that still differ from the generic
+ * fallback (merged over it in getPortalConfig).
+ */
+const FALLBACK_OVERRIDES: Record<string, Partial<PortalConfig>> = {
+  dotax: { otherDashboardLinks: [UHERO_DASHBOARD_PROJECT] },
+  databook: { otherDashboardLinks: [UHERO_DASHBOARD_PROJECT] },
+};
+
+/**
  * Config for a universe. Unknown universes (valid in the DB but not in the
  * registry) get the UHERO behavior with a generic title/logo.
  */
@@ -479,6 +489,7 @@ export function getPortalConfig(universe: string): PortalConfig {
     otherDashboardLinks: [],
     exportLogo: undefined,
     googleAnalyticsId: undefined,
+    ...FALLBACK_OVERRIDES[slug],
   };
 }
 

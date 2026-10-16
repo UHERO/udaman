@@ -1,6 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { createLogger } from "@/core/observability/logger";
+import { isProduction } from "@/lib/app-env";
 
 const log = createLogger("mailer.transport");
 
@@ -14,7 +15,7 @@ const log = createLogger("mailer.transport");
  *   SMTP_UHEROSRV_HOST, SMTP_UHEROSRV_PORT, SMTP_UHEROSRV_USER,
  *   SMTP_UHEROSRV_PASS, SMTP_UHEROSRV_SECURE, SMTP_UHEROSRV_FROM
  *
- * Safety: non-production envs redirect all mail to DEV_MAIL_RECIPIENT.
+ * Safety: non-production envs (APP_ENV) redirect all mail to DEV_MAIL_RECIPIENT.
  * MAIL_DISABLED=1 prevents all sends (logs only).
  */
 
@@ -142,11 +143,10 @@ export async function sendMail(opts: SendMailOptions): Promise<SendResult> {
 
   // Hard safety: in non-production environments, force all mail to the dev
   // recipient regardless of what the caller passed.
-  const isProd = process.env.NODE_ENV === "production";
-  const to = isProd ? opts.to : DEV_MAIL_RECIPIENT;
-  const cc = isProd ? opts.cc : undefined;
-  const bcc = isProd ? opts.bcc : undefined;
-  if (!isProd) {
+  const to = isProduction ? opts.to : DEV_MAIL_RECIPIENT;
+  const cc = isProduction ? opts.cc : undefined;
+  const bcc = isProduction ? opts.bcc : undefined;
+  if (!isProduction) {
     log.info(
       { originalTo: opts.to, devRecipient: DEV_MAIL_RECIPIENT },
       "Non-production env — redirecting outbound mail to dev recipient",

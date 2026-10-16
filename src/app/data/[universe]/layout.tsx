@@ -4,6 +4,7 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { canonicalUniverse } from "./lib/config";
 import { portalHref, ROOT_UNIVERSE } from "./lib/links";
 import {
+  canViewInternalPortal,
   lookupUniverse,
   UniverseLayout,
   universeLayoutMetadata,
@@ -39,7 +40,13 @@ export default async function PortalLayout({ children, params }: Props) {
   // /data/forecast/… → /data/fc/… keeping the path; these are fallbacks.
   if (slug === ROOT_UNIVERSE) permanentRedirect(portalHref(ROOT_UNIVERSE));
   if (slug !== rawSlug) redirect(portalHref(slug));
-  if (!(await lookupUniverse(slug)).exists) notFound();
+  const { exists, internalOnly } = await lookupUniverse(slug);
+  if (!exists) notFound();
+  // Internal-only universes need a udaman login; anyone else lands on the
+  // public base portal. Not applied to UHERO at the root (it would redirect
+  // to itself) — the (uhero) layout never checks the flag.
+  if (internalOnly && !(await canViewInternalPortal(slug)))
+    redirect(portalHref(ROOT_UNIVERSE));
 
   return <UniverseLayout universe={slug}>{children}</UniverseLayout>;
 }

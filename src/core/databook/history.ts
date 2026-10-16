@@ -6,6 +6,13 @@
  * old point and become current, and an older edition can never overwrite
  * a newer one.
  *
+ * The editions come from the `databook` extractor's stored workbooks,
+ * matched the way the extract is (source.ts); a DATABOOK series is found
+ * by the filters of its load_from_extract("databook", …) loader. The
+ * loaders' own reloads only ever see the latest edition, so this is how
+ * history (and an edition's release date) gets in: once when the universe
+ * is built, then once per new edition (`annual`).
+ *
  * Runs per series (editions ascending within a series), several series at
  * a time. Within a series, an edition only sends the dates whose value
  * differs from what the previous edition sent — unchanged history is the
@@ -15,16 +22,23 @@ import DataPointCollection from "@catalog/collections/data-point-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 
+import { normalizeLabel } from "@/core/ingest/labels";
+import { extractCallsIn } from "@/core/ingest/references";
+import { vintageDate } from "@/core/ingest/sources/databook/match";
+import {
+  latestValues,
+  type MatchedDatabook,
+} from "@/core/ingest/sources/databook/parse";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/db";
 
-import { DATABOOK, observedEval, pseudoEval } from "./apply";
-import { getVintageIndex, latestObserved, vintageDate } from "./store";
+import { DATABOOK } from "./apply";
+import { DATABOOK_EXTRACTOR, storedDatabook } from "./source";
 
 const log = createLogger("databook.history");
 
 export interface HistoryOptions {
-  /** Only load these editions (default: all in the vintage file). */
+  /** Only load these editions (default: all stored). */
   editions?: number[];
   /** Only these series (default: every DATABOOK series with a Data Book loader). */
   series?: string[];
@@ -46,9 +60,16 @@ export interface HistoryStats {
 interface Target {
   name: string;
   xseriesId: number;
+  /** table|name|geo of its extract filters */
+  key: string;
   observedLoaderId: number;
   pseudoLoaderId: number | null;
 }
+
+const filterKey = (f: Record<string, unknown>) =>
+  ["table", "name", "geo"]
+    .map((k) => normalizeLabel(String(f[k] ?? "")))
+    .join("|");
 
 async function targets(only?: string[]): Promise<Target[]> {
   const rows = await rawQuery<{
@@ -60,11 +81,13 @@ async function targets(only?: string[]): Promise<Target[]> {
     `SELECT s.name, s.xseries_id, d.id AS loader_id, d.eval
        FROM series s
        JOIN data_sources d ON d.series_id = s.id
-      WHERE s.universe = ? AND d.eval LIKE 'Series.load_from_databook(%'`,
-    [DATABOOK],
+      WHERE s.universe = ? AND d.eval LIKE ?`,
+    [DATABOOK, `Series.load_from_extract("${DATABOOK_EXTRACTOR}"%`],
   );
   const by = new Map<string, Target>();
   for (const r of rows) {
+    const call = extractCallsIn(r.eval)[0];
+    if (!call?.filters) continue;
     let t = by.get(r.name);
     if (!t) {
       by.set(
@@ -72,13 +95,14 @@ async function targets(only?: string[]): Promise<Target[]> {
         (t = {
           name: r.name,
           xseriesId: r.xseries_id,
+          key: filterKey(call.filters),
           observedLoaderId: 0,
           pseudoLoaderId: null,
         }),
       );
     }
-    if (r.eval === observedEval(r.name)) t.observedLoaderId = r.loader_id;
-    else if (r.eval === pseudoEval(r.name)) t.pseudoLoaderId = r.loader_id;
+    if (r.eval.endsWith(".fill_missing_linear")) t.pseudoLoaderId = r.loader_id;
+    else t.observedLoaderId = r.loader_id;
   }
   const want = only ? new Set(only) : null;
   return [...by.values()].filter(
@@ -88,8 +112,13 @@ async function targets(only?: string[]): Promise<Target[]> {
 
 export async function loadHistory(
   opts: HistoryOptions = {},
+  /** Already matched (sync passes its own); else matched here */
+  matched?: MatchedDatabook,
 ): Promise<HistoryStats> {
-  const index = getVintageIndex();
+  const m = matched ?? (await storedDatabook());
+  const index = new Map(
+    [...m.series.values()].map((s) => [filterKey(s.dims), s.byEdition]),
+  );
   const list = await targets(opts.series);
   const editionFilter = opts.editions ? new Set(opts.editions) : null;
   const stats: HistoryStats = {
@@ -126,8 +155,8 @@ export async function loadHistory(
   };
 
   const loadSeries = async (t: Target) => {
-    const byEdition = index.get(t.name);
-    if (!byEdition) return;
+    const byEdition = index.get(t.key);
+    if (!byEdition) throw new Error(`no ${DATABOOK_EXTRACTOR} series ${t.key}`);
     const editions = [...byEdition.keys()].sort((a, b) => a - b);
     const sent = new Map<string, number>();
     for (const edition of editions) {
@@ -156,7 +185,7 @@ export async function loadHistory(
     if (t.pseudoLoaderId) {
       const observed = new Series({ name: t.name });
       observed.frequency = "year";
-      observed.data = latestObserved(byEdition);
+      observed.data = latestValues(byEdition);
       const filled = observed.fillMissingLinear().data;
       if (filled.size > 0) {
         stats.pseudoSeries++;

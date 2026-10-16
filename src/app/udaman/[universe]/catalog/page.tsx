@@ -33,6 +33,7 @@ export default async function CatalogPage({
         name={name}
         description={current?.description ?? null}
         dataPortalUrl={current?.dataPortalUrl ?? null}
+        internalOnly={current?.internalOnly ?? false}
         stats={stats}
         canDelete={canDelete}
         universes={universes}

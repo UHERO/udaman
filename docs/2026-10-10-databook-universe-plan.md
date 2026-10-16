@@ -2,6 +2,7 @@
 
 _2026-10-10, revised for a full-history (2002–2025) vintage load.
 Sources:
+
 - current edition: https://dbedt.hawaii.gov/economic/databook/db2025/ (`DB2025_sectionNN.xlsx`)
 - archive: `https://files.hawaii.gov/dbedt/economic/archive/databook/db{YYYY}/section{NN}.xls`, 2002–2024_
 
@@ -28,21 +29,51 @@ Sources:
 
 ---
 
-## Implementation status (2026-10-10)
+## Ported to the ingest framework (2026-10-15)
+
+The fetch and parse steps below now run as the ingest source `databook`
+(`src/core/ingest/sources/databook/`), and the loaders read its extract.
+The rest of this document still describes the design; the commands changed.
+Details are in `docs/2026-10-14-downloaders-extractors-phase1.md` §12.
+
+- **Downloader `databook`** (`bun run ingest fetch databook`, monthly, 03:30 on the 15th) stores
+  each edition's 24 section workbooks as raw artifacts
+  (`db<YYYY>/section<NN>`). Older editions are final; the newest is
+  refetched every run.
+- **Extractor `databook`** (`bun run ingest extract databook`) parses every
+  stored edition, matches them to the 2025 edition's series and writes the
+  latest-edition value per date, with columns section, table, name, geo,
+  unit, date and value.
+- **Loaders** read it by table, name and geography, e.g.
+  `Series.load_from_extract("databook", { table: "20.04", name: "Pounds landed of commercial fish", geo: "HI" })`,
+  plus `.fill_missing_linear` for pseudo-history. `Series.load_from_databook`
+  is gone.
+- **Universe tooling** (`bun run databook`): `sync` (was propose + match:
+  refreshes the manifest from the stored files, keeping names), `apply`,
+  `history` (vintages from the stored files), `publish`, `annual`.
+  `vintages.csv`, `latest.json` and `ir/` in data-dir/databook are no longer
+  written or read.
+- **Units:** the unit rules now also read measure words in labels, bare
+  headnote units, ranks, and what a count counts ("Number of Employees",
+  Persons, Units, Jobs). "Number" went from 8,490 to 3,927 of 14,416
+  measurements.
+
+## Implementation status (2026-10-10) — superseded, see above
 
 Built in `src/core/databook/`. The CLI is `bun run databook <cmd>` (`src/core/workers/databook-cli.ts`). Everything has been run end to end against the **local dev DB** (`uhero_db_dev`).
 
-| Step | Command | Result |
-|---|---|---|
-| Download | `fetch --edition Y` | All 24 editions are staged in `data-dir/databook/raw/db{Y}/`; files are hashed to detect re-issues. |
-| Parse | `extract --all` | Two adapters, `adapters/accessible.ts` (2025) and `adapters/legacy.ts` (2002–2024), both emit `ir.ts`. Output is about 1.7M cells in `data-dir/databook/ir/` (16 s). Capture is 93% of numeric cells for 2025 and 86–90% for legacy editions (97% within classifiable tables). |
-| Manifest | `propose` | Built from 2025: 764 tables, ~17k measurements. It lives in `data-dir/databook/manifest/`, not the repo (19 MB). Names are frozen because `propose` starts from the previous manifest, so back that directory up. |
-| Match | `match` | `data-dir/databook/vintages.csv` (200 MB, every cell of every edition) and `match-report.csv`. Time-series series are matched in 70% of the editions where their table exists; snapshot series in 46%. |
-| DB | `apply --execute` | 19,610 series (snapshot series need ≥5 editions), 725 categories, 599 data lists, 25 units, 158 sources, and observed plus pseudo loaders. Idempotent; takes 39 s. |
-| Vintages | `history --execute` | 353k data points; 23.5k dates carry revision vintages; vintage dates run 2003-08-01 … 2026-08-01. Every date has exactly one current point. A re-run inserts 0 points. Takes 35 s. |
-| Annual | `annual --edition Y [--execute]` | Fetch → extract → match (newer editions are matched **forward** from 2025) → apply → load only that vintage. |
+| Step     | Command                          | Result                                                                                                                                                                                                                                                                         |
+| -------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Download | `fetch --edition Y`              | All 24 editions are staged in `data-dir/databook/raw/db{Y}/`; files are hashed to detect re-issues.                                                                                                                                                                            |
+| Parse    | `extract --all`                  | Two adapters, `adapters/accessible.ts` (2025) and `adapters/legacy.ts` (2002–2024), both emit `ir.ts`. Output is about 1.7M cells in `data-dir/databook/ir/` (16 s). Capture is 93% of numeric cells for 2025 and 86–90% for legacy editions (97% within classifiable tables). |
+| Manifest | `propose`                        | Built from 2025: 764 tables, ~17k measurements. It lives in `data-dir/databook/manifest/`, not the repo (19 MB). Names are frozen because `propose` starts from the previous manifest, so back that directory up.                                                              |
+| Match    | `match`                          | `data-dir/databook/vintages.csv` (200 MB, every cell of every edition) and `match-report.csv`. Time-series series are matched in 70% of the editions where their table exists; snapshot series in 46%.                                                                         |
+| DB       | `apply --execute`                | 19,610 series (snapshot series need ≥5 editions), 725 categories, 599 data lists, 25 units, 158 sources, and observed plus pseudo loaders. Idempotent; takes 39 s.                                                                                                             |
+| Vintages | `history --execute`              | 353k data points; 23.5k dates carry revision vintages; vintage dates run 2003-08-01 … 2026-08-01. Every date has exactly one current point. A re-run inserts 0 points. Takes 35 s.                                                                                             |
+| Annual   | `annual --edition Y [--execute]` | Fetch → extract → match (newer editions are matched **forward** from 2025) → apply → load only that vintage.                                                                                                                                                                   |
 
 Code changes outside `databook/`:
+
 - `SeriesCollection.updateData({ vintageAt })`
 - `Series.fillMissingLinear`
 - `SeriesCollection.loadFromDatabook` (eval `Series.load_from_databook("NAME")`, which needs the parentheses)
@@ -50,6 +81,7 @@ Code changes outside `databook/`:
 - `DATABOOK` in the hard-coded universe lists
 
 Known gaps / next steps:
+
 - **Series that first appear after 2025** are reported as unmatched in `match-report.csv` but not yet created. `propose` only builds from the 2025 IR.
 - **Match quality is uneven by table.** The worst are restructured tables (09.13), tables with changing listings (05.37, 01.35/01.36), and tables where the legacy layout differs (13.43). These need `overrides`, which don't exist yet; the adapters only apply their generic rules.
 - **Unit labels need a review pass.** A few odd ones remain, e.g. "Reported to the U", "Mixed Use Condominium Projects".
@@ -62,6 +94,7 @@ Known gaps / next steps:
 ### 1.1 The 2025 edition (accessible xlsx)
 
 Each `DB2025_sectionNN.xlsx` has:
+
 - a `Section N Table of contents` sheet
 - a `Section N Narrative` sheet: one paragraph, which becomes the category description
 - one sheet per table, named `NN.TT`
@@ -77,47 +110,47 @@ Table layout:
 30  Source:  U.S. Bureau of the Census, … <https://…> accessed …     ← source (+ URL)
 ```
 
-| Feature | Count (of 833 tables) | Notes |
-|---|---|---|
-| Header row | row 2–6 for 92% | It's the first row with ≥2 non-empty cells. |
-| Merged cells | 6 tables | |
-| `… hierarchy` column (`Level 1`…`Level 9`) | 194 | Gives an explicit tree; levels 1–3 make up 85% of rows. |
-| Stacked panels (header row repeated mid-sheet) | 169 | e.g. 02.02: births / deaths / birth rates / death rates |
-| Composite headers | common | `April 1, 2020, Both sexes`, `Real SPI per capita 2018` |
-| Footnote markers | 2,408 labels, 939 values | `Maui County [a]`, `2020 [c]`, cell = `"[a]"`, number format `#,##0\ "[b]"` |
-| Number formats | | `#,##0` 663, `0.0%` 95, `"$"#,##0` 37. Percents are stored as fractions (the loader multiplies them by 100; see `percent` below). |
-| `Source:` line | all | |
+| Feature                                        | Count (of 833 tables)    | Notes                                                                                                                             |
+| ---------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Header row                                     | row 2–6 for 92%          | It's the first row with ≥2 non-empty cells.                                                                                       |
+| Merged cells                                   | 6 tables                 |                                                                                                                                   |
+| `… hierarchy` column (`Level 1`…`Level 9`)     | 194                      | Gives an explicit tree; levels 1–3 make up 85% of rows.                                                                           |
+| Stacked panels (header row repeated mid-sheet) | 169                      | e.g. 02.02: births / deaths / birth rates / death rates                                                                           |
+| Composite headers                              | common                   | `April 1, 2020, Both sexes`, `Real SPI per capita 2018`                                                                           |
+| Footnote markers                               | 2,408 labels, 939 values | `Maui County [a]`, `2020 [c]`, cell = `"[a]"`, number format `#,##0\ "[b]"`                                                       |
+| Number formats                                 |                          | `#,##0` 663, `0.0%` 95, `"$"#,##0` 37. Percents are stored as fractions (the loader multiplies them by 100; see `percent` below). |
+| `Source:` line                                 | all                      |                                                                                                                                   |
 
 **Layouts:**
 
-| Layout | Tables | Description | Example |
-|---|---|---|---|
-| **Long** | 292 | Col A = period, columns = series (219 tables have ≥20 periods) | 01.04, 01.06 |
-| **Wide** | 168 | Header = periods, rows = series | 01.05, 01.11, 13.11 |
-| **Snapshot** | 373 | One period (named in the title), rows × columns = dimensions | 01.27, 01.29 |
+| Layout       | Tables | Description                                                    | Example             |
+| ------------ | ------ | -------------------------------------------------------------- | ------------------- |
+| **Long**     | 292    | Col A = period, columns = series (219 tables have ≥20 periods) | 01.04, 01.06        |
+| **Wide**     | 168    | Header = periods, rows = series                                | 01.05, 01.11, 13.11 |
+| **Snapshot** | 373    | One period (named in the title), rows × columns = dimensions   | 01.27, 01.29        |
 
 **Time labels** (long tables; plain years are about 92% of rows):
 
-| Shape | Rule |
-|---|---|
-| `2019`, `2020 [c]` | → `YYYY-01-01` (strip the footnote marker) |
-| `2010: April 1` / `2010: July 1` | Two rows for the same year: keep July 1 (the regular estimate). The census-base row goes to a separate measure or is dropped. |
-| `January 1, 2010`, `Dec. 31, 2010`, `1996: Nov. 5` | → that year |
-| `2005/2006`, `2019-2020` (one-year span) | fiscal or school year → end year; the series description notes "Fiscal Year" / "School Year" / "Crop Year" etc. |
-| `2020-2030`, `1990 - 2000`, `1959-1961` (multi-year) | an interval (growth rate, projection, life table): **skipped** |
-| `2022, including gov't`, `2012 Military personnel [a]` | year + dimension in one cell: per-table override |
+| Shape                                                  | Rule                                                                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `2019`, `2020 [c]`                                     | → `YYYY-01-01` (strip the footnote marker)                                                                                    |
+| `2010: April 1` / `2010: July 1`                       | Two rows for the same year: keep July 1 (the regular estimate). The census-base row goes to a separate measure or is dropped. |
+| `January 1, 2010`, `Dec. 31, 2010`, `1996: Nov. 5`     | → that year                                                                                                                   |
+| `2005/2006`, `2019-2020` (one-year span)               | fiscal or school year → end year; the series description notes "Fiscal Year" / "School Year" / "Crop Year" etc.               |
+| `2020-2030`, `1990 - 2000`, `1959-1961` (multi-year)   | an interval (growth rate, projection, life table): **skipped**                                                                |
+| `2022, including gov't`, `2012 Military personnel [a]` | year + dimension in one cell: per-table override                                                                              |
 
 **Text-heavy tables** (~80: rankings, name lists, disasters) are out of scope.
 
 ### 1.2 The legacy editions (2002–2024 `.xls`)
 
-| | 2002 | 2008 | 2014 | 2020 | 2024 |
-|---|---|---|---|---|---|
-| Tables | 770 | 800 | 842 | 864 | 836 |
-| Tables with merged cells | 124 | 101 | 115 | 114 | 124 |
-| Multi-row headers | 278 | 263 | 276 | 282 | 255 |
-| Dates split across two columns (`1980:` / `July 1`) | 46 | 49 | 43 | 39 | 41 |
-| Footnote style | `1/` | `1/` | `1/` | `1/` | `1/` |
+|                                                     | 2002 | 2008 | 2014 | 2020 | 2024 |
+| --------------------------------------------------- | ---- | ---- | ---- | ---- | ---- |
+| Tables                                              | 770  | 800  | 842  | 864  | 836  |
+| Tables with merged cells                            | 124  | 101  | 115  | 114  | 124  |
+| Multi-row headers                                   | 278  | 263  | 276  | 282  | 255  |
+| Dates split across two columns (`1980:` / `July 1`) | 46   | 49   | 43   | 39   | 41   |
+| Footnote style                                      | `1/` | `1/` | `1/` | `1/` | `1/` |
 
 - **Every year has all 24 sections.**
 - **The title is always on row 1**, starting `Table N.NN--`.
@@ -155,25 +188,27 @@ Tables were chained edition by edition with a one-to-one greedy match on title t
 - **Value overlap** (the share of a table's numbers, excluding year-like values and numbers under 10, that also appear in the previous edition's table with the same number):
 
   | Edition pair | Pairs | ≥30% overlap | some | none (snapshot-like) |
-  |---|---|---|---|---|
-  | 2024→2025 | 797 | 543 (68%) | 117 | 137 |
-  | 2010→2011 | 778 | 470 (60%) | 116 | 192 |
+  | ------------ | ----- | ------------ | ---- | -------------------- |
+  | 2024→2025    | 797   | 543 (68%)    | 117  | 137                  |
+  | 2010→2011    | 778   | 470 (60%)    | 116  | 192                  |
 
   So for most time-series tables, unrevised history repeats exactly between editions. That makes overlapping values the best evidence for "this legacy column is that 2025 series". It also works when the column header was reworded, which labels alone can't handle.
+
 - **Revisions are real.** The April 1, 2020 state population is 1,455,252 in 2024 and 1,455,267 in 2025. This is exactly what the vintage load should capture.
 
 Title matching alone is noisy: tables with similar titles can swap ("X, by county: 2020" vs "X: 2010 and 2020"). Production matching should combine title, value overlap, and header-label overlap, and send low-confidence matches to review (§3.3).
 
 ### 1.4 Publication timing → vintage dates
 
-The file "last modified" dates show edition *Y* is published around **August of Y+1**:
+The file "last modified" dates show edition _Y_ is published around **August of Y+1**:
+
 - 2002 edition: Oct 2003
 - 2003–2024 editions: late July – Sept of the following year
 - 2025 edition: files modified Sept 27 – Oct 6, 2026
 
-**Convention: vintage date = `{Y+1}-08-01`** for edition *Y*, i.e. the year it was released. It's simple, monotonic, and within a few weeks of the real date. It is **not** the file's last-modified date.
+**Convention: vintage date = `{Y+1}-08-01`** for edition _Y_, i.e. the year it was released. It's simple, monotonic, and within a few weeks of the real date. It is **not** the file's last-modified date.
 
-DBEDT also **edits the current edition's files after publishing** (2025 files were modified into October 2026). So the annual job hashes the files and reloads whenever the current edition changes. That reload uses the same vintage date, and `updateData` corrects the vintage's rows in place (see §3.3).
+DBEDT **may edit the current edition's files after publishing**: the 2025 files were modified Sept 27 – Oct 6, 2026, while the edition was going out, but the files fetched on Oct 10 and Oct 14 were identical. The monthly fetch hashes the files, so a later revision becomes a new vintage. That reload uses the same vintage date, and `updateData` corrects the vintage's rows in place (see §3.3).
 
 ---
 
@@ -210,13 +245,13 @@ editions ──► adapter (2025: accessible │ 2002–2024: legacy) ──► 
 
 ### 2.2 Naming
 
-| Layout | Series key | Example |
-|---|---|---|
-| Long, plain columns | `DB{SS}{TT}{col}` | 01.04 col B → `DB0104B@HI.A` |
-| Long, geography columns | `DB{SS}{TT}` + geo | 01.06 → `DB0106@HI.A`, `@HON`, `@HAW`, `@KAU`, `@MAU` |
-| Long with panels | `DB{SS}{TT}P{n}{col}` | 02.02 deaths col B → `DB0202P2B@HI.A` |
-| Wide (rows are series) | `DB{SS}{TT}R{nn}` | 01.11 Puna → `DB0111R03@…` |
-| Snapshot cell | `DB{SS}{TT}R{nn}{col}` or a geo variant | 01.29 "Under 5" × Honolulu → `DB0129R02@HON.A` |
+| Layout                  | Series key                              | Example                                               |
+| ----------------------- | --------------------------------------- | ----------------------------------------------------- |
+| Long, plain columns     | `DB{SS}{TT}{col}`                       | 01.04 col B → `DB0104B@HI.A`                          |
+| Long, geography columns | `DB{SS}{TT}` + geo                      | 01.06 → `DB0106@HI.A`, `@HON`, `@HAW`, `@KAU`, `@MAU` |
+| Long with panels        | `DB{SS}{TT}P{n}{col}`                   | 02.02 deaths col B → `DB0202P2B@HI.A`                 |
+| Wide (rows are series)  | `DB{SS}{TT}R{nn}`                       | 01.11 Puna → `DB0111R03@…`                            |
+| Snapshot cell           | `DB{SS}{TT}R{nn}{col}` or a geo variant | 01.29 "Under 5" × Honolulu → `DB0129R02@HON.A`        |
 
 - **Positions are taken from the 2025 edition and then frozen.**
   - The manifest stores each series' locator (table history, `row_path`, `col_label`), and every later edition is matched to that locator.
@@ -255,18 +290,18 @@ editions ──► adapter (2025: accessible │ 2002–2024: legacy) ──► 
 
 ### 2.3 Metadata sources
 
-| Udaman field | From |
-|---|---|
-| `description` / `dataPortalName` | Table title (without the period) + panel label + `row_path` + column label, plus a period-basis note when it isn't calendar year ("Fiscal Year", "School Year", "Crop Year", "As of July 1", "5-year ACS ending in year"). The portal name is the leaf label. |
-| `notes` / `investigation_notes` | Headnote + the footnotes that apply (matched by marker letter). |
-| `unit` | In order (meta.ts `inferUnit`), first match wins:<br>1. A percent number format, or any label saying "percent" or "%" ("Hawaii as percent of U.S."; not "50% exemption").<br>2. A unit written in the labels, most specific label first: "(dollars)", "($1,000)", "(in thousands)", "(1,000 kWh)", "(sq. km.)", "(2017=100)", "($/kWh)", ", in thousands of dollars". A label with two units ("($M) and personnel (number)") gives the half whose subject another label names. Item names under a numeric code are skipped.<br>3. The headnote ("[In thousands of dollars …]").<br>4. `$` in the number format, then header words (rate, index, acres …).<br>5. Otherwise "Number".<br>Portal names drop the unit parenthetical unless two measurements would then share a name ("Land area (sq. km.)" / "(sq. mi.)"). Descriptions keep it. |
-| `percent` / `decimals` | Cell number format: `0.0%` → `percent = true`, 1 decimal. Excel stores the fraction (0.17 shows as 17%). The adapters multiply numeric `%` cells by 100 (`toPercentUnits`, meta.ts), so the series holds 17. The `percent` field does not scale anything: in Rails, Angular and this port it only relabels changes ("Chg" instead of "% Chg") and makes YOY a difference. Text cells such as "17%" already parse to 17. |
-| `xseries.units` (scale) | "in thousands" / "in millions" in the headnote. |
-| `source` / `source_link` / `source_detail` | **Source is always "DBEDT State of Hawaii Data Book"**, linked to https://dbedt.hawaii.gov/economic/databook/, because that is where we get the data and citing it means users won't think UHERO compiled the tables. **`source_detail`** = "Data Book Table 1.07 (2025 edition). Original source: " + DBEDT's citation from the table's `Source:` footer. The original agency and URL are also kept in the manifest (`originalAgency` / `originalLink`). |
-| `seasonal_adjustment` | `not_applicable` |
-| Categories | `Databook` → `§N section` (Narrative text) → `Table NN.TT` (one data_list per table). |
-| `list_order` / `indent` | Table order; `Level N` clamped to indent0–3. |
-| Defaults | geo HI, freq A |
+| Udaman field                               | From                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `description` / `dataPortalName`           | Table title (without the period) + panel label + `row_path` + column label, plus a period-basis note when it isn't calendar year ("Fiscal Year", "School Year", "Crop Year", "As of July 1", "5-year ACS ending in year"). The portal name is the leaf label.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `notes` / `investigation_notes`            | Headnote + the footnotes that apply (matched by marker letter).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `unit`                                     | In order (meta.ts `inferUnit`), first match wins:<br>1. A percent number format, or any label saying "percent" or "%" ("Hawaii as percent of U.S."; not "50% exemption").<br>2. A unit written in the labels, most specific label first: "(dollars)", "($1,000)", "(in thousands)", "(1,000 kWh)", "(sq. km.)", "(2017=100)", "($/kWh)", ", in thousands of dollars". A label with two units ("($M) and personnel (number)") gives the half whose subject another label names. Item names under a numeric code are skipped.<br>3. The headnote ("[In thousands of dollars …]").<br>4. `$` in the number format, then header words (rate, index, acres …).<br>5. Otherwise "Number".<br>Portal names drop the unit parenthetical unless two measurements would then share a name ("Land area (sq. km.)" / "(sq. mi.)"). Descriptions keep it. |
+| `percent` / `decimals`                     | Cell number format: `0.0%` → `percent = true`, 1 decimal. Excel stores the fraction (0.17 shows as 17%). The adapters multiply numeric `%` cells by 100 (`toPercentUnits`, meta.ts), so the series holds 17. The `percent` field does not scale anything: in Rails, Angular and this port it only relabels changes ("Chg" instead of "% Chg") and makes YOY a difference. Text cells such as "17%" already parse to 17.                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `xseries.units` (scale)                    | "in thousands" / "in millions" in the headnote.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `source` / `source_link` / `source_detail` | **Source is always "DBEDT State of Hawaii Data Book"**, linked to https://dbedt.hawaii.gov/economic/databook/, because that is where we get the data and citing it means users won't think UHERO compiled the tables. **`source_detail`** = "Data Book Table 1.07 (2025 edition). Original source: " + DBEDT's citation from the table's `Source:` footer. The original agency and URL are also kept in the manifest (`originalAgency` / `originalLink`).                                                                                                                                                                                                                                                                                                                                                                                    |
+| `seasonal_adjustment`                      | `not_applicable`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Categories                                 | `Databook` → `§N section` (Narrative text) → `Table NN.TT` (one data_list per table).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `list_order` / `indent`                    | Table order; `Level N` clamped to indent0–3.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Defaults                                   | geo HI, freq A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 Legacy editions don't change metadata, with one exception: §3.3 records each matched series' historical labels in the manifest as aliases, which helps with review.
 
@@ -286,7 +321,7 @@ Legacy editions don't change metadata, with one exception: §3.3 records each ma
   - Insert a `universe` row `DATABOOK`. No migration is needed (it's a lookup table).
   - Add `DATABOOK` to `UNIVERSES` in `src/core/catalog/types/shared.ts`, to `src/core/catalog/utils/validators.ts`, and to `src/components/compare/parse-filter-names.ts`. That last one is a separate list, which also misses HHF.
   - Check `normalizeUniverse` in `src/lib/auth/roles.ts`.
-- **Don't** reuse the wipe-and-rebuild `universe-upload.ts` pattern (DBEDT/Factbook). Stable IDs matter here. `src/lib/prisma/migrations/factbook-seed/seed.ts` (dry-run plus `--execute`) is the closest template for `apply`.
+- **Don't** reuse the wipe-and-rebuild `universe-upload.ts` pattern (DBEDT/Factbook). Stable IDs matter here. `src/lib/prisma/seeds/factbook-seed/seed.ts` (dry-run plus `--execute`) is the closest template for `apply`.
 - **`bulkCreateSeries` is fixed** (`src/actions/series-actions.ts`).
   - It now looks up existing series with `SeriesCollection.findByNameAndUniverse(name, universe)`.
   - Before, it used the unscoped `getByName`, which attached loaders to a same-named series in another universe. The old `try/catch` also treated any database error as "not found".
@@ -301,19 +336,19 @@ Legacy editions don't change metadata, with one exception: §3.3 records each ma
 
 All editions are parsed into one long file, `data-dir/databook/vintages.csv` (or partitioned per edition):
 
-| Column | Example | Notes |
-|---|---|---|
-| `vintage` | `2013` | Edition year |
-| `vintage_date` | `2014-08-01` | §1.4 |
-| `table_num` | `01.32` | As printed in that edition |
-| `table_line` | `L0129` | Stable table-history ID (that of the 2025 table) |
-| `panel`, `row_path`, `col_label` | `—`, `Under 5 years`, `City and County of Honolulu` | Normalized |
-| `period_label` / `date` | `July 1, 2012` / `2012-01-01` | |
-| `value` | `61327` | Scale-adjusted (thousands → units), percent convention applied |
-| `series` | `DB0129R02@HON.A` | Blank if unmatched |
-| `match` | `value-overlap` · `label` · `manual` · `none` | How the series was matched |
-| `confidence` | `0.97` | |
-| `cell_addr` | `section01.xls!01.32!D14` | Provenance, used for review |
+| Column                           | Example                                             | Notes                                                          |
+| -------------------------------- | --------------------------------------------------- | -------------------------------------------------------------- |
+| `vintage`                        | `2013`                                              | Edition year                                                   |
+| `vintage_date`                   | `2014-08-01`                                        | §1.4                                                           |
+| `table_num`                      | `01.32`                                             | As printed in that edition                                     |
+| `table_line`                     | `L0129`                                             | Stable table-history ID (that of the 2025 table)               |
+| `panel`, `row_path`, `col_label` | `—`, `Under 5 years`, `City and County of Honolulu` | Normalized                                                     |
+| `period_label` / `date`          | `July 1, 2012` / `2012-01-01`                       |                                                                |
+| `value`                          | `61327`                                             | Scale-adjusted (thousands → units), percent convention applied |
+| `series`                         | `DB0129R02@HON.A`                                   | Blank if unmatched                                             |
+| `match`                          | `value-overlap` · `label` · `manual` · `none`       | How the series was matched                                     |
+| `confidence`                     | `0.97`                                              |                                                                |
+| `cell_addr`                      | `section01.xls!01.32!D14`                           | Provenance, used for review                                    |
 
 Size estimate: about 100k numeric cells per edition × 24, so ~2.4M rows. Most of those are in tables we'll match; unmatched rows stay in the file for review instead of being dropped.
 
@@ -333,11 +368,13 @@ Expected yield: most rows in the 588 tables with ≥20 editions should match aut
 ### 3.3 Loading order and udaman mechanics
 
 `SeriesCollection.updateData` (`src/core/catalog/collections/series-collection.ts:1706`) already has the semantics you described:
+
 - a value identical to the loader's latest for that date is skipped
 - a changed value demotes the current point (`current = 0`) and inserts the new one as current
 - dates the loader didn't send are left alone
 
 It now takes an optional **`vintageAt`** (done; `src/core/catalog/collections/series-collection.ts`).
+
 - **`created_at` is set to `vintageAt`** (HST wall-clock `YYYY-MM-DD[ HH:MM:SS]`) instead of `NOW()`.
   - Without this, loading editions back-to-back would collide on the `(xseries_id, date, created_at, data_source_id)` key.
   - It would also record every vintage as "today", making `getVintagesByDate`, `getAsOf` and the portal's `publishedAt` meaningless.
@@ -355,9 +392,10 @@ It now takes an optional **`vintageAt`** (done; `src/core/catalog/collections/se
 4. `updatePublicDataPoints` for the universe.
 
 **What you get:**
+
 - **Revisions become vintages.** Every revision across 24 editions is kept as a vintage dated to its edition.
 - **History reaches back further than 2025 shows.** The 2002 edition's 01.06 covers 1980–2002 and the 2025 edition covers 2010–2025. Years 1980–2009 come from the most recent edition that included them and stay current.
-  - Caveat: that history can mix estimate bases. A year whose last printing came *before* a revision of its neighbors stays on the old basis.
+  - Caveat: that history can mix estimate bases. A year whose last printing came _before_ a revision of its neighbors stays on the old basis.
     - `databook match` flags these: a date whose newest vintage is older than its neighbors' newest vintage, where the neighbors were revised by more than ~1% afterwards.
     - Affected measurements get a note (decision 7).
 - **Snapshot series gain one point per edition,** dated by the period in the title, not by the edition year. A 5-year ACS window `2020-2024` is dated by its end year.
@@ -389,7 +427,7 @@ Some series only have observations every 10 years (census: 1.01, 1.05, 1.46, …
 
 ### 3.6 Annual run (once an edition is published, ~Aug–Oct)
 
-1. Download the 24 files. Hash them; re-run whenever the current edition's files change, since DBEDT edits after publishing.
+1. Download the 24 files. Hash them; re-run whenever the current edition's files change, in case DBEDT revises them in place.
 2. Run the adapter (accessible, or legacy if DBEDT reverts) and validate: every table has a header and a Source line.
 3. Match the new edition to the previous one (§3.2) and to the manifest: matched / moved / new / missing / unit changed / large revisions → review.
 4. Approve. New series get IDs (manifest append + `apply`). Missing series are marked discontinued, never deleted.
@@ -399,14 +437,14 @@ Some series only have observations every 10 years (census: 1.01, 1.05, 1.46, …
 
 ## 4. Required code changes (udaman)
 
-| Change | Where |
-|---|---|
-| ✅ Scope the `bulkCreateSeries` lookup to the universe | `src/actions/series-actions.ts` (done) |
-| Add `DATABOOK` to the hard-coded universe lists | `types/shared.ts`, `utils/validators.ts`, `compare/parse-filter-names.ts` |
-| ✅ `updateData({ …, vintageAt })` + older-vintage guard + same-vintage correction | `collections/series-collection.ts` |
-| ✅ `fillMissingLinear()` (A/S/Q/M/W/D, interior gaps only, returns only the filled points; 5 unit tests) | `models/series.ts` + `eval-executor.ts` registry |
-| `Databook.load(name)` static loader method | `eval-executor.ts` + a `databook` module that reads `vintages.csv` (cached) |
-| `databook` CLI: `extract`, `match`, `propose`, `apply`, `load-history`, `load-edition` | `scripts/databook/` or `src/core/databook/` |
+| Change                                                                                                   | Where                                                                       |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| ✅ Scope the `bulkCreateSeries` lookup to the universe                                                   | `src/actions/series-actions.ts` (done)                                      |
+| Add `DATABOOK` to the hard-coded universe lists                                                          | `types/shared.ts`, `utils/validators.ts`, `compare/parse-filter-names.ts`   |
+| ✅ `updateData({ …, vintageAt })` + older-vintage guard + same-vintage correction                        | `collections/series-collection.ts`                                          |
+| ✅ `fillMissingLinear()` (A/S/Q/M/W/D, interior gaps only, returns only the filled points; 5 unit tests) | `models/series.ts` + `eval-executor.ts` registry                            |
+| `Databook.load(name)` static loader method                                                               | `eval-executor.ts` + a `databook` module that reads `vintages.csv` (cached) |
+| `databook` CLI: `extract`, `match`, `propose`, `apply`, `load-history`, `load-edition`                   | `scripts/databook/` or `src/core/databook/`                                 |
 
 ## 5. Build order
 
@@ -431,17 +469,17 @@ Some series only have observations every 10 years (census: 1.01, 1.05, 1.46, …
 
 ## Appendix A — parser fixtures
 
-| Table | Why |
-|---|---|
-| 2025 01.06 / 2002 01.06 | Same table in both formats: split date column (legacy), duplicate-year rows, geography columns, Maui `2/` vs `[b]` |
-| 2025 01.05 | Wide, island rows, second panel, `[e]` cell values |
-| 2025 01.07 | Two panels: years, then intervals |
-| 2025 01.11 | Wide, `Level 1-3` hierarchy |
-| 2025 01.27 / 2024 01.27 | Composite header vs. a two-row header band |
-| 2025 01.29 + history 01.29/01.31/01.32/01.33/01.35 | Snapshot that rolls forward; renumbered 5 times |
-| 2025 02.02 | Four stacked panels, `[a]` as a value |
-| 2013 12.05 | Legacy: header band, wrapped labels, indentation hierarchy, year panels |
-| 2025 13.11 | Wide by state, two measures × 7 years |
+| Table                                              | Why                                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 2025 01.06 / 2002 01.06                            | Same table in both formats: split date column (legacy), duplicate-year rows, geography columns, Maui `2/` vs `[b]` |
+| 2025 01.05                                         | Wide, island rows, second panel, `[e]` cell values                                                                 |
+| 2025 01.07                                         | Two panels: years, then intervals                                                                                  |
+| 2025 01.11                                         | Wide, `Level 1-3` hierarchy                                                                                        |
+| 2025 01.27 / 2024 01.27                            | Composite header vs. a two-row header band                                                                         |
+| 2025 01.29 + history 01.29/01.31/01.32/01.33/01.35 | Snapshot that rolls forward; renumbered 5 times                                                                    |
+| 2025 02.02                                         | Four stacked panels, `[a]` as a value                                                                              |
+| 2013 12.05                                         | Legacy: header band, wrapped labels, indentation hierarchy, year panels                                            |
+| 2025 13.11                                         | Wide by state, two measures × 7 years                                                                              |
 
 ## Appendix B — analysis scripts (session scratchpad; can be promoted to `scripts/databook/`)
 

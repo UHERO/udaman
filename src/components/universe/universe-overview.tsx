@@ -18,6 +18,7 @@ import {
   Workflow,
 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -28,6 +29,7 @@ interface UniverseOverviewProps {
   name: string;
   description: string | null;
   dataPortalUrl: string | null;
+  internalOnly: boolean;
   stats: UniverseStats;
   canDelete?: boolean;
   universes?: { name: string }[];
@@ -56,6 +58,7 @@ export function UniverseOverview({
   name,
   description,
   dataPortalUrl,
+  internalOnly,
   stats,
   canDelete = false,
   universes = [],
@@ -68,7 +71,10 @@ export function UniverseOverview({
       <div>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-2xl font-semibold">{name}</h2>
+            <h2 className="flex items-center gap-2 text-2xl font-semibold">
+              {name}
+              {internalOnly && <Badge variant="secondary">Internal only</Badge>}
+            </h2>
             {description ? (
               <p className="text-muted-foreground mt-1 max-w-2xl text-sm whitespace-pre-wrap">
                 {description}
@@ -131,7 +137,7 @@ export function UniverseOverview({
         open={editOpen}
         onOpenChange={setEditOpen}
         mode="edit"
-        universe={{ name, description, dataPortalUrl }}
+        universe={{ name, description, dataPortalUrl, internalOnly }}
         onSaved={() => {
           setEditOpen(false);
           router.refresh();
