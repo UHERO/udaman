@@ -54,6 +54,25 @@ function canonicalDataPortalPath(path: string): string | null {
   return `${prefix}${m[2] ?? ""}`.replace(/\/$/, "") || "/";
 }
 
+/**
+ * Data portal under /data: /data/uhero/… → /data/… (UHERO lives at the
+ * portal root), /data/forecast → /data/fc. Query string preserved; browsers
+ * keep any old `#/…` fragment across the redirect. Null when canonical.
+ */
+function dataPortalRedirect(request: NextRequest): NextResponse | null {
+  const { pathname, search } = request.nextUrl;
+  const dataMatch = pathname.match(/^\/data(\/.*)$/);
+  if (!dataMatch) return null;
+  const canonical = canonicalDataPortalPath(dataMatch[1]);
+  if (!canonical) return null;
+  const url = new URL(
+    `/data${canonical === "/" ? "" : canonical}`,
+    request.url,
+  );
+  url.search = search;
+  return NextResponse.redirect(url, 308);
+}
+
 /** Top-level routes that live outside /udaman/{universe} */
 const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs", "/comms", "/data-registry"];
 
@@ -218,6 +237,16 @@ export async function proxy(request: NextRequest) {
 
     // ── App-specific logic (udaman: auth + universe normalization) ──
     if (app === "udaman") {
+      // TEMPORARY: the new data portal at udaman.uhero.hawaii.edu/data while
+      // data.uhero.hawaii.edu still serves the old Angular portal. Public,
+      // served exactly as on direct access (internal-only universes check
+      // the session in their layout). Remove once the data subdomain points
+      // here; the subdomain block above then redirects /data/… to the clean
+      // path.
+      if (pathname === "/data" || pathname.startsWith("/data/")) {
+        return dataPortalRedirect(request) ?? NextResponse.next();
+      }
+
       // Top-level app routes (/admin, /hhdb, /docs, /comms, /data-registry) — rewrite directly
       const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
 
@@ -303,21 +332,8 @@ export async function proxy(request: NextRequest) {
 
   // ── Direct access (no subdomain / localhost dev) ──────────────────
 
-  // Data portal: /data/uhero/… → /data/… (UHERO lives at the portal root),
-  // /data/forecast → /data/fc. Query string preserved; browsers keep any
-  // old `#/…` fragment across the redirect.
-  const dataMatch = pathname.match(/^\/data(\/.*)$/);
-  if (dataMatch) {
-    const canonical = canonicalDataPortalPath(dataMatch[1]);
-    if (canonical) {
-      const url = new URL(
-        `/data${canonical === "/" ? "" : canonical}`,
-        request.url,
-      );
-      url.search = search;
-      return NextResponse.redirect(url, 308);
-    }
-  }
+  const portalRedirect = dataPortalRedirect(request);
+  if (portalRedirect) return portalRedirect;
   const protectedPrefixes = [
     "/udaman",
     "/admin",

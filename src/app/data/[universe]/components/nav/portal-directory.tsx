@@ -23,14 +23,23 @@ const DASHBOARD_PROJECT_URL = "https://uhero.hawaii.edu/analytics-dashboards/";
 /** Public REST API docs (keys are issued on request by email). */
 const REST_API_DOCS_URL = "https://api.uhero.hawaii.edu/docs/#";
 
-type DirectoryEntry = { slug: string; name: string; description: string };
+type DirectoryEntry = {
+  slug: string;
+  name: string;
+  description: string;
+  /**
+   * List it even while the universe is internal-only (visitors without a
+   * login are sent back to the UHERO portal).
+   */
+  listWhenInternal?: boolean;
+};
 
 /**
  * Public portals listed in the directory, grouped and in display order.
  * `dvw`/`dbedt` are the custom dashboards under /data. Curated rather than
  * read from the `universes` table so internal universes never surface on
  * the public site; universes flagged internal-only are also filtered out at
- * render time (except the one being viewed).
+ * render time (except the one being viewed, and `listWhenInternal` ones).
  */
 const DIRECTORY_GROUPS: { label: string; entries: DirectoryEntry[] }[] = [
   {
@@ -56,6 +65,13 @@ const DIRECTORY_GROUPS: { label: string; entries: DirectoryEntry[] }[] = [
         name: "Forecast",
         description: "UHERO forecast series and history",
       },
+      {
+        slug: "dotax",
+        name: "Tax Collections",
+        description:
+          "Hawaiʻi Department of Taxation collections and distributions",
+        listWhenInternal: true,
+      },
     ],
   },
   {
@@ -70,6 +86,12 @@ const DIRECTORY_GROUPS: { label: string; entries: DirectoryEntry[] }[] = [
         slug: "dbedt",
         name: "Economic Data Warehouse",
         description: "State of Hawaiʻi DBEDT statistics",
+      },
+      {
+        slug: "databook",
+        name: "State Data Book",
+        description: "The DBEDT State of Hawaiʻi Data Book, every edition",
+        listWhenInternal: true,
       },
     ],
   },
@@ -89,7 +111,10 @@ export function PortalDirectory({ onNavigate }: { onNavigate?: () => void }) {
   const groups = DIRECTORY_GROUPS.map((group) => ({
     ...group,
     entries: group.entries.filter(
-      (p) => p.slug === config.universe || !internalUniverses.includes(p.slug),
+      (p) =>
+        p.slug === config.universe ||
+        p.listWhenInternal ||
+        !internalUniverses.includes(p.slug),
     ),
   })).filter((group) => group.entries.length > 0);
   const external: { name: string; url: string; description?: string }[] = [
