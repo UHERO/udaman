@@ -6,6 +6,10 @@
  * the latest month; case and spacing differences are the same series. A
  * source with two amounts for one month is a hard failure; a date cell
  * that is neither a date nor yyyy-mm-dd text fails the parse.
+ *
+ * Distribution rows to a fund (State General Fund, State Highway Fund, …)
+ * leave Tax Type blank: the fund receives several taxes. Their tax prints
+ * as NO_TAX; select them by type and source.
  */
 
 import { readFileSync } from "node:fs";
@@ -27,6 +31,9 @@ const HEADERS = {
 } as const;
 type Column = keyof typeof HEADERS;
 const REQUIRED: Column[] = ["date", "type", "tax", "source", "amount"];
+
+/** The tax of a row whose Tax Type cell is blank. */
+export const NO_TAX = "(none)";
 
 const norm = (v: unknown) =>
   String(v ?? "")
@@ -85,7 +92,8 @@ export function parseSheetValues(values: unknown[][]): {
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     const cell = (c: Column) => row[col[c]];
-    const [date, type, tax, source, amount] = REQUIRED.map(cell);
+    const [date, type, taxCell, source, amount] = REQUIRED.map(cell);
+    const tax = blank(taxCell) ? NO_TAX : taxCell;
     if (blank(date) && blank(type) && blank(source)) continue;
     const month = cellMonth(date);
     if (!month) {

@@ -18,7 +18,7 @@ export const dotaxSheetSource: SourceModule = {
   description: "DOTAX Collections Portal Export Data (Google Sheet)",
   label: "DOTAX",
   nameDimensions: ["tax", "source"],
-  version: 1,
+  version: 2,
   frequency: "M",
   fetch: fetchSheet,
   dimensions: () => ["type", "tax", "source"],

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { cellMonth, parseSheetValues } from "./parse";
+import { cellMonth, NO_TAX, parseSheetValues } from "./parse";
 
 describe("dotax_sheet parse", () => {
   test("cellMonth", () => {
@@ -80,5 +80,17 @@ describe("dotax_sheet parse", () => {
     expect(() =>
       parseSheetValues([header, ["June", "Collection", "Fuel", "Fuel", 1]]),
     ).toThrow(/row\(s\) 2/);
+  });
+
+  test("a blank tax type prints as NO_TAX", () => {
+    const { rows } = parseSheetValues([
+      ["Date", "Source Type", "Tax Type", "Source", "Amount"],
+      ["2025-07-01", "Distribution", "", "State General Fund", 500],
+      ["2025-07-01", "Distribution", undefined, "State Highway Fund", 20],
+    ]);
+    expect(rows.map((r) => r.dims)).toEqual([
+      { type: "Distribution", tax: NO_TAX, source: "State General Fund" },
+      { type: "Distribution", tax: NO_TAX, source: "State Highway Fund" },
+    ]);
   });
 });
