@@ -72,12 +72,12 @@ SHOW COLUMNS FROM downloads LIKE 'downloader_id';
 
 ## 3. Environment (`.env.prod` on the server, read by BOTH web and worker units)
 
-| Variable                                                                            | Action                                                                                                                                                                                                                                                                                                                                                             |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `APP_ENV=production`                                                                | **Required.** A production build without it throws at startup (`src/lib/app-env.ts`). It also replaces `NEXT_PUBLIC_APP_ENV` as the cron gate, which no code reads any more. Staging gets `APP_ENV=staging`. See the note below.                                                                                                                                   |
-| `API_KEY_BEA`, `API_KEY_FRED`, `API_KEY_EIA`, `API_KEY_ESTATJP`, `API_KEY_1_BLS_V2` | Already in your local `.env.prod`; confirm they are on the server.                                                                                                                                                                                                                                                                                                 |
-| `GOOGLE_SHEETS_REFRESH_TOKEN`                                                       | **New, needed for `dotax_sheet`.** The client id/secret fall back to `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, which prod already has. Copy the token from `.env.local` if it was minted with the same OAuth client. Otherwise run `bun run ingest google-auth` on the server. Without it, the sheet fetch fails and 18 DOTAX series miss their preliminary months. |
-| `DATA_DIR`                                                                          | Unchanged. The new `DATA_DIR/ingest/` needs about 0.5–1 GB (raw files plus extract history: databook 250 MB raw, DOTAX archive 30 MB). Web and worker must see the same `DATA_DIR`.                                                                                                                                                                                |
+| Variable                                                                            | Action                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_ENV=production`                                                                | **Required.** A production build without it throws at startup (`src/lib/app-env.ts`). It also replaces `NEXT_PUBLIC_APP_ENV` as the cron gate, which no code reads any more. Staging gets `APP_ENV=staging`. See the note below.                                                                                                                                                          |
+| `API_KEY_BEA`, `API_KEY_FRED`, `API_KEY_EIA`, `API_KEY_ESTATJP`, `API_KEY_1_BLS_V2` | Already in your local `.env.prod`; confirm they are on the server.                                                                                                                                                                                                                                                                                                                        |
+| `GOOGLE_SHEETS_REFRESH_TOKEN`                                                       | **New, needed for `dotax_sheet`.** The client id/secret fall back to `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, which prod already has. Copy the token from `.env.local` if it was minted with the same OAuth client. Otherwise run `bun run ingest google-auth` on the server. Without it, the sheet fetch fails and 73 DOTAX series miss their preliminary months and pre-report history. |
+| `DATA_DIR`                                                                          | Unchanged. The new `DATA_DIR/ingest/` needs about 0.5–1 GB (raw files plus extract history: databook 250 MB raw, DOTAX archive 30 MB). Web and worker must see the same `DATA_DIR`.                                                                                                                                                                                                       |
 
 **Turning on crons.** Your local `.env.prod` copy has
 `NEXT_PUBLIC_APP_ENV='local'`. If the server's file says the same, prod's
@@ -175,7 +175,7 @@ bun run ingest runs dotax && bun run ingest runs databook   # expect "ok"
 ### DOTAX (new on prod)
 
 ```bash
-bun run scripts/create-dotax-universe.ts --dry-run   # expect: 260 measurements, 1,094 monthly series (+ sheet loaders if dotax_sheet ran)
+bun run scripts/create-dotax-universe.ts --dry-run   # expect: 260 measurements, 1,094 monthly series, 3,474 loaders once dotax_sheet has extracted (3,401 before)
 bun run scripts/create-dotax-universe.ts
 ```
 
@@ -187,8 +187,10 @@ bun run scripts/create-dotax-universe.ts
 - **No automatic refresh:** the nightly batch reload covers UHERO only, and
   ingest runs never trigger reloads. Decide how DOTAX gets reloaded after
   each month's fetch.
-- **Rerun later:** rerun the script after `dotax_sheet` first extracts, to add
-  the 18 sheet loaders.
+- **Rerun later:** rerun the script after `dotax_sheet` first extracts. It
+  adds 73 sheet loaders: 18 on top (preliminary months) and 55 underneath,
+  which fill history the reports never print, such as zeros before a fund
+  existed. Then reload those series.
 
 ### DATABOOK (new on prod)
 

@@ -534,6 +534,87 @@ const SHEET_SOURCES: [string, string, string][] = [
 ];
 
 /**
+ * Statewide series the sheet fills: [type, source, series]. Its loader goes
+ * below the series' others, so the reports win wherever they print a value
+ * and the sheet adds the months they don't: history back to 2000 (zeros
+ * before a fund existed, which the reports never print) and preliminary
+ * months. Matched by name and checked on values where both print a month.
+ * Left out: the totals and sub-totals (no sheet line), TRHCS and TRCS (the
+ * sheet's County Surcharges is TRHS, on top above), TRMT (Vehicle
+ * Registration + Rental Vehicle, the sum loader above) and TRFE.
+ */
+const SHEET_FILLS: [string, string, string][] = [
+  ["Collection", "All Others", "TROTNS@HI.M"],
+  ["Collection", "Banks/Financial Corp", "TRFINS@HI.M"],
+  ["Collection", "Conveyance", "TRCVNS@HI.M"],
+  ["Collection", "Employment Sec. Contri.", "TREMNS@HI.M"],
+  ["Collection", "Environmental", "TRENNS@HI.M"],
+  ["Collection", "Fuel", "TRFUENS@HI.M"],
+  ["Collection", "GE License/Fees", "TRGLNS@HI.M"],
+  ["Collection", "Inheritance/Estate", "TRIHNS@HI.M"],
+  ["Collection", "Insurance Fees", "TRIFNS@HI.M"],
+  ["Collection", "Insurance Premiums", "TRISNS@HI.M"],
+  ["Collection", "Liquor and Permits", "TRLINS@HI.M"],
+  ["Collection", "Public Service Co.", "TRPSNS@HI.M"],
+  ["Collection", "Rental Vehicle Tax", "TRMTRVNS@HI.M"],
+  ["Collection", "Tobacco and Licenses", "TRTBNS@HI.M"],
+  ["Collection", "Trans. Accomm./Time Share Occup. Fees", "TRTFNS@HI.M"],
+  ["Collection", "Vehicle Registration Tax", "TRMTVRNS@HI.M"],
+  // County shares: the sheet's label until 2020-06, then since 2025-09.
+  ["Distribution", "Fuel Tax-County Funds", "TRCTFUNS@HI.M"],
+  ["Distribution", "Fuel Tax", "TRCTFUNS@HI.M"],
+  ["Distribution", "Fuel Tax-County Funds", "TDCTFUNS@HI.M"],
+  ["Distribution", "Fuel Tax", "TDCTFUNS@HI.M"],
+  ["Distribution", "Trans. Accomm. Tax-County Funds", "TRCTTTNS@HI.M"],
+  ["Distribution", "Trans. Accomm. Tax-County Funds", "TDCTTTNS@HI.M"],
+  [
+    "Distribution",
+    "Agricultural Development & Food Security Fund",
+    "TDADFNS@HI.M",
+  ],
+  ["Distribution", "Boating Special Fund", "TDBONS@HI.M"],
+  ["Distribution", "Cancer Research Fund", "TDCRNS@HI.M"],
+  ["Distribution", "Cigarette Stamp Administrative Fund", "TDCANS@HI.M"],
+  ["Distribution", "Cigarette Stamp Enforcement Fund", "TDCENS@HI.M"],
+  ["Distribution", "Community Health Centers Fund", "TDCHCNS@HI.M"],
+  ["Distribution", "Compliance Resolution Fund", "TDCORNS@HI.M"],
+  ["Distribution", "Convention Center Enterprise Fund", "TDCVNS@HI.M"],
+  [
+    "Distribution",
+    "Domestic Violence/Child Abuse and Neglect Funds",
+    "TDDVCNS@HI.M",
+  ],
+  ["Distribution", "Election Campaign Fund", "TDECNS@HI.M"],
+  [
+    "Distribution",
+    "Electric Vehicle Charging System Subaccount",
+    "TDEVCNS@HI.M",
+  ],
+  ["Distribution", "Emergency Medical Service Fund", "TDEMSNS@HI.M"],
+  ["Distribution", "Employment Security Fund", "TDEMNS@HI.M"],
+  ["Distribution", "Energy Security Fund", "TDESNS@HI.M"],
+  ["Distribution", "Energy Systems Development Fund", "TDESDNS@HI.M"],
+  ["Distribution", "Environmental Fund", "TDEVNS@HI.M"],
+  ["Distribution", "Hurricane Relief Fund", "TDHRNS@HI.M"],
+  ["Distribution", "Hydrogen Fueling System Subaccount", "TDHFSNS@HI.M"],
+  ["Distribution", "Land Conservation Fund", "TDLCNS@HI.M"],
+  ["Distribution", "Land and Development Fund", "TDLDNS@HI.M"],
+  ["Distribution", "Mass Transit Fund", "TDMTNS@HI.M"],
+  ["Distribution", "Natural Area Reserve Fund", "TDNANS@HI.M"],
+  ["Distribution", "Public Libraries Fund", "TDPLNS@HI.M"],
+  ["Distribution", "Rental Housing Fund", "TDRHNS@HI.M"],
+  ["Distribution", "School Minor Repairs & Maintenance Fund", "TDSMRNS@HI.M"],
+  ["Distribution", "State Airport Fund", "TDAPNS@HI.M"],
+  ["Distribution", "State Highway Fund", "TDHWNS@HI.M"],
+  ["Distribution", "TAT Trust Fund", "TDTTNS@HI.M"],
+  ["Distribution", "Tax Administration Fund", "TDTANS@HI.M"],
+  ["Distribution", "Tourism Emergency Special Fund", "TDTENS@HI.M"],
+  ["Distribution", "Tourism Special Fund", "TDTSNS@HI.M"],
+  ["Distribution", "Trauma System Fund", "TDTRSNS@HI.M"],
+  ["Distribution", "Turtle Bay Conservation Easement Fund", "TDTBCNS@HI.M"],
+];
+
+/**
  * Reload order. batchReload runs the deepest series first, but
  * assignDependencyDepth only covers UHERO, so DOTAX's depths are set here:
  * the aggregates (0) after the monthly series (1), after the monthly
@@ -1262,13 +1343,14 @@ async function plan() {
     s.observations = s.dates.size;
   }
 
-  // The Collections Portal sheet, on top.
+  // The Collections Portal sheet: on top (SHEET_SOURCES), or underneath
+  // (SHEET_FILLS).
   const sheet = await latestExtract(SHEET_EXTRACTOR).catch(() => null);
   if (!sheet)
     warnings.push(
-      `${SHEET_EXTRACTOR} has no extract yet: ${SHEET_SOURCES.length} sheet loaders left out (rerun after its first extraction)`,
+      `${SHEET_EXTRACTOR} has no extract yet: ${SHEET_SOURCES.length + SHEET_FILLS.length} sheet loaders left out (rerun after its first extraction)`,
     );
-  for (const [type, source, name] of sheet ? SHEET_SOURCES : []) {
+  const sheetLoader = (type: string, source: string, name: string) => {
     const filters = { type, source };
     const match = matchSeries(
       SHEET_EXTRACTOR,
@@ -1282,12 +1364,27 @@ async function plan() {
     const s = series.get(name);
     if (!match.ok || !s) {
       errors.push(`${name}: ${match.ok ? "no such series" : match.message}`);
-      continue;
+      return null;
     }
-    for (const l of s.loaders) l.priority -= 10;
-    s.loaders.unshift({
-      code: extractCall(filters, null, null, SHEET_EXTRACTOR),
+    return { s, code: extractCall(filters, null, null, SHEET_EXTRACTOR) };
+  };
+  for (const [type, source, name] of sheet ? SHEET_SOURCES : []) {
+    const found = sheetLoader(type, source, name);
+    if (!found) continue;
+    for (const l of found.s.loaders) l.priority -= 10;
+    found.s.loaders.unshift({
+      code: found.code,
       priority: LOADER_PRIORITY,
+      scale: UNITS.dollars.scale,
+    });
+  }
+  for (const [type, source, name] of sheet ? SHEET_FILLS : []) {
+    const found = sheetLoader(type, source, name);
+    if (!found) continue;
+    const lowest = Math.min(...found.s.loaders.map((l) => l.priority));
+    found.s.loaders.push({
+      code: found.code,
+      priority: lowest - 10,
       scale: UNITS.dollars.scale,
     });
   }
