@@ -209,11 +209,13 @@ redis-cli --scan --pattern '*u=databook*' | xargs -r redis-cli del
 
 ## 8. UHERO load statements
 
-None need migrating. Every existing load method (`load_api_bls`, FRED, BEA,
-file loads, …) is unchanged. The four `load_from_extract("bls", …)` loaders
-in the local DB (CPI@US.M and three others) are local experiments; don't
-copy them. Moving UHERO's API loaders to `load_from_extract` is a later,
-per-source step, verified by diff.
+None need migrating for this deploy. Every existing load method
+(`load_api_bls`, FRED, BEA, file loads, …) is unchanged. The four
+`load_from_extract("bls", …)` loaders in the local DB (CPI@US.M and three
+others) are local experiments; don't copy them. Moving UHERO's API loaders
+to `load_from_extract` is a later, per-source step, verified by diff:
+`scripts/migrate-api/<source>.ts`, procedure in
+`docs/2026-10-19-api-load-statement-migration.md`.
 
 ## 9. After
 
