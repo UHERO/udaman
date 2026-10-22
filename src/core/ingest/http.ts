@@ -66,6 +66,52 @@ export async function httpRequest(
   return res;
 }
 
+/** Attempts for a request the server answered with a 5xx, and the waits between them. */
+export const SERVER_ERROR_ATTEMPTS = 3;
+export const SERVER_ERROR_BACKOFF_MS = [10_000, 30_000];
+
+/**
+ * httpRequest, retried when the server answers 5xx (BLS sends "The BLS
+ * website is busy" as a 503). Anything else, and the last attempt's 5xx,
+ * is thrown as before. A retry gets a fresh timeout, since a caller's
+ * AbortSignal.timeout has been running through the earlier attempts.
+ */
+export async function httpRequestWithRetry(
+  fetchImpl: HttpFetch,
+  url: string,
+  init: RequestInit,
+  deps: {
+    sleep: (ms: number) => Promise<void>;
+    log: (msg: string) => void;
+    attempts?: number;
+  },
+): Promise<Response> {
+  const attempts = deps.attempts ?? SERVER_ERROR_ATTEMPTS;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await httpRequest(
+        fetchImpl,
+        url,
+        attempt === 1
+          ? init
+          : { ...init, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) },
+      );
+    } catch (e) {
+      if (!(e instanceof HttpError) || e.status < 500 || attempt >= attempts) {
+        throw e;
+      }
+      const wait =
+        SERVER_ERROR_BACKOFF_MS[
+          Math.min(attempt - 1, SERVER_ERROR_BACKOFF_MS.length - 1)
+        ];
+      deps.log(
+        `HTTP ${e.status} for ${e.url}; retrying in ${wait / 1000}s (attempt ${attempt + 1} of ${attempts})`,
+      );
+      await deps.sleep(wait);
+    }
+  }
+}
+
 /** File name a response was served as: Content-Disposition, else the URL path. */
 export function servedFileName(res: Response, url: string): string | null {
   const cd = res.headers.get("content-disposition") ?? "";

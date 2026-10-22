@@ -174,3 +174,24 @@ describe("Series.fillMissingLinear", () => {
     ).toThrow();
   });
 });
+
+describe("Series.aggregate to week", () => {
+  // 2026-02-01 is a Sunday; Feb 1..24 daily, values = day of month.
+  const febDays = (): Array<[string, number]> =>
+    Array.from({ length: 24 }, (_, i) => [
+      `2026-02-${String(i + 1).padStart(2, "0")}`,
+      i + 1,
+    ]);
+
+  it("keys Sunday–Saturday weeks by their ending Saturday (Rails week_d)", () => {
+    const w = build("day", febDays(), "TEST@HI.D").aggregate("week", "sum");
+    expect(dates(w)).toEqual(["2026-02-07", "2026-02-14", "2026-02-21"]);
+    expect(w.data.get("2026-02-07")).toBe(1 + 2 + 3 + 4 + 5 + 6 + 7);
+    expect(w.data.get("2026-02-21")).toBe(15 + 16 + 17 + 18 + 19 + 20 + 21);
+  });
+
+  it("drops the trailing week until its Saturday is observed", () => {
+    const w = build("day", febDays(), "TEST@HI.D").aggregate("week", "sum");
+    expect(w.data.has("2026-02-28")).toBe(false);
+  });
+});

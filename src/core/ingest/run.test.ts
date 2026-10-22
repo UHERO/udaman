@@ -257,6 +257,53 @@ describe("static_url fetch → extract", () => {
     expect(seen).not.toContain("GET https://x.test/2024.csv");
     expect(seen).toContain("GET https://x.test/2025.csv");
   });
+
+  test("a 5xx is retried with backoff before the key fails", async () => {
+    let calls = 0;
+    const { env } = setup(
+      {
+        "https://x.test/data.csv": () =>
+          ++calls < 3
+            ? { status: 503, body: "busy" }
+            : { body: "A,2025-01-01,1\n" },
+      },
+      { strategy: "static_url", config: { url: "https://x.test/data.csv" } },
+    );
+    const waits: number[] = [];
+    env.sleep = async (ms) => {
+      waits.push(ms);
+    };
+    const out = await runFetch("test_dl", { env });
+    expect(out.status).toBe("ok");
+    expect(calls).toBe(3);
+    expect(waits).toEqual([10_000, 30_000]);
+    expect(out.stats.requests).toBe(1);
+  });
+
+  test("once a key has used up its retries, later keys in the run are not retried", async () => {
+    const { env, seen } = setup(
+      {
+        "https://x.test/2024.csv": { status: 503, body: "busy" },
+        "https://x.test/2025.csv": { status: 503, body: "busy" },
+      },
+      {
+        strategy: "static_url",
+        config: {
+          url: "https://x.test/%Y.csv",
+          key: "%Y",
+          periods: { frequency: "year", start: "2024", end: "2025" },
+        },
+      },
+    );
+    const out = await runFetch("test_dl", { env });
+    expect(out.status).toBe("failed");
+    expect(
+      (out.stats.keysFailed as Array<{ key: string }>).map((k) => k.key),
+    ).toEqual(["2025", "2024"]);
+    // the first key: 3 attempts; the second: 1
+    expect(seen.filter((s) => s.endsWith("2025.csv"))).toHaveLength(3);
+    expect(seen.filter((s) => s.endsWith("2024.csv"))).toHaveLength(1);
+  });
 });
 
 describe("discover_from_page", () => {

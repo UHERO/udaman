@@ -87,7 +87,7 @@ function normalizeFreq(freq: string): string {
 
 // ─── Date helpers ───────────────────────────────────────────────────
 
-/** Return the start-of-period date string for a given frequency. */
+/** Return the period key date for a given frequency (start of period, except week: its ending Saturday). */
 function periodStart(dateStr: string, freq: string): string {
   const d = new Date(dateStr + "T00:00:00");
   const y = d.getFullYear();
@@ -104,12 +104,13 @@ function periodStart(dateStr: string, freq: string): string {
     case "month":
       return `${y}-${String(m + 1).padStart(2, "0")}-01`;
     case "week": {
-      // ISO week start (Monday)
-      const day = d.getDay();
-      const diff = (day + 6) % 7;
-      const monday = new Date(d);
-      monday.setDate(d.getDate() - diff);
-      return monday.toISOString().slice(0, 10);
+      // Rails Date#week_d: weeks run Sunday–Saturday and are keyed by the
+      // Saturday that ends them (every legacy weekly series is
+      // Saturday-dated). UTC so the weekday can't drift with the host tz.
+      const [wy, wm, wd] = dateStr.split("-").map(Number);
+      const dt = new Date(Date.UTC(wy, wm - 1, wd));
+      dt.setUTCDate(dt.getUTCDate() + (6 - dt.getUTCDay()));
+      return dt.toISOString().slice(0, 10);
     }
     default:
       return dateStr;
@@ -140,7 +141,7 @@ function daysInMonth(y: number, m0: number): number {
  */
 function lastDayOfPeriod(periodStartStr: string, freq: string): string {
   const f = normalizeFreq(freq);
-  const [yStr, mStr, dStr] = periodStartStr.split("-");
+  const [yStr, mStr] = periodStartStr.split("-");
   const y = Number(yStr);
   const m = Number(mStr); // 1-indexed
 
@@ -155,13 +156,9 @@ function lastDayOfPeriod(periodStartStr: string, freq: string): string {
     }
     case "month":
       return fmtDate(y, m, daysInMonth(y, m - 1));
-    case "week": {
-      // Period starts Monday; last day is Sunday (Monday + 6).
-      const d = Number(dStr);
-      const dt = new Date(Date.UTC(y, m - 1, d));
-      dt.setUTCDate(dt.getUTCDate() + 6);
-      return dt.toISOString().slice(0, 10);
-    }
+    case "week":
+      // Weeks are keyed by their ending Saturday (see periodStart).
+      return periodStartStr;
     default:
       return periodStartStr;
   }

@@ -475,7 +475,8 @@ async function cmdStage(spec: MigrationSpec) {
     config: { ...downloader.config, extraFilters: [...merged.values()] },
   });
   console.log(
-    `Staged. Next: bun run ingest fetch ${spec.handle}   (it extracts when it stores something new), then the check command.`,
+    `Staged. Load statements are unchanged until \`execute --execute\`.\n` +
+      `Next: bun run ingest fetch ${spec.handle}   (it extracts when it stores something new), then check, then execute.`,
   );
 }
 

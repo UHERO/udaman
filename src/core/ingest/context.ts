@@ -10,9 +10,11 @@ import { parse as parseHtml } from "node-html-parser";
 import type { IngestDb } from "./db";
 import {
   extensionOf,
-  httpRequest,
+  HttpError,
+  httpRequestWithRetry,
   isHtmlInsteadOfData,
   servedFileName,
+  SERVER_ERROR_ATTEMPTS,
 } from "./http";
 import type { HttpFetch } from "./http";
 import type { RawStore } from "./raw-store";
@@ -52,9 +54,22 @@ export function createFetchContext(
     requests: 0,
   };
 
-  const get = (url: string, init?: RequestInit) => {
+  // once a request has used up its retries on 5xx, the server is taken to
+  // be down for the rest of the run: later requests fail on the first 5xx
+  // instead of each waiting out the backoff
+  let serverDown = false;
+  const get = async (url: string, init: RequestInit = {}) => {
     collected.requests++;
-    return httpRequest(http, url, init);
+    try {
+      return await httpRequestWithRetry(http, url, init, {
+        sleep: deps.sleep,
+        log: opts.log,
+        attempts: serverDown ? 1 : SERVER_ERROR_ATTEMPTS,
+      });
+    } catch (e) {
+      if (e instanceof HttpError && e.status >= 500) serverDown = true;
+      throw e;
+    }
   };
 
   const storeBytes = async (

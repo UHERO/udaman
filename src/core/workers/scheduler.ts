@@ -185,6 +185,11 @@ export async function registerSchedules(): Promise<void> {
   );
   log.info("Registered schedule: reload-bea (daily 6:00 AM HST)");
 
+  // BLS loaders: the legacy API calls, and those moved to the bls extract
+  // (scripts/migrate-api/bls.ts), which the ingest fetch refreshes at 6:15
+  // and 10:15, just before these two reloads
+  const blsSearch = "#load_api_bls,#load_from_extract..bls[^a-z_]";
+
   // BLS — 6:30 AM HST daily (staggered from BEA at 6:00; both are
   // published by the 7:15 sweep)
   await heavyQueue.upsertJobScheduler(
@@ -194,7 +199,7 @@ export async function registerSchedules(): Promise<void> {
       name: JobName.RELOAD_BLS,
       data: {
         name: "bls",
-        search: "#load_api_bls",
+        search: blsSearch,
         nightly: true,
         updatePublic: false,
       },
@@ -210,7 +215,7 @@ export async function registerSchedules(): Promise<void> {
       name: JobName.RELOAD_BLS,
       data: {
         name: "bls",
-        search: "#load_api_bls",
+        search: blsSearch,
         nightly: true,
         updatePublic: false,
       },
