@@ -214,6 +214,7 @@ model data_sources {
   last_run_at         DateTime? @db.DateTime(0)
   last_run_in_seconds Decimal?  @db.Decimal(17, 3)
   presave_hook        String?   @db.VarChar(255)
+  max_lag_days        Int?
   priority            Int?      @default(100)
   pseudo_history      Boolean   @default(false)
   reload_nightly      Boolean?  @default(true)

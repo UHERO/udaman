@@ -21,6 +21,20 @@ interface ControllerResponse<T> {
  * sources / source_details tables.
  *************************************************************************/
 
+/**
+ * max_lag_days is a whole number of days, or null for unmonitored; 0 means
+ * "no limit" and is stored as null. Undefined (field not sent) passes through.
+ */
+function normalizeLagLimit(
+  maxLagDays: number | null | undefined,
+): number | null | undefined {
+  if (maxLagDays == null) return maxLagDays;
+  if (!Number.isInteger(maxLagDays) || maxLagDays < 0) {
+    throw new Error(`Invalid lag limit: ${maxLagDays}`);
+  }
+  return maxLagDays === 0 ? null : maxLagDays;
+}
+
 export async function getDataLoaders() {
   logControllerCall("data-loaders", "getDataLoaders");
   log.info("fetching all data loaders");
@@ -52,6 +66,7 @@ export async function createDataLoader({
   const warnings = await LoaderCollection.checkEval(payload.code, seriesId);
   const data = await LoaderCollection.create({
     ...payload,
+    maxLagDays: normalizeLagLimit(payload.maxLagDays),
     universe,
     seriesId,
   });
@@ -142,7 +157,7 @@ export async function updateDataLoader({
 }): Promise<ControllerResponse<SerializedLoader> & { warnings: string[] }> {
   logControllerCall("data-loaders", "updateDataLoader", { id });
   log.info({ id }, "updating data loader");
-  const { scale, ...rest } = payload;
+  const { scale, maxLagDays, ...rest } = payload;
   // throws LoadStatementError when a load_from_extract call doesn't resolve
   const warnings = rest.eval
     ? await LoaderCollection.checkEval(
@@ -153,6 +168,7 @@ export async function updateDataLoader({
   const loader = await LoaderCollection.update(id, {
     ...rest,
     ...(scale !== undefined ? { scale: String(scale) } : {}),
+    maxLagDays: normalizeLagLimit(maxLagDays),
   });
   log.info({ id }, "data loader updated");
   return { message: "data loader updated", data: loader.toJSON(), warnings };

@@ -8,6 +8,7 @@ import type { LoaderAttrs } from "../models/loader";
 import type { SourceMapNode, Universe } from "../types/shared";
 import type { CreateLoaderPayload } from "../types/sources";
 import EvalExecutor from "../utils/eval-executor";
+import { hstToday } from "../utils/time";
 import { AppLogCollection } from "./app-log-collection";
 import SeriesCollection from "./series-collection";
 import type { DeleteByMode } from "./series-collection";
@@ -54,6 +55,7 @@ export type UpdateLoaderPayload = {
   clearBeforeLoad?: boolean;
   reloadNightly?: boolean;
   presaveHook?: string | null;
+  maxLagDays?: number | null;
   color?: string | null;
   dependencies?: string | null;
   lastRunAt?: Date | null;
@@ -62,6 +64,26 @@ export type UpdateLoaderPayload = {
   lastErrorAt?: Date | null;
   runtime?: number | null;
 };
+
+/** A loader past its lag limit (LoaderCollection.checkLoaderLag). */
+export type LaggingLoader = {
+  loaderId: number;
+  seriesId: number;
+  seriesName: string;
+  universe: string;
+  maxLagDays: number;
+  /** Newest data point date; null when the loader has none. */
+  lastDate: string | null;
+  lagDays: number | null;
+};
+
+/** last_error text for a loader past its lag limit. */
+export function lagErrorMessage(lag: LaggingLoader): string {
+  if (lag.lastDate === null) {
+    return `Lag limit (${lag.maxLagDays}d) exceeded: loader has no data points`;
+  }
+  return `Lag limit exceeded: last data point ${lag.lastDate} is ${lag.lagDays}d behind (limit ${lag.maxLagDays}d)`;
+}
 
 export type ReloadResult = {
   status: "success" | "skipped" | "error";
@@ -108,7 +130,7 @@ class LoaderCollection {
       SELECT
         id, series_id, disabled, universe, priority,
         created_at, updated_at, reload_nightly, pseudo_history,
-        clear_before_load, eval, scale, presave_hook, color,
+        clear_before_load, eval, scale, presave_hook, max_lag_days, color,
         runtime, last_run_at, last_run_in_seconds, last_error,
         last_error_at, dependencies, description
       FROM data_sources
@@ -123,7 +145,7 @@ class LoaderCollection {
       SELECT
         id, series_id, universe, eval, description, dependencies, color,
         priority, scale, disabled, pseudo_history, clear_before_load,
-        reload_nightly, presave_hook, last_run_at, last_run_in_seconds,
+        reload_nightly, presave_hook, max_lag_days, last_run_at, last_run_in_seconds,
         last_error, last_error_at, runtime, created_at, updated_at
       FROM data_sources
       WHERE series_id = ${seriesId}
@@ -174,6 +196,7 @@ class LoaderCollection {
       clearBeforeLoad,
       universe,
       pseudoHistory,
+      maxLagDays,
     } = payload;
 
     const loaderType = Loader.getLoaderType(code, pseudoHistory);
@@ -188,17 +211,18 @@ class LoaderCollection {
 
     const insertId = await insertAndGetId(
       `INSERT INTO data_sources (
-        series_id, eval, priority, scale, presave_hook,
+        series_id, eval, priority, scale, presave_hook, max_lag_days,
         clear_before_load, pseudo_history, universe, disabled,
         reload_nightly, color, dependencies,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         seriesId,
         code,
         priority || 50,
         scale || "1.0",
         presaveHook,
+        maxLagDays ?? null,
         clearBeforeLoad ? 1 : 0,
         pseudoHistory ? 1 : 0,
         universe,
@@ -298,6 +322,61 @@ class LoaderCollection {
   static async toggleReloadNightly(id: number): Promise<Loader> {
     const loader = await this.getById(id);
     return this.update(id, { reloadNightly: !loader.reloadNightly });
+  }
+
+  /**
+   * Enabled loaders with a lag limit whose newest data point is more than
+   * `max_lag_days` past the end of its period (see Loader.lagDays). Reads
+   * the loader's own data points, current or not, so a loader outranked by
+   * a higher-priority one still counts as delivering. A loader with no data
+   * points at all is reported with lastDate/lagDays null. `loaderId`
+   * narrows the check to one loader (the post-load check in reload).
+   */
+  static async checkLoaderLag(
+    opts: { today?: string; loaderId?: number } = {},
+  ): Promise<LaggingLoader[]> {
+    const { today = hstToday(), loaderId = null } = opts;
+    const rows = await mysql<{
+      id: number;
+      series_id: number;
+      universe: string;
+      max_lag_days: number;
+      series_name: string;
+      frequency: string | null;
+      last_date: string | null;
+    }>`
+      SELECT
+        ds.id, ds.series_id, ds.universe, ds.max_lag_days,
+        s.name AS series_name, xs.frequency,
+        (SELECT DATE_FORMAT(MAX(dp.date), '%Y-%m-%d')
+           FROM data_points dp
+          WHERE dp.xseries_id = s.xseries_id
+            AND dp.data_source_id = ds.id) AS last_date
+      FROM data_sources ds
+      JOIN series s ON s.id = ds.series_id
+      JOIN xseries xs ON xs.id = s.xseries_id
+      WHERE ds.max_lag_days IS NOT NULL
+        AND ds.disabled = 0
+        AND (${loaderId} IS NULL OR ds.id = ${loaderId})
+    `;
+
+    const lagging: LaggingLoader[] = [];
+    for (const r of rows) {
+      const lagDays = r.last_date
+        ? Loader.lagDays(r.last_date, r.frequency, today)
+        : null;
+      if (lagDays !== null && lagDays <= r.max_lag_days) continue;
+      lagging.push({
+        loaderId: r.id,
+        seriesId: r.series_id,
+        seriesName: r.series_name,
+        universe: r.universe,
+        maxLagDays: r.max_lag_days,
+        lastDate: r.last_date,
+        lagDays,
+      });
+    }
+    return lagging;
   }
 
   /** Iteratively fetch sources for use in series source map.
@@ -521,6 +600,24 @@ class LoaderCollection {
       const runtime = (Date.now() - t.getTime()) / 1000;
       updateProps.description = result.name ?? loader.description;
       updateProps.runtime = runtime;
+
+      // Only reached when the load succeeded, so a real load error always
+      // owns last_error. The data is already saved; a failed check is
+      // logged, not turned into a load failure.
+      if (loader.maxLagDays) {
+        try {
+          const [lag] = await this.checkLoaderLag({ loaderId: loader.id });
+          if (lag) {
+            updateProps.lastError = lagErrorMessage(lag);
+            updateProps.lastErrorAt = t;
+          }
+        } catch (e) {
+          log.warn(
+            { loaderId: loader.id, err: e instanceof Error ? e.message : e },
+            "Lag check failed",
+          );
+        }
+      }
 
       log.info(
         { series: loader.seriesId, runtime, inserted },

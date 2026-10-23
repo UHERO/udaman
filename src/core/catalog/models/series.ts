@@ -139,7 +139,7 @@ function daysInMonth(y: number, m0: number): number {
  * at the given target frequency. `periodStartStr` is expected to be the start
  * date produced by `periodStart()` for that frequency.
  */
-function lastDayOfPeriod(periodStartStr: string, freq: string): string {
+export function lastDayOfPeriod(periodStartStr: string, freq: string): string {
   const f = normalizeFreq(freq);
   const [yStr, mStr] = periodStartStr.split("-");
   const y = Number(yStr);
@@ -162,6 +162,19 @@ function lastDayOfPeriod(periodStartStr: string, freq: string): string {
     default:
       return periodStartStr;
   }
+}
+
+/**
+ * First calendar day (YYYY-MM-DD) of the period keyed by `periodKey` (as
+ * produced by `periodStart()`). Only weeks differ: they are keyed by their
+ * ending Saturday, so the first day is the Sunday six days earlier.
+ */
+function firstDayOfPeriod(periodKey: string, freq: string): string {
+  if (normalizeFreq(freq) !== "week") return periodKey;
+  const [y, m, d] = periodKey.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - 6);
+  return dt.toISOString().slice(0, 10);
 }
 
 // ─── Aggregation helpers ────────────────────────────────────────────
@@ -1251,15 +1264,44 @@ class Series {
 
     const op = (operation ?? "average") as AggOp;
 
-    // Group data points by target-frequency period start date. Track the
-    // latest non-null source date so we can tell whether an in-progress
-    // period has been "closed out" by subsequent observations.
+    // Weeks straddle period boundaries, so (like Rails aggregate_data_by)
+    // spread each week over its days first and aggregate the daily series.
+    // The spread is dense, so only fully covered periods are kept — that
+    // drops partial periods at either end and around gaps in the weeks.
+    if (srcFreq === "week") {
+      const daily = this.interpolateWeekToDay(
+        op === "average" ? "fill" : "distribute",
+        { allowGaps: true },
+      );
+      return daily.aggregateGroups(targetFreq, op, true);
+    }
+    return this.aggregateGroups(targetFreq, op, false);
+  }
+
+  /**
+   * Group this series' points into `targetFreq` periods and apply `op`,
+   * pruning incomplete periods. `denseDays` (daily source only) requires
+   * every calendar day of a period to be present, like Rails.
+   */
+  private aggregateGroups(
+    targetFreq: string,
+    op: AggOp,
+    denseDays: boolean,
+  ): Series {
+    const srcFreq = normalizeFreq(this.frequency ?? "");
+
+    // Group data points by target-frequency period key. Track the earliest
+    // and latest non-null source dates so we can tell whether the first
+    // period was fully observed and whether an in-progress period has been
+    // "closed out" by subsequent observations.
     const groups = new Map<string, number[]>();
     const sortedDates = [...this.data.keys()].sort();
+    let minDate = "";
     let maxDate = "";
     for (const date of sortedDates) {
       const value = this.data.get(date);
       if (value == null) continue;
+      if (!minDate) minDate = date;
       maxDate = date; // sortedDates ascending; last non-null assignment wins
       const key = periodStart(date, targetFreq);
       const arr = groups.get(key);
@@ -1275,11 +1317,21 @@ class Series {
     // or after the last calendar day of that period. Equivalently: we've
     // seen a data point on the last day of the month (or later), which
     // matches Rails `days_in_period` semantics in the common dense case
-    // while gracefully handling sparse daily feeds.
+    // while gracefully handling sparse daily feeds. Symmetrically, the
+    // leading period is dropped unless the data reaches back to its first
+    // day (Rails' strict count drops a partial first period too).
     const newData = new Map<string, number>();
-    if (srcFreq === "day") {
+    if (srcFreq === "day" && denseDays) {
+      for (const [date, values] of groups) {
+        const first = firstDayOfPeriod(date, targetFreq);
+        const last = lastDayOfPeriod(date, targetFreq);
+        if (values.length !== daysBetweenStr(last, first) + 1) continue;
+        newData.set(date, applyAggOp(values, op));
+      }
+    } else if (srcFreq === "day") {
       for (const [date, values] of groups) {
         if (maxDate < lastDayOfPeriod(date, targetFreq)) continue;
+        if (minDate > firstDayOfPeriod(date, targetFreq)) continue;
         newData.set(date, applyAggOp(values, op));
       }
     } else {
@@ -1941,14 +1993,18 @@ class Series {
    * Convert a weekly series to a daily series. Each weekly observation is
    * assumed to fall at the END of the week it represents. The fill length
    * for each week is the gap (in days) to the previous observation; for the
-   * earliest observation it defaults to 7. Gaps outside [5, 9] days raise.
+   * earliest observation it defaults to 7. Gaps outside [5, 9] days raise,
+   * except with `allowGaps`, where a week after a long gap fills 7 days.
    *
    * - "fill"      → each day gets the weekly value as-is
    * - "distribute" → each day gets value / fillLength
    *
    * Ports Series#interpolate_week_to_day (tmp/lib/series_interpolation.rb:125).
    */
-  private interpolateWeekToDay(method: "fill" | "distribute"): Series {
+  private interpolateWeekToDay(
+    method: "fill" | "distribute",
+    { allowGaps = false }: { allowGaps?: boolean } = {},
+  ): Series {
     if (normalizeFreq(this.frequency ?? "") !== "week") {
       throw new Error("original series not weekly");
     }
@@ -1962,7 +2018,10 @@ class Series {
     while (sortedKeys.length > 0) {
       const date = sortedKeys.pop()!;
       const prev = sortedKeys[sortedKeys.length - 1];
-      const fillLength = prev !== undefined ? daysBetweenStr(date, prev) : 7;
+      let fillLength = prev !== undefined ? daysBetweenStr(date, prev) : 7;
+      // allowGaps: a week after a gap covers just its own 7 days, leaving
+      // the gap's days unfilled. Too-short gaps (doubled weeks) still raise.
+      if (allowGaps && fillLength > 9) fillLength = 7;
       if (fillLength < 5 || fillLength > 9) {
         throw new Error(
           `observation gap of ${fillLength} days too long or short near ${date}`,

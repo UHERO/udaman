@@ -222,6 +222,7 @@ export async function duplicateSeries({
         presaveHook: loader.presaveHook ?? "",
         clearBeforeLoad: loader.clearBeforeLoad,
         pseudoHistory: loader.pseudoHistory,
+        maxLagDays: loader.maxLagDays,
       });
     }
     log.info(

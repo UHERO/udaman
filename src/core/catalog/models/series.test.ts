@@ -194,4 +194,58 @@ describe("Series.aggregate to week", () => {
     const w = build("day", febDays(), "TEST@HI.D").aggregate("week", "sum");
     expect(w.data.has("2026-02-28")).toBe(false);
   });
+
+  it("drops a leading week the data starts partway through", () => {
+    const w = build("day", febDays().slice(2), "TEST@HI.D").aggregate(
+      "week",
+      "sum",
+    );
+    expect(dates(w)).toEqual(["2026-02-14", "2026-02-21"]);
+  });
+});
+
+describe("Series.aggregate from week", () => {
+  // Saturdays Jan 3 .. Feb 28 2026; each covers the 7 days ending on it.
+  const saturdays = (value: number): Array<[string, number]> =>
+    Array.from({ length: 9 }, (_, i) => {
+      const d = new Date(Date.UTC(2026, 0, 3 + 7 * i));
+      return [d.toISOString().slice(0, 10), value];
+    });
+
+  it("splits a week that straddles months by its days (sum)", () => {
+    const m = build("week", saturdays(7), "TEST@HI.W").aggregate(
+      "month",
+      "sum",
+    );
+    // Jan 3 covers Dec 28–Jan 3: December is partial (dropped), January
+    // complete. Each day carries 7/7 = 1.
+    expect(dates(m)).toEqual(["2026-01-01", "2026-02-01"]);
+    expect(m.data.get("2026-01-01")).toBeCloseTo(31);
+    expect(m.data.get("2026-02-01")).toBeCloseTo(28);
+  });
+
+  it("drops months a gap in the weeks only partly covers", () => {
+    // Weeks ending Jan 3..Jan 31, then a gap, then Mar 7..Apr 4.
+    const pts: Array<[string, number]> = [
+      ...saturdays(7).slice(0, 5),
+      ["2026-03-07", 7],
+      ["2026-03-14", 7],
+      ["2026-03-21", 7],
+      ["2026-03-28", 7],
+      ["2026-04-04", 7],
+    ];
+    const m = build("week", pts, "TEST@HI.W").aggregate("month", "sum");
+    // Feb: no days. Mar: only Mar 1–31 from Mar 7 week back to Mar 1 — the
+    // week after the gap fills just its own 7 days, so Mar is complete.
+    expect(dates(m)).toEqual(["2026-01-01", "2026-03-01"]);
+    expect(m.data.get("2026-03-01")).toBeCloseTo(31);
+  });
+
+  it("averages daily-filled values (average)", () => {
+    const pts = saturdays(0);
+    // Week ending Sat Jan 31 covers Jan 25–31; the next (Feb 7) Feb 1–7.
+    for (const p of pts) p[1] = p[0] <= "2026-01-31" ? 10 : 20;
+    const m = build("week", pts, "TEST@HI.W").aggregate("month", "average");
+    expect(m.data.get("2026-02-01")).toBeCloseTo(20);
+  });
 });

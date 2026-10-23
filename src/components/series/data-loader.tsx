@@ -18,6 +18,7 @@ import {
   enableLoader,
   getLoaderJobStatus,
   reloadLoader,
+  updateDataLoader,
 } from "@/actions/data-loaders";
 import {
   deleteSeriesDataPoints,
@@ -54,6 +55,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toastActionError, unwrapAction } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 import { getColor } from "../helpers";
@@ -656,6 +659,7 @@ const LoaderItem = ({
               <ClockPlus className="stroke-primary/50" />
             )}
           </Button>
+          <LagLimitControl loader={loader} />
         </CardTitle>
         {loader.lastError && (
           <p className="text-xs text-red-800" title={loader.lastError}>
@@ -699,6 +703,93 @@ const LoaderItem = ({
         loaderId={loader.id}
       />
     </Card>
+  );
+};
+
+/**
+ * "lag limit" beside the nightly toggle. Clicking it shows a days input;
+ * Enter or "set" saves max_lag_days, blank or 0 clears it, Escape closes.
+ */
+const LagLimitControl = ({ loader }: { loader: SerializedLoader }) => {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+
+  const toggle = () => {
+    setValue(loader.maxLagDays?.toString() ?? "");
+    setEditing((e) => !e);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = value.trim();
+    // blank or 0 clears the limit
+    const n = trimmed === "" ? 0 : Number(trimmed);
+    const maxLagDays = n === 0 ? null : n;
+    if (
+      maxLagDays !== null &&
+      (!Number.isInteger(maxLagDays) || maxLagDays < 0)
+    ) {
+      toast.error("Lag limit must be a whole number of days");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        unwrapAction(await updateDataLoader(loader.id, { maxLagDays }));
+        toast.success(
+          maxLagDays === null
+            ? "Lag limit cleared"
+            : `Lag limit set to ${maxLagDays} days`,
+        );
+        setEditing(false);
+        router.refresh();
+      } catch (err) {
+        toastActionError(err, "Failed to update lag limit");
+      }
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="link"
+        size="sm"
+        className={cn("h-6", !loader.maxLagDays && "text-primary/60")}
+        title="Notify when this loader's newest data is more than this many days past its period end"
+        onClick={toggle}
+      >
+        {loader.maxLagDays ? `lag limit: ${loader.maxLagDays}d` : "lag limit"}
+      </Button>
+      {editing && (
+        <form onSubmit={handleSubmit} className="flex items-center gap-1">
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            autoFocus
+            placeholder="days"
+            aria-label="Lag limit in days"
+            className="h-6 w-20 text-sm"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setEditing(false);
+            }}
+            disabled={isPending}
+          />
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            className="h-6"
+            disabled={isPending}
+          >
+            {isPending ? "saving..." : "set"}
+          </Button>
+        </form>
+      )}
+    </div>
   );
 };
 

@@ -52,6 +52,11 @@ const formSchema = z.object({
   clearBeforeLoad: z.boolean(),
   pseudoHistory: z.boolean(),
   reloadNightly: z.boolean(),
+  maxLagDays: z
+    .number()
+    .int({ message: "Lag limit must be a whole number of days" })
+    .min(0, { message: "Lag limit can't be negative" })
+    .nullable(),
   color: z.string(),
 });
 
@@ -81,6 +86,7 @@ export function LoaderEditSheet({
       clearBeforeLoad: false,
       pseudoHistory: false,
       reloadNightly: false,
+      maxLagDays: null,
       color: "",
     },
   });
@@ -106,6 +112,7 @@ export function LoaderEditSheet({
         clearBeforeLoad: loader.clearBeforeLoad ?? false,
         pseudoHistory: loader.pseudoHistory ?? false,
         reloadNightly: loader.reloadNightly ?? false,
+        maxLagDays: loader.maxLagDays ?? null,
         color: loader.color ?? "",
       });
     }
@@ -301,6 +308,31 @@ export function LoaderEditSheet({
                   Reload nightly
                 </FieldLabel>
                 <FieldError errors={[form.formState.errors.reloadNightly]} />
+              </Field>
+
+              <Field data-invalid={!!form.formState.errors.maxLagDays}>
+                <FieldLabel htmlFor="edit-maxLagDays">
+                  Lag limit (days)
+                </FieldLabel>
+                <Input
+                  id="edit-maxLagDays"
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="None"
+                  className="w-32"
+                  aria-invalid={!!form.formState.errors.maxLagDays}
+                  {...form.register("maxLagDays", {
+                    setValueAs: (v) =>
+                      v === "" || v == null ? null : Number(v),
+                  })}
+                />
+                <FieldDescription>
+                  Notify when the newest data point is more than this many days
+                  past its period end. Blank or 0 means no limit (history
+                  loaders).
+                </FieldDescription>
+                <FieldError errors={[form.formState.errors.maxLagDays]} />
               </Field>
             </FieldGroup>
           </FieldSet>

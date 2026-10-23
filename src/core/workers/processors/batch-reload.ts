@@ -1,7 +1,9 @@
 import { AppLogCollection } from "@catalog/collections/app-log-collection";
+import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { Job } from "bullmq";
 
+import { notifyLaggingLoaders } from "@/core/mailers/loader-lag-mailer";
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/db";
 import type { HeavyDbLockContext } from "@/lib/mysql/db-lock";
@@ -20,6 +22,7 @@ const log = createLogger("worker.batch-reload");
  * 3. Calls SeriesCollection.batchReload() with the remaining IDs
  * 4. Enqueues the deduplicated UPDATE_PUBLIC sweep job (never inline —
  *    see the same note in targeted-reload.ts)
+ * 5. Posts loaders past their lag limit (max_lag_days) to Slack
  */
 export async function processBatchReload(
   job: Job<BatchReloadJobData>,
@@ -80,6 +83,17 @@ export async function processBatchReload(
     await enqueueUpdatePublic();
     job.log("Queued public data points update");
     publicMsg = "; queued public data points update";
+  }
+
+  // Covers every monitored loader, including the ones excluded above —
+  // their data is already in the DB from their own schedules.
+  try {
+    const lagging = await LoaderCollection.checkLoaderLag();
+    job.log(`Loaders past lag limit: ${lagging.length}`);
+    await notifyLaggingLoaders(lagging);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.error({ err: msg }, "Loader lag check failed");
   }
 
   const elapsedSec = Math.round((Date.now() - t0) / 1000);

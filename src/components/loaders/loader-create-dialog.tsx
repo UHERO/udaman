@@ -49,6 +49,11 @@ const formSchema = z.object({
   presaveHook: z.string(),
   clearBeforeLoad: z.boolean(),
   pseudoHistory: z.boolean(),
+  maxLagDays: z
+    .number()
+    .int({ message: "Lag limit must be a whole number of days" })
+    .min(0, { message: "Lag limit can't be negative" })
+    .nullable(),
 });
 
 interface LoaderCreateDialogProps {
@@ -77,6 +82,7 @@ export function LoaderCreateDialog({
       presaveHook: "",
       clearBeforeLoad: false,
       pseudoHistory: false,
+      maxLagDays: null,
     },
   });
 
@@ -89,6 +95,7 @@ export function LoaderCreateDialog({
         presaveHook: "",
         clearBeforeLoad: false,
         pseudoHistory: false,
+        maxLagDays: null,
       });
     }
   }, [open, form]);
@@ -257,6 +264,31 @@ export function LoaderCreateDialog({
                   This load is pseudo-history
                 </FieldLabel>
                 <FieldError errors={[form.formState.errors.pseudoHistory]} />
+              </Field>
+
+              <Field data-invalid={!!form.formState.errors.maxLagDays}>
+                <FieldLabel htmlFor="create-maxLagDays">
+                  Lag limit (days)
+                </FieldLabel>
+                <Input
+                  id="create-maxLagDays"
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="None"
+                  className="w-32"
+                  aria-invalid={!!form.formState.errors.maxLagDays}
+                  {...form.register("maxLagDays", {
+                    setValueAs: (v) =>
+                      v === "" || v == null ? null : Number(v),
+                  })}
+                />
+                <FieldDescription>
+                  Notify when the newest data point is more than this many days
+                  past its period end. Blank or 0 means no limit (history
+                  loaders).
+                </FieldDescription>
+                <FieldError errors={[form.formState.errors.maxLagDays]} />
               </Field>
             </FieldGroup>
           </FieldSet>

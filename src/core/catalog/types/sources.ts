@@ -27,6 +27,7 @@ export interface CreateLoaderFormData {
   presaveHook: string;
   clearBeforeLoad: boolean;
   pseudoHistory: boolean;
+  maxLagDays?: number | null;
 }
 
 export interface CreateLoaderPayload extends CreateLoaderFormData {
@@ -42,5 +43,6 @@ export interface UpdateLoaderFormData {
   clearBeforeLoad?: boolean;
   pseudoHistory?: boolean;
   reloadNightly?: boolean;
+  maxLagDays?: number | null;
   color?: string;
 }

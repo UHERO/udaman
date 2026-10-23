@@ -1,5 +1,6 @@
 import type { Universe } from "../types/shared";
-import Series from "./series";
+import { daysBetweenStr } from "../utils/time";
+import Series, { lastDayOfPeriod } from "./series";
 
 export type LoaderAttrs = {
   id: number;
@@ -16,6 +17,7 @@ export type LoaderAttrs = {
   clear_before_load?: boolean | number | null;
   reload_nightly?: boolean | number | null;
   presave_hook?: string | null;
+  max_lag_days?: number | null;
   last_run_at?: Date | string | null;
   last_run_in_seconds?: number | null;
   last_error?: string | null;
@@ -52,6 +54,8 @@ class Loader {
   clearBeforeLoad: boolean;
   reloadNightly: boolean;
   presaveHook: string | null;
+  /** Notify when the newest data point is this many days past its period end; null = unmonitored. */
+  maxLagDays: number | null;
   lastRunAt: Date | null;
   lastRunInSeconds: number | null;
   lastError: string | null;
@@ -75,6 +79,7 @@ class Loader {
     this.clearBeforeLoad = Boolean(attrs.clear_before_load);
     this.reloadNightly = Boolean(attrs.reload_nightly);
     this.presaveHook = attrs.presave_hook ?? null;
+    this.maxLagDays = attrs.max_lag_days ?? null;
     this.lastRunAt = attrs.last_run_at
       ? new Date(attrs.last_run_at as string | Date)
       : null;
@@ -240,6 +245,24 @@ class Loader {
     return evalExpr.replace(/"/g, "").replace(/\.ts/g, "");
   }
 
+  /**
+   * Days from the end of the period holding `lastDate` to `today` (both
+   * YYYY-MM-DD). Measured from the period end because non-daily data is
+   * stored on the period's first day: a monthly loader holding September
+   * (2026-09-01) is 23 days behind on Oct 23, not 52. Future-dated data
+   * (forecasts) counts as 0.
+   */
+  static lagDays(
+    lastDate: string,
+    frequency: string | null,
+    today: string,
+  ): number {
+    const periodEnd = frequency
+      ? lastDayOfPeriod(lastDate, frequency)
+      : lastDate;
+    return Math.max(0, daysBetweenStr(today, periodEnd));
+  }
+
   /** Whether this loader is a history or pseudo_history type */
   get isHistory(): boolean {
     return (
@@ -376,6 +399,7 @@ class Loader {
       clearBeforeLoad: this.clearBeforeLoad,
       reloadNightly: this.reloadNightly,
       presaveHook: this.presaveHook,
+      maxLagDays: this.maxLagDays,
       lastRunAt: this.lastRunAt,
       lastRunInSeconds: this.lastRunInSeconds,
       lastError: this.lastError,
