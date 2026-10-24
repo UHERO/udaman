@@ -5,8 +5,11 @@
  *                                     option that swaps the base URL between
  *                                     /v1 and /v1.u
  *   - searchSeries()                : legacy fuzzy search via ?search_text=
- *   - searchSeriesByText()          : /search/series?q= endpoint (searches
- *                                     title + description, better for free-text)
+ *   - searchSeriesByText()          : /search/series?q= endpoint (q is a
+ *                                     regex over name/title/description/category)
+ *   - searchSummary()               : /search?q= — the geos and freqs that have
+ *                                     matches, used to expand geo-only or
+ *                                     freq-only filters into valid pairs
  *   - getSeriesByCode()             : exact-match lookup via /series?name=&u=.
  *                                     Detects UHERO's hollow not-found shape
  *                                     ({id:0, name:""}) and returns null.
@@ -27,7 +30,7 @@ const UHERO_BASE_URL = "https://api.uhero.hawaii.edu/v1";
 // /search, /category, and /series/observations all 404 on this prefix.
 const UHERO_UNRESTRICTED_BASE_URL = "https://api.uhero.hawaii.edu/v1.u";
 
-export type Frequency = "A" | "Q" | "M" | "W" | "D";
+export type Frequency = "A" | "S" | "Q" | "M" | "W" | "D";
 export type Transform = "lvl" | "pch" | "pc1" | "ytd" | "chg" | "ch1";
 
 export interface SeriesMeta {
@@ -126,9 +129,15 @@ export interface RawSeries {
   unitsLabel?: string;
   unitsLabelShort?: string;
   seasonallyAdjusted?: boolean;
+  /** "seasonally_adjusted" | "not_seasonally_adjusted" | "not_applicable" */
+  seasonalAdjustment?: string;
   decimals?: number;
   observationStart?: string;
   observationEnd?: string;
+  /** Search results only: sibling geographies with their date ranges. */
+  geos?: Array<
+    RawGeography & { observationStart?: string; observationEnd?: string }
+  >;
 }
 
 export async function searchSeries(params: {
@@ -182,14 +191,20 @@ export async function getSeriesByCode(
   return series;
 }
 
+/** UHERO's `/search/series` stops at this many rows, in no particular order. */
+export const SEARCH_RESULT_LIMIT = 50;
+
 /**
- * Full-text search across series title + description via UHERO's
- * `/search/series?q=` endpoint. Good for free-text user queries like
- * "unemployment" or "tourism". UHERO matches the phrase as-is (not per-word),
- * so multi-word queries often return empty. Caller should split into single
- * keywords or use the simplest one for best recall.
+ * UHERO's `/search/series?q=` endpoint. `q` is sent as a MariaDB PCRE2 regex
+ * against `series.name | description | dataPortalName | category name`, so
+ * callers must escape it (see `@/lib/search-query`). Geography names aren't
+ * in the searched text. `geo` and `freq` only filter when BOTH are sent; a
+ * lone `geo` is silently ignored, so callers should expand it via
+ * `searchSummary()`. At most SEARCH_RESULT_LIMIT rows, unordered.
  *
- * Only available on the public API (not /v1.u). Returns [] (not null) when no matches.
+ * Results carry no top-level observation range; it's backfilled from the
+ * matching `geos` entry. Only available on the public API (not /v1.u).
+ * Returns [] (not null) when no matches.
  */
 export async function searchSeriesByText(params: {
   q: string;
@@ -201,7 +216,32 @@ export async function searchSeriesByText(params: {
     geo: params.geo,
     freq: params.freq,
   });
-  return Array.isArray(data) ? data : [];
+  if (!Array.isArray(data)) return [];
+  return data.map((s) => {
+    if (s.observationStart) return s;
+    const own = s.geos?.find((g) => g.handle === s.geography?.handle);
+    return own
+      ? {
+          ...s,
+          observationStart: own.observationStart,
+          observationEnd: own.observationEnd,
+        }
+      : s;
+  });
+}
+
+export interface SearchSummary {
+  geos: RawGeography[];
+  freqs: Array<{ freq: Frequency; label: string }>;
+}
+
+/** `/search?q=`: which geographies and frequencies have series matching q. */
+export async function searchSummary(q: string): Promise<SearchSummary> {
+  const data = await uheroFetch<Partial<SearchSummary> | null>("/search", {
+    q,
+    u: "UHERO",
+  });
+  return { geos: data?.geos ?? [], freqs: data?.freqs ?? [] };
 }
 
 /**

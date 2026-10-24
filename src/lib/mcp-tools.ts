@@ -1,7 +1,9 @@
 /**
  * Registers all seven MCP tools and contains the per-tool logic:
  *   - search_series       : code input → exact /series?name= lookup; free-text
- *                           → /search/series?q= with single-token fallback
+ *                           → parsed into terms + geo/freq (search-query.ts),
+ *                           searched as an all-terms regex with a fallback
+ *                           ladder, ranked locally
  *   - get_observations    : one series by id or code. Defaults to the series's
  *                           full published range when dates are omitted.
  *                           Supports `unrestricted: true` (code only, lvl only).
@@ -29,6 +31,14 @@ import { z } from "zod";
 
 import { canAccessRestrictedData } from "@/lib/auth/roles";
 import {
+  buildAllTermsRegex,
+  buildAnyTermRegex,
+  countTermHits,
+  isSeasonallyAdjusted,
+  parseSearchQuery,
+  rankSeries,
+} from "@/lib/search-query";
+import {
   clampObservations,
   describeDisambiguation,
   formatSeriesCode,
@@ -43,8 +53,10 @@ import {
   listCategories,
   listGeographiesForSeries,
   normalizeObservations,
+  SEARCH_RESULT_LIMIT,
   searchSeries,
   searchSeriesByText,
+  searchSummary,
   UheroApiError,
   type Frequency,
   type ObservationPoint,
@@ -55,11 +67,23 @@ import {
 
 const FREQUENCY_LABELS: Record<Frequency, string> = {
   A: "year",
+  S: "half-year",
   Q: "quarter",
   M: "month",
   W: "week",
   D: "day",
 };
+
+const FREQUENCY_ADJECTIVES: Record<Frequency, string> = {
+  A: "annual",
+  S: "semiannual",
+  Q: "quarterly",
+  M: "monthly",
+  W: "weekly",
+  D: "daily",
+};
+
+const FREQUENCY_VALUES = ["A", "S", "Q", "M", "W", "D"] as const;
 
 const TRANSFORM_VALUES = ["lvl", "pch", "pc1", "ytd", "chg", "ch1"] as const;
 
@@ -147,7 +171,7 @@ function projectSeries(s: RawSeries) {
     frequency_label: FREQUENCY_LABELS[s.frequencyShort] ?? s.frequency,
     units: s.unitsLabel ?? s.units,
     units_short: s.unitsLabelShort,
-    seasonally_adjusted: s.seasonallyAdjusted,
+    seasonally_adjusted: isSeasonallyAdjusted(s),
     observation_start: s.observationStart,
     observation_end: s.observationEnd,
     citation: seriesCitation(s),
@@ -232,6 +256,197 @@ function safeError(err: unknown): string {
   return "Unknown error contacting UHERO API.";
 }
 
+type MatchStrategy = "all_terms" | "all_terms_any_geo" | "any_term" | "none";
+
+// Hawaii geographies first, so a capped fan-out keeps the local ones.
+const FANOUT_GEO_ORDER = HAWAII_GEOGRAPHIES.map((g) => g.handle);
+const MAX_FANOUT = 8;
+
+interface FilteredSearch {
+  series: RawSeries[];
+  /** Some request hit the API's row limit, so more matches exist. */
+  truncated: boolean;
+  /** Geographies with matches that the fan-out cap left unsearched. */
+  skippedGeos: string[];
+}
+
+/**
+ * Run one regex through /search/series with optional geo / freq filters.
+ * The API only filters when both are sent, so a lone geo or freq is expanded
+ * via /search into the pairs that have matches and fanned out in parallel.
+ */
+async function searchFiltered(
+  q: string,
+  geo?: string,
+  freq?: Frequency,
+): Promise<FilteredSearch> {
+  let pairs: Array<{ geo?: string; freq?: Frequency }>;
+  let skippedGeos: string[] = [];
+  if (!!geo === !!freq) {
+    pairs = [{ geo, freq }];
+  } else {
+    const summary = await searchSummary(q);
+    if (geo) {
+      pairs = summary.geos.some((g) => g.handle === geo)
+        ? summary.freqs.map((f) => ({ geo, freq: f.freq }))
+        : [];
+    } else {
+      const rank = (h: string) => {
+        const i = FANOUT_GEO_ORDER.indexOf(h);
+        return i === -1 ? FANOUT_GEO_ORDER.length : i;
+      };
+      const handles = summary.freqs.some((f) => f.freq === freq)
+        ? summary.geos.map((g) => g.handle).sort((a, b) => rank(a) - rank(b))
+        : [];
+      pairs = handles.slice(0, MAX_FANOUT).map((g) => ({ geo: g, freq }));
+      skippedGeos = handles.slice(MAX_FANOUT);
+    }
+  }
+
+  const batches = await Promise.all(
+    pairs.map((p) => searchSeriesByText({ q, ...p })),
+  );
+  const seen = new Set<number>();
+  const series: RawSeries[] = [];
+  for (const batch of batches) {
+    for (const s of batch) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      series.push(s);
+    }
+  }
+  return {
+    series,
+    truncated: batches.some((b) => b.length >= SEARCH_RESULT_LIMIT),
+    skippedGeos,
+  };
+}
+
+/**
+ * Free-text search_series. Parses the query into terms + geo/freq, then walks
+ * a fallback ladder and stops at the first step with results:
+ *   all_terms         : every term, with geo/freq filters
+ *   all_terms_any_geo : every term, without the geo/freq taken from the query
+ *                       (explicit arguments are never dropped)
+ *   any_term          : any term, keeping series that match at least half
+ *   none
+ */
+async function searchByText(
+  query: string,
+  argGeo?: string,
+  argFreq?: Frequency,
+): Promise<Record<string, unknown>> {
+  const parsed = parseSearchQuery(query);
+  const { terms } = parsed;
+  const geo = argGeo ?? parsed.geo;
+  const freq = argFreq ?? parsed.freq;
+  const interpreted = {
+    terms,
+    geo: geo ?? null,
+    geo_source: argGeo ? "argument" : parsed.geo ? "query" : null,
+    freq: freq ?? null,
+    freq_source: argFreq ? "argument" : parsed.freq ? "query" : null,
+    seasonal_adjustment: parsed.saPreference ?? null,
+  };
+  const geosMentioned = parsed.geosMentioned;
+
+  if (terms.length === 0) {
+    return {
+      error:
+        "The query has no topic to search for once place and frequency words are removed. " +
+        "Ask the user what they want to measure (e.g. 'unemployment rate', 'visitor arrivals'), " +
+        "or browse a topic with list_series_in_group.",
+      interpreted,
+    };
+  }
+
+  const notes: string[] = [];
+  if (!argGeo && geosMentioned.length > 1) {
+    notes.push(
+      `The query names several geographies (${geosMentioned.join(", ")}), so results aren't filtered by geography. ` +
+        "Use list_series_siblings on a result to get each geography's version, then compare_series.",
+    );
+  }
+
+  const allTerms = buildAllTermsRegex(terms);
+  let strategy: MatchStrategy = "all_terms";
+  let result = await searchFiltered(allTerms, geo, freq);
+
+  if (result.series.length === 0 && (geo !== argGeo || freq !== argFreq)) {
+    const retry = await searchFiltered(allTerms, argGeo, argFreq);
+    if (retry.series.length > 0) {
+      strategy = "all_terms_any_geo";
+      result = retry;
+      const dropped = [
+        geo !== argGeo ? geo : undefined,
+        freq !== argFreq && freq ? FREQUENCY_ADJECTIVES[freq] : undefined,
+      ].filter(Boolean);
+      notes.push(
+        `No ${dropped.join(" ")} series matched every term, so these ignore the place/frequency words in the query. ` +
+          (geo !== argGeo
+            ? `Use list_series_siblings on a result to look for a ${geo} version.`
+            : "Use list_series_siblings on a result to look for other frequencies."),
+      );
+    }
+  }
+
+  if (result.series.length === 0 && terms.length > 1) {
+    const anyTerm = await searchFiltered(buildAnyTermRegex(terms), geo, freq);
+    const minHits = Math.ceil(terms.length / 2);
+    const kept = anyTerm.series.filter(
+      (s) => countTermHits(s, terms) >= minHits,
+    );
+    if (kept.length > 0) {
+      strategy = "any_term";
+      result = { ...anyTerm, series: kept };
+      notes.push(
+        `No series matched every term (${terms.join(", ")}); these are partial matches on at least ${minHits} of them.`,
+      );
+    }
+  }
+
+  if (result.series.length === 0) {
+    const longest = terms.reduce((a, b) => (b.length > a.length ? b : a));
+    return {
+      matches: [],
+      total_matches: 0,
+      match_strategy: "none" satisfies MatchStrategy,
+      interpreted,
+      geos_mentioned: geosMentioned,
+      note: `No series matched. Try list_series_in_group with group '${longest}', or rephrase the query.`,
+    };
+  }
+
+  const ranked = rankSeries(result.series, terms, parsed.saPreference);
+  const total = ranked.length;
+  const top = ranked.slice(0, 10);
+  if (result.truncated) {
+    notes.push(
+      `The UHERO API returns at most ${SEARCH_RESULT_LIMIT} matches per request, so there are more than ${total}. ` +
+        "Narrow the query with more specific terms, a geography, or a frequency.",
+    );
+  } else if (total > 10) {
+    notes.push(`Returned the 10 best of ${total} matches.`);
+  }
+  if (result.skippedGeos.length > 0) {
+    notes.push(
+      `Also has matches in ${result.skippedGeos.join(", ")}, which weren't searched; pass geo to search one.`,
+    );
+  }
+
+  return {
+    matches: top.map(projectSeries),
+    total_matches: result.truncated ? `${total}+` : total,
+    truncated: result.truncated || undefined,
+    match_strategy: strategy,
+    interpreted,
+    geos_mentioned: geosMentioned,
+    disambiguation_hint: describeDisambiguation(top),
+    next_step: total > 1 ? "ask_user_to_pick" : undefined,
+    note: notes.length > 0 ? notes.join(" ") : undefined,
+  };
+}
+
 export function registerUheroTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "search_series",
@@ -240,7 +455,12 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
       description:
         "Find UHERO time-series by free-text query OR by a UHERO code like 'UR@HON.M' " +
         "(name@geography.frequency). Geographies include HI (state), HON (Honolulu), HAW (Hawaii County), " +
-        "MAU (Maui), KAU (Kauai). Frequencies are A=annual, Q=quarterly, M=monthly, W=weekly, D=daily. " +
+        "MAU (Maui County), MAUI (Maui Island), KAU (Kauai), LAN (Lanai), MOL (Molokai). " +
+        "Frequencies are A=annual, S=semiannual, Q=quarterly, M=monthly, W=weekly, D=daily. " +
+        "Free-text queries understand place and frequency words, so 'visitor arrivals Maui monthly' " +
+        "filters to MAU and M; all remaining words must match, in any order. The response's " +
+        "'interpreted' field shows how the query was read and 'match_strategy' how strictly it matched " +
+        "(all_terms, all_terms_any_geo, any_term, none). " +
         "When more than one match comes back, the response includes a disambiguation_hint and may set " +
         "next_step='ask_user_to_pick' — in that case, ask the user which series they meant before fetching observations. " +
         "Every response includes a 'source' object; always cite 'Source: UHERO (uhero.hawaii.edu)' in any answer, chart, or summary you produce.",
@@ -254,59 +474,39 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
         geo: z
           .string()
           .optional()
-          .describe("Optional geography handle filter, e.g. 'HON' or 'HI'."),
+          .describe(
+            "Optional geography handle filter, e.g. 'HON' or 'HI'. Overrides any place named in the query.",
+          ),
         freq: z
-          .enum(["A", "Q", "M", "W", "D"])
+          .enum(FREQUENCY_VALUES)
           .optional()
-          .describe("Optional frequency filter."),
+          .describe(
+            "Optional frequency filter. Overrides any frequency word in the query.",
+          ),
       },
     },
     async ({ query, geo, freq }) => {
       logToolCall(ctx, "search_series", { query, geo, freq });
       try {
-        const parsed = parseSeriesCode(query);
-        let raw: RawSeries[];
-        if (parsed) {
-          // Exact-code lookup. UHERO's `search_text` doesn't index code
-          // stems (e.g. YPJ_R), so use `/series?name=&u=uhero` instead.
+        if (parseSeriesCode(query)) {
+          // Exact-code lookup. Code stems (e.g. YPJ_R) are in the search
+          // text, but /search only reaches series in a visible portal
+          // category, so /series?name= finds codes that search would miss.
           const found = await getSeriesByCode(query.trim().toUpperCase());
-          raw = found ? [found] : [];
-        } else {
-          // Free-text: `/search/series?q=` searches title + description and
-          // returns better hits than `/series?search_text=`. UHERO matches
-          // the query as a phrase; if multi-word fails, try the first token.
-          raw = await searchSeriesByText({
-            q: query,
-            geo,
-            freq: freq as Frequency | undefined,
+          const raw = found ? [found] : [];
+          return jsonResult({
+            matches: raw.map(projectSeries),
+            total_matches: raw.length,
+            match_strategy: "code",
           });
-          if (raw.length === 0 && query.includes(" ")) {
-            const firstToken = query.trim().split(/\s+/)[0];
-            if (firstToken) {
-              raw = await searchSeriesByText({
-                q: firstToken,
-                geo,
-                freq: freq as Frequency | undefined,
-              });
-            }
-          }
         }
-
-        const total = raw.length;
-        const matches = raw.slice(0, 10).map(projectSeries);
-        const hint = describeDisambiguation(raw.slice(0, 10));
-        const ambiguous = total > 1 && !parsed;
-
-        return jsonResult({
-          matches,
-          total_matches: total,
-          disambiguation_hint: hint,
-          next_step: ambiguous ? "ask_user_to_pick" : undefined,
-          note:
-            total > 10
-              ? `Returned the first 10 of ${total} matches. Refine the query to narrow further.`
-              : undefined,
-        });
+        return jsonResult(
+          await searchByText(
+            query,
+            geo?.trim().toUpperCase() || undefined,
+            freq,
+          ),
+        );
       } catch (err) {
         return jsonResult({ error: safeError(err) });
       }
@@ -342,7 +542,7 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
           .optional()
           .describe("Optional geography filter, e.g. 'HON'."),
         freq: z
-          .enum(["A", "Q", "M", "W", "D"])
+          .enum(FREQUENCY_VALUES)
           .optional()
           .describe("Optional frequency filter."),
       },
@@ -908,13 +1108,13 @@ export function registerUheroTools(server: McpServer, ctx: ToolContext) {
     {
       title: "List UHERO Frequencies",
       description:
-        "Return the valid frequency codes used by UHERO series. A=annual, Q=quarterly, M=monthly, W=weekly, D=daily.",
+        "Return the valid frequency codes used by UHERO series. A=annual, S=semiannual, Q=quarterly, M=monthly, W=weekly, D=daily.",
       inputSchema: {},
     },
     async () => {
       logToolCall(ctx, "list_frequencies", {});
       return jsonResult({
-        frequencies: (["A", "Q", "M", "W", "D"] as Frequency[]).map((f) => ({
+        frequencies: FREQUENCY_VALUES.map((f) => ({
           freq: f,
           label: FREQUENCY_LABELS[f],
         })),

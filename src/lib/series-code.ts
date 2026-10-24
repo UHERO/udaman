@@ -20,7 +20,7 @@ import "server-only";
 
 import type { Frequency } from "@/lib/uhero-client";
 
-const SERIES_CODE_RE = /^([A-Z][A-Z0-9_]*)@([A-Z0-9]+)\.([AQMWD])$/i;
+const SERIES_CODE_RE = /^([A-Z][A-Z0-9_]*)@([A-Z0-9]+)\.([ASQMWD])$/i;
 
 export interface ParsedSeriesCode {
   name: string;
