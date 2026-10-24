@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { updateDataLoader } from "@/actions/data-loaders";
+import { clearLoaderError, updateDataLoader } from "@/actions/data-loaders";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -64,6 +64,8 @@ interface LoaderEditSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   loader: SerializedLoader | null;
+  /** admin/dev: show "Clear error" when the loader has one */
+  canClearError?: boolean;
 }
 
 const presaveHooks = ["update_full_years_top_priority"];
@@ -72,6 +74,7 @@ export function LoaderEditSheet({
   open,
   onOpenChange,
   loader,
+  canClearError = false,
 }: LoaderEditSheetProps) {
   const router = useRouter();
   const { universe: _universe } = useParams();
@@ -133,6 +136,19 @@ export function LoaderEditSheet({
 
   const selectedColor = form.watch("color");
 
+  const [isClearing, startClearing] = useTransition();
+  const handleClearError = () =>
+    startClearing(async () => {
+      if (!loader) return;
+      try {
+        const result = await clearLoaderError(loader.id);
+        toast.success(result.message);
+        router.refresh();
+      } catch (error) {
+        toastActionError(error, "Failed to clear loader error");
+      }
+    });
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
@@ -140,6 +156,27 @@ export function LoaderEditSheet({
           <SheetTitle>Edit Loader {loader?.id}</SheetTitle>
           <SheetDescription>Update the loader configuration.</SheetDescription>
         </SheetHeader>
+
+        {canClearError && loader?.lastError && (
+          <div className="mx-4 flex items-start justify-between gap-2 rounded-md border border-red-200 bg-red-50 p-2">
+            <p
+              className="text-xs text-pretty wrap-break-word text-red-800"
+              title={loader.lastError}
+            >
+              {loader.lastError}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 cursor-pointer"
+              onClick={handleClearError}
+              disabled={isClearing}
+            >
+              {isClearing ? "Clearing..." : "Clear error"}
+            </Button>
+          </div>
+        )}
 
         <form
           onSubmit={form.handleSubmit(onSubmit)}

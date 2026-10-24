@@ -18,6 +18,7 @@ import { SeriesHoverProvider } from "@/components/series/series-data-section";
 import { SeriesDataTable } from "@/components/series/series-table";
 import { SourceMapTable } from "@/components/series/source-map";
 import { getCurrentUserRole } from "@/lib/auth/dal";
+import { hasFullAccess } from "@/lib/auth/roles";
 
 export default async function SeriesPage({
   params,
@@ -59,6 +60,7 @@ export default async function SeriesPage({
               universe={universe}
               seriesId={id}
               loaders={loaders}
+              canClearErrors={hasFullAccess(role)}
             />
             <LoaderActionHistory actions={loaderActions} />
             <SeriesDataTable

@@ -1,7 +1,6 @@
 import type { LaggingLoader } from "@catalog/collections/loader-collection";
 
 import { createLogger } from "@/core/observability/logger";
-import { isProduction } from "@/lib/app-env";
 
 import { Mailer } from "./mailer";
 
@@ -13,8 +12,8 @@ import { Mailer } from "./mailer";
 
 const log = createLogger("mailer.loader-lag");
 
-/** Local and staging post to #automation so test runs never page anyone. */
-const SLACK_LAG_CHANNEL = isProduction ? "udaman" : "automation";
+/** #automation everywhere for now; #udaman is for discussion and rarer events. */
+const SLACK_LAG_CHANNEL = "automation";
 
 /** Public base URL (no `/udaman` prefix — see pre-release-mailer.ts). */
 const BASE_URL =

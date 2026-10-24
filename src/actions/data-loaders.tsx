@@ -6,6 +6,7 @@ import { LoadStatementError } from "@catalog/collections/loader-collection";
 import type { DeleteByMode } from "@catalog/collections/series-collection";
 import {
   clearLoaderDataPoints as clearLoaderCtrl,
+  clearDataLoaderError as clearLoaderErrorCtrl,
   createDataLoader as createDataLoaderCtrl,
   deleteDataLoader as deleteLoaderCtrl,
   disableDataLoader as disableLoaderCtrl,
@@ -25,6 +26,8 @@ import { redisConnection } from "@/core/workers/connection";
 import { enqueueSeriesReload } from "@/core/workers/enqueue";
 import type { ActionResult } from "@/lib/action-result";
 import { requireAuth } from "@/lib/auth/dal";
+import { hasFullAccess } from "@/lib/auth/roles";
+import { AuthorizationError } from "@/lib/errors";
 
 const log = createLogger("action.data-loaders");
 
@@ -276,6 +279,55 @@ export async function enableLoader(loaderId: number) {
       level: "error",
       category: "loader",
       name: "loader.enable",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+      metadata: { error: message },
+    });
+    throw e;
+  }
+}
+
+/** Clear a loader's last error (admin/dev), recorded in the loader action history. */
+export async function clearLoaderError(loaderId: number) {
+  const session = await requireAuth();
+  if (!hasFullAccess(session.user.role ?? "")) {
+    throw new AuthorizationError("Unauthorized: admin or dev role required");
+  }
+  const userId = parseInt(session.user!.id!);
+  const userEmail = session.user!.email ?? null;
+
+  log.info({ loaderId }, "clearLoaderError action called");
+  try {
+    const result = await clearLoaderErrorCtrl({ id: loaderId });
+    log.info({ loaderId }, "clearLoaderError action completed");
+
+    // Fire-and-forget: record loader action + app log
+    LoaderActionCollection.create({
+      loaderId,
+      seriesId: result.data.seriesId!,
+      userId,
+      userEmail,
+      action: "CLEAR_ERROR",
+      priority: result.data.priority,
+      eval: result.data.eval,
+    });
+    AppLogCollection.log({
+      category: "loader",
+      name: "loader.clear_error",
+      userId,
+      subject: "data_sources",
+      subjectId: loaderId,
+    });
+
+    return result;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ loaderId, err: message }, "clearLoaderError action failed");
+    AppLogCollection.log({
+      level: "error",
+      category: "loader",
+      name: "loader.clear_error",
       userId,
       subject: "data_sources",
       subjectId: loaderId,

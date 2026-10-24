@@ -204,6 +204,14 @@ describe("Series.aggregate to week", () => {
   });
 });
 
+describe("Series.aggregate operation", () => {
+  it("rejects an unknown operation (Rails raised too)", () => {
+    expect(() =>
+      build("month", [["2024-01-01", 1]]).aggregate("year", "median"),
+    ).toThrow(/not implemented/);
+  });
+});
+
 describe("Series.aggregate from week", () => {
   // Saturdays Jan 3 .. Feb 28 2026; each covers the 7 days ending on it.
   const saturdays = (value: number): Array<[string, number]> =>

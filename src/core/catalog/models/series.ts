@@ -179,7 +179,8 @@ function firstDayOfPeriod(periodKey: string, freq: string): string {
 
 // ─── Aggregation helpers ────────────────────────────────────────────
 
-type AggOp = "sum" | "average" | "min" | "max" | "first" | "last";
+const AGG_OPS = ["sum", "average", "min", "max", "first", "last"] as const;
+type AggOp = (typeof AGG_OPS)[number];
 
 function applyAggOp(values: number[], op: AggOp): number {
   switch (op) {
@@ -1263,6 +1264,9 @@ class Series {
     }
 
     const op = (operation ?? "average") as AggOp;
+    if (!AGG_OPS.includes(op)) {
+      throw new Error(`Aggregation method ${operation} is not implemented`);
+    }
 
     // Weeks straddle period boundaries, so (like Rails aggregate_data_by)
     // spread each week over its days first and aggregate the daily series.

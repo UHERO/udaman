@@ -318,6 +318,19 @@ class LoaderCollection {
     });
   }
 
+  /**
+   * Clear a loader's last error. Leaves updated_at alone: no data changed,
+   * and the public sweep reads a bumped updated_at as new data.
+   */
+  static async clearError(id: number): Promise<Loader> {
+    await this.updateFields(
+      id,
+      { lastError: null, lastErrorAt: null },
+      { touchUpdatedAt: false },
+    );
+    return this.getById(id);
+  }
+
   /** Toggle nightly reload flag */
   static async toggleReloadNightly(id: number): Promise<Loader> {
     const loader = await this.getById(id);

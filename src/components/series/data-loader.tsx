@@ -305,10 +305,13 @@ export const LoaderSection = ({
   universe,
   seriesId,
   loaders,
+  canClearErrors = false,
 }: {
   universe: string;
   seriesId: number;
   loaders: SerializedLoader[];
+  /** admin/dev: show "Clear error" in the edit sheet */
+  canClearErrors?: boolean;
 }) => {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
@@ -443,6 +446,7 @@ export const LoaderSection = ({
               universe={universe}
               seriesId={seriesId}
               loader={l}
+              canClearError={canClearErrors}
             />
           ),
         )}
@@ -467,10 +471,12 @@ const LoaderItem = ({
   universe,
   seriesId,
   loader,
+  canClearError,
 }: {
   universe: string;
   seriesId: number;
   loader: SerializedLoader;
+  canClearError: boolean;
 }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -694,6 +700,7 @@ const LoaderItem = ({
         open={editOpen}
         onOpenChange={setEditOpen}
         loader={loader}
+        canClearError={canClearError}
       />
       <ClearDataDialog
         open={clearOpen}

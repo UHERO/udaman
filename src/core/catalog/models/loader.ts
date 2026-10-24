@@ -263,6 +263,49 @@ class Loader {
     return Math.max(0, daysBetweenStr(today, periodEnd));
   }
 
+  /**
+   * Suggested max_lag_days from a loader's recent observations, oldest
+   * first, each with its `arrival` (first vintage's created_at, wall-clock
+   * "YYYY-MM-DD HH:MM:SS"). Uses the newest run of up to `maxPoints` points
+   * that arrived separately (consecutive arrivals at least half a day
+   * apart); a bulk reload or clear_before_load ends the run. The limit is
+   * the worst lag seen just before a new point arrived, plus the mean gap
+   * between arrivals: it fires once a release is a full cycle later than
+   * the recent worst, not on ordinary jitter
+   * (docs/2026-10-24-loader-lag-limits.md). Null when that run has fewer
+   * than 5 points.
+   */
+  static suggestLagLimit(
+    points: { date: string; arrival: string }[],
+    frequency: string | null,
+    maxPoints = 10,
+  ): number | null {
+    const recent = points.slice(-maxPoints);
+    const at = (s: string) => new Date(s.replace(" ", "T") + "Z").getTime();
+    const gapDays = (i: number) =>
+      (at(recent[i].arrival) - at(recent[i - 1].arrival)) / 86400000;
+
+    let start = recent.length - 1;
+    while (start > 0 && gapDays(start) >= 0.5) start--;
+    const run = recent.slice(start);
+    if (run.length < 5) return null;
+
+    let worstPeak = 0;
+    let totalGap = 0;
+    for (let i = 1; i < run.length; i++) {
+      totalGap += gapDays(start + i);
+      // lag on the day the next point arrived = its arrival date vs the
+      // previous point's period end
+      const peak = Loader.lagDays(
+        run[i - 1].date,
+        frequency,
+        run[i].arrival.slice(0, 10),
+      );
+      worstPeak = Math.max(worstPeak, peak);
+    }
+    return Math.ceil(worstPeak + totalGap / (run.length - 1));
+  }
+
   /** Whether this loader is a history or pseudo_history type */
   get isHistory(): boolean {
     return (

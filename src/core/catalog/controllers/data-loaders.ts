@@ -137,6 +137,18 @@ export async function disableDataLoader({
   return { message: "data loader disabled", data: loader.toJSON() };
 }
 
+export async function clearDataLoaderError({
+  id,
+}: {
+  id: number;
+}): Promise<ControllerResponse<SerializedLoader>> {
+  logControllerCall("data-loaders", "clearDataLoaderError", { id });
+  log.info({ id }, "clearing data loader error");
+  const loader = await LoaderCollection.clearError(id);
+  log.info({ id }, "data loader error cleared");
+  return { message: "loader error cleared", data: loader.toJSON() };
+}
+
 export async function enableDataLoader({
   id,
 }: {
