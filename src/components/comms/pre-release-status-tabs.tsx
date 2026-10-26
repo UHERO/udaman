@@ -30,7 +30,7 @@ export function PreReleaseStatusTabs({
   const { fullWidth, toggleWidth } = useFullWidth();
 
   // Always spell out view and status: bare /comms falls back to the default
-  // view and the "not reviewed" filter, so "All items" would be unreachable.
+  // view, so a status link without ?view=list could land on a board.
   const hrefFor = (f: ApprovalStatusFilter) => {
     const params = new URLSearchParams({ view: "list", status: f });
     if (author) params.set("author", String(author));

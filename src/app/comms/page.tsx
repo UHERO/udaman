@@ -143,7 +143,7 @@ export default async function Page({
             emptyMessage={
               active === "all"
                 ? "No pre-release forms submitted yet."
-                : `No ${APPROVAL_STATUS_LABELS[active].toLowerCase()} forms.`
+                : `No forms under “${APPROVAL_STATUS_LABELS[active]}”.`
             }
           />
         </CommsPanel>

@@ -2,12 +2,13 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Rocket, Undo2 } from "lucide-react";
+import { Rocket } from "lucide-react";
 import { toast } from "sonner";
 
 import { setApprovalReleased } from "@/actions/approvals";
 import { Button } from "@/components/ui/button";
 import { toastActionError, unwrapAction } from "@/lib/action-result";
+import { cn } from "@/lib/utils";
 
 /** Toggles a form's released state; shown to the author and admins. */
 export function ReleaseButton({
@@ -37,22 +38,20 @@ export function ReleaseButton({
   return (
     <Button
       type="button"
-      variant={isReleased ? "outline" : "default"}
-      className="cursor-pointer"
+      variant="outline"
+      aria-pressed={isReleased}
+      title={isReleased ? "Click to undo" : undefined}
+      className={cn(
+        // dark: variants override the outline button's own dark-mode hover.
+        "hover:border-ublue hover:bg-ublue dark:hover:border-ublue dark:hover:bg-ublue w-36 cursor-pointer hover:text-white",
+        isReleased &&
+          "border-ublue bg-ublue hover:bg-ublue/90 dark:border-ublue dark:bg-ublue dark:hover:bg-ublue/90 text-white",
+      )}
       disabled={isPending}
       onClick={() => handleRelease(!isReleased)}
     >
-      {isReleased ? (
-        <>
-          <Undo2 className="h-4 w-4" />
-          Undo release
-        </>
-      ) : (
-        <>
-          <Rocket className="h-4 w-4" />
-          Mark released
-        </>
-      )}
+      <Rocket className="h-4 w-4" />
+      {isReleased ? "Released" : "Mark released"}
     </Button>
   );
 }

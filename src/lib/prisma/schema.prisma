@@ -1060,21 +1060,23 @@ enum messages_status {
 }
 
 model approvals {
-  id                  Int                @id @default(autoincrement())
-  type                approvals_type     @default(pre_release)
-  universe            String             @default("UHERO") @db.VarChar(10)
-  name                String             @db.VarChar(500)
-  author              String             @db.VarChar(255)
-  author_user_id      Int
-  target_release_date DateTime?          @db.Date
-  review_by_date      DateTime?          @db.Date
-  form_data           String             @db.LongText
-  released_at         DateTime?          @db.DateTime(0)
-  released_by_user_id Int?
-  deleted_at          DateTime?          @db.DateTime(0)
-  created_at          DateTime           @default(now()) @db.Timestamp(0)
-  updated_at          DateTime           @default(now()) @db.DateTime(0)
-  reviews             approval_reviews[]
+  id                   Int                @id @default(autoincrement())
+  type                 approvals_type     @default(pre_release)
+  universe             String             @default("UHERO") @db.VarChar(10)
+  name                 String             @db.VarChar(500)
+  author               String             @db.VarChar(255)
+  author_user_id       Int
+  target_release_date  DateTime?          @db.Date
+  review_by_date       DateTime?          @db.Date
+  form_data            String             @db.LongText
+  super_review_at      DateTime?          @db.DateTime(0)
+  super_review_user_id Int?
+  released_at          DateTime?          @db.DateTime(0)
+  released_by_user_id  Int?
+  deleted_at           DateTime?          @db.DateTime(0)
+  created_at           DateTime           @default(now()) @db.Timestamp(0)
+  updated_at           DateTime           @default(now()) @db.DateTime(0)
+  reviews              approval_reviews[]
 
   @@index([universe, created_at], map: "idx_approvals_universe_created")
   @@index([author_user_id], map: "idx_approvals_author_user")

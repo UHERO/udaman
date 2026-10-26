@@ -130,7 +130,12 @@ export async function submitReview({
   const isNew = after > before;
   log.info({ id, reviewId: review.id, count: after, isNew }, "review saved");
 
-  if (isNew && before < REQUIRED_REVIEWS && after >= REQUIRED_REVIEWS) {
+  if (
+    isNew &&
+    !approval.isSuperReviewed &&
+    before < REQUIRED_REVIEWS &&
+    after >= REQUIRED_REVIEWS
+  ) {
     notifyAuthorReviewed(approval.id, approval.authorUserId).catch((err) => {
       log.error(
         { err: err instanceof Error ? err.message : String(err), id },
@@ -203,8 +208,8 @@ export async function deleteReview({
 }
 
 /**
- * Move a review's kanban card. The parent approval's author (or an
- * admin/dev) may move any card; a reviewer may move their own. Moving into
+ * Move a review's kanban card. Anyone may move any card — one person often
+ * updates several reviews once edits land in the source document. Moving into
  * "Review Complete" is the sign-off (sets `attested`), so this is also where
  * the author gets emailed when a form reaches REQUIRED_REVIEWS.
  */
@@ -219,19 +224,19 @@ export async function setReviewBoardStatus({
 }) {
   const review = await ApprovalReviewCollection.getById(reviewId);
   const approval = await ApprovalCollection.getById(review.approvalId);
-  if (!canManageReview(review, actor)) {
-    assertCanModify(
-      approval,
-      actor,
-      `This is ${review.reviewer}'s review — only they or the form's author can move it.`,
-    );
-  }
   const before = await ApprovalReviewCollection.countForApproval(approval.id);
   const data = await ApprovalReviewCollection.setBoardStatus(reviewId, status);
   const after = await ApprovalReviewCollection.countForApproval(approval.id);
-  log.info({ reviewId, status, count: after }, "review board status updated");
+  log.info(
+    { reviewId, status, count: after, actorUserId: actor.userId },
+    "review board status updated",
+  );
 
-  if (before < REQUIRED_REVIEWS && after >= REQUIRED_REVIEWS) {
+  if (
+    !approval.isSuperReviewed &&
+    before < REQUIRED_REVIEWS &&
+    after >= REQUIRED_REVIEWS
+  ) {
     notifyAuthorReviewed(approval.id, approval.authorUserId).catch((err) => {
       log.error(
         {
@@ -271,6 +276,38 @@ export async function setApprovalReleased({
   log.info({ id, released }, "approval release mark updated");
   return {
     message: released ? "Marked as released" : "Release mark removed",
+    data,
+  };
+}
+
+/**
+ * Mark a form reviewed (or un-mark it) without waiting for REQUIRED_REVIEWS
+ * sign-offs — not every form needs that many. Author or admin only.
+ */
+export async function setApprovalSuperReviewed({
+  id,
+  reviewed,
+  actor,
+}: {
+  id: number;
+  reviewed: boolean;
+  actor: Actor;
+}) {
+  const existing = await ApprovalCollection.getById(id);
+  assertCanModify(
+    existing,
+    actor,
+    reviewed
+      ? "Only the form's author can mark it reviewed."
+      : "Only the form's author can undo its reviewed mark.",
+  );
+  const data = await ApprovalCollection.setSuperReviewed(
+    id,
+    reviewed ? { byUserId: actor.userId } : null,
+  );
+  log.info({ id, reviewed }, "approval reviewed mark updated");
+  return {
+    message: reviewed ? "Marked as reviewed" : "Reviewed mark removed",
     data,
   };
 }

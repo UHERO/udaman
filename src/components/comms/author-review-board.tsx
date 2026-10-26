@@ -36,7 +36,6 @@ export function AuthorReviewBoard({
     <ReviewKanbanBoard
       reviews={cards}
       approvals={approvalsById}
-      canDrag={() => true}
       currentUserId={currentUserId}
       showComm
     />

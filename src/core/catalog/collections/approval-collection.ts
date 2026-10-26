@@ -115,6 +115,28 @@ class ApprovalCollection {
     return this.getById(id);
   }
 
+  /** Set or clear the manual "reviewed" mark. */
+  static async setSuperReviewed(
+    id: number,
+    reviewed: { byUserId: number } | null,
+  ): Promise<Approval> {
+    await this.getById(id); // 404s if gone
+    if (reviewed) {
+      await mysql`
+        UPDATE approvals
+        SET super_review_at = NOW(), super_review_user_id = ${reviewed.byUserId}, updated_at = NOW()
+        WHERE id = ${id}
+      `;
+    } else {
+      await mysql`
+        UPDATE approvals
+        SET super_review_at = NULL, super_review_user_id = NULL, updated_at = NOW()
+        WHERE id = ${id}
+      `;
+    }
+    return this.getById(id);
+  }
+
   /** Create a new approval record. */
   static async create(payload: CreateApprovalPayload): Promise<Approval> {
     const {

@@ -55,7 +55,6 @@ export function ReviewerBoard({
       <ReviewKanbanBoard
         reviews={cards}
         approvals={approvalsById}
-        canDrag={(review) => review.reviewerUserId === currentUserId}
         currentUserId={currentUserId}
         showComm
         inProgressExtra={

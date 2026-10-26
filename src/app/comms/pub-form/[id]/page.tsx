@@ -9,6 +9,7 @@ import {
 } from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
 import { CommsPanel, SectionDivider } from "@/components/comms/comms-panel";
+import { MarkReviewedButton } from "@/components/comms/mark-reviewed-button";
 import {
   ApprovalDates,
   PreReleaseDetail,
@@ -63,11 +64,17 @@ export default async function Page({
               Pre-release form filed by {approval.author}
             </p>
           </div>
-          <ApprovalDates approval={approval} />
+          <ApprovalDates approval={approval}>
+            <ApprovalStatusBadges approval={approval} variant="text" />
+          </ApprovalDates>
           <div className="flex flex-wrap items-center gap-2">
-            <ApprovalStatusBadges approval={approval} size="md" />
             {canEdit && (
               <>
+                <MarkReviewedButton
+                  approvalId={approval.id}
+                  isReviewed={approval.isReviewed}
+                  isSuperReviewed={approval.isSuperReviewed}
+                />
                 <ReleaseButton
                   approvalId={approval.id}
                   isReleased={approval.isReleased}
@@ -89,7 +96,6 @@ export default async function Page({
         reviews={reviews}
         currentUserId={currentUserId}
         currentUserName={currentUserName}
-        isAdmin={isAdmin}
         isDev={role === "dev"}
       />
 

@@ -17,21 +17,17 @@ export function ReviewPanel({
   reviews,
   currentUserId,
   currentUserName,
-  isAdmin,
   isDev,
 }: {
   approval: ApprovalJSON;
   reviews: ApprovalReviewJSON[];
   currentUserId: number;
   currentUserName: string;
-  isAdmin: boolean;
   isDev: boolean;
 }) {
   const mine = reviews.some((r) => r.reviewerUserId === currentUserId);
-  const isAuthor = approval.authorUserId === currentUserId;
   // Authors may review their own form — many are filed on their behalf.
   const canAdd = !mine;
-  const canModify = isAuthor || isAdmin;
 
   return (
     <CommsPanel
@@ -49,7 +45,6 @@ export function ReviewPanel({
       <ReviewKanbanBoard
         reviews={reviews}
         approvals={{ [approval.id]: approval }}
-        canDrag={(r) => canModify || r.reviewerUserId === currentUserId}
         currentUserId={currentUserId}
         addReview={
           canAdd ? { approvalId: approval.id, currentUserName } : undefined

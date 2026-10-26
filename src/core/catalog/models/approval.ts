@@ -1,4 +1,5 @@
 import type { Universe } from "../types/shared";
+import { daysBetweenStr, hstToday } from "../utils/time";
 
 /** Kinds of approval. Only the pre-release form exists today. */
 export const APPROVAL_TYPES = ["pre_release"] as const;
@@ -212,26 +213,29 @@ export const REQUIRED_REVIEWS = 3;
 
 /**
  * Filters the list page offers. Both axes are derived at read time:
- * reviewed = reviewCount >= REQUIRED_REVIEWS, released = releasedAt set.
+ * reviewed = reviewCount >= REQUIRED_REVIEWS or marked reviewed
+ * (superReviewAt set), released = releasedAt set.
  */
 export const APPROVAL_STATUS_FILTERS = [
   "not_reviewed",
   "reviewed",
-  "unreleased",
   "released",
   "all",
 ] as const;
 export type ApprovalStatusFilter = (typeof APPROVAL_STATUS_FILTERS)[number];
 
 export const APPROVAL_STATUS_LABELS: Record<ApprovalStatusFilter, string> = {
-  all: "All items",
-  unreleased: "Unreleased",
-  released: "Released",
   not_reviewed: "Not reviewed",
-  reviewed: "Reviewed",
+  reviewed: "Reviewed, pending release",
+  released: "Released",
+  all: "All",
 };
 
-/** Shared by the model and the JSON the list page receives. */
+/**
+ * Shared by the model and the JSON the list page receives. The review tabs
+ * cover only unreleased forms; "Released" is the full release history,
+ * reviewed or not; "All" is everything.
+ */
 export function approvalMatchesStatus(
   a: { isReviewed: boolean; isReleased: boolean },
   filter: ApprovalStatusFilter,
@@ -241,13 +245,30 @@ export function approvalMatchesStatus(
       return true;
     case "released":
       return a.isReleased;
-    case "unreleased":
-      return !a.isReleased;
     case "reviewed":
-      return a.isReviewed;
+      return !a.isReleased && a.isReviewed;
     case "not_reviewed":
-      return !a.isReviewed;
+      return !a.isReleased && !a.isReviewed;
   }
+}
+
+/**
+ * How close an unreviewed form is to its review-by date, in Hawaii days:
+ * "due_soon" within REVIEW_DUE_SOON_DAYS, "overdue" once past it. Null when
+ * reviewed, released, or there's no review-by date.
+ */
+export const REVIEW_DUE_SOON_DAYS = 7;
+export type ReviewDeadlineStatus = "due_soon" | "overdue";
+
+export function reviewDeadlineStatus(
+  a: { reviewByDate: string | null; isReviewed: boolean; isReleased: boolean },
+  today: string = hstToday(),
+): ReviewDeadlineStatus | null {
+  if (!a.reviewByDate || a.isReviewed || a.isReleased) return null;
+  const daysLeft = daysBetweenStr(a.reviewByDate, today);
+  if (daysLeft < 0) return "overdue";
+  if (daysLeft <= REVIEW_DUE_SOON_DAYS) return "due_soon";
+  return null;
 }
 
 export function isApprovalStatusFilter(
@@ -266,6 +287,8 @@ export type ApprovalAttrs = {
   target_release_date?: Date | string | null;
   review_by_date?: Date | string | null;
   form_data?: unknown;
+  super_review_at?: Date | string | null;
+  super_review_user_id?: number | null;
   released_at?: Date | string | null;
   released_by_user_id?: number | null;
   deleted_at?: Date | string | null;
@@ -308,6 +331,9 @@ class Approval {
   /** When reviewers need to respond by. Null on forms filed before it existed. */
   reviewByDate: Date | null;
   formData: PreReleaseFormData;
+  /** Marked reviewed by hand, regardless of how many reviews are on file. */
+  superReviewAt: Date | null;
+  superReviewUserId: number | null;
   releasedAt: Date | null;
   releasedByUserId: number | null;
   deletedAt: Date | null;
@@ -333,6 +359,8 @@ class Approval {
       typeof attrs.form_data === "string"
         ? (JSON.parse(attrs.form_data) as PreReleaseFormData)
         : ((attrs.form_data ?? {}) as PreReleaseFormData);
+    this.superReviewAt = toDate(attrs.super_review_at);
+    this.superReviewUserId = attrs.super_review_user_id ?? null;
     this.releasedAt = toDate(attrs.released_at);
     this.releasedByUserId = attrs.released_by_user_id ?? null;
     this.deletedAt = toDate(attrs.deleted_at);
@@ -344,7 +372,11 @@ class Approval {
   }
 
   get isReviewed(): boolean {
-    return this.reviewCount >= REQUIRED_REVIEWS;
+    return this.isSuperReviewed || this.reviewCount >= REQUIRED_REVIEWS;
+  }
+
+  get isSuperReviewed(): boolean {
+    return this.superReviewAt !== null;
   }
 
   get isReleased(): boolean {
@@ -370,11 +402,14 @@ class Approval {
       targetReleaseDate: toDateString(this.targetReleaseDate),
       reviewByDate: toDateString(this.reviewByDate),
       formData: this.formData,
+      superReviewAt: this.superReviewAt?.toISOString() ?? null,
+      superReviewUserId: this.superReviewUserId,
       releasedAt: this.releasedAt?.toISOString() ?? null,
       releasedByUserId: this.releasedByUserId,
       reviewCount: this.reviewCount,
       requiredReviews: REQUIRED_REVIEWS,
       isReviewed: this.isReviewed,
+      isSuperReviewed: this.isSuperReviewed,
       isReleased: this.isReleased,
       reviewedByMe: this.reviewedByMe,
       createdAt: this.createdAt?.toISOString() ?? null,

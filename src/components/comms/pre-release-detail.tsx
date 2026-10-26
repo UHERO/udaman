@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ApprovalJSON } from "@catalog/models/approval";
 import {
   formatAiUsageParts,
@@ -24,16 +25,18 @@ function formatDate(value: string | null): string | null {
 /**
  * Header summary of a form's dates. "Review by" leads — it's the date
  * reviewers act on; the release date trails it because lead time varies by
- * publication type.
+ * publication type. `children` (e.g. review status) trails on the same row.
  */
 export function ApprovalDates({
   approval,
+  children,
 }: {
   approval: Pick<ApprovalJSON, "reviewByDate" | "targetReleaseDate">;
+  children?: ReactNode;
 }) {
   const reviewBy = formatDate(approval.reviewByDate);
   const release = formatDate(approval.targetReleaseDate);
-  if (!reviewBy && !release) return null;
+  if (!reviewBy && !release && !children) return null;
   return (
     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
       {reviewBy && (
@@ -47,6 +50,7 @@ export function ApprovalDates({
           Target release {release}
         </p>
       )}
+      {children}
     </div>
   );
 }

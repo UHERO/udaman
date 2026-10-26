@@ -4,24 +4,30 @@ import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ApprovalJSON } from "@catalog/models/approval";
+import { reviewDeadlineStatus } from "@catalog/models/approval";
 import type { ApprovalReviewJSON } from "@catalog/models/approval-review";
 import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
   MoreHorizontal,
   Pencil,
+  Rocket,
   Send,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   deleteApproval,
   resendApprovalNotification,
+  setApprovalReleased,
+  setApprovalSuperReviewed,
 } from "@/actions/approvals";
 import { ApprovalStatusBadges } from "@/components/comms/approval-status";
 import {
@@ -99,18 +105,35 @@ function sortValue(a: ApprovalJSON, key: SortKey): string | number | null {
   }
 }
 
-/** Sort a copy; missing dates go last in both directions. */
+/** Missing values go last in both directions. */
+function compareBy(
+  x: ApprovalJSON,
+  y: ApprovalJSON,
+  key: SortKey,
+  sign: number,
+): number {
+  const a = sortValue(x, key);
+  const b = sortValue(y, key);
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return (a < b ? -1 : 1) * sign;
+}
+
+/**
+ * Sort a copy. Default order (no column picked) is soonest review-by date,
+ * then soonest target release; that also breaks ties under a column sort.
+ */
 function sortApprovals(list: ApprovalJSON[], sort: Sort): ApprovalJSON[] {
-  if (!sort) return list;
-  const sign = sort.dir === "asc" ? 1 : -1;
-  return [...list].sort((x, y) => {
-    const a = sortValue(x, sort.key);
-    const b = sortValue(y, sort.key);
-    if (a === b) return 0;
-    if (a === null) return 1;
-    if (b === null) return -1;
-    return (a < b ? -1 : 1) * sign;
-  });
+  const byDeadline = (x: ApprovalJSON, y: ApprovalJSON) =>
+    compareBy(x, y, "reviewByDate", 1) ||
+    compareBy(x, y, "targetReleaseDate", 1);
+  return [...list].sort((x, y) =>
+    sort
+      ? compareBy(x, y, sort.key, sort.dir === "asc" ? 1 : -1) ||
+        byDeadline(x, y)
+      : byDeadline(x, y),
+  );
 }
 
 function SortHeader({
@@ -172,7 +195,7 @@ export function PreReleaseList({
   const base = "/comms/pub-form";
 
   const [sort, setSort] = useState<Sort>(null);
-  // Click cycles ascending → descending → unsorted (server order).
+  // Click cycles ascending → descending → unsorted (default order).
   const cycleSort = (key: SortKey) =>
     setSort((s) =>
       s?.key !== key
@@ -255,6 +278,30 @@ export function PreReleaseList({
       toastActionError(error, "Failed to send the notification");
     } finally {
       setResending(false);
+    }
+  }
+
+  async function toggleSuperReviewed(a: ApprovalJSON) {
+    try {
+      const result = unwrapAction(
+        await setApprovalSuperReviewed(a.id, !a.isSuperReviewed),
+      );
+      toast.success(result.message);
+      router.refresh();
+    } catch (error) {
+      toastActionError(error, "Update failed");
+    }
+  }
+
+  async function toggleReleased(a: ApprovalJSON) {
+    try {
+      const result = unwrapAction(
+        await setApprovalReleased(a.id, !a.isReleased),
+      );
+      toast.success(result.message);
+      router.refresh();
+    } catch (error) {
+      toastActionError(error, "Update failed");
     }
   }
 
@@ -387,7 +434,7 @@ export function PreReleaseList({
                   </TableCell>
                   <TableCell>{a.author}</TableCell>
                   <TableCell className="font-medium">
-                    {formatDate(a.reviewByDate)}
+                    <ReviewByDate approval={a} />
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDate(a.targetReleaseDate)}
@@ -442,6 +489,36 @@ export function PreReleaseList({
                                 Resend notification
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
+                              {/* Reviewed by count alone: no mark to toggle. */}
+                              {(!a.isReviewed || a.isSuperReviewed) && (
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onSelect={() => void toggleSuperReviewed(a)}
+                                >
+                                  {a.isSuperReviewed ? (
+                                    <Undo2 className="h-4 w-4" />
+                                  ) : (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  )}
+                                  {a.isSuperReviewed
+                                    ? "Undo reviewed"
+                                    : "Mark reviewed"}
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="cursor-pointer"
+                                onSelect={() => void toggleReleased(a)}
+                              >
+                                {a.isReleased ? (
+                                  <Undo2 className="h-4 w-4" />
+                                ) : (
+                                  <Rocket className="h-4 w-4" />
+                                )}
+                                {a.isReleased
+                                  ? "Undo release"
+                                  : "Mark released"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 variant="destructive"
                                 className="cursor-pointer"
@@ -465,9 +542,6 @@ export function PreReleaseList({
                         <ReviewKanbanBoard
                           reviews={list}
                           approvals={{ [a.id]: a }}
-                          canDrag={(r) =>
-                            canModify(a) || r.reviewerUserId === currentUserId
-                          }
                           currentUserId={currentUserId}
                           addReview={
                             canReview(a)
@@ -567,5 +641,30 @@ export function PreReleaseList({
         />
       )}
     </>
+  );
+}
+
+/**
+ * Review-by date, flagged when an unreviewed form's deadline is close
+ * (yellow) or past (red).
+ */
+function ReviewByDate({ approval }: { approval: ApprovalJSON }) {
+  const deadline = reviewDeadlineStatus(approval);
+  const date = formatDate(approval.reviewByDate);
+  if (!deadline) return <>{date}</>;
+  return (
+    <span
+      className={cn(
+        "rounded px-1.5 py-0.5 text-white",
+        deadline === "overdue" ? "bg-red-600" : "bg-amber-500",
+      )}
+      title={
+        deadline === "overdue"
+          ? "Review-by date has passed"
+          : "Review-by date is within a week"
+      }
+    >
+      {date}
+    </span>
   );
 }

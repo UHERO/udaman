@@ -12,6 +12,7 @@ import {
   getReviewsForApprovals as fetchReviewsForApprovals,
   resendApprovalNotification as resendApprovalNotificationCtrl,
   setApprovalReleased as setApprovalReleasedCtrl,
+  setApprovalSuperReviewed as setApprovalSuperReviewedCtrl,
   setReviewBoardStatus as setReviewBoardStatusCtrl,
   submitReview as submitReviewCtrl,
   updateApproval as updateApprovalCtrl,
@@ -398,6 +399,32 @@ export async function setApprovalReleased(
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message, userId }, "setApprovalReleased failed");
     AppLogCollection.logError(err, { userId, name: "approval.release" });
+    const failure = userFacingError(err);
+    if (failure) return failure;
+    throw err;
+  }
+}
+
+export async function setApprovalSuperReviewed(
+  id: number,
+  reviewed: boolean,
+): Promise<Saved<ApprovalJSON>> {
+  const { userId, role } = await requirePermission("approval", "update");
+  log.info({ id, reviewed }, "setApprovalSuperReviewed action called");
+  try {
+    await getApproval(id); // universe scoping
+    const result = await setApprovalSuperReviewedCtrl({
+      id,
+      reviewed,
+      actor: { userId, role },
+    });
+    revalidatePath(REVALIDATE_PATH);
+    revalidatePath(`/comms/pub-form/${id}`);
+    return { ok: true, message: result.message, data: result.data.toJSON() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message, userId }, "setApprovalSuperReviewed failed");
+    AppLogCollection.logError(err, { userId, name: "approval.super_review" });
     const failure = userFacingError(err);
     if (failure) return failure;
     throw err;

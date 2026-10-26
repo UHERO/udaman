@@ -52,19 +52,15 @@ import { toastActionError, unwrapAction } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 /**
- * Review kanban board: one card per review, dragged between status columns
- * by the parent approval's author (any card) or a reviewer (their own card).
- * Moving a card into "Review Complete" is what signs a review off (sets
- * `attested`); moving it back out clears that.
- *
- * Cards the viewer isn't allowed to move render without a grip, but can
- * still be picked up: dropping one snaps it back with a toast saying why,
- * rather than the drag silently doing nothing.
+ * Review kanban board: one card per review, dragged between status columns.
+ * Anyone may move any card — one person often sweeps through and updates
+ * several reviews once the edits land in the source document. Moving a card
+ * into "Review Complete" is what signs a review off (sets `attested`);
+ * moving it back out clears that.
  */
 export function ReviewKanbanBoard({
   reviews,
   approvals,
-  canDrag,
   currentUserId,
   showComm = false,
   addReview,
@@ -73,7 +69,6 @@ export function ReviewKanbanBoard({
   reviews: ApprovalReviewJSON[];
   /** Parent approval per review, keyed by approvalId — only needed when showComm. */
   approvals?: Record<number, ApprovalJSON>;
-  canDrag: (review: ApprovalReviewJSON) => boolean;
   currentUserId: number;
   /** Show the parent comm's name/link on each card (cross-comm board). */
   showComm?: boolean;
@@ -110,14 +105,6 @@ export function ReviewKanbanBoard({
     const status = over.id as ReviewBoardStatus;
     const review = cards.find((r) => r.id === reviewId);
     if (!review || review.boardStatus === status) return;
-    if (!canDrag(review)) {
-      toast.warning(
-        review.reviewerUserId === currentUserId
-          ? "You can't move this review."
-          : `This is ${review.reviewer}'s review — only they or the form's author can move it.`,
-      );
-      return;
-    }
 
     const previous = cards;
     setCards((cs) =>
@@ -172,14 +159,13 @@ export function ReviewKanbanBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {REVIEW_BOARD_STATUSES.map((status) => (
           <BoardColumn
             key={status}
             status={status}
             cards={cards.filter((r) => r.boardStatus === status)}
             approvals={approvals}
-            canDrag={canDrag}
             currentUserId={currentUserId}
             showComm={showComm}
             onCardUpdate={handleCardUpdate}
@@ -440,7 +426,6 @@ function BoardColumn({
   status,
   cards,
   approvals,
-  canDrag,
   currentUserId,
   showComm,
   onCardUpdate,
@@ -452,7 +437,6 @@ function BoardColumn({
   status: ReviewBoardStatus;
   cards: ApprovalReviewJSON[];
   approvals?: Record<number, ApprovalJSON>;
-  canDrag: (review: ApprovalReviewJSON) => boolean;
   currentUserId: number;
   showComm: boolean;
   onCardUpdate: (review: ApprovalReviewJSON) => void;
@@ -480,7 +464,7 @@ function BoardColumn({
           key={review.id}
           review={review}
           approval={approvals?.[review.approvalId]}
-          draggable={canDrag(review)}
+          draggable
           currentUserId={currentUserId}
           showComm={showComm}
           onUpdate={onCardUpdate}
@@ -516,8 +500,7 @@ function DraggableCard({
   onUpdate: (review: ApprovalReviewJSON) => void;
   onDelete: (id: number) => void;
 }) {
-  // Never disabled: a disallowed drop is rejected in handleDragEnd with a
-  // toast. `draggable` only controls the grip affordance.
+  // `draggable` only controls the grip affordance (off for the drag overlay).
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: review.id,
   });
