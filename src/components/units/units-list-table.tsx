@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -94,7 +95,14 @@ export function UnitsListTable({ data, universe }: UnitsListTableProps) {
               data.map((unit) => (
                 <TableRow key={unit.id} className="odd:bg-muted">
                   <TableCell>{unit.id}</TableCell>
-                  <TableCell>{unit.shortLabel || "-"}</TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/udaman/${universe}/catalog/units/${unit.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {unit.shortLabel || `Unit ${unit.id}`}
+                    </Link>
+                  </TableCell>
                   <TableCell>{unit.longLabel || "-"}</TableCell>
                   <TableCell>{unit.universe}</TableCell>
                   <TableCell>

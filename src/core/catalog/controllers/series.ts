@@ -5,6 +5,7 @@ import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type {
   DeleteByMode,
+  SeriesCatalogRef,
   SeriesListPreset,
 } from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
@@ -617,4 +618,26 @@ export async function getCompareMeasurement({
   }
 
   return result;
+}
+
+export async function getSeriesByCatalogRef({
+  ref,
+  id,
+  page,
+  limit,
+}: {
+  ref: SeriesCatalogRef;
+  id: number;
+  page: number;
+  limit: number;
+}) {
+  log.info({ ref, id, page, limit }, "fetching series by catalog ref");
+  const data = await SeriesCollection.listByCatalogRef({
+    ref,
+    id,
+    limit,
+    offset: (page - 1) * limit,
+  });
+  log.info({ ref, id, total: data.total }, "series by catalog ref fetched");
+  return { data };
 }

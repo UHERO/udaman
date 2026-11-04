@@ -179,6 +179,15 @@
   background-color: var(--muted-foreground);
 }
 
+/* Scrollable but with no visible scrollbar (wheel/trackpad/touch still work).
+   An @utility so variants apply, e.g. `lg:scrollbar-none`. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

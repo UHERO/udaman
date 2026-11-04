@@ -296,6 +296,27 @@ async function mapWithConcurrency<T>(
   await Promise.all(lanes);
 }
 
+/** Catalog records a series points at, each with its own detail page. */
+export type SeriesCatalogRef = "unit" | "geography" | "sourceDetail";
+
+const SERIES_REF_COLUMN: Record<SeriesCatalogRef, string> = {
+  unit: "unit_id",
+  geography: "geography_id",
+  sourceDetail: "source_detail_id",
+};
+
+export type SeriesRefRow = {
+  id: number;
+  name: string;
+  universe: string;
+  dataPortalName: string | null;
+  frequency: string | null;
+  seasonalAdjustment: string | null;
+  geoHandle: string | null;
+  unitShortLabel: string | null;
+  sourceDetailDescription: string | null;
+};
+
 class SeriesCollection {
   /**
    * Create a new series and its backing TimeSeries (xseries) record.
@@ -621,6 +642,73 @@ class SeriesCollection {
     `;
     if (rows.length === 0) throw new NotFoundError("Series", id);
     return rows[0];
+  }
+
+  /**
+   * Series that reference one catalog record (unit / geography / source
+   * detail), for that record's detail page. One page of `limit` rows from
+   * `offset`, ordered by name; `total` is the full count for the pager.
+   */
+  static async listByCatalogRef({
+    ref,
+    id,
+    limit = 100,
+    offset = 0,
+  }: {
+    ref: SeriesCatalogRef;
+    id: number;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ rows: SeriesRefRow[]; total: number }> {
+    // Whitelisted column — never interpolate caller input into the SQL.
+    const col = SERIES_REF_COLUMN[ref];
+    const [rows, counts] = await Promise.all([
+      rawQuery<{
+        id: number;
+        name: string;
+        universe: string;
+        dataPortalName: string | null;
+        frequency: string | null;
+        seasonal_adjustment: string | null;
+        geo_handle: string | null;
+        unit_short_label: string | null;
+        source_detail_description: string | null;
+      }>(
+        `SELECT
+           s.id, s.name, s.universe, s.dataPortalName,
+           x.frequency, x.seasonal_adjustment,
+           g.handle AS geo_handle,
+           u.short_label AS unit_short_label,
+           sd.description AS source_detail_description
+         FROM series s
+         JOIN xseries x ON x.id = s.xseries_id
+         LEFT JOIN geographies g ON g.id = s.geography_id
+         LEFT JOIN units u ON u.id = s.unit_id
+         LEFT JOIN source_details sd ON sd.id = s.source_detail_id
+         WHERE s.${col} = ?
+         ORDER BY s.name ASC, s.id ASC
+         LIMIT ? OFFSET ?`,
+        [id, limit, offset],
+      ),
+      rawQuery<{ cnt: number | bigint }>(
+        `SELECT COUNT(*) AS cnt FROM series s WHERE s.${col} = ?`,
+        [id],
+      ),
+    ]);
+    return {
+      total: Number(counts[0]?.cnt ?? 0),
+      rows: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        universe: r.universe,
+        dataPortalName: r.dataPortalName,
+        frequency: r.frequency,
+        seasonalAdjustment: r.seasonal_adjustment,
+        geoHandle: r.geo_handle,
+        unitShortLabel: r.unit_short_label,
+        sourceDetailDescription: r.source_detail_description,
+      })),
+    };
   }
 
   /**

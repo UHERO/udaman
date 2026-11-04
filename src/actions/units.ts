@@ -6,9 +6,11 @@ import type {
   CreateUnitPayload,
   UpdateUnitPayload,
 } from "@catalog/collections/unit-collection";
+import { getSeriesByCatalogRef } from "@catalog/controllers/series";
 import {
   createUnit as createUnitCtrl,
   deleteUnit as deleteUnitCtrl,
+  getUnit as fetchUnit,
   getUnits as fetchUnits,
   updateUnit as updateUnitCtrl,
 } from "@catalog/controllers/units";
@@ -16,6 +18,7 @@ import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
+import type { SeriesPage } from "@/lib/series-page";
 
 const log = createLogger("action.units");
 
@@ -25,6 +28,17 @@ export async function getUnits(params?: { universe?: Universe }) {
   const result = await fetchUnits({ u: params?.universe });
   log.info({ count: result.data.length }, "getUnits action completed");
   return result.data.map((u) => u.toJSON());
+}
+
+/** One unit plus the series that reference it (detail page). */
+export async function getUnitDetail(id: number, { page, limit }: SeriesPage) {
+  await requirePermission("unit", "read");
+  log.info({ id }, "getUnitDetail action called");
+  const [{ data: record }, { data: series }] = await Promise.all([
+    fetchUnit({ id }),
+    getSeriesByCatalogRef({ ref: "unit", id, page, limit }),
+  ]);
+  return { record: record.toJSON(), series: { ...series, page, limit } };
 }
 
 export async function createUnit(payload: CreateUnitPayload) {

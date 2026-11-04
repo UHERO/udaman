@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Geography, Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -95,7 +96,14 @@ export function GeographiesListTable({
               data.map((geo) => (
                 <TableRow key={geo.id} className="odd:bg-muted">
                   <TableCell>{geo.id}</TableCell>
-                  <TableCell>{geo.handle || "-"}</TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/udaman/${universe}/catalog/geographies/${geo.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {geo.handle || `Geography ${geo.id}`}
+                    </Link>
+                  </TableCell>
                   <TableCell>{geo.displayName || "-"}</TableCell>
                   <TableCell>{geo.displayNameShort || "-"}</TableCell>
                   <TableCell>{geo.universe}</TableCell>

@@ -53,7 +53,20 @@ export default async function SeriesPage({
         description={metadata.s_description}
         dataPortalName={metadata.s_dataPortalName}
       />
+      <header className="mb-4 px-1">
+        <h1 className="text-xl font-bold opacity-80">{metadata.s_name}</h1>
+        {metadata.s_dataPortalName && (
+          <p className="text-primary/80 text-lg font-bold">
+            {metadata.s_dataPortalName}
+          </p>
+        )}
+      </header>
       <SeriesHoverProvider xseriesId={metadata.xs_id}>
+        {/* The page scrolls with the series column. On lg+ the metadata
+            column is pinned beside it, capped to the viewport, and scrolls
+            on its own when the pointer is over it (overscroll-contain keeps
+            that from spilling into the page). Stacked below lg, everything
+            scrolls with the page. */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(320px,400px)]">
           <div className="order-2 min-w-0 lg:order-1">
             <LoaderSection
@@ -77,7 +90,7 @@ export default async function SeriesPage({
           </div>
           {/* Metadata leads when stacked, but stays in the right-hand column
               on lg+ — hence the order swap rather than a DOM reorder. */}
-          <div className="order-1 self-start lg:sticky lg:top-4 lg:order-2">
+          <div className="order-1 min-w-0 self-start lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:scrollbar-none lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
             <MetaDataTable
               metadata={{ ...metadata, measurement, aliases }}
               universe={universe}
@@ -93,6 +106,7 @@ export default async function SeriesPage({
           </div>
         </div>
       </SeriesHoverProvider>
+      {/* Full width under both columns — the tree is too wide for either. */}
       <SourceMapTable data={sourceMap} universe={universe} />
     </div>
   );

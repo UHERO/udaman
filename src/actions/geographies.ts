@@ -10,12 +10,15 @@ import {
   createGeography as createGeographyCtrl,
   deleteGeography as deleteGeographyCtrl,
   getGeographies as fetchGeographies,
+  getGeography as fetchGeography,
   updateGeography as updateGeographyCtrl,
 } from "@catalog/controllers/geographies";
+import { getSeriesByCatalogRef } from "@catalog/controllers/series";
 import type { Geography, Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
+import type { SeriesPage } from "@/lib/series-page";
 
 const log = createLogger("action.geographies");
 
@@ -27,6 +30,20 @@ export async function getGeographies(params?: {
   const result = await fetchGeographies({ u: params?.universe });
   log.info({ count: result.data.length }, "getGeographies action completed");
   return result.data.map((g) => g.toJSON());
+}
+
+/** One geography plus the series that reference it (detail page). */
+export async function getGeographyDetail(
+  id: number,
+  { page, limit }: SeriesPage,
+) {
+  await requirePermission("geography", "read");
+  log.info({ id }, "getGeographyDetail action called");
+  const [{ data: record }, { data: series }] = await Promise.all([
+    fetchGeography({ id }),
+    getSeriesByCatalogRef({ ref: "geography", id, page, limit }),
+  ]);
+  return { record: record.toJSON(), series: { ...series, page, limit } };
 }
 
 export async function createGeography(

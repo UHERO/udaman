@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -96,7 +97,14 @@ export function SourceDetailsListTable({
               data.map((sd) => (
                 <TableRow key={sd.id} className="odd:bg-muted">
                   <TableCell>{sd.id}</TableCell>
-                  <TableCell>{sd.description || "-"}</TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/udaman/${universe}/catalog/source-details/${sd.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {sd.description || `Source detail ${sd.id}`}
+                    </Link>
+                  </TableCell>
                   <TableCell>{sd.universe}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
