@@ -54,9 +54,9 @@ export default async function SeriesPage({
         dataPortalName={metadata.s_dataPortalName}
       />
       <header className="mb-4 px-1">
-        <h1 className="text-xl font-bold opacity-80">{metadata.s_name}</h1>
+        <h1 className="text-3xl font-bold">{metadata.s_name}</h1>
         {metadata.s_dataPortalName && (
-          <p className="text-primary/80 text-lg font-bold">
+          <p className="text-muted-foreground text-sm">
             {metadata.s_dataPortalName}
           </p>
         )}
