@@ -12,6 +12,7 @@ import { dotaxSheetSource } from "./sources/dotax_sheet";
 import { eiaSource } from "./sources/eia";
 import { estatjpSource } from "./sources/estatjp";
 import { fredSource } from "./sources/fred";
+import { statcanSource } from "./sources/statcan";
 import type { SourceModule } from "./types";
 
 const MODULES: readonly SourceModule[] = [
@@ -23,6 +24,7 @@ const MODULES: readonly SourceModule[] = [
   eiaSource,
   estatjpSource,
   fredSource,
+  statcanSource,
 ];
 
 export const SOURCES: Readonly<Record<string, SourceModule>> =
