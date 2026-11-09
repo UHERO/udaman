@@ -79,13 +79,12 @@ function defaultRange(
   const now = new Date();
   const year = now.getFullYear();
 
-  let yearsPast: number, yearsFut: number, endMonth: number;
+  const yearsPast = 1;
+  let yearsFut: number, endMonth: number;
   if (freq === "monthly") {
-    yearsPast = 3;
     yearsFut = 1;
     endMonth = 12;
   } else {
-    yearsPast = 10;
     yearsFut = 5;
     endMonth = freq === "quarterly" ? 10 : 1;
   }
@@ -268,6 +267,7 @@ export function ForecastSnapshotCharts({
     () => allDates.filter((d) => d >= dateFrom && d <= dateTo),
     [allDates, dateFrom, dateTo],
   );
+  const windowStart = allDates.indexOf(dateFrom);
 
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
   const periodsPerYear = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
@@ -433,12 +433,11 @@ export function ForecastSnapshotCharts({
         const oldS = oldMap.get(name);
         const histS = histMap.get(name);
         const desc = displayNames[name] || name;
-        // Build value arrays aligned to filteredDates for YoY computation
-        const newVals = filteredDates.map((d) => newS?.dataHash.get(d) ?? null);
-        const oldVals = filteredDates.map((d) => oldS?.dataHash.get(d) ?? null);
-        const histVals = filteredDates.map(
-          (d) => histS?.dataHash.get(d) ?? null,
-        );
+        // Growth rates use the full series so the first periods in the
+        // selected window can still look back past its start.
+        const newVals = allDates.map((d) => newS?.dataHash.get(d) ?? null);
+        const oldVals = allDates.map((d) => oldS?.dataHash.get(d) ?? null);
+        const histVals = allDates.map((d) => histS?.dataHash.get(d) ?? null);
 
         const newYoy = computeYoy(newVals, yoyLag);
         const oldYoy = computeYoy(oldVals, yoyLag);
@@ -457,15 +456,15 @@ export function ForecastSnapshotCharts({
           newForecast: newS?.dataHash.get(date) ?? undefined,
           oldForecast: oldS?.dataHash.get(date) ?? undefined,
           history: histS?.dataHash.get(date) ?? undefined,
-          newYoy: newYoy[idx] ?? undefined,
-          oldYoy: oldYoy[idx] ?? undefined,
-          newQoq: newQoq[idx] ?? undefined,
-          oldQoq: oldQoq[idx] ?? undefined,
-          newAgr: newAgr[idx] ?? undefined,
-          oldAgr: oldAgr[idx] ?? undefined,
-          histYoy: histYoy[idx] ?? undefined,
-          histQoq: histQoq[idx] ?? undefined,
-          histAgr: histAgr[idx] ?? undefined,
+          newYoy: newYoy[windowStart + idx] ?? undefined,
+          oldYoy: oldYoy[windowStart + idx] ?? undefined,
+          newQoq: newQoq[windowStart + idx] ?? undefined,
+          oldQoq: oldQoq[windowStart + idx] ?? undefined,
+          newAgr: newAgr[windowStart + idx] ?? undefined,
+          oldAgr: oldAgr[windowStart + idx] ?? undefined,
+          histYoy: histYoy[windowStart + idx] ?? undefined,
+          histQoq: histQoq[windowStart + idx] ?? undefined,
+          histAgr: histAgr[windowStart + idx] ?? undefined,
         }));
 
         const hasData = chartData.some(

@@ -11,7 +11,7 @@
  * one otherwise (as the JP LFS series). Population (v1, persons) is
  * stored in thousands like N@US / N@JP. Location code CAN (not CA,
  * California). Every monthly series gets .M, .Q and .A; the quarterly
- * ones (population, GDP) get .Q and .A. YXR@CAN.M also loads FRED EXCAUS
+ * ones (population, GDP) get .Q and .A. CXR@CAN.M also loads FRED EXCAUS
  * at priority 90 for the history before 2017.
  *
  * Creates, when missing: geography CAN, source "Statistics Canada", the
@@ -222,7 +222,7 @@ const DEFS: Def[] = [
     sourceLink: table("1810000601"),
     annualFrom: "CPINS@CAN.M",
   }),
-  ...monthly("YXR", "v111666275", {
+  ...monthly("CXR", "v111666275", {
     unit: "fx",
     dataPortalName: "Canada/US Foreign Exchange Rate",
     description:
@@ -241,7 +241,7 @@ const EXTRA_LOADERS: Record<
   string,
   Array<{ code: string; priority: number }>
 > = {
-  "YXR@CAN.M": [
+  "CXR@CAN.M": [
     {
       code: 'Series.load_from_extract("fred", { series_id: "EXCAUS" })',
       priority: 90,

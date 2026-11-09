@@ -140,6 +140,7 @@ export function ForecastSnapshotDataTable({
     () => allDates.filter((d) => d >= dateFrom && d <= dateTo),
     [allDates, dateFrom, dateTo],
   );
+  const windowStart = allDates.indexOf(dateFrom);
 
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
   const periodsPerYear = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
@@ -225,32 +226,42 @@ export function ForecastSnapshotDataTable({
                 ? `https://data.uhero.hawaii.edu/#/series?id=${sid}`
                 : undefined;
 
-              // Build value array for calculations
-              const vals = filteredDates.map(
+              // Growth rates use the full series so the first periods in the
+              // selected window can still look back past its start.
+              const allVals = allDates.map(
                 (d) => series.dataHash.get(d) ?? null,
               );
+              const toWindow = <T,>(values: T[]) =>
+                values.slice(windowStart, windowStart + filteredDates.length);
+              const vals = toWindow(allVals);
               // YoY: year-over-year with frequency-based lag
-              const yoyChange = vals.map((val, idx) => {
-                if (idx < yoyLag) return null;
-                const prev = vals[idx - yoyLag];
-                if (val == null || prev == null || prev === 0) return null;
-                return ((val - prev) / prev) * 100;
-              });
+              const yoyChange = toWindow(
+                allVals.map((val, idx) => {
+                  if (idx < yoyLag) return null;
+                  const prev = allVals[idx - yoyLag];
+                  if (val == null || prev == null || prev === 0) return null;
+                  return ((val - prev) / prev) * 100;
+                }),
+              );
               // QoQ: period-over-period, always lag=1
-              const qoqChange = vals.map((val, idx) => {
-                if (idx < 1) return null;
-                const prev = vals[idx - 1];
-                if (val == null || prev == null || prev === 0) return null;
-                return ((val - prev) / prev) * 100;
-              });
+              const qoqChange = toWindow(
+                allVals.map((val, idx) => {
+                  if (idx < 1) return null;
+                  const prev = allVals[idx - 1];
+                  if (val == null || prev == null || prev === 0) return null;
+                  return ((val - prev) / prev) * 100;
+                }),
+              );
               // AGR: annualized period-over-period growth
-              const agrChange = vals.map((val, idx) => {
-                if (idx < 1) return null;
-                const prev = vals[idx - 1];
-                if (val == null || prev == null || prev <= 0) return null;
-                if (val <= 0) return null;
-                return (Math.pow(val / prev, periodsPerYear) - 1) * 100;
-              });
+              const agrChange = toWindow(
+                allVals.map((val, idx) => {
+                  if (idx < 1) return null;
+                  const prev = allVals[idx - 1];
+                  if (val == null || prev == null || prev <= 0) return null;
+                  if (val <= 0) return null;
+                  return (Math.pow(val / prev, periodsPerYear) - 1) * 100;
+                }),
+              );
 
               return (
                 <Fragment key={name}>
