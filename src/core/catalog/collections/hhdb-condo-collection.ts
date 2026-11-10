@@ -14,6 +14,7 @@ import type {
   HhdbCondoUnitJSON,
 } from "../models/hhdb-condo";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const PROJECT_SORTABLE = [
   "tmk",
@@ -33,13 +34,7 @@ const UNIT_SORTABLE = ["id", "tmk", "parent_tmk", "unit_number", "owner_name"];
 
 export default class HhdbCondoCollection {
   private static _buildProjectQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = PROJECT_SORTABLE.includes(sort) ? sort : "tmk";
@@ -47,17 +42,15 @@ export default class HhdbCondoCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where = "WHERE (tmk LIKE ? OR project_name LIKE ? OR developer LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term);
-    }
+    const found = buildSearchWhere("condo-projects", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }
 
   private static _buildUnitQuery(params: HhdbListParams) {
-    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const { page, limit, sort: rawSort = "id", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = UNIT_SORTABLE.includes(sort) ? sort : "id";
@@ -65,12 +58,9 @@ export default class HhdbCondoCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR parent_tmk LIKE ? OR unit_number LIKE ? OR owner_name LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term, term);
-    }
+    const found = buildSearchWhere("condo-units", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

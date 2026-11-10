@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-property";
 import type { HhdbPropertyJSON } from "../models/hhdb-property";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = [
   "tmk",
@@ -36,13 +37,7 @@ const SORTABLE = [
 
 export default class HhdbPropertyCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -50,12 +45,9 @@ export default class HhdbPropertyCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR location_address LIKE ? OR property_class LIKE ? OR zoning LIKE ? OR zip LIKE ? OR project_name LIKE ? OR zcta20 LIKE ? OR tract_geoid LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term, term, term, term, term, term);
-    }
+    const found = buildSearchWhere("properties", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

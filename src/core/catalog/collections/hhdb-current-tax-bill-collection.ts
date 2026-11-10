@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-current-tax-bill";
 import type { HhdbCurrentTaxBillJSON } from "../models/hhdb-current-tax-bill";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = [
   "tmk",
@@ -21,13 +22,7 @@ const SORTABLE = [
 
 export default class HhdbCurrentTaxBillCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -35,11 +30,9 @@ export default class HhdbCurrentTaxBillCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where = "WHERE (tmk LIKE ? OR tax_period LIKE ? OR description LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term);
-    }
+    const found = buildSearchWhere("tax-bills", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

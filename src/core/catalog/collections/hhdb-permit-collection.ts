@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-permit";
 import type { HhdbPermitJSON } from "../models/hhdb-permit";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = [
   "id",
@@ -20,7 +21,7 @@ const SORTABLE = [
 
 export default class HhdbPermitCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const { page, limit, sort: rawSort = "id", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "id";
@@ -28,11 +29,9 @@ export default class HhdbPermitCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where = "WHERE (tmk LIKE ? OR permit_number LIKE ? OR reason LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term);
-    }
+    const found = buildSearchWhere("permits", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

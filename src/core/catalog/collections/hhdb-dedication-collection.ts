@@ -8,18 +8,13 @@ import {
 } from "../models/hhdb-dedication";
 import type { HhdbDedicationJSON } from "../models/hhdb-dedication";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = ["tmk", "tax_year", "number_of_dedications"];
 
 export default class HhdbDedicationCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -27,11 +22,9 @@ export default class HhdbDedicationCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where = "WHERE (tmk LIKE ? OR number_of_dedications LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term);
-    }
+    const found = buildSearchWhere("dedications", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-appeal";
 import type { HhdbAppealJSON } from "../models/hhdb-appeal";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = [
   "tmk",
@@ -20,13 +21,7 @@ const SORTABLE = [
 
 export default class HhdbAppealCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -34,11 +29,9 @@ export default class HhdbAppealCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where = "WHERE (tmk LIKE ? OR status LIKE ? OR appeal_type_value LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term);
-    }
+    const found = buildSearchWhere("appeals", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

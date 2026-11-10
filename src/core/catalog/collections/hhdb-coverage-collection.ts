@@ -2,6 +2,7 @@ import { rawQuery } from "@/lib/mysql/hhdb";
 
 import {
   BREAKDOWN_AREAS,
+  RECORDS_BY_YEAR_SOURCES,
   type CoverageGranularity,
   type CoverageResult,
   type CoverageRow,
@@ -9,6 +10,8 @@ import {
   type MatchBreakdownResult,
   type MatchBreakdownRow,
   type MatchColumn,
+  type RecordsByYearResult,
+  type RecordsByYearTable,
 } from "../types/hhdb-coverage";
 import { monthFreqColumn } from "../utils/hhdb-freq-sql";
 import { isMissingTableError } from "../utils/hhdb-missing-table";
@@ -166,6 +169,69 @@ export function pivotMatchBreakdown(
   });
 }
 
+/** No plausible record predates this; zero-ish years are bad data. */
+const EARLIEST_YEAR = 1800;
+
+const emptyRow = (period: string): CoverageRow => ({
+  period,
+  total: 0,
+  honolulu: 0,
+  maui: 0,
+  hawaii: 0,
+  kauai: 0,
+  no_tmk: 0,
+});
+
+/**
+ * Pure pivot of freq_ rows into one row per year, exported for tests. Values
+ * may be a year or a tax period ("2023-2"), which roll up to their year. Years
+ * between the first and last with no records get a zero row, so the axis stays
+ * a true time scale.
+ */
+export function pivotRecordsByYear(
+  freq: { county_code: string; column_value: string; frequency: number }[],
+  { fromYear, toYear }: { fromYear: number; toYear: number },
+): Pick<RecordsByYearResult, "rows" | "undated" | "outOfRange"> {
+  const byYear = new Map<number, CoverageRow>();
+  let undated = 0;
+  let outOfRange = 0;
+  for (const f of freq) {
+    const n = Number(f.frequency);
+    const match = /^(\d{4})(?:-|$)/.exec(f.column_value);
+    const year = match ? Number(match[1]) : null;
+    const statewide = f.county_code === "0";
+    if (year === null) {
+      if (statewide) undated += n;
+      continue;
+    }
+    if (year < fromYear || year > toYear) {
+      if (statewide) outOfRange += n;
+      continue;
+    }
+    let r = byYear.get(year);
+    if (!r) {
+      r = emptyRow(String(year));
+      byYear.set(year, r);
+    }
+    if (statewide) r.total += n;
+    else if (COUNTY_CODE[f.county_code]) r[COUNTY_CODE[f.county_code]] += n;
+  }
+  const years = [...byYear.keys()];
+  const rows: CoverageRow[] = [];
+  if (years.length) {
+    const last = Math.max(...years);
+    for (let y = Math.min(...years); y <= last; y++) {
+      const r = byYear.get(y) ?? emptyRow(String(y));
+      r.no_tmk = Math.max(
+        0,
+        r.total - r.honolulu - r.maui - r.hawaii - r.kauai,
+      );
+      rows.push(r);
+    }
+  }
+  return { rows, undated, outOfRange };
+}
+
 type FreqRow = {
   county_code: string;
   column_value: string;
@@ -206,6 +272,43 @@ export default class HhdbCoverageCollection {
     } catch (err) {
       if (isMissingTableError(err))
         return { column, granularity, rows: [], generatedAt: null };
+      throw err;
+    }
+  }
+
+  static async recordsByYear(
+    table: RecordsByYearTable,
+  ): Promise<RecordsByYearResult> {
+    const source: { column: string; fromYear?: number } =
+      RECORDS_BY_YEAR_SOURCES[table];
+    const range = {
+      fromYear: source.fromYear ?? EARLIEST_YEAR,
+      // Next year allows tax years billed ahead; later dates are typos.
+      toYear: new Date().getFullYear() + 1,
+    };
+    try {
+      // county_code leads the primary key: without it this scans the whole
+      // freq_ table, which is tens of millions of rows for the tax history.
+      const freq = await rawQuery<FreqRow>(
+        `SELECT county_code, column_value, frequency, generated_at
+         FROM freq_${table}
+         WHERE county_code IN ('0', '1', '2', '3', '4') AND column_name = ?`,
+        [source.column],
+      );
+      return {
+        ...pivotRecordsByYear(freq, range),
+        ...range,
+        generatedAt: stampOf(freq),
+      };
+    } catch (err) {
+      if (isMissingTableError(err))
+        return {
+          rows: [],
+          undated: 0,
+          outOfRange: 0,
+          ...range,
+          generatedAt: null,
+        };
       throw err;
     }
   }

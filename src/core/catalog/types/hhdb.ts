@@ -2,6 +2,8 @@ export interface HhdbListParams {
   page: number;
   limit: number;
   search?: string;
+  /** Columns to search; absent or empty = all of the table's search fields. */
+  searchFields?: string[];
   sort?: string;
   order?: "asc" | "desc";
 }

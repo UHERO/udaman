@@ -53,7 +53,11 @@ import type {
   TemporalDrilldown,
   TextDrilldown,
 } from "../types/hhdb";
-import type { MatchColumn } from "../types/hhdb-coverage";
+import {
+  isRecordsByYearTable,
+  type MatchColumn,
+  type RecordsByYearResult,
+} from "../types/hhdb-coverage";
 import { getQueryBuilderSchema as buildQueryBuilderSchema } from "../utils/hhdb-query-builder/schema";
 import type { QuerySchema, QuerySpec } from "../utils/hhdb-query-builder/spec";
 
@@ -417,6 +421,14 @@ export async function getCoverageByPeriod(
   if (!isCoverageTable(table))
     throw new Error(`No coverage chart for ${table}`);
   return HhdbCoverageCollection.byPeriod(table, date);
+}
+
+export async function getRecordsByYear(
+  table: string,
+): Promise<RecordsByYearResult> {
+  if (!isRecordsByYearTable(table))
+    throw new Error(`No records-by-year chart for ${table}`);
+  return HhdbCoverageCollection.recordsByYear(table);
 }
 
 export async function getMatchBreakdown(

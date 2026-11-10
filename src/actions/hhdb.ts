@@ -46,6 +46,7 @@ import {
   getProfileTextDrilldown as getProfileTextDrilldownCtrl,
   getPropertiesJSON as getPropertiesCtrl,
   getPropertyCountByClass as getPropertyCountCtrl,
+  getRecordsByYear as getRecordsByYearCtrl,
   getRenthubListingsJSON as getRenthubListingsCtrl,
   getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
   getSalesJSON as getSalesCtrl,
@@ -268,6 +269,11 @@ export async function getHhdbInsuranceClaims(params: HhdbListParams) {
 export async function getHhdbCoverageByPeriod(table: string, date?: string) {
   await requirePermission("hhdb", "read");
   return getCoverageByPeriodCtrl(table, date);
+}
+
+export async function getHhdbRecordsByYear(table: string) {
+  await requirePermission("hhdb", "read");
+  return getRecordsByYearCtrl(table);
 }
 
 export async function getHhdbMatchBreakdown(table: string, column: string) {

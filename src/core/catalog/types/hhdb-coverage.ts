@@ -60,3 +60,78 @@ export interface MatchBreakdownResult {
   rows: MatchBreakdownRow[];
   generatedAt: string | null;
 }
+
+/**
+ * The tables with a records-by-year chart, keyed by freq_ table base name.
+ * Every column here is counted by freq_ as a year ("2023") or a tax period
+ * starting with one ("2023-2"). Snapshot tables with no year of their own
+ * (properties, parcels, owners, ...) are deliberately absent.
+ */
+export const RECORDS_BY_YEAR_SOURCES = {
+  assessments: { column: "tax_year", basis: "tax year" },
+  sales: {
+    column: "sale_date",
+    basis: "sale date",
+    // Coverage starts in the mid-1980s; earlier dates are a sparse tail and a
+    // 1900-01-01 placeholder. They stay counted in the footnote.
+    fromYear: 1980,
+    note: "The latest year is partial.",
+  },
+  permits: {
+    column: "permit_date",
+    basis: "permit date",
+    // Earlier dates are mostly a 1900s typo/placeholder tail.
+    fromYear: 1950,
+    note: "The latest year is partial.",
+  },
+  appeals: { column: "year", basis: "appeal year" },
+  dedications: { column: "tax_year", basis: "tax year" },
+  home_exemptions: {
+    column: "tax_year",
+    basis: "claim tax year",
+    note: "Claim years run one year ahead of assessment years.",
+  },
+  current_tax_bills: { column: "tax_period", basis: "tax period year" },
+  historical_tax_summary: { column: "year", basis: "tax year" },
+  historical_tax_details: {
+    column: "tax_period",
+    basis: "tax period year",
+    note: "A year combines all of its tax periods.",
+  },
+  historical_tax_payments: { column: "effective_date", basis: "payment date" },
+  historical_tax_credits: {
+    column: "period",
+    basis: "tax period year",
+    note: "A year combines all of its tax periods.",
+  },
+  residential_improvements: { column: "year_built", basis: "year built" },
+  commercial_improvements: { column: "year_built", basis: "year built" },
+  accessory_improvements: { column: "year_built", basis: "year built" },
+  condominium_projects: {
+    column: "final_date",
+    basis: "final registration date",
+  },
+} as const satisfies Record<
+  string,
+  { column: string; basis: string; fromYear?: number; note?: string }
+>;
+
+export type RecordsByYearTable = keyof typeof RECORDS_BY_YEAR_SOURCES;
+
+export function isRecordsByYearTable(
+  table: string,
+): table is RecordsByYearTable {
+  return Object.hasOwn(RECORDS_BY_YEAR_SOURCES, table);
+}
+
+export type RecordsByYearResult = {
+  /** One row per year, no gaps between the first and last. */
+  rows: CoverageRow[];
+  /** Statewide records with no usable year. */
+  undated: number;
+  /** Statewide records dated outside fromYear..toYear. */
+  outOfRange: number;
+  fromYear: number;
+  toYear: number;
+  generatedAt: string | null;
+};

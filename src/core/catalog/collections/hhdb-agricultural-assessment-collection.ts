@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-agricultural-assessment";
 import type { HhdbAgriculturalAssessmentJSON } from "../models/hhdb-agricultural-assessment";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = [
   "tmk",
@@ -18,13 +19,7 @@ const SORTABLE = [
 
 export default class HhdbAgriculturalAssessmentCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -32,12 +27,9 @@ export default class HhdbAgriculturalAssessmentCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR agricultural_type LIKE ? OR use_description LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term);
-    }
+    const found = buildSearchWhere("ag-assessments", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

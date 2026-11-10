@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useContext, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+import { getSearchFields } from "@catalog/types/hhdb-search";
 import {
   flexRender,
   getCoreRowModel,
@@ -25,6 +31,14 @@ import { HhdbColumnToggle } from "./hhdb-column-toggle";
 import { HhdbTableLoadingContext } from "./hhdb-loading-context";
 import { HhdbPagination } from "./hhdb-pagination";
 import { HhdbSearch } from "./hhdb-search";
+import { HhdbSearchFields } from "./hhdb-search-fields";
+
+/** "permit_number" and "permitNumber" name the same column. */
+const columnKey = (name: string) => name.replaceAll("_", "").toLowerCase();
+
+/** "tract_geoid" -> "Tract Geoid", for a field with no table column to name it. */
+const humanize = (field: string) =>
+  field.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 interface HhdbDataTableProps<T> {
   columns: ColumnDef<T, unknown>[];
@@ -108,17 +122,53 @@ export function HhdbDataTable<T>({
     onColumnVisibilityChange: setColumnVisibility,
   });
 
+  const { table: slug } = useParams<{ table?: string }>();
+  const fields = slug ? getSearchFields(slug) : null;
+  const headers = new Map(
+    table
+      .getAllColumns()
+      .filter((col) => typeof col.columnDef.header === "string")
+      .map((col) => [columnKey(col.id), col.columnDef.header as string]),
+  );
+  const fieldOptions = (fields ?? []).map((key) => ({
+    key,
+    label: headers.get(columnKey(key)) ?? humanize(key),
+  }));
+  const pickedParam = searchParams.get("searchFields")?.split(",") ?? [];
+  const picked = fieldOptions.filter((o) => pickedParam.includes(o.key));
+  const narrowed = picked.length > 0 && picked.length < fieldOptions.length;
+  const placeholder = !narrowed
+    ? searchPlaceholder
+    : picked.length === 1
+      ? `Search ${picked[0].label}...`
+      : `Search ${picked.length} fields...`;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         {!disableSearch && (
-          <HhdbSearch
-            value={search}
-            onChange={(v) =>
-              updateParams({ search: v || undefined, page: "1" })
-            }
-            placeholder={searchPlaceholder}
-          />
+          <div className="flex w-full max-w-lg items-center gap-2">
+            <HhdbSearch
+              value={search}
+              onChange={(v) =>
+                updateParams({ search: v || undefined, page: "1" })
+              }
+              placeholder={placeholder}
+            />
+            {fieldOptions.length > 0 && (
+              <HhdbSearchFields
+                options={fieldOptions}
+                value={picked.map((o) => o.key)}
+                onChange={(next) =>
+                  updateParams({
+                    searchFields: next.join(",") || undefined,
+                    // Only a live search changes the result set.
+                    ...(search ? { page: "1" } : {}),
+                  })
+                }
+              />
+            )}
+          </div>
         )}
         <HhdbColumnToggle table={table} />
       </div>

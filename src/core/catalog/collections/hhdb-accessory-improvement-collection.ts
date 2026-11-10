@@ -8,18 +8,13 @@ import {
 } from "../models/hhdb-accessory-improvement";
 import type { HhdbAccessoryImprovementJSON } from "../models/hhdb-accessory-improvement";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = ["tmk", "description", "quantity", "year_built", "area"];
 
 export default class HhdbAccessoryImprovementCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -27,11 +22,9 @@ export default class HhdbAccessoryImprovementCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where = "WHERE (tmk LIKE ? OR description LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term);
-    }
+    const found = buildSearchWhere("accessory-improvements", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

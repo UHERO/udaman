@@ -7,6 +7,7 @@ import {
   type HhdbMlsListingJSON,
 } from "../models/hhdb-mls-listing";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 import { isMissingTableError } from "../utils/hhdb-missing-table";
 
 const TABLE = "`mls_listings`";
@@ -23,31 +24,19 @@ const SORTABLE: ReadonlySet<string> = new Set(MLS_LISTING_SELECT_COLUMNS);
 
 const SELECT_LIST = MLS_LISTING_SELECT_COLUMNS.map(q).join(", ");
 
-/** Columns the search box matches against. */
-const SEARCH_COLUMNS = [
-  "mls_number",
-  "tmk",
-  "island",
-  "status",
-  "property_type",
-  "region",
-  "neighborhood",
-  "address",
-];
-
 /** Pure SQL builder, exported for tests. */
 export function buildMlsListingListSql(params: HhdbListParams) {
-  const { page, limit, search, sort = "list_date", order = "desc" } = params;
+  const { page, limit, sort = "list_date", order = "desc" } = params;
   const offset = (page - 1) * limit;
   const sortCol = SORTABLE.has(sort) ? sort : "list_date";
   const sortDir = order === "asc" ? "ASC" : "DESC";
 
   let where = "";
   const qp: (string | number)[] = [];
-  if (search) {
-    where = ` WHERE (${SEARCH_COLUMNS.map((c) => `${q(c)} LIKE ?`).join(" OR ")})`;
-    const term = `%${search}%`;
-    for (let i = 0; i < SEARCH_COLUMNS.length; i++) qp.push(term);
+  const found = buildSearchWhere("mls-listings", params);
+  if (found.where) {
+    where = ` ${found.where}`;
+    qp.push(...found.params);
   }
 
   // `id` tie-break keeps pagination stable across equal sort values.

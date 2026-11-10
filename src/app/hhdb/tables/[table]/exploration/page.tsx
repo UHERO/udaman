@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { isRecordsByYearTable } from "@catalog/types/hhdb-coverage";
 
 import {
   InsuranceClaimsExploration,
@@ -7,6 +8,7 @@ import {
 } from "@/components/hhdb/exploration/imputed-tmk-exploration";
 import { MlsListingsExploration } from "@/components/hhdb/exploration/mls-listings-exploration";
 import { OwnersExploration } from "@/components/hhdb/exploration/owners-exploration";
+import { RecordsByYearChart } from "@/components/hhdb/exploration/records-by-year-chart";
 import { TransactionsExploration } from "@/components/hhdb/exploration/transactions-exploration";
 import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
 
@@ -29,7 +31,10 @@ export default async function Page({
   if (!config?.exploration) return notFound();
 
   const Component = EXPLORATION_COMPONENTS[table];
-  if (!Component) return notFound();
+  if (Component) return <Component />;
 
-  return <Component />;
+  if (config.fieldsTable && isRecordsByYearTable(config.fieldsTable))
+    return <RecordsByYearChart table={config.fieldsTable} />;
+
+  return notFound();
 }

@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-commercial-detail";
 import type { HhdbCommercialDetailJSON } from "../models/hhdb-commercial-detail";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = [
   "tmk",
@@ -24,13 +25,7 @@ const SORTABLE = [
 
 export default class HhdbCommercialDetailCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -38,12 +33,9 @@ export default class HhdbCommercialDetailCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR usage LIKE ? OR construction LIKE ? OR description LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term, term);
-    }
+    const found = buildSearchWhere("commercial-details", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

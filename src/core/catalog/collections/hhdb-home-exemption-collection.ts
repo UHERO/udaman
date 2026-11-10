@@ -8,18 +8,13 @@ import {
 } from "../models/hhdb-home-exemption";
 import type { HhdbHomeExemptionJSON } from "../models/hhdb-home-exemption";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = ["tmk", "claimant_name", "tax_year"];
 
 export default class HhdbHomeExemptionCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const {
-      page,
-      limit,
-      search,
-      sort: rawSort = "tmk",
-      order = "asc",
-    } = params;
+    const { page, limit, sort: rawSort = "tmk", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -27,11 +22,9 @@ export default class HhdbHomeExemptionCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where = "WHERE (tmk LIKE ? OR claimant_name LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term);
-    }
+    const found = buildSearchWhere("home-exemptions", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

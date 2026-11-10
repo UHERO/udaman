@@ -25,6 +25,8 @@ export function HhdbTablePage({ slug, config }: HhdbTablePageProps) {
     ? Number(searchParams.get("limit"))
     : 50;
   const search = searchParams.get("search") ?? "";
+  // Ignored without a term, so picking fields doesn't refetch an unsearched table.
+  const searchFields = search ? (searchParams.get("searchFields") ?? "") : "";
   const sort = searchParams.get("sort") ?? config.defaultSort;
   const order = (searchParams.get("order") ?? config.defaultOrder ?? "asc") as
     "asc" | "desc";
@@ -41,6 +43,7 @@ export function HhdbTablePage({ slug, config }: HhdbTablePageProps) {
         page,
         limit,
         search: search || undefined,
+        searchFields: searchFields ? searchFields.split(",") : undefined,
         sort,
         order,
       });
@@ -48,7 +51,7 @@ export function HhdbTablePage({ slug, config }: HhdbTablePageProps) {
       setTotal(result.total);
       setHasLoaded(true);
     });
-  }, [action, page, limit, search, sort, order, startTransition]);
+  }, [action, page, limit, search, searchFields, sort, order, startTransition]);
 
   useEffect(() => {
     fetchData();

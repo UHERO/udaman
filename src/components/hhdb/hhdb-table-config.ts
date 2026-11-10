@@ -13,7 +13,10 @@ export interface HhdbTableConfig {
   /** Direction applied with defaultSort when the URL has no `order`. Default "asc". */
   defaultOrder?: "asc" | "desc";
   warning?: string;
-  /** Enable the Exploration tab with analytical visualizations. */
+  /**
+   * Enable the Exploration tab. Needs a bespoke component on the exploration
+   * page, or fieldsTable in RECORDS_BY_YEAR_SOURCES.
+   */
   exploration?: boolean;
 }
 
@@ -42,31 +45,37 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Assessments",
     fieldsTable: "assessments",
     defaultSort: "id",
+    exploration: true,
   },
   sales: {
     title: "Sales",
     fieldsTable: "sales",
     defaultSort: "id",
+    exploration: true,
   },
   "residential-improvements": {
     title: "Residential Improvements",
     fieldsTable: "residential_improvements",
     defaultSort: "id",
+    exploration: true,
   },
   "commercial-improvements": {
     title: "Commercial Improvements",
     fieldsTable: "commercial_improvements",
     defaultSort: "id",
+    exploration: true,
   },
   permits: {
     title: "Permits",
     fieldsTable: "permits",
     defaultSort: "id",
+    exploration: true,
   },
   "condo-projects": {
     title: "Condo Projects",
     fieldsTable: "condominium_projects",
     defaultSort: "id",
+    exploration: true,
   },
   "condo-units": {
     title: "Condo Units",
@@ -88,16 +97,19 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Appeals",
     fieldsTable: "appeals",
     defaultSort: "tmk",
+    exploration: true,
   },
   dedications: {
     title: "Dedications",
     fieldsTable: "dedications",
     defaultSort: "tmk",
+    exploration: true,
   },
   "home-exemptions": {
     title: "Home Exemptions",
     fieldsTable: "home_exemptions",
     defaultSort: "tmk",
+    exploration: true,
   },
   "land-classifications": {
     title: "Land Classifications",
@@ -108,11 +120,13 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Current Tax Bills",
     fieldsTable: "current_tax_bills",
     defaultSort: "tmk",
+    exploration: true,
   },
   "tax-summary": {
     title: "Historical Tax Summary",
     fieldsTable: "historical_tax_summary",
     defaultSort: "id",
+    exploration: true,
     warning:
       "This table contains millions of rows. Search and sorting are disabled. For complex queries, please use the database directly.",
   },
@@ -120,6 +134,7 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Historical Tax Details",
     fieldsTable: "historical_tax_details",
     defaultSort: "id",
+    exploration: true,
     warning:
       "This table contains millions of rows. Search and sorting are disabled. For complex queries, please use the database directly.",
   },
@@ -127,6 +142,7 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Historical Tax Payments",
     fieldsTable: "historical_tax_payments",
     defaultSort: "id",
+    exploration: true,
     warning:
       "This table contains millions of rows. Search and sorting are disabled. For complex queries, please use the database directly.",
   },
@@ -134,6 +150,7 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Historical Tax Credits",
     fieldsTable: "historical_tax_credits",
     defaultSort: "tmk",
+    exploration: true,
   },
   "ag-assessments": {
     title: "Agricultural Assessments",
@@ -154,6 +171,7 @@ export const HHDB_TABLE_CONFIG: Record<string, HhdbTableConfig> = {
     title: "Accessory Improvements",
     fieldsTable: "accessory_improvements",
     defaultSort: "tmk",
+    exploration: true,
   },
   transactions: {
     title: "Transactions (TG)",

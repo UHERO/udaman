@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
+import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
+
+import { RECORDS_BY_YEAR_SOURCES } from "../types/hhdb-coverage";
 import { extraFreqColumns } from "../utils/hhdb-freq-sql";
 import {
   COVERAGE_SOURCES,
@@ -7,6 +10,7 @@ import {
   MATCH_COLUMNS,
   pivotCoverage,
   pivotMatchBreakdown,
+  pivotRecordsByYear,
 } from "./hhdb-coverage-collection";
 
 const f = (county_code: string, column_value: string, frequency: number) => ({
@@ -146,5 +150,76 @@ describe("pivotMatchBreakdown", () => {
       noTmk: 5,
       total: 105,
     });
+  });
+});
+
+describe("pivotRecordsByYear", () => {
+  const range = { fromYear: 1980, toYear: 2027 };
+
+  test("tax periods roll up to their year; statewide comes from county 0", () => {
+    const { rows } = pivotRecordsByYear(
+      [
+        f("0", "2023-1", 10),
+        f("0", "2023-2", 12),
+        f("1", "2023-1", 7),
+        f("1", "2023-2", 8),
+        f("3", "2023-2", 4),
+      ],
+      range,
+    );
+    expect(rows).toEqual([
+      {
+        period: "2023",
+        total: 22,
+        honolulu: 15,
+        maui: 0,
+        hawaii: 4,
+        kauai: 0,
+        no_tmk: 3,
+      },
+    ]);
+  });
+
+  test("gaps between years become zero rows", () => {
+    const { rows } = pivotRecordsByYear(
+      [f("0", "2020", 1), f("0", "2023", 2)],
+      range,
+    );
+    expect(rows.map((r) => [r.period, r.total])).toEqual([
+      ["2020", 1],
+      ["2021", 0],
+      ["2022", 0],
+      ["2023", 2],
+    ]);
+  });
+
+  test("NULL and out-of-range years are counted once, statewide only", () => {
+    const result = pivotRecordsByYear(
+      [
+        f("0", "[NULL]", 5),
+        f("1", "[NULL]", 5),
+        f("0", "1900", 7),
+        f("1", "1900", 7),
+        f("0", "2120", 1),
+        f("2", "2120", 1),
+        f("0", "2000", 3),
+      ],
+      range,
+    );
+    expect(result.undated).toBe(5);
+    expect(result.outOfRange).toBe(8);
+    expect(result.rows.map((r) => r.period)).toEqual(["2000"]);
+  });
+
+  test("no rows means no years", () => {
+    expect(pivotRecordsByYear([], range).rows).toEqual([]);
+  });
+
+  test("every source is a table with its Exploration tab enabled", () => {
+    const enabled = Object.values(HHDB_TABLE_CONFIG)
+      .filter((c) => c.exploration)
+      .map((c) => c.fieldsTable);
+    for (const table of Object.keys(RECORDS_BY_YEAR_SOURCES))
+      expect(enabled).toContain(table);
   });
 });

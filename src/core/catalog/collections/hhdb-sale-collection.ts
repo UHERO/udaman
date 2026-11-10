@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-sale";
 import type { HhdbSaleJSON } from "../models/hhdb-sale";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const SORTABLE = [
   "id",
@@ -24,7 +25,7 @@ const SORTABLE = [
 
 export default class HhdbSaleCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const { page, limit, sort: rawSort = "id", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "id";
@@ -32,12 +33,9 @@ export default class HhdbSaleCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR instrument LIKE ? OR instrument_type LIKE ? OR instrument_description LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term, term);
-    }
+    const found = buildSearchWhere("sales", params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset };
   }

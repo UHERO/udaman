@@ -48,6 +48,8 @@ const chartConfig = {
   no_tmk: { label: "No TMK", theme: { light: "#b4b2ab", dark: "#6b6a64" } },
 } satisfies ChartConfig;
 
+export { chartConfig as countyChartConfig };
+
 const fmt = (n: number) => n.toLocaleString("en-US");
 const pct = (n: number) => `${(100 * n).toFixed(1)}%`;
 

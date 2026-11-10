@@ -8,6 +8,7 @@ import {
 } from "../models/hhdb-improvement";
 import type { HhdbImprovementJSON } from "../models/hhdb-improvement";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
+import { buildSearchWhere } from "../types/hhdb-search";
 
 const RESIDENTIAL_SORTABLE = [
   "id",
@@ -46,7 +47,7 @@ export default class HhdbImprovementCollection {
     params: HhdbListParams,
     type: "residential" | "commercial" = "residential",
   ) {
-    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const { page, limit, sort: rawSort = "id", order = "asc" } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortable =
@@ -57,17 +58,9 @@ export default class HhdbImprovementCollection {
 
     let where = "";
     const qp: (string | number)[] = [];
-    if (search) {
-      if (type === "residential") {
-        where =
-          "WHERE (tmk LIKE ? OR occupancy LIKE ? OR framing LIKE ? OR grade LIKE ?)";
-      } else {
-        where =
-          "WHERE (tmk LIKE ? OR improvement_name LIKE ? OR property_class LIKE ? OR structure_type LIKE ?)";
-      }
-      const term = `%${search}%`;
-      qp.push(term, term, term, term);
-    }
+    const found = buildSearchWhere(`${type}-improvements`, params);
+    where = found.where;
+    qp.push(...found.params);
 
     return { where, qp, sortCol, sortDir, limit, offset, table };
   }
