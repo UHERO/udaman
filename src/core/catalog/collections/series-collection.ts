@@ -20,6 +20,7 @@ import type {
 } from "../types/shared";
 import type { SeriesSummary } from "../types/udaman";
 import { parseFactors, serializeFactors } from "../utils/factors";
+import { addMonthsStr, hstToday } from "../utils/time";
 import { isValidUniverse } from "../utils/validators";
 import TimeSeriesCollection from "./time-series-collection";
 
@@ -37,6 +38,7 @@ interface SeriesSummaryRow {
   xseriesId: number;
   seasonalAdjustment: SeasonalAdjustment;
   restricted: number;
+  quarantined: number | null;
   portalName: string | null;
   unitShortLabel: string | null;
   sourceDescription: string | null;
@@ -821,6 +823,7 @@ class SeriesCollection {
         s.xseries_id as xseriesId,
         xs.seasonal_adjustment as seasonalAdjustment,
         xs.restricted as restricted,
+        xs.quarantined as quarantined,
         s.dataPortalName as portalName,
         u.short_label as unitShortLabel,
         src.description as sourceDescription,
@@ -860,6 +863,7 @@ class SeriesCollection {
           id: row.id,
           seasonalAdjustment: row.seasonalAdjustment,
           restricted: Boolean(row.restricted),
+          quarantined: Boolean(Number(row.quarantined)),
           portalName: row.portalName,
           unitShortLabel: row.unitShortLabel,
           sourceDescription: row.sourceDescription,
@@ -876,6 +880,7 @@ class SeriesCollection {
       id: row.id,
       seasonalAdjustment: row.seasonalAdjustment,
       restricted: Boolean(row.restricted),
+      quarantined: Boolean(Number(row.quarantined)),
       portalName: row.portalName,
       unitShortLabel: row.unitShortLabel,
       sourceDescription: row.sourceDescription,
@@ -896,6 +901,7 @@ class SeriesCollection {
         s.xseries_id as xseriesId,
         xs.seasonal_adjustment as seasonalAdjustment,
         xs.restricted as restricted,
+        xs.quarantined as quarantined,
         s.dataPortalName as portalName,
         u.short_label as unitShortLabel,
         src.description as sourceDescription,
@@ -930,6 +936,7 @@ class SeriesCollection {
           id: row.id,
           seasonalAdjustment: row.seasonalAdjustment,
           restricted: Boolean(row.restricted),
+          quarantined: Boolean(Number(row.quarantined)),
           portalName: row.portalName,
           unitShortLabel: row.unitShortLabel,
           sourceDescription: row.sourceDescription,
@@ -945,6 +952,7 @@ class SeriesCollection {
       id: row.id,
       seasonalAdjustment: row.seasonalAdjustment,
       restricted: Boolean(row.restricted),
+      quarantined: Boolean(Number(row.quarantined)),
       portalName: row.portalName,
       unitShortLabel: row.unitShortLabel,
       sourceDescription: row.sourceDescription,
@@ -1392,7 +1400,8 @@ class SeriesCollection {
    *   #PATTERN      — data-source eval regex
    *   !PATTERN      — data-source last_error regex
    *   ;res=IDS      — resource ID filter (unit, src, det)
-   *   &FLAG         — boolean flags: pub, pct, nodpn, sa, ns, nodata, noclock, hasph
+   *   &FLAG         — boolean flags: pub, r (restricted), q (quarantined), pct,
+   *                   nodpn, sa, ns, nodata, noclock, hasph
    *   &deps         — expand results to include every series that (transitively)
    *                   depends on a matched series; requires another term
    *   {PATTERN      — dataPortalName regex
@@ -1570,6 +1579,18 @@ class SeriesCollection {
             const flag = val.toLowerCase();
             if (flag === "pub") {
               conditions.push(`restricted IS ${negated}FALSE`);
+              break;
+            }
+            if (flag === "r") {
+              conditions.push(
+                `COALESCE(xseries.restricted, 0) ${negated ? "= 0" : "= 1"}`,
+              );
+              break;
+            }
+            if (flag === "q") {
+              conditions.push(
+                `COALESCE(xseries.quarantined, 0) ${negated ? "= 0" : "= 1"}`,
+              );
               break;
             }
             if (flag === "pct") {
@@ -1937,6 +1958,22 @@ class SeriesCollection {
     const correctRows: { date: string; value: number }[] = []; // same-vintage fix
     let skippedOlderVintage = 0;
 
+    // Auto-quarantine: dates more than two years old whose current value
+    // this load changes (replaces, corrects, or removes). Brand-new dates
+    // with no current point are new history, not a revision, and never count.
+    const quarantineCutoff = addMonthsStr(hstToday(), -24);
+    const revisedOldDates: string[] = [];
+    const noteRevision = (
+      dateStr: string,
+      current: { value: number | null } | undefined,
+      newValue: number | null,
+    ) => {
+      if (!current || dateStr >= quarantineCutoff) return;
+      const before = current.value == null ? null : round6(current.value);
+      const after = newValue == null ? null : round6(newValue);
+      if (before !== after) revisedOldDates.push(dateStr);
+    };
+
     for (const [dateStr, newValue] of cleanData) {
       if (vintageAt) {
         const ownLatestAt = ownLatestAtByDate.get(dateStr);
@@ -1953,6 +1990,10 @@ class SeriesCollection {
           // Inserting would collide on the (xseries_id, date, created_at,
           // data_source_id) key — this is a correction of that vintage.
           correctRows.push({ date: dateStr, value: round6(newValue) });
+          const cur = currentByDate.get(dateStr);
+          if (cur?.dataSourceId === dataSourceId) {
+            noteRevision(dateStr, cur, newValue);
+          }
           continue;
         }
       }
@@ -1960,6 +2001,7 @@ class SeriesCollection {
       if (newValue === SENTINEL) {
         // Sentinel means "no data" — mark existing points as non-current
         demoteDates.push(dateStr);
+        noteRevision(dateStr, currentByDate.get(dateStr), null);
         continue;
       }
 
@@ -1984,6 +2026,7 @@ class SeriesCollection {
         // data point exists at all — promote this loader's existing row
         if (current) demoteDates.push(dateStr);
         promoteDates.push(dateStr);
+        noteRevision(dateStr, current, ownLatest);
         continue;
       }
 
@@ -2000,6 +2043,7 @@ class SeriesCollection {
       // (round to 6 decimal places for storage)
       if (current) demoteDates.push(dateStr);
       insertRows.push({ date: dateStr, value: round6(newValue) });
+      noteRevision(dateStr, current, newValue);
     }
 
     // ── Write phase: one transaction per loader ───────────────────────
@@ -2099,7 +2143,65 @@ class SeriesCollection {
       await this.repairDataPoints({ id: xseriesId, exec: tx });
     });
 
+    if (revisedOldDates.length > 0) {
+      await this.autoQuarantine({ xseriesId, dataSourceId, revisedOldDates });
+    }
+
     return { inserted: insertRows.length + correctRows.length, changed: true };
+  }
+
+  /**
+   * Quarantine an xseries after a load revised data more than two years
+   * old — unless it is restricted, already quarantined, or the owning
+   * universe's `auto_quarantine` toggle is off (a missing toggle row
+   * counts as on). Public data points are not touched here: the public
+   * sync already skips quarantined series, so the published values stay
+   * frozen until someone reviews and unquarantines it.
+   */
+  private static async autoQuarantine(opts: {
+    xseriesId: number;
+    dataSourceId: number;
+    revisedOldDates: string[];
+  }): Promise<void> {
+    const { xseriesId, dataSourceId, revisedOldDates } = opts;
+    const [row] = await mysql<{
+      restricted: number | null;
+      quarantined: number | null;
+      universe: string | null;
+    }>`
+      SELECT x.restricted, x.quarantined,
+             COALESCE(ps.universe, s.universe) AS universe
+      FROM xseries x
+      LEFT JOIN series ps ON ps.id = x.primary_series_id
+      LEFT JOIN series s ON s.xseries_id = x.id
+      WHERE x.id = ${xseriesId}
+      ORDER BY s.id
+      LIMIT 1
+    `;
+    if (!row?.universe) return;
+    if (Number(row.restricted) || Number(row.quarantined)) return;
+    const { default: FeatureToggleCollection } =
+      await import("./feature-toggle-collection");
+    const enabled = await FeatureToggleCollection.isSet(
+      "auto_quarantine",
+      row.universe,
+      true,
+    );
+    if (!enabled) return;
+
+    await mysql`UPDATE xseries SET quarantined = 1 WHERE id = ${xseriesId}`;
+    const sorted = [...revisedOldDates].sort();
+    log.warn(
+      {
+        xseriesId,
+        dataSourceId,
+        universe: row.universe,
+        revisedCount: sorted.length,
+        earliest: sorted[0],
+        latest: sorted[sorted.length - 1],
+      },
+      "auto-quarantined series: load revised data more than two years old",
+    );
   }
 
   // ─── Static loader stubs (eval-callable) ─────────────────────────
@@ -3065,25 +3167,58 @@ class SeriesCollection {
     );
   }
 
-  static async unquarantine(seriesId: number): Promise<void> {
+  /**
+   * Set or clear the quarantine flag on a series' xseries, then refresh its
+   * public data points (Rails add_to/remove_from_quarantine with
+   * run_update: true). Quarantining freezes the published values, or
+   * removes them when the universe's remove_quarantined_from_public toggle
+   * is on; unquarantining publishes whatever accumulated meanwhile.
+   * Returns false (no-op) when the flag already had that value.
+   */
+  static async setQuarantined(
+    seriesId: number,
+    quarantined: boolean,
+  ): Promise<boolean> {
+    const [row] = await mysql<{
+      universe: string;
+      quarantined: number | null;
+    }>`
+      SELECT s.universe, x.quarantined
+      FROM series s JOIN xseries x ON x.id = s.xseries_id
+      WHERE s.id = ${seriesId}
+    `;
+    if (!row) throw new NotFoundError("Series", String(seriesId));
+    if (Boolean(Number(row.quarantined)) === quarantined) return false;
+
     await rawQuery(
-      `UPDATE xseries SET quarantined = 0
+      `UPDATE xseries SET quarantined = ?
        WHERE id = (SELECT xseries_id FROM series WHERE id = ?)`,
-      [seriesId],
+      [quarantined ? 1 : 0, seriesId],
     );
+    const { default: DataPointCollection } =
+      await import("./data-point-collection");
+    await DataPointCollection.updatePublicDataPointsForSeries(
+      seriesId,
+      row.universe,
+    );
+    return true;
+  }
+
+  static async unquarantine(seriesId: number): Promise<void> {
+    await this.setQuarantined(seriesId, false);
   }
 
   static async emptyQuarantine(universe: string): Promise<number> {
-    const result = await rawQuery<{ affectedRows?: number }>(
-      `UPDATE xseries x
-       INNER JOIN series s ON s.xseries_id = x.id
-       SET x.quarantined = 0
-       WHERE s.universe = ? AND x.quarantined = 1`,
-      [universe],
-    );
-    // Bun's MySQL driver reports UPDATE results on the (empty) array itself:
-    // `affectedRows` is the real number; `count` is always 0 for MySQL.
-    return (result as unknown as { affectedRows?: number }).affectedRows ?? 0;
+    const rows = await mysql<{ id: number }>`
+      SELECT s.id FROM series s
+      JOIN xseries x ON x.id = s.xseries_id
+      WHERE s.universe = ${universe} AND x.quarantined = 1
+    `;
+    let count = 0;
+    for (const { id } of rows) {
+      if (await this.setQuarantined(id, false)) count++;
+    }
+    return count;
   }
 
   // ─── Shared helpers ─────────────────────────────────────────────────

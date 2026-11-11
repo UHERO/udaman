@@ -11,6 +11,24 @@ class FeatureToggleCollection {
     return rows.map((row) => new FeatureToggle(row));
   }
 
+  /**
+   * Whether a toggle is on for a universe. A missing row, or a row with a
+   * NULL status, falls back to `defaultValue` (Rails FeatureToggle.is_set).
+   */
+  static async isSet(
+    name: string,
+    universe: string,
+    defaultValue: boolean,
+  ): Promise<boolean> {
+    const rows = await mysql<{ status: boolean | number | null }>`
+      SELECT status FROM feature_toggles
+      WHERE name = ${name} AND universe = ${universe}
+      LIMIT 1
+    `;
+    const status = rows[0]?.status;
+    return status == null ? defaultValue : Boolean(Number(status));
+  }
+
   static async updateStatus(
     id: number,
     status: boolean,

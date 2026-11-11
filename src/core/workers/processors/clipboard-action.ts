@@ -185,6 +185,40 @@ export async function processClipboardAction(
         break;
       }
 
+      case "quarantine":
+      case "unquarantine": {
+        // setQuarantined also refreshes each series' public data points.
+        const quarantined = action === "quarantine";
+        const label = quarantined ? "Quarantined" : "Unquarantined";
+        let updated = 0;
+        let unchanged = 0;
+        for (const id of seriesIds) {
+          try {
+            if (await SeriesCollection.setQuarantined(id, quarantined)) {
+              updated++;
+              job.log(`${label} series ${id}`);
+            } else {
+              unchanged++;
+              job.log(`Series ${id} already ${label.toLowerCase()}`);
+            }
+          } catch (e) {
+            log.warn(
+              { id, error: e instanceof Error ? e.message : String(e) },
+              `${action} failed for series`,
+            );
+            job.log(
+              `Series ${id} ${action} failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
+          }
+        }
+        result =
+          `${label} ${updated} of ${seriesIds.length} series` +
+          (unchanged > 0
+            ? ` (${unchanged} already ${label.toLowerCase()})`
+            : "");
+        break;
+      }
+
       case "destroy": {
         const failed: number[] = [];
         // First pass

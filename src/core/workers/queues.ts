@@ -134,6 +134,8 @@ export type ClipboardActionJobData = {
     | "clear_data"
     | "restrict"
     | "unrestrict"
+    | "quarantine"
+    | "unquarantine"
     | "destroy"
     | "update_public";
   seriesIds: number[];

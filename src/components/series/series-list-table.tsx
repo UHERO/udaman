@@ -41,6 +41,16 @@ const Restricted = () => (
   </span>
 );
 
+// U+FE0E forces text (not emoji) presentation so the glyph takes the color.
+const Quarantined = () => (
+  <span
+    className="ml-1 text-lg font-semibold text-amber-600"
+    title="Quarantined"
+  >
+    &#x2622;&#xFE0E;
+  </span>
+);
+
 // Nullable columns map null → undefined so `sortUndefined: "last"` keeps
 // empty cells at the bottom in both sort directions.
 const nullsLast = <K extends keyof SeriesSummary>(key: K) => ({
@@ -66,6 +76,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
           <Link href={`/udaman/${universe}/series/${row.original.id}`}>
             {row.getValue("name")}
             {row.original.restricted && <Restricted />}
+            {row.original.quarantined && <Quarantined />}
           </Link>
         );
       },

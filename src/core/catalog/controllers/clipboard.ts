@@ -156,6 +156,8 @@ export type ClipboardAction =
   | "clear_data"
   | "restrict"
   | "unrestrict"
+  | "quarantine"
+  | "unquarantine"
   | "destroy"
   | "update_public"
   | "meta_update"
@@ -265,6 +267,8 @@ const QUEUED_ACTIONS = new Set<ClipboardAction>([
   "clear_data",
   "restrict",
   "unrestrict",
+  "quarantine",
+  "unquarantine",
   "destroy",
   "update_public",
 ]);

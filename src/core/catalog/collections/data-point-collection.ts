@@ -3,6 +3,7 @@ import { mysql, rawQuery } from "@/lib/mysql/db";
 
 import type { DataPoint } from "../types/shared";
 import { AppLogCollection } from "./app-log-collection";
+import FeatureToggleCollection from "./feature-toggle-collection";
 
 const log = createLogger("catalog.data-point-collection");
 
@@ -483,12 +484,11 @@ class DataPointCollection {
     const runStartedAt = await dbNowString();
 
     // Check if quarantined series should be removed from public
-    const toggleRows = await mysql<{ status: boolean | number | null }>`
-      SELECT status FROM feature_toggles
-      WHERE name = 'remove_quarantined_from_public' AND universe = ${universe}
-      LIMIT 1
-    `;
-    const removeQuarantine = Boolean(toggleRows[0]?.status);
+    const removeQuarantine = await FeatureToggleCollection.isSet(
+      "remove_quarantined_from_public",
+      universe,
+      false,
+    );
 
     // Decide full vs incremental
     const wm = await getPublicSyncWatermark(universe);
@@ -734,7 +734,15 @@ class DataPointCollection {
       [seriesId, universe],
     );
 
-    // 3. DELETE stale public data points
+    // 3. DELETE stale public data points — and, when the universe's
+    // remove_quarantined_from_public toggle is on, all of a quarantined
+    // series' public points (same rule as the universe-wide sweep).
+    const removeQuarantine = await FeatureToggleCollection.isSet(
+      "remove_quarantined_from_public",
+      universe,
+      false,
+    );
+    const quarantineClause = removeQuarantine ? "OR xs.quarantined = 1" : "";
     await rawQuery(
       `DELETE p
        FROM public_data_points p
@@ -743,7 +751,7 @@ class DataPointCollection {
        LEFT JOIN data_points d ON d.xseries_id = xs.id AND d.date = p.date AND d.current = 1
        WHERE s.id = ?
          AND s.universe = ?
-         AND d.created_at IS NULL`,
+         AND (d.created_at IS NULL ${quarantineClause})`,
       [seriesId, universe],
     );
 

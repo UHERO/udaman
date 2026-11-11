@@ -46,9 +46,15 @@ export default async function QuarantinePage({
               <li>The series is not restricted</li>
               <li>
                 A data update attempts to change the series value for a date
-                that is more than two years in the past
+                that is more than two years in the past (loading brand-new
+                history for dates with no existing value does not count)
               </li>
             </ul>
+            <p>
+              Series can be quarantined or unquarantined in bulk from the
+              clipboard. Unquarantining a series publishes any data that
+              accumulated while it was held.
+            </p>
             <p>
               There are two other feature toggle settings related to the
               quarantine:
@@ -56,7 +62,8 @@ export default async function QuarantinePage({
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <code>filter_by_quarantine</code> &mdash; The data portal will
-                hide data from any series that are quarantined (default false)
+                hide data from any series that are quarantined (default false;
+                enforced by the public REST API, not Udaman)
               </li>
               <li>
                 <code>remove_quarantined_from_public</code> &mdash; When true,
