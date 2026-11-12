@@ -8,7 +8,7 @@
  *        IntegerPatternProcessor + StringWithDatePatternProcessor
  */
 
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import XLSX from "xlsx";
@@ -423,6 +423,25 @@ function readCsvFile(filePath: string): CellValue[][] {
 export type CellValue = string | number | boolean | Date;
 
 /**
+ * Excel files are read by content (SheetJS sniffs BIFF vs OOXML), so the
+ * .xls/.xlsx extension only matters for finding the file. When a provider
+ * switches formats, the loader is updated to the new extension but older
+ * periods remain on disk under the old one. If the requested path is
+ * missing, fall back to the same name with the other Excel extension.
+ *
+ * The requested extension always wins when it exists, so a stale sibling
+ * is never preferred over the file the loader names.
+ */
+function resolveExcelPath(filePath: string): string {
+  const m = /\.xlsx?$/i.exec(filePath);
+  if (!m || existsSync(filePath)) return filePath;
+  const alt =
+    filePath.slice(0, m.index) +
+    (m[0].toLowerCase() === ".xls" ? ".xlsx" : ".xls");
+  return existsSync(alt) ? alt : filePath; // missing both: reader throws on the original
+}
+
+/**
  * Read an XLS/XLSX file and return a 2D array for a given sheet. Cells are
  * returned in their underlying types (numbers stay numeric, dates become
  * `Date` objects) rather than being display-formatted to strings — this
@@ -440,6 +459,7 @@ function readXlsFile(
   sheetSpec: string,
   date?: string | null,
 ): CellValue[][] {
+  filePath = resolveExcelPath(filePath);
   // Use XLSX.read(buffer) instead of XLSX.readFile() — the latter's
   // built-in fs detection doesn't work in Bun's runtime.
   const buf = readFileSync(filePath);
@@ -1012,7 +1032,9 @@ function getCachedSheetGlobal(
   let mtimeMs = -1;
   let size = -1;
   try {
-    const st = statSync(filePath);
+    const st = statSync(
+      fileType === "csv" ? filePath : resolveExcelPath(filePath),
+    );
     mtimeMs = st.mtimeMs;
     size = st.size;
   } catch {
