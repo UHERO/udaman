@@ -26,7 +26,10 @@
     "renthub": "bun run src/core/workers/renthub-cli.ts",
     "ficoh": "bun run src/core/workers/ficoh-cli.ts",
     "databook": "bun run src/core/workers/databook-cli.ts",
-    "ingest": "bun run src/core/workers/ingest-cli.ts"
+    "ingest": "bun run src/core/workers/ingest-cli.ts",
+    "report:feasim": "bun run scripts/feasim-report.tsx",
+    "upgrade:feasim": "bun run scripts/upgrade-feasim.ts",
+    "snapshot:feasim": "bun run scripts/update-feasim-snapshots.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -47,6 +50,7 @@
     "@radix-ui/react-slot": "^1.5.0",
     "@radix-ui/react-tooltip": "^1.4.1",
     "@tanstack/react-table": "^8.21.3",
+    "@uhero/feasim": "0.4.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.81.5",
     "class-variance-authority": "^0.7.1",
