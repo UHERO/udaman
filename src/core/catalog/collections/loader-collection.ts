@@ -656,7 +656,16 @@ class LoaderCollection {
         typeof err.detail === "string"
           ? err.detail
           : null;
-      if (detail && detail !== message) {
+      // Logged when there is more to say than last_error holds (a separate
+      // detail, or a message cut at 254 characters) and whenever the error
+      // is new or changed, so each distinct failure has one full record
+      // without a row for every nightly repeat.
+      const changedError = loader.lastError !== updateProps.lastError;
+      if (
+        (detail && detail !== message) ||
+        message.length > 254 ||
+        changedError
+      ) {
         void AppLogCollection.log({
           level: "error",
           category: "loader",

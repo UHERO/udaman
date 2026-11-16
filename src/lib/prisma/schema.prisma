@@ -184,6 +184,7 @@ model data_source_actions {
   action         String?   @db.VarChar(255)
   priority       Int?
   eval           String?   @db.VarChar(500)
+  ops_issue_id   Int?
   created_at     DateTime? @db.DateTime(0)
   updated_at     DateTime? @db.DateTime(0)
   series         series?   @relation(fields: [series_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_rails_cbe5366b13")
@@ -789,6 +790,159 @@ model verification_tokens {
   expires    DateTime @db.DateTime(0)
 
   @@id([identifier, token])
+}
+
+// ─── Ops agent (docs/2026-11-13-ops-agent-design.md) ────────────────
+
+model ops_issues {
+  id                  Int       @id @default(autoincrement())
+  universe            String    @default("UHERO") @db.VarChar(10)
+  kind                String    @db.VarChar(32)
+  fingerprint         String    @db.VarChar(191)
+  open_fingerprint    String?   @unique(map: "uniq_ops_issues_open_fingerprint") @db.VarChar(191)
+  subject_type        String    @db.VarChar(32)
+  subject_id          Int?
+  subject_field       String?   @db.VarChar(64)
+  group_key           String?   @db.VarChar(191)
+  status              String    @default("open") @db.VarChar(20)
+  severity            String    @default("normal") @db.VarChar(10)
+  owner               String    @default("agent") @db.VarChar(10)
+  assignee_user_id    Int?
+  title               String    @db.VarChar(255)
+  summary             String?   @db.Text
+  detail              String?   @db.LongText
+  first_seen_at       DateTime  @db.DateTime(0)
+  last_seen_at        DateTime  @db.DateTime(0)
+  last_checked_at     DateTime? @db.DateTime(0)
+  occurrence_count    Int       @default(1)
+  snoozed_until       DateTime? @db.DateTime(0)
+  dismissed_reason    String?   @db.VarChar(500)
+  resolved_at         DateTime? @db.DateTime(0)
+  resolution_path     String?   @db.VarChar(32)
+  resolved_by_user_id Int?
+  resolution_note     String?   @db.Text
+  reopen_count        Int       @default(0)
+  last_human_event_at DateTime? @db.DateTime(0)
+  last_agent_event_at DateTime? @db.DateTime(0)
+  slack_channel       String?   @db.VarChar(64)
+  slack_ts            String?   @db.VarChar(32)
+  created_at          DateTime  @db.DateTime(0)
+  updated_at          DateTime  @db.DateTime(0)
+
+  @@index([universe, status], map: "idx_ops_issues_universe_status")
+  @@index([group_key], map: "idx_ops_issues_group_key")
+  @@index([subject_type, subject_id], map: "idx_ops_issues_subject")
+  @@index([slack_ts], map: "idx_ops_issues_slack_ts")
+}
+
+model ops_issue_events {
+  id            Int      @id @default(autoincrement())
+  issue_id      Int
+  actor_type    String   @db.VarChar(10)
+  actor_user_id Int?
+  via           String   @db.VarChar(16)
+  type          String   @db.VarChar(32)
+  body          String?  @db.Text
+  payload       String?  @db.LongText
+  slack_ts      String?  @unique(map: "uniq_ops_issue_events_slack_ts") @db.VarChar(32)
+  created_at    DateTime @db.DateTime(0)
+
+  @@index([issue_id, created_at], map: "idx_ops_issue_events_issue")
+}
+
+model ops_proposals {
+  id                  Int       @id @default(autoincrement())
+  universe            String    @default("UHERO") @db.VarChar(10)
+  issue_id            Int?
+  group_key           String?   @db.VarChar(191)
+  kind                String    @db.VarChar(32)
+  lane                String    @db.VarChar(16)
+  status              String    @default("queued") @db.VarChar(16)
+  summary             String    @db.VarChar(500)
+  targets             String    @db.LongText
+  evidence            String?   @db.LongText
+  dry_run             String?   @db.LongText
+  content_hash        String    @db.Char(64)
+  priority            Int       @default(0)
+  days_pending        Int       @default(1)
+  created_by_user_id  Int?
+  posted_at           DateTime? @db.DateTime(0)
+  expires_at          DateTime? @db.DateTime(0)
+  reviewed_by_user_id Int?
+  reviewed_via        String?   @db.VarChar(16)
+  reviewed_at         DateTime? @db.DateTime(0)
+  review_note         String?   @db.Text
+  applied_at          DateTime? @db.DateTime(0)
+  apply_result        String?   @db.LongText
+  slack_channel       String?   @db.VarChar(64)
+  slack_ts            String?   @db.VarChar(32)
+  created_at          DateTime  @db.DateTime(0)
+  updated_at          DateTime  @db.DateTime(0)
+
+  @@index([universe, status, lane], map: "idx_ops_proposals_status_lane")
+  @@index([issue_id], map: "idx_ops_proposals_issue")
+  @@index([content_hash], map: "idx_ops_proposals_hash")
+  @@index([slack_ts], map: "idx_ops_proposals_slack_ts")
+}
+
+model ops_agent_runs {
+  id                  Int       @id @default(autoincrement())
+  universe            String    @default("UHERO") @db.VarChar(10)
+  trigger             String    @db.VarChar(16)
+  status              String    @default("running") @db.VarChar(16)
+  model               String    @db.VarChar(64)
+  git_sha             String?   @db.VarChar(64)
+  started_at          DateTime  @db.DateTime(0)
+  finished_at         DateTime? @db.DateTime(0)
+  input_tokens        BigInt    @default(0)
+  output_tokens       BigInt    @default(0)
+  cache_write_tokens  BigInt    @default(0)
+  cache_read_tokens   BigInt    @default(0)
+  web_search_requests Int       @default(0)
+  cost_usd            Decimal   @default(0) @db.Decimal(10, 4)
+  issues_investigated Int       @default(0)
+  proposals_created   Int       @default(0)
+  stop_reason         String?   @db.VarChar(64)
+  summary             String?   @db.Text
+  error               String?   @db.Text
+  slack_ts            String?   @db.VarChar(32)
+
+  @@index([universe, started_at], map: "idx_ops_agent_runs_started")
+}
+
+model ops_agent_run_steps {
+  id          Int      @id @default(autoincrement())
+  run_id      Int
+  issue_id    Int?
+  seq         Int
+  kind        String   @db.VarChar(16)
+  tool_name   String?  @db.VarChar(128)
+  input       String?  @db.LongText
+  output      String?  @db.LongText
+  is_error    Boolean  @default(false)
+  duration_ms Int?
+  cost_usd    Decimal? @db.Decimal(10, 4)
+  created_at  DateTime @db.DateTime(0)
+
+  @@index([run_id, seq], map: "idx_ops_agent_run_steps_run")
+}
+
+model ops_settings {
+  key                String   @id @db.VarChar(96)
+  value              String   @db.VarChar(1000)
+  updated_by_user_id Int?
+  updated_at         DateTime @db.DateTime(0)
+}
+
+model ops_service_tokens {
+  id                 Int       @id @default(autoincrement())
+  name               String    @db.VarChar(255)
+  token_hash         String    @unique(map: "uniq_ops_service_tokens_hash") @db.Char(64)
+  user_id            Int
+  created_by_user_id Int?
+  created_at         DateTime  @db.DateTime(0)
+  last_used_at       DateTime? @db.DateTime(0)
+  revoked_at         DateTime? @db.DateTime(0)
 }
 
 model app_logs {

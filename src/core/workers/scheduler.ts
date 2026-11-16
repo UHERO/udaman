@@ -90,6 +90,27 @@ export async function registerSchedules(): Promise<void> {
   );
   log.info("Registered schedule: kauai-export (Saturday 1:00 PM HST)");
 
+  // ─── Ops (docs/2026-11-13-ops-agent-design.md) ─────────────────────
+
+  // Daily ops pass — 5:00 AM HST: detectors, re-check the proposals waiting
+  // for review (fresh dry runs), and the daily digest. The nightly batch
+  // also enqueues a reconcile when it finishes.
+  await defaultQueue.upsertJobScheduler(
+    "scheduled:ops-reconcile-daily",
+    { pattern: "0 5 * * *", tz },
+    { name: JobName.OPS_RECONCILE, data: { universe: "UHERO", daily: true } },
+  );
+  log.info("Registered schedule: ops-reconcile-daily (daily 5:00 AM HST)");
+
+  // Hourly ops reconcile during the workday (7:35 AM–5:35 PM HST), so fixes
+  // made in the app or Slack close their issues within the hour.
+  await defaultQueue.upsertJobScheduler(
+    "scheduled:ops-reconcile",
+    { pattern: "35 7-17 * * *", tz },
+    { name: JobName.OPS_RECONCILE, data: { universe: "UHERO" } },
+  );
+  log.info("Registered schedule: ops-reconcile (hourly 7:35 AM–5:35 PM HST)");
+
   // ─── Public data ────────────────────────────────────────────────────
 
   // Update Public Data Points — 5x daily at 7:15 AM, 11:01 AM, 1:01 PM,

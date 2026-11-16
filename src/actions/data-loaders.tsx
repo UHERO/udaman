@@ -22,6 +22,7 @@ import type {
 import { Queue } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
+import { noteUiChange } from "@/core/ops/actors";
 import { redisConnection } from "@/core/workers/connection";
 import { enqueueSeriesReload } from "@/core/workers/enqueue";
 import type { ActionResult } from "@/lib/action-result";
@@ -312,6 +313,7 @@ export async function clearLoaderError(loaderId: number) {
       priority: result.data.priority,
       eval: result.data.eval,
     });
+    noteUiChange("loader", loaderId, userId, "Loader error cleared in the app");
     AppLogCollection.log({
       category: "loader",
       name: "loader.clear_error",
@@ -361,6 +363,7 @@ export async function updateDataLoader(
       priority: result.data.priority,
       eval: result.data.eval,
     });
+    noteUiChange("loader", loaderId, userId, "Loader edited in the app");
     AppLogCollection.log({
       category: "loader",
       name: "loader.update",

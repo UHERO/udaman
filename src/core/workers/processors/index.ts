@@ -22,6 +22,7 @@ import { processDvwUpload } from "./dvw-upload";
 import { processIngestExtract, processIngestFetch } from "./ingest";
 import { processKauaiExport } from "./kauai-export";
 import { processMlsDaily } from "./mls-daily";
+import { processOpsApplyProposal, processOpsReconcile } from "./ops";
 import { processPurgeOldStuff } from "./purge-old";
 import { processQpubReparse } from "./qpub-reparse";
 import { processReloadJob } from "./reload-job";
@@ -140,4 +141,8 @@ export const processors: Record<string, Processor> = {
   [JobName.UNIVERSE_PURGE]: heavy(processUniversePurge),
   [JobName.QPUB_REPARSE]: processQpubReparse,
   [JobName.MLS_DAILY]: processMlsDaily,
+  // Ops: reads plus small issue-table writes; applying a proposal edits a
+  // few loaders/series and queues reloads (which take their own path).
+  [JobName.OPS_RECONCILE]: processOpsReconcile,
+  [JobName.OPS_APPLY_PROPOSAL]: processOpsApplyProposal,
 };

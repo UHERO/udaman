@@ -8,7 +8,7 @@ import { createLogger } from "@/core/observability/logger";
 import { rawQuery } from "@/lib/mysql/db";
 import type { HeavyDbLockContext } from "@/lib/mysql/db-lock";
 
-import { enqueueUpdatePublic } from "../enqueue";
+import { enqueueOpsReconcile, enqueueUpdatePublic } from "../enqueue";
 import type { BatchReloadJobData } from "../queues";
 
 const log = createLogger("worker.batch-reload");
@@ -94,6 +94,13 @@ export async function processBatchReload(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log.error({ err: msg }, "Loader lag check failed");
+  }
+
+  // Refresh ops issues now that tonight's errors are in.
+  try {
+    await enqueueOpsReconcile({ universe: "UHERO" });
+  } catch (e) {
+    log.error({ err: e }, "Failed to enqueue ops reconcile");
   }
 
   const elapsedSec = Math.round((Date.now() - t0) / 1000);

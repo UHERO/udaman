@@ -33,6 +33,8 @@ export const JobName = {
   CLIPBOARD_LOADER_RELOAD: "clipboard.loader-reload",
   UNIVERSE_ARCHIVE: "universe.archive",
   UNIVERSE_PURGE: "universe.purge",
+  OPS_RECONCILE: "ops.reconcile",
+  OPS_APPLY_PROPOSAL: "ops.apply-proposal",
 } as const;
 
 export type JobNameValue = (typeof JobName)[keyof typeof JobName];
@@ -44,6 +46,8 @@ export type SeriesReloadJobData = {
   loaderId: number;
   clearFirst: boolean;
   batchId?: string;
+  /** Set when an ops issue asked for this reload to verify a fix. */
+  opsIssueId?: number;
 };
 
 /**
@@ -178,6 +182,16 @@ export type UniverseArchiveJobData = {
 
 export type UniversePurgeJobData = {
   universe: string;
+};
+
+export type OpsReconcileJobData = {
+  universe?: string;
+  /** Daily pass: also expire and re-issue proposals. */
+  daily?: boolean;
+};
+
+export type OpsApplyProposalJobData = {
+  proposalId: number;
 };
 
 // ─── Queue instances ─────────────────────────────────────────────────
