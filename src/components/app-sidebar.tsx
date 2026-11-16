@@ -157,6 +157,7 @@ const DOCS_NAV_ITEMS: { title: string; url: string; icon: LucideIcon }[] = [
     url: "/docs/loader-actions",
     icon: FunctionSquare,
   },
+  { title: "feasim API", url: "/docs/feasim-api", icon: Building2 },
 ];
 
 export function AppSidebar({
