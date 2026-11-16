@@ -61,9 +61,10 @@ export default async function QuarantinePage({
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                <code>filter_by_quarantine</code> &mdash; The data portal will
-                hide data from any series that are quarantined (default false;
-                enforced by the public REST API, not Udaman)
+                <code>filter_by_quarantine</code> &mdash; Currently has no
+                effect. The public REST API (<code>/v1</code>) always hides
+                quarantined series; the in-house API (<code>/v1.u</code>) always
+                serves them, with data frozen at the time of quarantine
               </li>
               <li>
                 <code>remove_quarantined_from_public</code> &mdash; When true,

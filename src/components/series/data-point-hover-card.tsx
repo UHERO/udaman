@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { getColor } from "../helpers";
-import { useSeriesHover } from "./series-data-section";
+import { useSeriesVintages } from "./series-data-section";
 
 export function DataPointTooltip({
   value,
@@ -27,7 +27,7 @@ export function DataPointTooltip({
   seriesId: number;
   decimals: number;
 }) {
-  const { vintages, vintagesLoaded } = useSeriesHover();
+  const { vintages, vintagesLoaded } = useSeriesVintages();
   const dateVintages = vintages[date];
   const hasVintages = dateVintages && dateVintages.length > 1;
 

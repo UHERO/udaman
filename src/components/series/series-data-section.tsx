@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import type { VintageDataPoint } from "@catalog/collections/data-point-collection";
@@ -13,22 +14,41 @@ import { getAllDataPointVintages } from "@/actions/series-actions";
 
 type VintageMap = Record<string, VintageDataPoint[]>;
 
-type HoverContextValue = {
-  hoveredDate: Date | null;
-  setHoveredDate: (date: Date | null) => void;
+type VintageContextValue = {
   vintages: VintageMap;
   vintagesLoaded: boolean;
 };
 
-const HoverContext = createContext<HoverContextValue>({
-  hoveredDate: null,
-  setHoveredDate: () => {},
+type HoverContextValue = VintageContextValue & {
+  hoveredDate: Date | null;
+  setHoveredDate: (date: Date | null) => void;
+};
+
+// Three contexts rather than one so a hover only re-renders what reads the
+// hovered date (the chart). Table rows read the setter and the vintages,
+// neither of which changes while the pointer moves.
+const HoveredDateContext = createContext<Date | null>(null);
+const SetHoveredDateContext = createContext<(date: Date | null) => void>(
+  () => {},
+);
+const VintageContext = createContext<VintageContextValue>({
   vintages: {},
   vintagesLoaded: false,
 });
 
-export function useSeriesHover() {
-  return useContext(HoverContext);
+export function useSetHoveredDate() {
+  return useContext(SetHoveredDateContext);
+}
+
+export function useSeriesVintages() {
+  return useContext(VintageContext);
+}
+
+export function useSeriesHover(): HoverContextValue {
+  const hoveredDate = useContext(HoveredDateContext);
+  const setHoveredDate = useContext(SetHoveredDateContext);
+  const vintages = useContext(VintageContext);
+  return { hoveredDate, setHoveredDate, ...vintages };
 }
 
 export function SeriesHoverProvider({
@@ -52,11 +72,18 @@ export function SeriesHoverProvider({
     loadVintages();
   }, [loadVintages]);
 
+  const vintageValue = useMemo(
+    () => ({ vintages, vintagesLoaded }),
+    [vintages, vintagesLoaded],
+  );
+
   return (
-    <HoverContext.Provider
-      value={{ hoveredDate, setHoveredDate, vintages, vintagesLoaded }}
-    >
-      {children}
-    </HoverContext.Provider>
+    <SetHoveredDateContext.Provider value={setHoveredDate}>
+      <VintageContext.Provider value={vintageValue}>
+        <HoveredDateContext.Provider value={hoveredDate}>
+          {children}
+        </HoveredDateContext.Provider>
+      </VintageContext.Provider>
+    </SetHoveredDateContext.Provider>
   );
 }
