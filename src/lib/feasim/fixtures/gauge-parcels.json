@@ -1,0 +1,2474 @@
+{
+ "_about": "Test data only; nothing in the app reads this file. A sample of the real Oahu parcels the Housing Policy Simulator's gauge maps, per pathway. The gauge runs each through calcParcel; the gauge endpoints must give the same result from the parcel sent as query parameters. See gauge-cases.ts.",
+ "_feasim_version": "0.4.0",
+ "_source": "Copied from UHERO/feasim@v0.4.0 test/data/gauge-parcels.json. Sampled from UHERO/analytics app/housing/policy/gauge/data at commit da45f2df (10/8/26): for each zone (TOD: zone, regime, station area, parenthetical; others: zone, parking exemption), the smallest, median and largest lot.",
+ "bill6": [
+  {
+   "tmk": "17003028",
+   "zone_class": "BMX-4",
+   "lot_sqft": 6423,
+   "height": 40,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "21010013",
+   "zone_class": "BMX-4",
+   "lot_sqft": 596,
+   "height": 400,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "21018002",
+   "zone_class": "BMX-4",
+   "lot_sqft": 325049,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23017013",
+   "zone_class": "AMX-3",
+   "lot_sqft": 33644,
+   "height": 250,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23018076",
+   "zone_class": "A-3",
+   "lot_sqft": 7765,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23021019",
+   "zone_class": "AMX-3",
+   "lot_sqft": 13038,
+   "height": 250,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26011001",
+   "zone_class": "Apart",
+   "lot_sqft": 158521,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26013014",
+   "zone_class": "ApartMix",
+   "lot_sqft": 104710,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26015001",
+   "zone_class": "ApartMix",
+   "lot_sqft": 26470,
+   "height": 300,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26015035",
+   "zone_class": "Apart",
+   "lot_sqft": 10000,
+   "height": 130,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26017008",
+   "zone_class": "ApartMix",
+   "lot_sqft": 10000,
+   "height": 300,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26024097",
+   "zone_class": "Apart",
+   "lot_sqft": 20953,
+   "height": 240,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27002047",
+   "zone_class": "A-2",
+   "lot_sqft": 6000,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27013048",
+   "zone_class": "A-3",
+   "lot_sqft": 1482,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27020001",
+   "zone_class": "A-3",
+   "lot_sqft": 979159,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27027049",
+   "zone_class": "A-2",
+   "lot_sqft": 505,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "43052019",
+   "zone_class": "BMX-3",
+   "lot_sqft": 2190,
+   "height": 40,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "43054047",
+   "zone_class": "BMX-3",
+   "lot_sqft": 14025,
+   "height": 40,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "47004029",
+   "zone_class": "A-1",
+   "lot_sqft": 2097893,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "73001051",
+   "zone_class": "A-2",
+   "lot_sqft": 1120,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "91015083",
+   "zone_class": "A-1",
+   "lot_sqft": 16418288,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016173",
+   "zone_class": "AMX-1",
+   "lot_sqft": 102758,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016179",
+   "zone_class": "A-2",
+   "lot_sqft": 6838136,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016195",
+   "zone_class": "AMX-1",
+   "lot_sqft": 47916,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016214",
+   "zone_class": "AMX-1",
+   "lot_sqft": 17685,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016220",
+   "zone_class": "BMX-3",
+   "lot_sqft": 8388001,
+   "height": 90,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91017196",
+   "zone_class": "AMX-2",
+   "lot_sqft": 5300991,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91123111",
+   "zone_class": "A-1",
+   "lot_sqft": 535,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91127120",
+   "zone_class": "A-1",
+   "lot_sqft": 5031,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91148031",
+   "zone_class": "BMX-3",
+   "lot_sqft": 515,
+   "height": 90,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91160062",
+   "zone_class": "AMX-2",
+   "lot_sqft": 776,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "94006113",
+   "zone_class": "BMX-3",
+   "lot_sqft": 390515,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "94047040",
+   "zone_class": "BMX-3",
+   "lot_sqft": 9632,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "94101003",
+   "zone_class": "A-1",
+   "lot_sqft": 5821,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95003004",
+   "zone_class": "A-2",
+   "lot_sqft": 1694048,
+   "height": 50,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95040098",
+   "zone_class": "A-2",
+   "lot_sqft": 5858,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95077010",
+   "zone_class": "A-1",
+   "lot_sqft": 871,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "97024035",
+   "zone_class": "AMX-3",
+   "lot_sqft": 214639,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "98010039",
+   "zone_class": "AMX-2",
+   "lot_sqft": 6443,
+   "height": 60,
+   "parking_exempt": true
+  }
+ ],
+ "standard": [
+  {
+   "tmk": "17003028",
+   "zone_class": "BMX-4",
+   "lot_sqft": 6423,
+   "height": 40,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "21010013",
+   "zone_class": "BMX-4",
+   "lot_sqft": 596,
+   "height": 400,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "21018002",
+   "zone_class": "BMX-4",
+   "lot_sqft": 325049,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23017013",
+   "zone_class": "AMX-3",
+   "lot_sqft": 33644,
+   "height": 250,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23018076",
+   "zone_class": "A-3",
+   "lot_sqft": 7765,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23021019",
+   "zone_class": "AMX-3",
+   "lot_sqft": 13038,
+   "height": 250,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26011001",
+   "zone_class": "Apart",
+   "lot_sqft": 158521,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26013014",
+   "zone_class": "ApartMix",
+   "lot_sqft": 104710,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26015001",
+   "zone_class": "ApartMix",
+   "lot_sqft": 26470,
+   "height": 300,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26015035",
+   "zone_class": "Apart",
+   "lot_sqft": 10000,
+   "height": 130,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26017008",
+   "zone_class": "ApartMix",
+   "lot_sqft": 10000,
+   "height": 300,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26024097",
+   "zone_class": "Apart",
+   "lot_sqft": 20953,
+   "height": 240,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27002047",
+   "zone_class": "A-2",
+   "lot_sqft": 6000,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27013048",
+   "zone_class": "A-3",
+   "lot_sqft": 1482,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27020001",
+   "zone_class": "A-3",
+   "lot_sqft": 979159,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27027049",
+   "zone_class": "A-2",
+   "lot_sqft": 505,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "43052019",
+   "zone_class": "BMX-3",
+   "lot_sqft": 2190,
+   "height": 40,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "43054047",
+   "zone_class": "BMX-3",
+   "lot_sqft": 14025,
+   "height": 40,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "47004029",
+   "zone_class": "A-1",
+   "lot_sqft": 2097893,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "73001051",
+   "zone_class": "A-2",
+   "lot_sqft": 1120,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "91015083",
+   "zone_class": "A-1",
+   "lot_sqft": 16418288,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016173",
+   "zone_class": "AMX-1",
+   "lot_sqft": 102758,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016179",
+   "zone_class": "A-2",
+   "lot_sqft": 6838136,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016195",
+   "zone_class": "AMX-1",
+   "lot_sqft": 47916,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016214",
+   "zone_class": "AMX-1",
+   "lot_sqft": 17685,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016220",
+   "zone_class": "BMX-3",
+   "lot_sqft": 8388001,
+   "height": 90,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91017196",
+   "zone_class": "AMX-2",
+   "lot_sqft": 5300991,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91123111",
+   "zone_class": "A-1",
+   "lot_sqft": 535,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91127120",
+   "zone_class": "A-1",
+   "lot_sqft": 5031,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91148031",
+   "zone_class": "BMX-3",
+   "lot_sqft": 515,
+   "height": 90,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91160062",
+   "zone_class": "AMX-2",
+   "lot_sqft": 776,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "94006113",
+   "zone_class": "BMX-3",
+   "lot_sqft": 390515,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "94047040",
+   "zone_class": "BMX-3",
+   "lot_sqft": 9632,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "94101003",
+   "zone_class": "A-1",
+   "lot_sqft": 5821,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95003004",
+   "zone_class": "A-2",
+   "lot_sqft": 1694048,
+   "height": 50,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95040098",
+   "zone_class": "A-2",
+   "lot_sqft": 5858,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95077010",
+   "zone_class": "A-1",
+   "lot_sqft": 871,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "97024035",
+   "zone_class": "AMX-3",
+   "lot_sqft": 214639,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "98010039",
+   "zone_class": "AMX-2",
+   "lot_sqft": 6443,
+   "height": 60,
+   "parking_exempt": true
+  }
+ ],
+ "h201": [
+  {
+   "tmk": "17003028",
+   "zone_class": "BMX-4",
+   "lot_sqft": 6423,
+   "height": 40,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "21010013",
+   "zone_class": "BMX-4",
+   "lot_sqft": 596,
+   "height": 400,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "21018002",
+   "zone_class": "BMX-4",
+   "lot_sqft": 325049,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23017013",
+   "zone_class": "AMX-3",
+   "lot_sqft": 33644,
+   "height": 250,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23018076",
+   "zone_class": "A-3",
+   "lot_sqft": 7765,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "23021019",
+   "zone_class": "AMX-3",
+   "lot_sqft": 13038,
+   "height": 250,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26011001",
+   "zone_class": "Apart",
+   "lot_sqft": 158521,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26013014",
+   "zone_class": "ApartMix",
+   "lot_sqft": 104710,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26015001",
+   "zone_class": "ApartMix",
+   "lot_sqft": 26470,
+   "height": 300,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26015035",
+   "zone_class": "Apart",
+   "lot_sqft": 10000,
+   "height": 130,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26017008",
+   "zone_class": "ApartMix",
+   "lot_sqft": 10000,
+   "height": 300,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "26024097",
+   "zone_class": "Apart",
+   "lot_sqft": 20953,
+   "height": 240,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27002047",
+   "zone_class": "A-2",
+   "lot_sqft": 6000,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27013048",
+   "zone_class": "A-3",
+   "lot_sqft": 1482,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27020001",
+   "zone_class": "A-3",
+   "lot_sqft": 979159,
+   "height": 350,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "27027049",
+   "zone_class": "A-2",
+   "lot_sqft": 505,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "43052019",
+   "zone_class": "BMX-3",
+   "lot_sqft": 2190,
+   "height": 40,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "43054047",
+   "zone_class": "BMX-3",
+   "lot_sqft": 14025,
+   "height": 40,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "47004029",
+   "zone_class": "A-1",
+   "lot_sqft": 2097893,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "73001051",
+   "zone_class": "A-2",
+   "lot_sqft": 1120,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "91015083",
+   "zone_class": "A-1",
+   "lot_sqft": 16418288,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016173",
+   "zone_class": "AMX-1",
+   "lot_sqft": 102758,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016179",
+   "zone_class": "A-2",
+   "lot_sqft": 6838136,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016195",
+   "zone_class": "AMX-1",
+   "lot_sqft": 47916,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016214",
+   "zone_class": "AMX-1",
+   "lot_sqft": 17685,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91016220",
+   "zone_class": "BMX-3",
+   "lot_sqft": 8388001,
+   "height": 90,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91017196",
+   "zone_class": "AMX-2",
+   "lot_sqft": 5300991,
+   "height": 65,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91123111",
+   "zone_class": "A-1",
+   "lot_sqft": 535,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91127120",
+   "zone_class": "A-1",
+   "lot_sqft": 5031,
+   "height": 30,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91148031",
+   "zone_class": "BMX-3",
+   "lot_sqft": 515,
+   "height": 90,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "91160062",
+   "zone_class": "AMX-2",
+   "lot_sqft": 776,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "94006113",
+   "zone_class": "BMX-3",
+   "lot_sqft": 390515,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "94047040",
+   "zone_class": "BMX-3",
+   "lot_sqft": 9632,
+   "height": 60,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "94101003",
+   "zone_class": "A-1",
+   "lot_sqft": 5821,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95003004",
+   "zone_class": "A-2",
+   "lot_sqft": 1694048,
+   "height": 50,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95040098",
+   "zone_class": "A-2",
+   "lot_sqft": 5858,
+   "height": 60,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "95077010",
+   "zone_class": "A-1",
+   "lot_sqft": 871,
+   "height": 30,
+   "parking_exempt": false
+  },
+  {
+   "tmk": "97024035",
+   "zone_class": "AMX-3",
+   "lot_sqft": 214639,
+   "height": 150,
+   "parking_exempt": true
+  },
+  {
+   "tmk": "98010039",
+   "zone_class": "AMX-2",
+   "lot_sqft": 6443,
+   "height": 60,
+   "parking_exempt": true
+  }
+ ],
+ "bill7": [
+  {
+   "tmk": "16001122",
+   "zone_class": "A-1",
+   "lot_sqft": 20000,
+   "height": 30
+  },
+  {
+   "tmk": "17002008",
+   "zone_class": "BMX-4",
+   "lot_sqft": 4155,
+   "height": 40
+  },
+  {
+   "tmk": "17006013",
+   "zone_class": "BMX-4",
+   "lot_sqft": 19890,
+   "height": 350
+  },
+  {
+   "tmk": "17026004",
+   "zone_class": "BMX-3",
+   "lot_sqft": 19857,
+   "height": 200
+  },
+  {
+   "tmk": "21010013",
+   "zone_class": "BMX-4",
+   "lot_sqft": 596,
+   "height": 400
+  },
+  {
+   "tmk": "23021019",
+   "zone_class": "AMX-3",
+   "lot_sqft": 13038,
+   "height": 250
+  },
+  {
+   "tmk": "23021023",
+   "zone_class": "AMX-3",
+   "lot_sqft": 16149,
+   "height": 250
+  },
+  {
+   "tmk": "23021024",
+   "zone_class": "AMX-3",
+   "lot_sqft": 15072,
+   "height": 250
+  },
+  {
+   "tmk": "24024021",
+   "zone_class": "A-2",
+   "lot_sqft": 20000,
+   "height": 40
+  },
+  {
+   "tmk": "26012009",
+   "zone_class": "ApartMix",
+   "lot_sqft": 6124,
+   "height": 350
+  },
+  {
+   "tmk": "26012027",
+   "zone_class": "Apart",
+   "lot_sqft": 19884,
+   "height": 350
+  },
+  {
+   "tmk": "26014063",
+   "zone_class": "Apart",
+   "lot_sqft": 500,
+   "height": 65
+  },
+  {
+   "tmk": "26015067",
+   "zone_class": "Apart",
+   "lot_sqft": 5000,
+   "height": 130
+  },
+  {
+   "tmk": "26016068",
+   "zone_class": "ApartMix",
+   "lot_sqft": 500,
+   "height": 300
+  },
+  {
+   "tmk": "26021002",
+   "zone_class": "ApartMix",
+   "lot_sqft": 15766,
+   "height": 260
+  },
+  {
+   "tmk": "27013048",
+   "zone_class": "A-3",
+   "lot_sqft": 1482,
+   "height": 350
+  },
+  {
+   "tmk": "27016015",
+   "zone_class": "A-2",
+   "lot_sqft": 5410,
+   "height": 150
+  },
+  {
+   "tmk": "27019011",
+   "zone_class": "A-3",
+   "lot_sqft": 6478,
+   "height": 350
+  },
+  {
+   "tmk": "27027049",
+   "zone_class": "A-2",
+   "lot_sqft": 505,
+   "height": 150
+  },
+  {
+   "tmk": "28001017",
+   "zone_class": "BMX-3",
+   "lot_sqft": 6725,
+   "height": 150
+  },
+  {
+   "tmk": "28002028",
+   "zone_class": "AMX-2",
+   "lot_sqft": 19855,
+   "height": 150
+  },
+  {
+   "tmk": "28012009",
+   "zone_class": "A-3",
+   "lot_sqft": 19982,
+   "height": 100
+  },
+  {
+   "tmk": "91016214",
+   "zone_class": "AMX-1",
+   "lot_sqft": 17685,
+   "height": 30
+  },
+  {
+   "tmk": "91123111",
+   "zone_class": "A-1",
+   "lot_sqft": 535,
+   "height": 30
+  },
+  {
+   "tmk": "91140128",
+   "zone_class": "A-1",
+   "lot_sqft": 5000,
+   "height": 30
+  },
+  {
+   "tmk": "91148031",
+   "zone_class": "BMX-3",
+   "lot_sqft": 515,
+   "height": 90
+  },
+  {
+   "tmk": "91160062",
+   "zone_class": "AMX-2",
+   "lot_sqft": 776,
+   "height": 60
+  },
+  {
+   "tmk": "94039054",
+   "zone_class": "AMX-2",
+   "lot_sqft": 5610,
+   "height": 60
+  }
+ ],
+ "tod": [
+  {
+   "tmk": "11002001",
+   "zone_class": "I-2",
+   "lot_sqft": 1169177,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Airport",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "11004058",
+   "zone_class": "I-2",
+   "lot_sqft": 26138,
+   "height": 160,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Airport",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "11004086",
+   "zone_class": "I-2",
+   "lot_sqft": 639,
+   "height": 160,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Airport",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "11010009",
+   "zone_class": "B-2",
+   "lot_sqft": 123676,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Airport",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "11015003",
+   "zone_class": "IMX-1",
+   "lot_sqft": 7792,
+   "height": 160,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Airport",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "11015013",
+   "zone_class": "IMX-1",
+   "lot_sqft": 544525,
+   "height": 160,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Airport",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "12002084",
+   "zone_class": "A-1",
+   "lot_sqft": 5000,
+   "height": 30,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "12002092",
+   "zone_class": "B-1",
+   "lot_sqft": 5000,
+   "height": 40,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "12003059",
+   "zone_class": "IMX-1",
+   "lot_sqft": 5037,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "12013002",
+   "zone_class": "I-2",
+   "lot_sqft": 644680,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "12013013",
+   "zone_class": "I-2",
+   "lot_sqft": 39757,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "12013018",
+   "zone_class": "I-2",
+   "lot_sqft": 289,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "12015002",
+   "zone_class": "BMX-3",
+   "lot_sqft": 77279,
+   "height": 200,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "15001001",
+   "zone_class": "A-1",
+   "lot_sqft": 714863,
+   "height": 200,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "15006032",
+   "zone_class": "IMX-1",
+   "lot_sqft": 15542,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "15006043",
+   "zone_class": "BMX-3",
+   "lot_sqft": 14420,
+   "height": 200,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "15007001",
+   "zone_class": "BMX-3",
+   "lot_sqft": 165136,
+   "height": 200,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "15008019",
+   "zone_class": "BMX-3",
+   "lot_sqft": 63,
+   "height": 200,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "15009022",
+   "zone_class": "IMX-1",
+   "lot_sqft": 168,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "15012017",
+   "zone_class": "IMX-1",
+   "lot_sqft": 474559,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "15021048",
+   "zone_class": "IMX-1",
+   "lot_sqft": 1,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "15026001",
+   "zone_class": "A-1",
+   "lot_sqft": 53938,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "15027004",
+   "zone_class": "B-2",
+   "lot_sqft": 111297,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "15030005",
+   "zone_class": "IMX-1",
+   "lot_sqft": 549132,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "16001107",
+   "zone_class": "BMX-3",
+   "lot_sqft": 445,
+   "height": 200,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "16002062",
+   "zone_class": "BMX-3",
+   "lot_sqft": 5921,
+   "height": 200,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "16003042",
+   "zone_class": "B-2",
+   "lot_sqft": 25026,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "16003043",
+   "zone_class": "B-2",
+   "lot_sqft": 197240,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Kalihi",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "17003101",
+   "zone_class": "BMX-4",
+   "lot_sqft": 32,
+   "height": 40,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "17023001",
+   "zone_class": "A-1",
+   "lot_sqft": 153571,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "17023036",
+   "zone_class": "A-2",
+   "lot_sqft": 60157,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "17029003",
+   "zone_class": "A-2",
+   "lot_sqft": 646654,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "17031002",
+   "zone_class": "A-2",
+   "lot_sqft": 6000,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "17031027",
+   "zone_class": "A-1",
+   "lot_sqft": 7087,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "21001045",
+   "zone_class": "I-3",
+   "lot_sqft": 29235,
+   "height": 40,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "21001052",
+   "zone_class": "I-3",
+   "lot_sqft": 485,
+   "height": 40,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "21001054",
+   "zone_class": "I-3",
+   "lot_sqft": 154,
+   "height": 40,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "21010025",
+   "zone_class": "BMX-4",
+   "lot_sqft": 6130,
+   "height": 400,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "21018002",
+   "zone_class": "BMX-4",
+   "lot_sqft": 325049,
+   "height": 65,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "21026003",
+   "zone_class": "B-2",
+   "lot_sqft": 81,
+   "height": 65,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "21026027",
+   "zone_class": "B-2",
+   "lot_sqft": 22216,
+   "height": 65,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "21035003",
+   "zone_class": "B-2",
+   "lot_sqft": 472163,
+   "height": 100,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Downtown",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23014029",
+   "zone_class": "A-2",
+   "lot_sqft": 5515,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "23018029",
+   "zone_class": "A-3",
+   "lot_sqft": 41825,
+   "height": 350,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23018076",
+   "zone_class": "A-3",
+   "lot_sqft": 7765,
+   "height": 350,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23019004",
+   "zone_class": "A-3",
+   "lot_sqft": 398453,
+   "height": 350,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23021017",
+   "zone_class": "AMX-3",
+   "lot_sqft": 31221,
+   "height": 250,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23021019",
+   "zone_class": "AMX-3",
+   "lot_sqft": 13038,
+   "height": 250,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23022042",
+   "zone_class": "BMX-3",
+   "lot_sqft": 9601,
+   "height": 350,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23024032",
+   "zone_class": "BMX-3",
+   "lot_sqft": 49,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23036005",
+   "zone_class": "AMX-3",
+   "lot_sqft": 77098,
+   "height": 350,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23036009",
+   "zone_class": "A-2",
+   "lot_sqft": 425,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23036039",
+   "zone_class": "A-2",
+   "lot_sqft": 138230,
+   "height": 150,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "23038014",
+   "zone_class": "BMX-3",
+   "lot_sqft": 1521649,
+   "height": 100,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Ala Moana",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "91016179",
+   "zone_class": "A-2",
+   "lot_sqft": 6838136,
+   "height": 65,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 120,
+   "station_area": "East Kapolei",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "91016182",
+   "zone_class": "BMX-3",
+   "lot_sqft": 43560,
+   "height": 90,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 120,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91016220",
+   "zone_class": "BMX-3",
+   "lot_sqft": 8388001,
+   "height": 90,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 120,
+   "station_area": "East Kapolei",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "91016221",
+   "zone_class": "BMX-3",
+   "lot_sqft": 287235,
+   "height": 90,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91017114",
+   "zone_class": "A-2",
+   "lot_sqft": 339681,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "91017116",
+   "zone_class": "A-2",
+   "lot_sqft": 68346,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91017138",
+   "zone_class": "AMX-2",
+   "lot_sqft": 586535,
+   "height": 65,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "91017163",
+   "zone_class": "AMX-2",
+   "lot_sqft": 164134,
+   "height": 65,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 120,
+   "station_area": "East Kapolei",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "91017164",
+   "zone_class": "AMX-2",
+   "lot_sqft": 16814,
+   "height": 65,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018009",
+   "zone_class": "B-2",
+   "lot_sqft": 957144,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": false,
+   "tod_map_bonus_height": 60,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018024",
+   "zone_class": "B-1",
+   "lot_sqft": 199723,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": false,
+   "tod_map_bonus_height": 60,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018032",
+   "zone_class": "B-1",
+   "lot_sqft": 32888,
+   "height": 40,
+   "tod_regime": "ipdt",
+   "slu_urban": false,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018043",
+   "zone_class": "IMX-1",
+   "lot_sqft": 131059,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018044",
+   "zone_class": "IMX-1",
+   "lot_sqft": 42199,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018045",
+   "zone_class": "IMX-1",
+   "lot_sqft": 198316,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018047",
+   "zone_class": "IMX-1",
+   "lot_sqft": 1253,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018049",
+   "zone_class": "IMX-1",
+   "lot_sqft": 867994,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018054",
+   "zone_class": "B-2",
+   "lot_sqft": 6630834,
+   "height": 40,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 60,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018055",
+   "zone_class": "B-2",
+   "lot_sqft": 558134,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018057",
+   "zone_class": "B-2",
+   "lot_sqft": 66386,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "91018063",
+   "zone_class": "B-2",
+   "lot_sqft": 32191,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "East Kapolei",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94002039",
+   "zone_class": "A-1",
+   "lot_sqft": 65064,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94002040",
+   "zone_class": "A-1",
+   "lot_sqft": 176170,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94008028",
+   "zone_class": "A-2",
+   "lot_sqft": 113517,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94008029",
+   "zone_class": "A-2",
+   "lot_sqft": 288977,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94017064",
+   "zone_class": "AMX-2",
+   "lot_sqft": 1307,
+   "height": 45,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 45,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94026102",
+   "zone_class": "BMX-3",
+   "lot_sqft": 13297,
+   "height": 45,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 45,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94039071",
+   "zone_class": "AMX-2",
+   "lot_sqft": 5450,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 60,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94047005",
+   "zone_class": "A-2",
+   "lot_sqft": 794990,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94047011",
+   "zone_class": "BMX-3",
+   "lot_sqft": 3,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94047031",
+   "zone_class": "AMX-2",
+   "lot_sqft": 198572,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94047041",
+   "zone_class": "BMX-3",
+   "lot_sqft": 414409,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94048017",
+   "zone_class": "IMX-1",
+   "lot_sqft": 64201,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94048037",
+   "zone_class": "IMX-1",
+   "lot_sqft": 20902,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94048051",
+   "zone_class": "IMX-1",
+   "lot_sqft": 169695,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94048058",
+   "zone_class": "I-2",
+   "lot_sqft": 11097,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94048062",
+   "zone_class": "I-2",
+   "lot_sqft": 126721,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94048075",
+   "zone_class": "IMX-1",
+   "lot_sqft": 4760,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94049006",
+   "zone_class": "I-2",
+   "lot_sqft": 60740,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94049008",
+   "zone_class": "I-2",
+   "lot_sqft": 55237,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Waipahu",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "94049035",
+   "zone_class": "I-2",
+   "lot_sqft": 22060,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94049047",
+   "zone_class": "I-2",
+   "lot_sqft": 10323,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94049053",
+   "zone_class": "IMX-1",
+   "lot_sqft": 7466,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94049059",
+   "zone_class": "IMX-1",
+   "lot_sqft": 21196,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "94160030",
+   "zone_class": "A-1",
+   "lot_sqft": 214502,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Waipahu",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "96003040",
+   "zone_class": "A-2",
+   "lot_sqft": 276209,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 60,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "96003048",
+   "zone_class": "BMX-3",
+   "lot_sqft": 2158442,
+   "height": 40,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "97023001",
+   "zone_class": "I-2",
+   "lot_sqft": 135437,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "97024004",
+   "zone_class": "IMX-1",
+   "lot_sqft": 407249,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "97024027",
+   "zone_class": "AMX-2",
+   "lot_sqft": 581351,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 360,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "97024035",
+   "zone_class": "AMX-3",
+   "lot_sqft": 214639,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 250,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "97024043",
+   "zone_class": "AMX-3",
+   "lot_sqft": 113757,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 250,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98008002",
+   "zone_class": "A-1",
+   "lot_sqft": 73331,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98008011",
+   "zone_class": "B-2",
+   "lot_sqft": 6055,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98008025",
+   "zone_class": "B-2",
+   "lot_sqft": 441393,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98008027",
+   "zone_class": "B-2",
+   "lot_sqft": 158,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98009002",
+   "zone_class": "I-2",
+   "lot_sqft": 153716,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": false,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98009013",
+   "zone_class": "IMX-1",
+   "lot_sqft": 95609,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": false,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98009018",
+   "zone_class": "I-2",
+   "lot_sqft": 12234,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98009024",
+   "zone_class": "IMX-1",
+   "lot_sqft": 238868,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": false,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98010001",
+   "zone_class": "AMX-3",
+   "lot_sqft": 73495,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 150,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98010018",
+   "zone_class": "AMX-2",
+   "lot_sqft": 6731,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98010032",
+   "zone_class": "AMX-2",
+   "lot_sqft": 6000,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 90,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98013015",
+   "zone_class": "BMX-3",
+   "lot_sqft": 617,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 350,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98013033",
+   "zone_class": "A-2",
+   "lot_sqft": 5746,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 60,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98014010",
+   "zone_class": "BMX-3",
+   "lot_sqft": 35800,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 120,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "98039007",
+   "zone_class": "A-2",
+   "lot_sqft": 23421,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98039009",
+   "zone_class": "A-2",
+   "lot_sqft": 93785,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 150,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "98040006",
+   "zone_class": "A-1",
+   "lot_sqft": 347759,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99003026",
+   "zone_class": "A-2",
+   "lot_sqft": 135529,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 150,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99003057",
+   "zone_class": "A-2",
+   "lot_sqft": 36560,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 250,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99003058",
+   "zone_class": "A-2",
+   "lot_sqft": 174984,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99003059",
+   "zone_class": "A-2",
+   "lot_sqft": 69354,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99003061",
+   "zone_class": "BMX-3",
+   "lot_sqft": 3828009,
+   "height": 25,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 150,
+   "station_area": "Halawa",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "99003064",
+   "zone_class": "BMX-3",
+   "lot_sqft": 12316,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 250,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99003066",
+   "zone_class": "A-2",
+   "lot_sqft": 52089,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 250,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99003071",
+   "zone_class": "BMX-3",
+   "lot_sqft": 317552,
+   "height": 25,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 250,
+   "station_area": "Halawa",
+   "tod_precinct": "core"
+  },
+  {
+   "tmk": "99005004",
+   "zone_class": "AMX-2",
+   "lot_sqft": 356277,
+   "height": 25,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 75,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99005020",
+   "zone_class": "AMX-2",
+   "lot_sqft": 1670,
+   "height": 25,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 75,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99012017",
+   "zone_class": "B-2",
+   "lot_sqft": 22375,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99012045",
+   "zone_class": "B-1",
+   "lot_sqft": 16541,
+   "height": 40,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99041012",
+   "zone_class": "B-2",
+   "lot_sqft": 38417,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 60,
+   "station_area": "Aiea-Pearl City",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99041053",
+   "zone_class": "B-2",
+   "lot_sqft": 19689,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99042052",
+   "zone_class": "B-2",
+   "lot_sqft": 29516,
+   "height": 60,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99043029",
+   "zone_class": "AMX-2",
+   "lot_sqft": 75446,
+   "height": 25,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "tod_map_bonus_height": 75,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99064025",
+   "zone_class": "A-2",
+   "lot_sqft": 82565,
+   "height": 150,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99071022",
+   "zone_class": "IMX-1",
+   "lot_sqft": 24401,
+   "height": 60,
+   "tod_regime": "ipdt",
+   "slu_urban": true,
+   "station_area": "Airport",
+   "tod_precinct": "tiz"
+  },
+  {
+   "tmk": "99076022",
+   "zone_class": "A-1",
+   "lot_sqft": 160780,
+   "height": 30,
+   "tod_regime": "pdt",
+   "slu_urban": true,
+   "station_area": "Halawa",
+   "tod_precinct": "tiz"
+  }
+ ]
+}
