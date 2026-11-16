@@ -4,6 +4,12 @@ import { after, NextRequest, NextResponse } from "next/server";
 
 import { createLogger } from "@/core/observability/logger";
 import {
+  handleSlackInteraction,
+  ingestSlackMessage,
+  type SlackBlockActionPayload,
+  type SlackMessageEvent,
+} from "@/core/ops/slack-inbound";
+import {
   unfurlSeriesLinks,
   type LinkSharedEvent,
 } from "@/lib/slack/series-unfurl";
@@ -98,6 +104,26 @@ function handleLinkShared(
   return NextResponse.json({ ok: true });
 }
 
+/**
+ * `message` (Events API): a reply in an ops issue/proposal thread becomes an
+ * issue comment. Retries are dropped (the first delivery is handling it;
+ * comments are also deduped by Slack ts).
+ */
+function handleOpsMessage(
+  event: SlackMessageEvent,
+  retryNum: string | null,
+): NextResponse {
+  if (retryNum) return NextResponse.json({ ok: true });
+  after(async () => {
+    try {
+      await ingestSlackMessage(event);
+    } catch (e) {
+      log.error({ err: e }, "Ops Slack message ingest failed");
+    }
+  });
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(request: NextRequest) {
   const signingSecret = process.env.SLACK_SIGNING_SECRET;
   if (!signingSecret) {
@@ -134,6 +160,15 @@ export async function POST(request: NextRequest) {
           request.headers.get("x-slack-retry-num"),
         );
       }
+      if (
+        payload.type === "event_callback" &&
+        payload.event?.type === "message"
+      ) {
+        return handleOpsMessage(
+          payload.event,
+          request.headers.get("x-slack-retry-num"),
+        );
+      }
       log.info({ type: payload.type }, "Unhandled Slack event type");
       return NextResponse.json({ ok: true });
     } catch {
@@ -141,8 +176,29 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Slash commands send application/x-www-form-urlencoded
+  // Slash commands and interactivity send application/x-www-form-urlencoded
   const params = new URLSearchParams(rawBody);
+
+  // Interactivity (button clicks) arrive as a `payload` JSON field.
+  const interaction = params.get("payload");
+  if (interaction) {
+    try {
+      const parsed = JSON.parse(interaction) as SlackBlockActionPayload;
+      if (parsed.type === "block_actions") {
+        // Ack within 3s; the review (and Slack updates) run after.
+        after(async () => {
+          try {
+            await handleSlackInteraction(parsed);
+          } catch (e) {
+            log.error({ err: e }, "Slack interaction failed");
+          }
+        });
+      }
+      return new NextResponse(null, { status: 200 });
+    } catch {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+  }
   const command = params.get("command");
 
   if (command === "/udaman") {

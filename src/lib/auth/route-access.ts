@@ -139,6 +139,8 @@ export const ROUTES: RouteEntry[] = [
       { label: "Dashboard", path: "/investigations" },
       { label: "Missing Metadata", path: "/investigations/no-source" },
       { label: "Quarantine", path: "/investigations/quarantine" },
+      { label: "Issues", path: "/investigations/issues" },
+      { label: "Proposals", path: "/investigations/proposals" },
     ],
   },
   {
@@ -221,6 +223,7 @@ export const ROUTES: RouteEntry[] = [
       { label: "Performance", path: "/admin/perf" },
       { label: "API Keys", path: "/admin/api-keys", roles: ["dev"] },
       { label: "Messages", path: "/admin/messages", roles: ["dev"] },
+      { label: "Agent", path: "/admin/agent", roles: ["dev"] },
     ],
   },
   {

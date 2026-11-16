@@ -111,3 +111,95 @@ export async function sendSlackUnfurl(opts: {
   log.info({ urls: Object.keys(opts.unfurls) }, "Slack unfurl sent");
   return { skipped: false };
 }
+
+/**
+ * Post a message and return its `ts` and channel ID, which the ops issue
+ * threads need (`sendSlackMessage` only reports skipped/sent). Returns null
+ * when Slack is disabled.
+ */
+export async function postSlackMessage(opts: {
+  channel: string;
+  text: string;
+  blocks?: unknown[];
+  threadTs?: string;
+}): Promise<{ ts: string; channel: string } | null> {
+  if (slackDisabled()) {
+    log.info(
+      { channel: opts.channel, textLength: opts.text.length },
+      "SLACK_DISABLED — skipping post",
+    );
+    return null;
+  }
+  const body: Record<string, unknown> = {
+    channel: opts.channel,
+    text: opts.text,
+    unfurl_links: false,
+  };
+  if (opts.blocks) body.blocks = opts.blocks;
+  if (opts.threadTs) body.thread_ts = opts.threadTs;
+  const data = await callSlackApi("chat.postMessage", body);
+  return { ts: String(data.ts), channel: String(data.channel) };
+}
+
+/** Edit a posted message (e.g. an issue's status line). */
+export async function updateSlackMessage(opts: {
+  channel: string;
+  ts: string;
+  text: string;
+  blocks?: unknown[];
+}): Promise<void> {
+  if (slackDisabled()) return;
+  const body: Record<string, unknown> = {
+    channel: opts.channel,
+    ts: opts.ts,
+    text: opts.text,
+  };
+  if (opts.blocks) body.blocks = opts.blocks;
+  await callSlackApi("chat.update", body);
+}
+
+/** Permalink to a message, or null when Slack is disabled or it fails. */
+export async function getSlackPermalink(
+  channel: string,
+  ts: string,
+): Promise<string | null> {
+  if (slackDisabled()) return null;
+  try {
+    const token = process.env.SLACK_BOT_TOKEN;
+    const res = await fetch(
+      `https://slack.com/api/chat.getPermalink?channel=${encodeURIComponent(channel)}&message_ts=${encodeURIComponent(ts)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const data = await res.json();
+    return data.ok ? String(data.permalink) : null;
+  } catch {
+    return null;
+  }
+}
+
+const slackEmailCache = new Map<string, string | null>();
+
+/** A Slack user's email (needs the `users:read.email` scope). Cached. */
+export async function getSlackUserEmail(
+  slackUserId: string,
+): Promise<string | null> {
+  if (slackEmailCache.has(slackUserId)) {
+    return slackEmailCache.get(slackUserId) ?? null;
+  }
+  try {
+    const token = process.env.SLACK_BOT_TOKEN;
+    const res = await fetch(
+      `https://slack.com/api/users.info?user=${encodeURIComponent(slackUserId)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const data = await res.json();
+    const email: string | null = data.ok
+      ? (data.user?.profile?.email ?? null)
+      : null;
+    slackEmailCache.set(slackUserId, email);
+    return email;
+  } catch (e) {
+    log.warn({ err: e, slackUserId }, "users.info failed");
+    return null;
+  }
+}

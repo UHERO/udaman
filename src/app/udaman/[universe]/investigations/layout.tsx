@@ -1,3 +1,4 @@
+import { countPendingProposals } from "@/actions/ops";
 import {
   getQuarantinedSeries,
   getSeriesWithNullField,
@@ -18,10 +19,12 @@ export default async function Layout({
   const { role, universe: userUniverse } = await getCurrentUserContext();
   const readableResources = await getReadableResources(role);
 
-  const [noSourceResult, quarantineResult] = await Promise.all([
-    getSeriesWithNullField(universe, "source_id", 1, 1),
-    getQuarantinedSeries(universe, 1, 1),
-  ]);
+  const [noSourceResult, quarantineResult, pendingProposals] =
+    await Promise.all([
+      getSeriesWithNullField(universe, "source_id", 1, 1),
+      getQuarantinedSeries(universe, 1, 1),
+      countPendingProposals(universe),
+    ]);
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-0 sm:p-4 sm:pt-0">
@@ -32,6 +35,7 @@ export default async function Layout({
         badgeCounts={{
           noSource: noSourceResult.totalCount,
           quarantine: quarantineResult.totalCount,
+          proposals: pendingProposals,
         }}
       />
       <SeriesLayout>{children}</SeriesLayout>

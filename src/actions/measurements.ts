@@ -21,6 +21,7 @@ import {
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
+import { noteUiChange } from "@/core/ops/actors";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.measurements");
@@ -57,6 +58,7 @@ export async function updateMeasurement(
   log.info({ id }, "updateMeasurement action called");
   try {
     const result = await updateMeasurementCtrl({ id, payload });
+    noteUiChange("measurement", id, userId, "Measurement edited in the app");
     revalidatePath("/measurement");
     return { message: result.message, data: result.data.toJSON() };
   } catch (err) {
@@ -91,6 +93,12 @@ export async function propagateFieldsAction(
       fieldNames,
       seriesNames,
     });
+    noteUiChange(
+      "measurement",
+      measurementId,
+      userId,
+      "Measurement fields copied to its series in the app",
+    );
     revalidatePath("/measurement");
     return { message: result.message };
   } catch (err) {
