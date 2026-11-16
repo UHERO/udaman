@@ -10,14 +10,17 @@ Design: `docs/2026-11-13-ops-agent-design.md`.
 | place | what changes | when it takes effect |
 |---|---|---|
 | **Database** (MariaDB, uhero12) | 7 new `ops_*` tables, one new column on `data_source_actions`, one new `users` row (the agent) | when you apply the migration (§2) |
-| **Prod server** (web, `udaman` unit) | Issues and Proposals tabs, `/admin/agent`, the ops MCP at `/api/mcp/ops`, Slack buttons and thread replies | on restart (§3) |
+| **Prod server** (web, `udaman` unit) | Issues and Proposals tabs, `/admin/agent`, the catalog MCP (`/api/mcp/catalog`), the ops MCP (`/api/mcp/ops`), the runner API (`/api/ops-runner/*`), Slack buttons and thread replies | on restart (§3) |
 | **Worker server** (`udaman-worker` unit) | `ops.reconcile` (detectors, issue cleanup, daily digest) and `ops.apply-proposal` jobs; reload jobs verify issues | on restart (§4) |
 | **Agent server** (your VPN workstation) | the `udaman-ops-agent` service: polls for work, runs the model | when you start it (§6) |
 
 Deploying the code switches on very little by itself:
 
 - The reconciler starts creating issues, and the Issues tab fills. No model.
-- The ops MCP is available to staff on VPN.
+- The two internal MCP servers are available to staff on VPN: the catalog
+  (read, test, propose a change; devs can edit) and ops (issues, review).
+  Any internal staff member can propose a change from then on; proposals
+  still need a reviewer.
 - **The agent does nothing until its service is started on the
   workstation**, and when it is, it starts in comment-only mode: it
   diagnoses and asks questions but cannot propose changes. Proposals are a
@@ -131,27 +134,36 @@ tables and the nullable column.
 | `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET` | Already there for the existing bot. **Check** both are set. |
 | `OPS_SLACK_CHANNEL` | Optional. Defaults to `automation`. |
 | `UDAMAN_BASE_URL` | Optional. Links in Slack messages use it, then `AUTH_URL`, then `https://udaman.uhero.hawaii.edu`. **Check** one of those is the public URL. |
-| `OPS_MCP_ALLOWED_IPS` | Optional second check inside the app: comma-separated exact IPs allowed to call `/api/mcp/ops`. Only useful for single addresses (it has no ranges); nginx is the real gate. |
+| `OPS_MCP_ALLOWED_IPS` | Optional second check inside the app: comma-separated exact IPs allowed to call the three internal endpoints. Only useful for single addresses (it has no ranges); nginx is the real gate. |
 | `OPS_PROBE_DOMAINS` | Optional. Replaces the built-in list of source domains `probe_source_url` may fetch (bls.gov, bea.gov, census.gov, hawaii.gov, …). |
 
-### 3B. nginx: restrict the ops MCP
+### 3B. nginx: restrict the internal endpoints
 
-Add inside the UDAMAN `server` block, above the general `location /`:
+Three paths. Add inside the UDAMAN `server` block, above the general
+`location /`:
 
 ```nginx
-location /api/mcp/ops {
+# Catalog and ops MCP: staff on VPN, and the agent
+location ~ ^/api/mcp/(catalog|ops)(/|$) {
     allow <VPN_RANGE_CIDR>;        # staff Claude Code on VPN
     allow <WORKSTATION_STATIC_IP>; # the agent
     deny  all;
+    include /etc/nginx/snippets/udaman-proxy.conf;
+}
 
-    # same proxy settings as the existing `location /`
-    proxy_pass http://<the existing upstream>;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+# Runner API: the agent's harness only
+location /api/ops-runner/ {
+    allow <WORKSTATION_STATIC_IP>;
+    deny  all;
+    include /etc/nginx/snippets/udaman-proxy.conf;
 }
 ```
+
+`udaman-proxy.conf` stands for the same `proxy_pass` and `proxy_set_header`
+lines the existing `location /` uses (`Host`, `X-Real-IP`,
+`X-Forwarded-For`, `X-Forwarded-Proto`); copy them in, or put them in a
+snippet. The regex location must not catch `/api/mcp` itself, which is the
+public uhero-data MCP.
 
 - **Check** how the workstation's requests arrive at this server. If they
   come through a NAT or another proxy, `allow` the address nginx actually
@@ -178,19 +190,34 @@ Restart web and worker close together (§4); both read the new tables.
    Both load (empty until the first reconcile).
 2. `/admin/agent` loads as a dev. Health says the runner has never asked for
    work; the status line says "comment-only".
-3. From outside the VPN:
-   `curl -i https://<host>/api/mcp/ops` → **403 from nginx**.
-4. From the VPN, without a token: the same request → **401** with a
-   `WWW-Authenticate: Bearer realm="mcp-ops"` header.
-5. From your laptop on VPN, add the MCP to Claude Code and sign in:
+3. From outside the VPN, each of these → **403 from nginx**:
 
    ```bash
-   claude mcp add --transport http udaman-ops https://<host>/api/mcp/ops
+   curl -i https://<host>/api/mcp/catalog
+   curl -i https://<host>/api/mcp/ops
+   curl -i -X POST https://<host>/api/ops-runner/work
    ```
 
-   `list_issues` should answer. As a dev you should see 26 tools, including
-   `update_loader`, `update_measurement_metadata` and `review_proposal`. An
-   `internal` user sees 18: the read and issue tools only.
+   and `https://<host>/api/mcp` (the public MCP) still answers as before.
+4. From the VPN, without a token: the two MCP paths → **401** with a
+   `WWW-Authenticate: Bearer realm="udaman-catalog"` (or `udaman-ops`)
+   header. The runner path → 403 (it only allows the workstation).
+5. From your laptop on VPN, add the servers to Claude Code and sign in:
+
+   ```bash
+   claude mcp add --transport http udaman-catalog https://<host>/api/mcp/catalog
+   claude mcp add --transport http udaman-ops     https://<host>/api/mcp/ops
+   ```
+
+   Expected tools:
+
+   | you are | catalog | ops |
+   |---|---|---|
+   | dev / admin | 15, including `propose_change`, `update_loader`, `update_measurement_metadata` | 11, including `review_proposal`, `dismiss_issue` |
+   | internal | 11: read, test and `propose_change` | 8: issues and `list_proposals` |
+
+   `get_series` on the catalog and `list_issues` on ops should answer.
+   Staff who only fix data need the catalog alone.
 
 ## 4. Worker server
 
@@ -274,9 +301,11 @@ In the existing UDAMAN bot's settings (api.slack.com):
 Slack users are matched to UDAMAN users by email. Someone whose Slack email
 differs from their UDAMAN email can comment in threads but can't approve.
 
-Nothing uses the buttons until proposals are on (§7), so this can be done
-any time before then. Thread replies matter as soon as the agent asks its
-first question.
+The agent's proposals wait for §7, but a person's `propose_change` is
+posted to `#automation` with Approve / Reject buttons from the first day.
+Until this section is done those buttons do nothing; review on the
+Proposals tab or with `review_proposal` instead. Thread replies matter as
+soon as the agent asks its first question.
 
 ## 6. Agent server (the workstation)
 
@@ -303,8 +332,8 @@ Full reference: `src/core/ops-agent/README.md`.
 
    ```sh
    ANTHROPIC_API_KEY=sk-ant-…
-   OPS_MCP_URL=https://<host>/api/mcp/ops
-   OPS_MCP_TOKEN=uops_…
+   OPS_SERVER_URL=https://<host>
+   OPS_AGENT_TOKEN=uops_…
    OPS_REPO_ROOT=/home/opsagent/udaman
    OPS_GIT_SYNC_REF=origin/master
    ```
@@ -316,12 +345,17 @@ Full reference: `src/core/ops-agent/README.md`.
 
    ```bash
    set -a; . ~/.config/udaman-ops-agent.env; set +a
-   curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $OPS_MCP_TOKEN" "$OPS_MCP_URL"
+   curl -s -X POST -H "Authorization: Bearer $OPS_AGENT_TOKEN" "$OPS_SERVER_URL/api/ops-runner/budget"
+   for p in catalog ops; do
+     curl -s -o /dev/null -w "$p %{http_code}\n" -H "Authorization: Bearer $OPS_AGENT_TOKEN" "$OPS_SERVER_URL/api/mcp/$p"
+   done
    ```
 
-   Anything but 403 means nginx let it through (a GET may answer 405 or
-   406; that's fine). 403 means the workstation's IP isn't in the allow
-   list as nginx sees it.
+   The first prints the budget as JSON (it reads only; `work` would claim
+   items). For the MCP paths anything but 403 means nginx let it through (a
+   bare GET may answer 405 or 406; that's fine). A 403 on any of the three
+   means the workstation's IP isn't in that location's allow list as nginx
+   sees it; a 401 means the token is wrong or revoked.
 
 ### 6B. First run, by hand
 
@@ -340,7 +374,7 @@ bun run ops-agent --once --max-items 1
   run's error and the step log say where. Likely spots, none exercised
   before now: the Anthropic API call's parameters (`runner.ts`
   `client.beta.messages.create`: model id, the fallback beta, the web tool
-  versions), and the MCP connection over HTTP.
+  versions), the two MCP connections over HTTP, and the runner API.
 
 ### 6C. The service
 
@@ -395,7 +429,7 @@ Each step is a setting on `/admin/agent`; none needs a deploy.
 | step | do | look for before moving on |
 |---|---|---|
 | **A. Issues only** | §1–§4. Agent service not started. | For a week: issue counts track the investigations pages, and issues close themselves when people fix things. |
-| **B. MCP for people** | Use `/api/mcp/ops` from your own Claude Code for your usual fixes. | Any tool you had to work around; add it. |
+| **B. MCP for people** | Use the catalog and ops servers from your own Claude Code for your usual fixes. | Any tool you had to work around; add it. |
 | **C. Evaluation** (local, optional but cheap) | `bun run scripts/ops-eval.ts build --out cases.json`, then `prepare` / agent / `finish` per case, against the local database and a local Next server. | How often the agent's fix matches the person's. |
 | **D. Comment-only agent** | §6. "Proposals on" stays `0`. | Two weeks of diagnoses that read as correct; spend as forecast. At 20 items a day it will have looked at every load-error and lag group within the first few days, then mostly idle. |
 | **E. Proposals** | §5 done. Set "Proposals on" to `1`. | One proposal appears in `#automation` and on the Proposals tab; approving it applies it and the next appears within minutes. Watch the per-type record on `/admin/agent`. |
@@ -450,8 +484,9 @@ The logic was exercised against the local snapshot (see the design doc's
 - a real model run (§6B)
 - live Slack: thread creation, the Approve / Reject buttons, thread replies
   becoming comments
-- `/api/mcp/ops` over HTTP under Next, including OAuth sign-in from Claude
-  Code and the service-token path
+- `/api/mcp/catalog` and `/api/mcp/ops` over HTTP under Next, including
+  OAuth sign-in from Claude Code and the service-token path; and the runner
+  API
 - the `ops.reconcile` and `ops.apply-proposal` jobs under BullMQ, and reload
   verification of loader issues
 - the runner's polling loop against a server, and the git sync

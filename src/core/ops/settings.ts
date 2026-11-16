@@ -35,7 +35,7 @@ export interface OpsSettings {
   /** Users who may review proposals besides devs and admins. */
   reviewerUserIds: number[];
   monthlyBudgetUsd: number;
-  /** Paused agent: run_get_work returns nothing. */
+  /** Paused agent: the runner API hands out no work. */
   agentPaused: boolean;
   /**
    * Off (the default) is comment-only mode: the agent diagnoses and asks
@@ -54,7 +54,7 @@ const DEFAULTS: Record<string, string> = {
   "budget.monthly_usd": "50",
   "agent.paused": "0",
   "agent.proposals_enabled": "0",
-  /** HST time the runner last asked for work (written by run_get_work). */
+  /** HST time the runner last asked for work (written by the runner API). */
   "agent.last_poll_at": "",
   /** HST time the last daily digest was posted. */
   "digest.last_posted_at": "",

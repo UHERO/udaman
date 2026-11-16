@@ -197,14 +197,8 @@ export interface IssueEventRow {
 
 // ─── Proposals ────────────────────────────────────────────────────────
 
-export type ProposalKind =
-  | "loader_update"
-  | "loader_create"
-  | "loader_disable"
-  | "series_metadata"
-  | "measurement_metadata"
-  | "unquarantine"
-  | "reload";
+/** A change kind registered in ./change-registry (e.g. "loader_update"). */
+export type ProposalKind = string;
 
 export type ProposalStatus =
   | "queued"
@@ -223,7 +217,8 @@ export type ProposalStatus =
  */
 export type Lane = "errors" | "metadata";
 
-export type TargetType = "loader" | "series" | "measurement";
+/** What a change targets; each change kind names its own. */
+export type TargetType = string;
 
 /** One change inside a proposal. `before` is the state when proposed. */
 export interface ProposalTarget {

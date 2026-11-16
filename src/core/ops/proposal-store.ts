@@ -4,7 +4,6 @@
 
 import { mysql, rawQuery } from "@database/mysql";
 
-import { changeTypeFor, type MetadataBasis } from "./rules";
 import {
   parseJson,
   toDate,
@@ -173,74 +172,6 @@ export class ProposalStore {
       UPDATE ops_proposals SET dry_run = ${JSON.stringify(dryRun)}, updated_at = NOW()
       WHERE id = ${id}
     `;
-  }
-
-  /**
-   * Review record per change type for proposals the agent made: totals and
-   * the current run of consecutive approvals that applied cleanly. This is
-   * the evidence for raising (or lowering) an autonomy level.
-   */
-  static async changeTypeStats(
-    universe: string,
-    agentUserId: number | null,
-  ): Promise<
-    Array<{
-      changeType: string;
-      approved: number;
-      rejected: number;
-      failed: number;
-      autoApplied: number;
-      streak: number;
-    }>
-  > {
-    if (agentUserId == null) return [];
-    const rows = await mysql<{
-      kind: ProposalKind;
-      status: string;
-      dry_run: string | null;
-      reviewed_via: string | null;
-    }>`
-      SELECT kind, status, dry_run, reviewed_via FROM ops_proposals
-      WHERE universe = ${universe} AND created_by_user_id = ${agentUserId}
-        AND status IN ('applied', 'failed', 'rejected')
-      ORDER BY id
-    `;
-    const out = new Map<
-      string,
-      {
-        changeType: string;
-        approved: number;
-        rejected: number;
-        failed: number;
-        autoApplied: number;
-        streak: number;
-      }
-    >();
-    for (const r of rows) {
-      const basis = parseJson<{ basis?: MetadataBasis }>(r.dry_run)?.basis;
-      const type = changeTypeFor(r.kind, basis ?? undefined);
-      const m = out.get(type) ?? {
-        changeType: type,
-        approved: 0,
-        rejected: 0,
-        failed: 0,
-        autoApplied: 0,
-        streak: 0,
-      };
-      if (r.reviewed_via?.startsWith("autonomy")) {
-        m.autoApplied++;
-        if (r.status === "failed") m.failed++;
-      } else if (r.status === "applied") {
-        m.approved++;
-        m.streak++;
-      } else {
-        if (r.status === "rejected") m.rejected++;
-        else m.failed++;
-        m.streak = 0;
-      }
-      out.set(type, m);
-    }
-    return [...out.values()];
   }
 
   /** Approval history per kind, for the autonomy evidence on /admin/agent. */

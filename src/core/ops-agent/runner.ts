@@ -1,8 +1,10 @@
 /**
  * Ops agent runner. A long-running service on the workstation: it asks the
  * Next server for work every few minutes (no model involved) and starts a
- * model conversation only when the server hands it an item. It talks to
- * the server only through the ops MCP and reads code from a local checkout.
+ * model conversation only when the server hands it an item. The model's
+ * tools come from two MCP servers (catalog: the data; ops: issues and
+ * review); the harness's own bookkeeping goes through the runner API,
+ * which the model never sees. Code is read from a local checkout.
  * See ./README.md and docs/2026-11-13-ops-agent-design.md.
  *
  *   bun run ops-agent                 the service: poll, work, repeat
@@ -11,7 +13,7 @@
  *   bun run ops-agent --max-items 2   at most N items per pass
  *
  * Env: ANTHROPIC_API_KEY (the agent's own Console workspace, with a spend
- * limit), OPS_MCP_URL (https://…/api/mcp/ops), OPS_MCP_TOKEN (uops_…),
+ * limit), OPS_SERVER_URL (https://udaman…, no path), OPS_AGENT_TOKEN (uops_…),
  * OPS_REPO_ROOT (checkout, default cwd), OPS_GIT_SYNC_REF (e.g.
  * origin/master: fetch and check it out before each run, so the agent reads
  * the deployed code), OPS_POLL_SECONDS (default 300), OPS_AGENT_MODEL
@@ -31,7 +33,12 @@ import type {
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 
 import { LocalTools } from "./local-tools";
-import { connectOpsMcp, type OpsMcp } from "./mcp-client";
+import {
+  connectAgentMcp,
+  runnerApi,
+  type McpConnection,
+  type RunnerApi,
+} from "./mcp-client";
 import { costOf } from "./pricing";
 import { buildKickoff, buildSystemPrompt, type WorkItemLike } from "./prompt";
 
@@ -44,8 +51,6 @@ const MAX_ITEM_USD = 1.5;
 /** Don't start an item with less than this left today. */
 const MIN_START_USD = 0.15;
 
-/** Tools the model never sees (the runner calls them itself). */
-const HIDDEN_TOOLS = (name: string) => name.startsWith("run_");
 /** Tools that count as "the agent acted on the issue". */
 const ISSUE_WRITE_TOOLS = new Set([
   "comment_on_issue",
@@ -86,25 +91,23 @@ interface StepBuf {
  * can be sent to an arbitrary URL.
  */
 function toolDefs(
-  mcp: OpsMcp,
+  mcp: McpConnection,
   local: LocalTools,
   withWeb: boolean,
 ): BetaToolUnion[] {
-  const mcpTools: BetaToolUnion[] = mcp.tools
-    .filter((t) => !HIDDEN_TOOLS(t.name))
-    .map((t) => {
-      // MCP schemas carry a JSON Schema `$schema` key the API doesn't need.
-      const { $schema: _drop, ...schema } = t.inputSchema as Record<
-        string,
-        unknown
-      >;
-      void _drop;
-      return {
-        name: t.name,
-        description: t.description ?? "",
-        input_schema: { type: "object" as const, ...schema },
-      };
-    });
+  const mcpTools: BetaToolUnion[] = mcp.tools.map((t) => {
+    // MCP schemas carry a JSON Schema `$schema` key the API doesn't need.
+    const { $schema: _drop, ...schema } = t.inputSchema as Record<
+      string,
+      unknown
+    >;
+    void _drop;
+    return {
+      name: t.name,
+      description: t.description ?? "",
+      input_schema: { type: "object" as const, ...schema },
+    };
+  });
   const tools: BetaToolUnion[] = [
     ...mcpTools,
     ...(local.definitions() as BetaToolUnion[]),
@@ -126,7 +129,8 @@ function toolDefs(
 
 async function investigate(opts: {
   client: Anthropic;
-  mcp: OpsMcp;
+  mcp: McpConnection;
+  api: RunnerApi;
   local: LocalTools;
   system: string;
   tools: BetaToolUnion[];
@@ -142,7 +146,7 @@ async function investigate(opts: {
   seq: number;
   usage: Record<string, number>;
 }> {
-  const { client, mcp, local, item, runId } = opts;
+  const { client, mcp, api, local, item, runId } = opts;
   const issueId = item.issue.id;
   const steps: StepBuf[] = [];
   let seq = opts.seqStart;
@@ -243,8 +247,6 @@ async function investigate(opts: {
       try {
         if (local.has(tu.name)) {
           out = local.run(tu.name, input);
-        } else if (HIDDEN_TOOLS(tu.name)) {
-          throw new Error("not available");
         } else {
           const r = await mcp.callRaw(tu.name, input);
           out = r.text;
@@ -316,9 +318,9 @@ async function investigate(opts: {
     }
   }
 
-  await mcp
-    .call("run_log", { run_id: runId, steps, usage })
-    .catch((e) => console.error("run_log failed", e));
+  await api
+    .call("log", { run_id: runId, steps, usage })
+    .catch((e) => console.error("runner log failed", e));
   return { costUsd: cost, proposals, seq, usage };
 }
 
@@ -354,14 +356,17 @@ function syncCheckout(root: string): void {
  * Returns whether anything was investigated.
  */
 async function pass(opts: {
-  mcpUrl: string;
+  serverUrl: string;
   token: string;
   root: string;
   onlyIssue: number | null;
   maxItems: number;
   trigger?: string;
 }): Promise<{ worked: boolean; failed: boolean; idle: string | null }> {
-  const mcp = await connectOpsMcp(opts.mcpUrl, opts.token);
+  const api = runnerApi(opts.serverUrl, opts.token);
+  // The MCP servers are only connected when there is work: an idle poll is
+  // one small HTTP request.
+  let mcp: McpConnection | null = null;
   let runId: number | null = null;
   let investigated = 0;
   let proposals = 0;
@@ -374,6 +379,7 @@ async function pass(opts: {
     let items: WorkItemLike[];
     let idle: string | null = null;
     if (opts.onlyIssue) {
+      mcp = await connectAgentMcp(opts.serverUrl, opts.token);
       const got = await mcp.call<{
         issue: WorkItemLike["issue"];
         events: WorkItemLike["events"];
@@ -395,16 +401,17 @@ async function pass(opts: {
         },
       ];
     } else {
-      const work = await mcp.call<{
+      const work = await api.call<{
         paused: boolean;
         idleReason: string | null;
         items: WorkItemLike[];
-      }>("run_get_work");
+      }>("work");
       items = work.items.slice(0, opts.maxItems);
       idle = work.idleReason;
     }
     if (!items.length) return { worked: false, failed: false, idle };
 
+    mcp ??= await connectAgentMcp(opts.serverUrl, opts.token);
     syncCheckout(opts.root);
     const local = new LocalTools(opts.root);
     const client = new Anthropic();
@@ -414,11 +421,11 @@ async function pass(opts: {
       web: toolDefs(mcp, local, true),
     };
 
-    const start = await mcp.call<{
+    const start = await api.call<{
       run_id: number;
       budget: Budget;
       settings: { autonomy: Record<string, number>; proposalsEnabled: boolean };
-    }>("run_start", {
+    }>("start", {
       trigger:
         opts.trigger ??
         (opts.onlyIssue
@@ -439,7 +446,7 @@ async function pass(opts: {
         stopReason = "stopped by signal";
         break;
       }
-      const budget = await mcp.call<Budget>("run_budget");
+      const budget = await api.call<Budget>("budget");
       if (budget.remainingTodayUsd < MIN_START_USD) {
         status = "budget_stopped";
         stopReason = "budget for today used";
@@ -453,6 +460,7 @@ async function pass(opts: {
         const r = await investigate({
           client,
           mcp,
+          api,
           local,
           system,
           tools: item.workClass === "errors" ? tools.plain : tools.web,
@@ -472,8 +480,8 @@ async function pass(opts: {
       } catch (e) {
         // One item failing (API error, bad tool) shouldn't end the run.
         console.error(`  item failed:`, e);
-        await mcp
-          .call("run_log", {
+        await api
+          .call("log", {
             run_id: runId,
             steps: [
               {
@@ -499,8 +507,8 @@ async function pass(opts: {
     console.error(e);
   } finally {
     if (runId != null) {
-      await mcp
-        .call("run_finish", {
+      await api
+        .call("finish", {
           run_id: runId,
           status,
           stop_reason: stopReason,
@@ -508,9 +516,9 @@ async function pass(opts: {
           proposals_created: proposals,
           error,
         })
-        .catch((e) => console.error("run_finish failed", e));
+        .catch((e) => console.error("runner finish failed", e));
     }
-    await mcp.close();
+    await mcp?.close();
   }
   return {
     worked: investigated > 0,
@@ -520,14 +528,14 @@ async function pass(opts: {
 }
 
 async function main() {
-  const mcpUrl = process.env.OPS_MCP_URL;
-  const token = process.env.OPS_MCP_TOKEN;
-  if (!mcpUrl || !token)
-    throw new Error("OPS_MCP_URL and OPS_MCP_TOKEN are required");
+  const serverUrl = process.env.OPS_SERVER_URL;
+  const token = process.env.OPS_AGENT_TOKEN;
+  if (!serverUrl || !token)
+    throw new Error("OPS_SERVER_URL and OPS_AGENT_TOKEN are required");
   const onlyIssue = arg("--issue") ? Number(arg("--issue")) : null;
   const once = process.argv.includes("--once") || onlyIssue != null;
   const opts = {
-    mcpUrl,
+    serverUrl,
     token,
     root: process.env.OPS_REPO_ROOT ?? process.cwd(),
     onlyIssue,
@@ -544,7 +552,7 @@ async function main() {
     return;
   }
 
-  console.log(`ops agent: polling ${mcpUrl} every ${pollMs / 1000}s`);
+  console.log(`ops agent: polling ${serverUrl} every ${pollMs / 1000}s`);
   let lastIdle = "";
   let failures = 0;
   while (!stopping) {

@@ -3,7 +3,7 @@
  * covered by unit tests.
  *************************************************************************/
 
-import type { ChangeType, Lane, ProposalKind } from "./types";
+import type { ChangeType } from "./types";
 
 /**
  * Where a metadata value came from:
@@ -22,34 +22,11 @@ export function stateMatches(
   return Object.keys(before).every((k) => norm(current[k]) === norm(before[k]));
 }
 
-export function laneFor(kind: ProposalKind): Lane {
-  return kind === "series_metadata" || kind === "measurement_metadata"
-    ? "metadata"
-    : "errors";
-}
-
-/** Which autonomy setting governs a proposal. */
-export function changeTypeFor(
-  kind: ProposalKind,
-  basis?: MetadataBasis,
-): ChangeType {
-  switch (kind) {
-    case "loader_update":
-      return "loader_update";
-    case "loader_create":
-      return "loader_create";
-    case "loader_disable":
-      return "loader_disable";
-    case "unquarantine":
-      return "unquarantine";
-    case "reload":
-      return "request_reload";
-    case "series_metadata":
-    case "measurement_metadata":
-      return basis === "measurement_series"
-        ? "fill_measurement_from_series"
-        : "fill_metadata_from_research";
-  }
+/** Which autonomy setting governs a metadata change, from its basis. */
+export function metadataChangeType(basis?: MetadataBasis): ChangeType {
+  return basis === "measurement_series"
+    ? "fill_measurement_from_series"
+    : "fill_metadata_from_research";
 }
 
 /** last_error text written by the lag check (LoaderCollection.lagErrorMessage). */

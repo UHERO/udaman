@@ -56,7 +56,7 @@ async function run(): Promise<void> {
       // Created by the agent user itself when run from the CLI.
       const { id, token } = await createServiceToken(name, 0);
       console.log(
-        `Token #${id} (${name}). Shown once; set OPS_MCP_TOKEN on the workstation:\n${token}`,
+        `Token #${id} (${name}). Shown once; set OPS_AGENT_TOKEN on the workstation:\n${token}`,
       );
       break;
     }

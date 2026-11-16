@@ -6,13 +6,18 @@ review. Design: `docs/2026-11-13-ops-agent-design.md`. Deploying:
 `docs/2026-11-14-ops-agent-deploy.md`.
 
 - `runner.ts`: a long-running service. Every few minutes it asks the server
-  for work (`run_get_work`, no model). The server hands out an item only
+  for work (the runner API, no model). The server hands out an item only
   while there is room behind the proposal being reviewed, and budget left.
   Each item is one fresh conversation with Claude (`claude-opus-5-5`,
   adaptive thinking, effort `medium`, server-side refusal fallback).
-- Tools per kind of work: ops MCP tools and local read-only code tools
-  always; web search and web fetch only on metadata and lag items.
-- `mcp-client.ts`: connects to `/api/mcp/ops` with the service token.
+- Tools per kind of work: the catalog and ops MCP tools and local read-only
+  code tools always; web search and web fetch only on metadata and lag
+  items.
+- `mcp-client.ts`: the three connections to the server, all with the service
+  token. Two MCP servers whose tools the model sees (`/api/mcp/catalog`:
+  read, test and propose changes; `/api/mcp/ops`: issues and the review
+  queue), and the runner API (`/api/ops-runner/*`: start, work, budget, log,
+  finish) that only the harness calls.
 - `local-tools.ts`: `read_file`, `grep`, `list_files`, `git_log`, `git_show`,
   confined to the checkout (no `.env` files, no writes).
 - `prompt.ts` and `context/`: the system prompt, built from markdown. Edit
@@ -20,8 +25,9 @@ review. Design: `docs/2026-11-13-ops-agent-design.md`. Deploying:
 - `pricing.ts`: token prices for the $50/month accounting.
 
 The runner can't touch the database, Redis or Slack directly. Everything goes
-through the ops MCP, which enforces the allowlist, the autonomy levels and
-the review queue.
+through those three endpoints, which enforce the tool allowlist, the
+autonomy levels and the review queue. The model can't claim work or close a
+run: those calls aren't tools.
 
 ## Workstation setup
 
@@ -39,8 +45,8 @@ the review queue.
 4. `~/.config/udaman-ops-agent.env` (mode 600):
    ```sh
    ANTHROPIC_API_KEY=sk-ant-…
-   OPS_MCP_URL=https://udaman.uhero.hawaii.edu/api/mcp/ops
-   OPS_MCP_TOKEN=uops_…
+   OPS_SERVER_URL=https://udaman.uhero.hawaii.edu
+   OPS_AGENT_TOKEN=uops_…
    OPS_REPO_ROOT=/home/opsagent/udaman
    OPS_GIT_SYNC_REF=origin/master
    # optional: OPS_POLL_SECONDS=300  OPS_AGENT_MODEL=claude-opus-5-5  OPS_AGENT_EFFORT=medium
@@ -85,8 +91,9 @@ They count against the budget.
 
 - Apply the `20261113000000_ops_agent` migration. It creates the ops tables
   and the agent's user row.
-- nginx: allow `/api/mcp/ops` only from the VPN range and the workstation's
-  static IP. `OPS_MCP_ALLOWED_IPS` is an optional second check in the app.
+- nginx: allow `/api/mcp/catalog` and `/api/mcp/ops` only from the VPN range
+  and the workstation's static IP, and `/api/ops-runner/` only from the
+  workstation. `OPS_MCP_ALLOWED_IPS` is an optional second check in the app.
 - Slack app (the existing UDAMAN bot):
   - Event Subscriptions: add bot event `message.channels`.
   - Interactivity: Request URL = the same `/api/webhooks/slack`.

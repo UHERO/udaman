@@ -21,10 +21,11 @@ Later, change types that have earned it are applied without review. The
 agent then works down the list on its own, logs what it did, and stops only
 to ask about ambiguous cases.
 
-It works through an internal MCP server that only allows approved kinds of
-changes. People can use the same MCP from their own Claude Code session, and
-every issue can be fixed from Slack, from the app UI, from a person's Claude
-session, or by the agent.
+It works through two internal MCP servers that only allow approved kinds of
+changes: one for the data (the catalog), one for the workflow around it
+(issues and review). People use the same servers from their own Claude Code
+session, and every issue can be fixed from Slack, from the app UI, from a
+person's Claude session, or by the agent.
 
 Scope for v1: **UHERO only.** Every table below carries `universe` so other
 universes can be added later without schema changes.
@@ -207,14 +208,16 @@ back to the source's own link on the portal.
                               │                       ▼
 ┌───────────── Next server (internet, HTTPS) ──────────────────────────────┐
 │  /api/mcp          public uhero-data MCP (unchanged)                     │
-│  /api/mcp/ops      internal ops MCP (IP allowlist + role gating)  ◀──────┼── Claude Code (staff, VPN)
+│  /api/mcp/catalog  catalog MCP: read, test, propose, (devs) edit  ◀──────┼── Claude Code (staff, VPN)
+│  /api/mcp/ops      ops MCP: issues and the review queue           ◀──────┤
+│  /api/ops-runner/* runner API: the agent harness only (not MCP)          │
 │  /api/webhooks/slack  + message events, + interactivity                  │
 │  /udaman/UHERO/investigations  + Issues / Proposals tabs                 │
 │  /admin/agent      runs, spend, quality, controls                        │
 │                                                                          │
 │  src/core/ops/*  ← the single service layer (issues, proposals, changes) │
 └───────┬──────────────────────────────────────────────▲───────────────────┘
-        │ MySQL (uhero)            BullMQ (enqueue)     │ HTTPS (ops MCP, bearer)
+        │ MySQL (uhero)            BullMQ (enqueue)     │ HTTPS (both MCPs + runner API, bearer)
         ▼                               ▼               │
 ┌──────────── Worker server ─────────────┐   ┌──── Workstation (VPN, static IP) ────┐
 │  existing reload / ingest jobs          │   │  ops-agent service: polls for work,  │
@@ -226,7 +229,7 @@ back to the source's own link on the portal.
 ```
 
 The workstation only makes outbound connections: to `api.anthropic.com` and
-to `/api/mcp/ops`. Nothing has to reach the workstation, so it can stay
+to the three internal endpoints above. Nothing has to reach the workstation, so it can stay
 VPN-only. Slack inbound goes to the Next server, and the agent learns about
 replies and reviews by asking the server for work.
 
@@ -234,10 +237,10 @@ replies and reviews by asking the server for work.
 
 - The worker and Next servers keep their database and Redis credentials. The
   agent box has an Anthropic key and one MCP bearer token, so if it's
-  compromised the damage is limited to what the ops MCP allows.
+  compromised the damage is limited to what those endpoints allow the agent.
 - Reading code needs a checkout. A local read-only clone pinned to the
   deployed commit is simpler than exposing file reads over MCP.
-- Alternative: Managed Agents could host the loop. `/api/mcp/ops` would then
+- Alternative: Managed Agents could host the loop. The internal endpoints would then
   have to accept Anthropic's egress IPs, and code reading would need the
   repo mounted in the session. Worth reconsidering if the workstation
   becomes a maintenance burden.
@@ -245,7 +248,7 @@ replies and reviews by asking the server for work.
 ## How the agent is paced
 
 The agent is a long-running service on the workstation. Every few minutes it
-calls `run_get_work`, which the server answers without the model. The agent
+asks the runner API for work, which the server answers without the model. The agent
 starts a model conversation only when the server hands it an item.
 
 The server hands out an item when all of these hold:
@@ -273,7 +276,11 @@ take the same item or overfill the buffer.
 
 ### Proposal queue
 
-- **One active proposal.** Only the head of the queue is posted to Slack and
+- **A person's proposal skips the queue.** Staff can propose changes from
+  Claude Code too. Those are shown for review at once and don't count
+  against the agent's buffer: the throttle protects reviewers from the
+  agent, not from colleagues.
+- **One active agent proposal.** Only the head of the queue is posted to Slack and
   highlighted in the app. The rest are visible on the Proposals tab but
   don't notify anyone. Errors always sort ahead of metadata, so an urgent
   fix is never stuck behind a metadata fill.
@@ -429,7 +436,7 @@ the app as the run goes.
 |---|---|---|
 | The agent fixes it | the agent applies an allowed change, or a reviewer approves its proposal; verify passes | `agent` / `agent_proposal` |
 | Person, in the UI | edits the loader, series or measurement in the app, or clicks "Resolve" on the issue | `user_ui` |
-| Person, in their own Claude Code | uses the ops MCP edit tools or `resolve_issue` | `user_mcp` |
+| Person, in their own Claude Code | proposes or (devs) edits on the catalog MCP, or calls `resolve_issue` on the ops MCP | `user_mcp` |
 | Person, outside every tracked surface | e.g. a console script, or the source came back online | `condition_cleared` |
 | Not a problem | someone dismisses it ("series intentionally has no source") | `dismissed` (suppressed until the condition changes) |
 
@@ -484,30 +491,50 @@ doesn't use the model.
 6. After the nightly batch, it revalidates the proposal buffer.
 7. It alerts #automation when the agent hasn't asked for work in 26 hours.
 
-## The internal ops MCP (`/api/mcp/ops`)
+## Servers
+
+Two MCP servers and one internal API, built from shared modules in one
+codebase (`src/lib/internal-mcp/`, `src/core/ops/`).
+
+| endpoint | what it is for | who connects |
+|---|---|---|
+| **Catalog MCP** `/api/mcp/catalog` | working on the data: read, test, propose a change, and for devs edit directly | anyone working on data: the agent, and staff in Claude Code |
+| **Ops MCP** `/api/mcp/ops` | the workflow around the data: what's broken, what's been tried, what's waiting for review | the agent always; staff who work issues or review proposals |
+| **Runner API** `/api/ops-runner/*` | the agent harness's bookkeeping: start a run, get work, budget, log, finish | the harness only, with the service token. Plain HTTP, not MCP. |
+
+Why two servers: someone who just wants to fix the unit on a few series
+connects to the catalog and gets a reviewable change, without the issue
+machinery in their tool list. And why the runner API isn't MCP: the model
+never sees those calls, so it can't claim work or close a run on its own.
+
+The public `uhero-data` MCP at `/api/mcp` is separate and unchanged.
 
 ### Access
 
-- **Network:** an nginx `location /api/mcp/ops` that only allows the VPN
-  ranges and the workstation's static IP. Claude Code from a staff laptop on
-  VPN works. claude.ai cloud connectors don't, which is intended.
-- **Auth:** the existing OAuth flow (`/api/oauth/*`, PKCE), with its own
-  protected-resource metadata entry. The role is read live from `users` on
-  every call, same as `/api/mcp`.
+- **Network:** nginx allows `/api/mcp/catalog` and `/api/mcp/ops` only from
+  the VPN ranges and the workstation's static IP, and `/api/ops-runner/`
+  only from the workstation. Claude Code from a staff laptop on VPN works.
+  claude.ai cloud connectors don't, which is intended.
+- **Auth:** the existing OAuth flow (`/api/oauth/*`, PKCE), with a
+  protected-resource metadata entry per MCP server. The role is read live
+  from `users` on every call. The runner API accepts only the agent's
+  service token.
 - **Agent service account:** a `users` row with role `internal`, so edits
-  are attributed to it. The MCP treats a caller as the agent because it
-  authenticated with an `ops_service_tokens` token, not because of its role.
-- **Tiers:**
+  are attributed to it. A caller is the agent because it authenticated with
+  an `ops_service_tokens` token, not because of its role.
+- **Role gating:** each tool module is a `registerXTools(server, ctx)`
+  function that registers only what the caller may use. A tool that isn't
+  registered can't be called, no matter what the model asks for.
 
-| caller | gets |
-|---|---|
-| `internal` | read tools, issue tools (comment, resolve, snooze, assign self) |
-| agent (service token) | read tools, issue tools, proposals; changes apply without review only for change types at autonomy level ≥ 1 (none at launch) |
-| extra reviewers | everything internal, plus proposal review |
-| `dev`, `admin` | everything internal, plus direct loader, series and measurement edits, proposal review, dismiss |
+Tools per caller (catalog + ops):
 
-The tool list is filtered per caller. A tool that isn't registered can't be
-called, no matter what the model asks for.
+| caller | catalog | ops |
+|---|---|---|
+| agent, comment-only | 10: read and test | 7: issues, `list_proposals` |
+| agent, proposing | 11: + `propose_change` | 7 |
+| `internal` staff | 11: read, test, `propose_change` | 8: + `assign_issue` |
+| extra reviewers | 11 | 9: + `review_proposal` |
+| `dev`, `admin` | 15: + the four direct edit tools | 11: + `dismiss_issue`, `reopen_issue`, `review_proposal` |
 
 ### Reviewers
 
@@ -517,71 +544,128 @@ be added as reviewers without making them devs: the "Extra reviewers"
 setting on `/admin/agent` takes their user ids. It starts empty, so until
 someone is added the agent's throughput is one developer's review time.
 
-### Tools
-
-**Issues**
-- `list_issues(status?, kind?, group_key?, owner?, since?)`
-- `get_issue(id)`: the issue, its timeline, linked proposals, recent
-  `data_source_actions` for the subject, and the Slack permalink
-- `comment_on_issue(id, body, kind: comment|diagnosis|question)`: a
-  `question` sets `owner = human` and posts in the Slack thread
-- `resolve_issue(id, note)`: starts verification. Returns whether it
-  resolved immediately, is pending (reload queued), or was rejected because
-  the condition is still present.
-- `assign_issue(id, take)`, `snooze_issue(id, days, reason)`: people can
-  snooze up to 90 days; the agent at most 14, and without review, since a
-  snooze changes no data and shows in the digest
-- `dismiss_issue(id, reason)`: dev only
-- `raise_issue(kind=agent_finding, subject, title, body)`: for findings the
-  detectors can't see, including bugs in our code
+### Catalog MCP tools
 
 **Read**
-- `get_loader(id)`, `get_series(id | name)`, `get_measurement(id)`:
-  metadata at both levels, loaders, dependents, recent data points and
-  vintages
-- `get_loader_actions(loader_id | series_id)`: change history
-- `get_app_logs(subject, subject_id | job_id, since)`: reads the `app_logs`
-  table, which is in the shared DB, so the worker's entries can be read from
-  the Next server:
-  - `loader.reload_error`, keyed by `subject='data_sources'` and the loader
-    id: the eval, the message, and the full `detail`
-  - `category='worker'`: one row per finished or failed job, with `err` cut
-    to 500 characters
-  - `loader.batch_reload` summaries: when the nightly batch ran
+- `get_series(id | name)`, `find_series(...)`: series metadata, the
+  measurements it belongs to with their own metadata, loaders, siblings,
+  dependents
+- `get_measurement(id)`: the measurement's metadata and every series in it
+  with that series' own
+- `get_loader(id)`: load statement, settings, last run and error, newest
+  points, change history
+- `list_lookup(table)`: valid sources, source details, units, geographies
+- `get_reload_jobs()`, `get_app_logs(...)`: reads `app_logs`, which is in
+  the shared DB, so the worker's entries are visible from the Next server
+  (`loader.reload_error` per loader, `category='worker'` job results,
+  `loader.batch_reload` summaries)
+
+**Test**
 - `check_eval(eval, series_id)`: wraps `LoaderCollection.checkEval`
 - `dry_run_loader(loader_id, eval?)`: runs the eval through `EvalExecutor`
   in memory and returns a diff against the stored data points (added,
   changed and removed dates; changes in magnitude), with no writes
 - `probe_source_url(url)`: status, headers, the first few KB, and the
   content type, for allowlisted domains only (bls.gov, bea.gov,
-  stlouisfed.org, dbedt.hawaii.gov, …)
-- `list_lookup(table)`: valid sources, source details, units, geographies,
-  measurements
+  stlouisfed.org, hawaii.gov, …)
 
-**Changes**
-- `propose_change(issue_id, kind, targets, evidence)`: creates the proposal.
-  At level 0 it joins the queue. At level ≥ 1 the system approves it and
-  applies it immediately, so every agent change has a proposal row with its
-  before and after.
+**Change**
+- `propose_change(kind, targets, summary, evidence, issue_id?, basis?)`:
+  for everyone who may propose (staff always; the agent once proposals are
+  on). `issue_id` is optional, so a change doesn't need an issue. At
+  autonomy level ≥ 1 an agent proposal is approved by the system and
+  applied at once, so every agent change still has a proposal row.
+- Direct edits, devs only: `update_loader`, `request_reload`,
+  `update_series_metadata`, `update_measurement_metadata`. Each takes
+  `target_id`, `changes` and an optional `issue_id`.
+
+Both are generated from the change registry, below.
+
+**Limits for callers who aren't devs**
+- A load statement they supply, in a dry run or a proposal, may only name
+  files by a relative path inside the data directory. Download handles and
+  API loaders can only reach what the catalog already defines.
+- The agent additionally never sees data values of restricted series
+  (`get_loader` points and dry-run samples); dates and counts stay.
+
+### Ops MCP tools
+
+**Issues**
+- `list_issues(status?, kind?, group_key?, search?)`
+- `get_issue(id)`: the issue, its timeline, linked proposals and its group
+- `comment_on_issue(id, body, kind: comment|diagnosis|question)`: a
+  `question` sets `owner = human` and posts in the Slack thread
+- `resolve_issue(id, note)`: starts verification. Returns whether it
+  resolved immediately, is pending (reload queued), or was rejected because
+  the condition is still present.
+- `snooze_issue(id, days, reason)`: people can snooze up to 90 days; the
+  agent at most 14, and without review, since a snooze changes no data and
+  shows in the digest
+- `raise_issue(subject, title, body)`: for findings the detectors can't
+  see, including bugs in our code
+- `assign_issue(id, take)`: people only
+- `dismiss_issue(id, reason)`, `reopen_issue(id)`: devs only
+
+**Review**
+- `list_proposals(status?)`
 - `review_proposal(id, approve|reject, note)`: reviewers only
-- `update_loader`, `update_series_metadata`, `update_measurement_metadata`,
-  `request_reload`: dev directly. Each takes the expected current state and
-  an optional `issue_id`.
 
-**Runner**
-- `run_get_work`, `run_start`, `run_log`, `run_budget`, `run_finish`: the
-  server picks the work and records runs and steps without the model.
+### Runner API
 
-**Limits on what the agent can read and run**
-- Data values of restricted series are hidden from the agent (`get_loader`
-  points and dry-run samples); dates and counts stay.
-- A load statement the agent supplies, in a dry run or a proposal, may only
-  name files by a relative path inside the data directory. Download handles
-  and API loaders can only reach what the catalog already defines.
+`POST /api/ops-runner/<action>` with the service token: `start`, `work`,
+`budget`, `log`, `finish`. `work` is also the runner's liveness signal, and
+marks the items it hands out as being worked on. The server picks the work
+and records runs and steps without the model.
 
-**Not exposed to anyone:** deletes of any kind, clearing data points, admin
-actions, universe archive/purge, raw SQL, hhdb (FICOH is restricted data),
-user and permission tables.
+### The change registry
+
+What makes the catalog extensible is a core module, not a server:
+`src/core/ops/change-registry.ts`. Each kind of change registers once:
+
+```ts
+registerChangeKind({
+  kind: "series_metadata",
+  targetType: "series",
+  summary,          // one line for tool descriptions
+  workClass,        // orders the review queue: errors before metadata
+  changeType,       // which autonomy setting governs it
+  afterSchema,      // zod schema for `after`
+  snapshot,         // current state, stored as `before`
+  validate,         // lookups exist, the eval resolves, …
+  dryRun,           // for load statements
+  apply,            // the one function that makes the change
+  directTool,       // optional: a dev-only tool that applies it at once
+});
+```
+
+- `propose_change` builds its kind list and description from the registry.
+- Approving a proposal calls the kind's `apply`.
+- A dev's direct edit tool calls the same `apply`, after the same schema
+  and validation.
+
+So a proposal and a direct edit can't drift apart, and the stale check is
+the same everywhere: take the kind's `snapshot` again and compare it with
+`before`.
+
+Registered kinds: `loader_update`, `loader_create`, `loader_disable`,
+`reload`, `series_metadata`, `measurement_metadata`, `unquarantine`.
+
+### Adding a capability later
+
+A new domain, such as geographies, data lists or forecasts, is one module
+that does three things:
+
+1. Registers its read tools on the catalog server
+   (`src/lib/internal-mcp/catalog/<domain>.ts`, added to `catalog/index.ts`).
+2. Registers its change kinds (`src/core/ops/change-kinds/<domain>.ts`).
+   Proposals, review, the stale check and, if declared, a direct edit tool
+   pick them up automatically.
+3. Optionally adds a detector, so problems in that domain surface as issues.
+
+A domain moves to its own MCP endpoint only when its audience differs: some
+users need it and nothing else, or the catalog's tool list grows large
+enough to hurt tool selection. Since each module is a register function,
+that move is a change to the routing, not a rewrite.
 
 ### Autonomy levels
 
@@ -675,8 +759,10 @@ surfaces are complete.
 ## Agent runner (workstation)
 
 - **Harness:** the Anthropic TypeScript SDK in a manual tool loop, plus the
-  MCP client from `@modelcontextprotocol/sdk`. The ops MCP is the only way
-  to change anything.
+  MCP client from `@modelcontextprotocol/sdk`. It connects to both MCP
+  servers and gives the model their tools as one set; `propose_change` is
+  the only way to change anything. Its own bookkeeping goes through the
+  runner API.
 - **Code reading:** local read-only tools (`read_file`, `grep`,
   `list_files`, `git_log`, `git_show`) confined to a checkout of the
   deployed commit. No shell, no writes.
@@ -691,7 +777,7 @@ surfaces are complete.
 - **Context files:** the system prompt, playbooks and worked examples live
   in `src/core/ops-agent/context/` as markdown, so economists can edit them
   without touching code.
-- **Service:** a systemd service that polls `run_get_work` every 5 minutes
+- **Service:** a systemd service that asks the runner API for work every 5 minutes
   (and again 15 seconds after finishing work). Before a run it puts the
   checkout on `OPS_GIT_SYNC_REF`. It backs off, up to an hour, while the
   server or the API keeps failing.
@@ -751,7 +837,7 @@ the steps are about switching it on in an order that can be checked.
 | step | switches on | gate to pass |
 |---|---|---|
 | **A. Issues backbone** | migration, detectors, reconciler, Issues tab, Slack closing notes. No model. | issue counts match the investigations pages for a week; issues close themselves when people fix things |
-| **B. Ops MCP for people** | `/api/mcp/ops` behind the nginx allowlist | you do a week of your usual Claude-assisted fixes through it; missing tools are added |
+| **B. MCP for people** | `/api/mcp/catalog` and `/api/mcp/ops` behind the nginx allowlist | you do a week of your usual Claude-assisted fixes through it; missing tools are added |
 | **C. Evaluation** | replay cases built from past fixes (`scripts/ops-eval.ts`), run against the local snapshot | the agent's proposed fix matches what the person did often enough to be worth reviewing (target to set once the first results are in) |
 | **D. Comment-only agent** | the runner on the workstation; diagnoses and questions, no proposals. This is the default: the agent has no `propose_change` tool until "Proposals on" is set on `/admin/agent` | two weeks of diagnoses read as correct; spend as forecast |
 | **E. Proposals for load errors and lag** | "Proposals on": the queue, Slack buttons, `ops.apply-proposal`; everything at level 0 | approval rate and fix-holds rate on `/admin/agent` |
@@ -804,6 +890,19 @@ The first build (2026-11-13) followed the earlier draft. This revision:
 | Context | lag playbook, measurement-level metadata playbooks and examples |
 | Scripts | `scripts/ops-measurement-fill.ts`, `scripts/ops-eval.ts` |
 
+### What changed on 2026-11-16
+
+The single ops MCP was split, following a review of its tool list:
+
+| area | change |
+|---|---|
+| Servers | catalog MCP (data) and ops MCP (issues, review) in place of one; the `run_*` tools became the runner API, which is plain HTTP |
+| Change registry | every change kind registers once; `propose_change`, review and the dev edit tools are all built from it |
+| Proposals by people | any internal staff member can propose from Claude Code; a person's proposal is shown at once and doesn't use the agent's buffer |
+| Direct edit tools | generated per kind; they now take `target_id` and `changes`, and `update_loader` always reloads |
+| File-path guard | applies to everyone but devs, not only the agent |
+| Runner | connects to both servers; idle polls are one HTTP request; env is `OPS_SERVER_URL` and `OPS_AGENT_TOKEN` |
+
 ### Not built
 
 - `data_revision` and `quarantined` detectors.
@@ -820,14 +919,16 @@ The first build (2026-11-13) followed the earlier draft. This revision:
 | Schema | `src/lib/prisma/migrations/20261113000000_ops_agent/`, `schema.prisma` (`ops_*` models, `data_source_actions.ops_issue_id`) |
 | Service layer | `src/core/ops/` |
 | Worker | `processors/ops.ts`; `JobName.OPS_RECONCILE` / `OPS_APPLY_PROPOSAL`; schedules in `scheduler.ts`; the nightly batch enqueues a reconcile; `series-reload` verifies issues (`opsIssueId`) |
-| Ops MCP | `src/app/api/mcp/ops/route.ts`, `src/lib/ops-mcp/tools.ts`, `.well-known/oauth-protected-resource/api/mcp/ops` |
+| Change registry | `src/core/ops/change-registry.ts`, `src/core/ops/change-kinds/` (`loaders`, `metadata`) |
+| MCP servers | `src/lib/internal-mcp/shared.ts` (auth, context, handler), `catalog/` (`series`, `measurements`, `loaders`, `sources`, `changes`), `ops/` (`issues`, `review`); routes `src/app/api/mcp/catalog`, `src/app/api/mcp/ops`; `.well-known/oauth-protected-resource/api/mcp/{catalog,ops}` |
+| Runner API | `src/app/api/ops-runner/[action]/route.ts` |
 | Slack | `mailers/slack.ts` (`postSlackMessage`, `updateSlackMessage`, `getSlackUserEmail`); `api/webhooks/slack` routes `message` events and button clicks |
 | UI | `/udaman/[universe]/investigations/issues` (+ `[id]`), `/investigations/proposals`, `/admin/agent` (+ `runs/[id]`); `src/actions/ops.ts`; `src/components/ops/*`, `components/admin/agent-controls.tsx` |
 | App edits → issues | `src/actions/data-loaders.tsx`, `series-actions.ts` and `measurements.ts` call `noteUiChange` |
 | Runner | `src/core/ops-agent/` (`runner.ts`, `mcp-client.ts`, `local-tools.ts`, `prompt.ts`, `pricing.ts`, `context/`, `README.md`) |
 | CLI | `bun run ops reconcile [--daily] \| status \| token <name>`; `bun run ops-agent [--once] [--issue N]` |
 | Scripts | `scripts/ops-measurement-fill.ts` (bulk fill), `scripts/ops-eval.ts` (replay evaluation) |
-| Tests | `src/core/ops/rules.test.ts`, `src/core/ops-agent/agent.test.ts` |
+| Tests | `src/core/ops/rules.test.ts`, `src/core/ops/change-registry.test.ts`, `src/core/ops-agent/agent.test.ts` |
 
 ### Verified locally
 
@@ -845,8 +946,13 @@ Against the local prod snapshot, with Slack disabled:
 - an agent-supplied load statement that leaves the data directory is refused
 - the bulk-fill report and its dry run; the evaluation script's `build`,
   `prepare` and `finish` (the loader was restored exactly)
-- typecheck, lint, and the two test files
+- both MCP servers over an in-memory transport, for each kind of caller:
+  the tool sets in the table under Servers; schema and lookup refusals; a
+  staff proposal shown at once; a dev's direct edit resolving the issue and
+  withdrawing that proposal
+- typecheck, lint, and the three test files
 
 **Not exercised:** a real model run, live Slack (threads, buttons, replies),
-the HTTP route under Next (including the ops MCP tool changes), the worker
-jobs under BullMQ, and the runner's polling loop against a server.
+the HTTP routes under Next (both MCP endpoints with OAuth and the service
+token, and the runner API), the worker jobs under BullMQ, and the runner's
+polling loop against a server.

@@ -2,7 +2,7 @@
 
 /*************************************************************************
  * Server actions for the ops pages (/investigations/issues, /proposals,
- * /admin/agent). Same rules as the ops MCP: UHERO internal staff can read,
+ * /admin/agent). Same rules as the internal MCP servers: UHERO internal staff can read,
  * comment, resolve, snooze and take issues; reviewers (devs, plus people on
  * the reviewer list) review proposals; devs can also dismiss issues and
  * change agent settings.
@@ -21,7 +21,7 @@ import {
   snoozeIssue,
 } from "@/core/ops/issues";
 import { ProposalStore } from "@/core/ops/proposal-store";
-import { reviewProposal } from "@/core/ops/proposals";
+import { changeTypeStats, reviewProposal } from "@/core/ops/proposals";
 import {
   getBudget,
   getRunSteps,
@@ -31,7 +31,6 @@ import {
 } from "@/core/ops/runs";
 import {
   createServiceToken,
-  getAgentUserId,
   listServiceTokens,
   revokeServiceToken,
 } from "@/core/ops/service-tokens";
@@ -269,7 +268,7 @@ export async function getAgentDashboard(universe = "UHERO") {
     listRuns(universe, 60),
     listServiceTokens(),
     ProposalStore.reviewStats(universe),
-    getAgentUserId().then((id) => ProposalStore.changeTypeStats(universe, id)),
+    changeTypeStats(universe),
     outcomeStats(universe),
     reopenRate(universe),
     IssueStore.counts(universe),

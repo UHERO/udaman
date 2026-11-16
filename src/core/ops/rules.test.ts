@@ -3,11 +3,10 @@ import { describe, expect, test } from "bun:test";
 import { fingerprintOf } from "./issue-store";
 import {
   agentEvalRefusal,
-  changeTypeFor,
   errorSignature,
   isLagError,
   lagGroupKey,
-  laneFor,
+  metadataChangeType,
   stateMatches,
 } from "./rules";
 
@@ -54,28 +53,14 @@ describe("stateMatches (proposal stale check)", () => {
   });
 });
 
-describe("work class and autonomy mapping", () => {
-  test("metadata proposals sort behind error fixes", () => {
-    expect(laneFor("series_metadata")).toBe("metadata");
-    expect(laneFor("measurement_metadata")).toBe("metadata");
-    expect(laneFor("loader_update")).toBe("errors");
-    expect(laneFor("reload")).toBe("errors");
-  });
-  test("metadata basis picks the change type", () => {
-    expect(changeTypeFor("measurement_metadata", "measurement_series")).toBe(
+describe("metadataChangeType", () => {
+  test("the basis picks the autonomy setting", () => {
+    expect(metadataChangeType("measurement_series")).toBe(
       "fill_measurement_from_series",
     );
-    expect(changeTypeFor("series_metadata", "measurement_series")).toBe(
-      "fill_measurement_from_series",
-    );
-    expect(changeTypeFor("measurement_metadata", "research")).toBe(
-      "fill_metadata_from_research",
-    );
+    expect(metadataChangeType("research")).toBe("fill_metadata_from_research");
     // No basis given: the cautious type.
-    expect(changeTypeFor("series_metadata")).toBe(
-      "fill_metadata_from_research",
-    );
-    expect(changeTypeFor("reload")).toBe("request_reload");
+    expect(metadataChangeType()).toBe("fill_metadata_from_research");
   });
 });
 

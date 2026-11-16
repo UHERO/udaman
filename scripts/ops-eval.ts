@@ -15,7 +15,7 @@
  *   bun run scripts/ops-eval.ts prepare 0 --cases cases.json
  *        → puts loader back to the broken statement, creates the issue,
  *          prints the agent command (needs the local Next server running,
- *          OPS_MCP_URL=http://localhost:3000/api/mcp/ops and a local token)
+ *          OPS_SERVER_URL=http://localhost:3000 and a local OPS_AGENT_TOKEN)
  *   bun run ops-agent --issue <id>
  *   bun run scripts/ops-eval.ts finish --cases cases.json
  *        → scores the agent's proposal against the person's fix, restores

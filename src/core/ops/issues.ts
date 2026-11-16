@@ -1,6 +1,6 @@
 /*************************************************************************
  * Ops issue service. Every resolution path (agent, app UI, a person's own
- * Claude Code over the ops MCP, Slack) calls these functions, so they all
+ * Claude Code over the internal MCP servers, Slack) calls these functions, so they all
  * write the same events and get the same verification.
  *
  * Core rule: an issue is resolved when its condition is gone. A "resolve"
@@ -65,7 +65,7 @@ function who(actor: Actor): string {
 const VIA_LABEL: Record<string, string> = {
   ui: "the app",
   slack: "Slack",
-  mcp: "Claude Code (ops MCP)",
+  mcp: "Claude Code (MCP)",
   agent: "the agent",
   reconciler: "the reconciler",
   worker: "the worker",

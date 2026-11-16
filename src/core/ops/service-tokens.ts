@@ -1,6 +1,6 @@
 /*************************************************************************
  * Ops service tokens: long-lived bearer tokens that authenticate the agent
- * to /api/mcp/ops. Only the SHA-256 hash is stored; the plaintext is shown
+ * to the internal MCP servers and the runner API. Only the SHA-256 hash is stored; the plaintext is shown
  * once at creation. A caller authenticated this way is the agent actor,
  * whatever its user's role.
  *************************************************************************/

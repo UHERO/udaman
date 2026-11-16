@@ -161,7 +161,7 @@ export function TokenControls({
       {fresh && (
         <div className="rounded border border-amber-400 bg-amber-50 p-2 dark:bg-amber-950">
           Copy now; it isn&apos;t shown again. Put it in the workstation&apos;s{" "}
-          <code>OPS_MCP_TOKEN</code>:
+          <code>OPS_AGENT_TOKEN</code>:
           <pre className="mt-1 overflow-x-auto font-mono text-xs select-all">
             {fresh}
           </pre>

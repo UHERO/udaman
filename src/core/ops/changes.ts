@@ -1,6 +1,6 @@
 /*************************************************************************
  * Ops changes: the one write path for loader and series edits made through
- * ops (approved proposals, dev edits over the ops MCP, agent writes at an
+ * ops (approved proposals, dev edits over the catalog MCP, agent writes at an
  * autonomy level above 0). Each change:
  *   - goes through the existing catalog controller (validation, checkEval)
  *   - is logged to data_source_actions (loader action history) with the
@@ -32,7 +32,6 @@ import {
   type MeasurementField,
   type MetadataField,
   type ResolutionPath,
-  type TargetType,
 } from "./types";
 
 // ─── Current state (for proposals' `before` and the stale check) ─────
@@ -135,18 +134,6 @@ export async function currentMeasurementState(
   for (const [field, column] of Object.entries(MEASUREMENT_FIELD_COLUMNS))
     out[field] = r[column] ?? null;
   return out;
-}
-
-/** Current state of any proposal target. */
-export function currentTargetState(
-  targetType: TargetType,
-  targetId: number,
-): Promise<Record<string, unknown>> {
-  return targetType === "loader"
-    ? currentLoaderState(targetId)
-    : targetType === "measurement"
-      ? currentMeasurementState(targetId)
-      : currentSeriesState(targetId);
 }
 
 export { stateMatches } from "./rules";

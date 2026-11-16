@@ -1,9 +1,16 @@
 /*************************************************************************
- * Ops proposals: changes that need a reviewer's approval, in one queue.
+ * Ops proposals: changes that wait for a reviewer, and the one code path
+ * that applies a change, whether it was proposed or made directly.
+ *
+ * What a change is comes from the change registry (./change-registry):
+ * its schema, snapshot, validation, dry run and apply. This file is the
+ * workflow around it.
  *
  * Queue rules (docs/2026-11-13-ops-agent-design.md, "Proposal queue"):
- *   - one `pending` (posted) proposal at a time (setting); the rest wait
- *     as `queued` and are promoted as soon as the active one is reviewed
+ *   - the agent's proposals are shown one at a time (setting); the rest
+ *     wait as `queued` and are promoted as soon as the active one is
+ *     reviewed. A person's proposal is shown at once: the throttle is
+ *     there to protect reviewers from the agent, not from colleagues.
  *   - a group with the same fix is ONE proposal with many targets
  *   - order: errors before metadata, then severity, group size, age
  *   - a proposal is withdrawn when its issue is resolved another way, and
@@ -14,40 +21,17 @@
 
 import crypto from "node:crypto";
 
-import LoaderCollection from "@catalog/collections/loader-collection";
-import type { Universe } from "@catalog/types/shared";
-import { mysql, rawQuery } from "@database/mysql";
+import { mysql } from "@database/mysql";
 
 import { createLogger } from "@/core/observability/logger";
 import { enqueueOpsApplyProposal } from "@/core/workers/enqueue";
 
-import {
-  applyLoaderCreate,
-  applyLoaderDisable,
-  applyLoaderUpdate,
-  applyMeasurementMetadata,
-  applySeriesMetadata,
-  applyUnquarantine,
-  currentLoaderState,
-  currentMeasurementState,
-  currentSeriesState,
-  currentTargetState,
-  LOADER_FIELDS,
-  MEASUREMENT_METADATA_PROPS,
-  requestReload,
-  SERIES_METADATA_COLUMNS,
-  stateMatches,
-} from "./changes";
-import { dryRunLoad, type DryRunResult } from "./dry-run";
+import { getChangeKind, type ChangeKind } from "./change-kinds";
+import type { DryRunResult } from "./dry-run";
 import { IssueStore } from "./issue-store";
 import { OpsError } from "./issues";
 import { ProposalStore } from "./proposal-store";
-import {
-  agentEvalRefusal,
-  changeTypeFor,
-  laneFor,
-  type MetadataBasis,
-} from "./rules";
+import { stateMatches, type MetadataBasis } from "./rules";
 import { getAgentUserId } from "./service-tokens";
 import { canReview, getOpsSettings } from "./settings";
 import {
@@ -56,14 +40,12 @@ import {
   postProposal,
 } from "./slack-sync";
 import {
+  parseJson,
   SYSTEM_ACTOR,
   type Actor,
-  type MetadataField,
-  type ProposalKind,
   type ProposalRow,
   type ProposalTarget,
   type ResolutionPath,
-  type TargetType,
 } from "./types";
 
 const log = createLogger("ops.proposals");
@@ -71,22 +53,64 @@ const log = createLogger("ops.proposals");
 /** Dry runs per proposal; bigger groups are spot-checked. */
 const MAX_DRY_RUNS = 12;
 
-export { changeTypeFor, laneFor, type MetadataBasis } from "./rules";
+export { type MetadataBasis } from "./rules";
 
 export interface ProposalInput {
   universe: string;
   issueId: number | null;
-  kind: ProposalKind;
+  /** A kind from the change registry. */
+  kind: string;
   summary: string;
   evidence: string;
   /** For metadata kinds: where the values came from (drives autonomy). */
   basis?: MetadataBasis;
   targets: Array<{
-    targetType: TargetType;
     targetId: number;
     issueId?: number | null;
-    after: Record<string, unknown>;
+    after: unknown;
   }>;
+}
+
+function kindOrThrow(kind: string): ChangeKind {
+  try {
+    return getChangeKind(kind);
+  } catch (e) {
+    throw new OpsError(e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** Parse `after` against the kind's schema; schema errors become OpsErrors. */
+function parseAfter(def: ChangeKind, after: unknown): Record<string, unknown> {
+  const parsed = def.afterSchema.safeParse(after ?? {});
+  if (!parsed.success) {
+    const why = parsed.error.issues
+      .map((i) => `${i.path.join(".") || "after"}: ${i.message}`)
+      .join("; ");
+    throw new OpsError(`${def.kind}: ${why}`);
+  }
+  return parsed.data;
+}
+
+/**
+ * Schema, current state and the kind's own checks for one target. Used the
+ * same way for a proposal and for a direct edit.
+ */
+async function prepareTarget(
+  def: ChangeKind,
+  universe: string,
+  actor: Actor,
+  t: { targetId: number; after: unknown },
+): Promise<{
+  after: Record<string, unknown>;
+  before: Record<string, unknown>;
+}> {
+  const after = parseAfter(def, t.after);
+  const before = await def.snapshot({ targetId: t.targetId, after }, universe);
+  await def.validate?.(
+    { targetId: t.targetId, after, before },
+    { universe, actor },
+  );
+  return { after, before };
 }
 
 function hashOf(kind: string, targets: ProposalTarget[]): string {
@@ -105,136 +129,20 @@ function hashOf(kind: string, targets: ProposalTarget[]): string {
     .digest("hex");
 }
 
-// ─── Validation ───────────────────────────────────────────────────────
-
-const LOOKUP_TABLES: Partial<Record<MetadataField, string>> = {
-  source_id: "sources",
-  unit_id: "units",
-  source_detail_id: "source_details",
-  geography_id: "geographies",
-};
-
-async function checkLookupValue(k: string, v: unknown): Promise<void> {
-  const table = LOOKUP_TABLES[k as MetadataField];
-  if (!table || v == null || v === "") return;
-  const rows = await rawQuery<{ n: number }>(
-    `SELECT COUNT(*) AS n FROM \`${table}\` WHERE id = ?`,
-    [Number(v)],
-  );
-  if (!Number(rows[0]?.n ?? 0))
-    throw new OpsError(`${k}=${v}: no such row in ${table}`);
-}
-
-async function validateTarget(
-  kind: ProposalKind,
-  universe: string,
-  t: ProposalInput["targets"][number],
-  actor: Actor,
-): Promise<Record<string, unknown>> {
-  if (actor.type === "agent" && t.after.eval != null) {
-    const refusal = agentEvalRefusal(String(t.after.eval));
-    if (refusal) throw new OpsError(refusal);
-  }
-  if (kind === "measurement_metadata") {
-    if (t.targetType !== "measurement")
-      throw new OpsError("measurement_metadata targets must be measurements");
-    const before = await currentMeasurementState(t.targetId);
-    if (before.universe !== universe)
-      throw new OpsError(`Measurement ${t.targetId} is not in ${universe}`);
-    if (!Object.keys(t.after).length)
-      throw new OpsError("A metadata target needs at least one field");
-    for (const [k, v] of Object.entries(t.after)) {
-      if (!(k in MEASUREMENT_METADATA_PROPS))
-        throw new OpsError(
-          `Not a measurement metadata field: ${k} (allowed: ${Object.keys(MEASUREMENT_METADATA_PROPS).join(", ")})`,
-        );
-      await checkLookupValue(k, v);
-    }
-    return Object.fromEntries(Object.keys(t.after).map((k) => [k, before[k]]));
-  }
-  if (kind === "series_metadata") {
-    if (t.targetType !== "series")
-      throw new OpsError("series_metadata targets must be series");
-    const before = await currentSeriesState(t.targetId);
-    if (before.universe !== universe)
-      throw new OpsError(`Series ${t.targetId} is not in ${universe}`);
-    for (const [k, v] of Object.entries(t.after)) {
-      if (!(k in SERIES_METADATA_COLUMNS))
-        throw new OpsError(`Not an editable metadata field: ${k}`);
-      await checkLookupValue(k, v);
-    }
-    return Object.fromEntries(Object.keys(t.after).map((k) => [k, before[k]]));
-  }
-  if (kind === "unquarantine") {
-    const before = await currentSeriesState(t.targetId);
-    if (!before.quarantined)
-      throw new OpsError(`Series ${t.targetId} is not quarantined`);
-    t.after = { quarantined: false };
-    return { quarantined: true };
-  }
-  if (kind === "loader_create") {
-    if (t.targetType !== "series")
-      throw new OpsError("loader_create targets the series");
-    await currentSeriesState(t.targetId);
-    if (!t.after.eval) throw new OpsError("loader_create needs after.eval");
-    await LoaderCollection.checkEval(String(t.after.eval), t.targetId);
-    return {};
-  }
-  // loader_update / loader_disable / reload
-  if (t.targetType !== "loader")
-    throw new OpsError(`${kind} targets must be loaders`);
-  const before = await currentLoaderState(t.targetId);
-  if (before.universe !== universe)
-    throw new OpsError(`Loader ${t.targetId} is not in ${universe}`);
-  if (kind === "loader_disable") {
-    t.after = { disabled: true };
-    return { disabled: before.disabled };
-  }
-  if (kind === "reload") {
-    t.after = {};
-    return { eval: before.eval };
-  }
-  for (const k of Object.keys(t.after)) {
-    if (!(LOADER_FIELDS as readonly string[]).includes(k) || k === "disabled")
-      throw new OpsError(`Not an editable loader field: ${k}`);
-  }
-  if (t.after.eval) {
-    await LoaderCollection.checkEval(
-      String(t.after.eval),
-      Number(before.seriesId),
-    );
-  }
-  // Always include eval in `before`, so an edit to it since makes this stale.
-  const keys = new Set([...Object.keys(t.after), "eval"]);
-  return Object.fromEntries([...keys].map((k) => [k, before[k]]));
-}
+type DryRuns = Array<{
+  targetId: number;
+  result: DryRunResult | { ok: false; error: string };
+}>;
 
 async function dryRunsFor(
-  kind: ProposalKind,
+  def: ChangeKind,
   targets: ProposalTarget[],
-): Promise<
-  Array<{
-    targetId: number;
-    result: DryRunResult | { ok: false; error: string };
-  }>
-> {
-  if (!["loader_update", "loader_create", "reload"].includes(kind)) return [];
-  const out = [];
+): Promise<DryRuns> {
+  if (!def.dryRun) return [];
+  const out: DryRuns = [];
   for (const t of targets.slice(0, MAX_DRY_RUNS)) {
     try {
-      const result =
-        kind === "loader_create"
-          ? await dryRunLoad({
-              seriesId: t.targetId,
-              eval: String(t.after.eval),
-              scale: t.after.scale != null ? Number(t.after.scale) : 1,
-            })
-          : await dryRunLoad({
-              loaderId: t.targetId,
-              eval: t.after.eval != null ? String(t.after.eval) : undefined,
-              scale: t.after.scale != null ? Number(t.after.scale) : undefined,
-            });
-      out.push({ targetId: t.targetId, result });
+      out.push({ targetId: t.targetId, result: await def.dryRun(t) });
     } catch (e) {
       out.push({
         targetId: t.targetId,
@@ -248,6 +156,48 @@ async function dryRunsFor(
   return out;
 }
 
+// ─── Direct edits ─────────────────────────────────────────────────────
+
+/**
+ * Apply a change right away, without review: a dev's direct edit tool.
+ * Runs the same schema, validation and `apply` as an approved proposal.
+ */
+export async function applyDirect(
+  actor: Actor,
+  input: {
+    universe: string;
+    kind: string;
+    targetId: number;
+    after: unknown;
+    issueId: number | null;
+  },
+): Promise<{
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+}> {
+  const def = kindOrThrow(input.kind);
+  const { after, before } = await prepareTarget(
+    def,
+    input.universe,
+    actor,
+    input,
+  );
+  await def.apply(
+    { targetId: input.targetId, after },
+    { universe: input.universe, actor, issueId: input.issueId },
+  );
+  if (input.issueId && def.verifiesByReload) {
+    await IssueStore.update(input.issueId, { status: "resolving" });
+    await IssueStore.addEvent(
+      input.issueId,
+      actor,
+      "resolution_claimed",
+      `${def.kind} applied directly; verifying with a reload.`,
+    );
+  }
+  return { before, after };
+}
+
 // ─── Create ───────────────────────────────────────────────────────────
 
 export type CreateOutcome =
@@ -258,6 +208,7 @@ export async function createProposal(
   actor: Actor,
   input: ProposalInput,
 ): Promise<CreateOutcome> {
+  const def = kindOrThrow(input.kind);
   if (!input.targets.length)
     throw new OpsError("A proposal needs at least one target");
   if (input.targets.length > 200)
@@ -270,17 +221,22 @@ export async function createProposal(
 
   const targets: ProposalTarget[] = [];
   for (const t of input.targets) {
-    const before = await validateTarget(input.kind, input.universe, t, actor);
+    const { after, before } = await prepareTarget(
+      def,
+      input.universe,
+      actor,
+      t,
+    );
     targets.push({
-      targetType: t.targetType,
+      targetType: def.targetType,
       targetId: t.targetId,
       issueId: t.issueId ?? null,
       before,
-      after: t.after,
+      after,
     });
   }
 
-  const contentHash = hashOf(input.kind, targets);
+  const contentHash = hashOf(def.kind, targets);
   const live = await mysql<{ id: number }>`
     SELECT id FROM ops_proposals
     WHERE universe = ${input.universe} AND content_hash = ${contentHash}
@@ -294,7 +250,7 @@ export async function createProposal(
     };
   }
 
-  const dryRuns = await dryRunsFor(input.kind, targets);
+  const dryRuns = await dryRunsFor(def, targets);
   const failedRun = dryRuns.find((d) => !d.result.ok);
   if (failedRun) {
     throw new OpsError(
@@ -309,8 +265,8 @@ export async function createProposal(
     universe: input.universe,
     issueId: input.issueId,
     groupKey: issue?.groupKey ?? null,
-    kind: input.kind,
-    lane: laneFor(input.kind),
+    kind: def.kind,
+    lane: def.workClass,
     summary: input.summary,
     targets,
     evidence: input.evidence,
@@ -326,18 +282,18 @@ export async function createProposal(
   for (const id of issueIdsOf(proposal)) {
     await IssueStore.addEvent(id, actor, "proposal_created", input.summary, {
       proposalId: proposal.id,
-      kind: input.kind,
+      kind: def.kind,
     });
     await IssueStore.update(id, { status: "awaiting_human", owner: "human" });
   }
 
-  // Autonomy: the agent applies directly when its level for this change
-  // type allows. Metadata writes only ever fill empty fields directly.
   if (actor.type === "agent") {
+    // Autonomy: the agent applies directly when its level for this change
+    // type allows. Fill-only kinds never overwrite a value unreviewed.
     const settings = await getOpsSettings(input.universe);
-    const level = settings.autonomy[changeTypeFor(input.kind, input.basis)];
+    const level = settings.autonomy[def.changeType(input.basis)];
     const fillsOnly =
-      !["series_metadata", "measurement_metadata"].includes(input.kind) ||
+      !def.autonomyFillsOnly ||
       targets.every((t) =>
         Object.values(t.before).every((v) => v == null || v === ""),
       );
@@ -354,9 +310,12 @@ export async function createProposal(
         result,
       };
     }
+    await promoteQueue(input.universe);
+  } else {
+    // A person's proposal goes straight to the reviewers.
+    await postProposal(proposal);
   }
 
-  await promoteQueue(input.universe);
   const fresh = (await ProposalStore.getById(proposal.id))!;
   return {
     state: fresh.status === "pending" ? "pending" : "queued",
@@ -385,14 +344,18 @@ function serial<T>(fn: () => Promise<T>): Promise<T> {
   return next;
 }
 
-/** Fill the active slots from the queue, posting to Slack. */
+/** Fill the agent's active slots from its queue, posting to Slack. */
 export function promoteQueue(universe: string): Promise<void> {
   return serial(() => promoteQueueNow(universe));
 }
 
 async function promoteQueueNow(universe: string): Promise<void> {
   const settings = await getOpsSettings(universe);
-  const pending = await ProposalStore.list({ universe, status: ["pending"] });
+  const agentId = await getAgentUserId();
+  // Only the agent's proposals take a slot; people's are shown at once.
+  const pending = (
+    await ProposalStore.list({ universe, status: ["pending"] })
+  ).filter((p) => p.createdByUserId === agentId);
   let free = settings.activeSlots - pending.length;
   if (free <= 0) return;
   // ProposalStore.list orders the queue: errors, then priority, then age.
@@ -433,6 +396,16 @@ async function withdraw(
   }
 }
 
+/** Has this target changed since the proposal recorded its `before`? */
+async function targetUnchanged(
+  def: ChangeKind,
+  universe: string,
+  t: ProposalTarget,
+): Promise<boolean> {
+  const current = await def.snapshot(t, universe).catch(() => null);
+  return current != null && stateMatches(current, t.before);
+}
+
 /**
  * Re-check a live proposal: its issues still open and its targets
  * unchanged. Withdraws it (or marks it stale) otherwise and returns false.
@@ -452,12 +425,9 @@ async function stillApplicable(p: ProposalRow): Promise<boolean> {
       return false;
     }
   }
-  if (p.kind === "loader_create") return true; // nothing to compare against
+  const def = kindOrThrow(p.kind);
   for (const t of p.targets) {
-    const current = await currentTargetState(t.targetType, t.targetId).catch(
-      () => null,
-    );
-    if (!current || !stateMatches(current, t.before)) {
+    if (!(await targetUnchanged(def, p.universe, t))) {
       await withdraw(
         p,
         "stale",
@@ -508,7 +478,7 @@ export async function revalidateQueue(universe: string): Promise<{
       dropped++;
       continue;
     }
-    const runs = await dryRunsFor(p.kind, p.targets);
+    const runs = await dryRunsFor(kindOrThrow(p.kind), p.targets);
     if (runs.some((r) => !r.result.ok)) {
       await withdraw(p, "withdrawn", "the dry run no longer passes.", {
         reopenIssues: true,
@@ -556,10 +526,7 @@ export async function reviewProposal(
         actor,
         "proposal_reviewed",
         note ?? "Rejected",
-        {
-          proposalId: p.id,
-          decision,
-        },
+        { proposalId: p.id, decision },
       );
       await IssueStore.update(id, { status: "open", owner: "agent" });
     }
@@ -582,10 +549,7 @@ export async function reviewProposal(
       actor,
       "proposal_reviewed",
       note ?? "Approved",
-      {
-        proposalId: p.id,
-        decision,
-      },
+      { proposalId: p.id, decision },
     );
   }
   await closeProposalMessage(
@@ -617,6 +581,7 @@ export async function applyProposal(
   if (p.status !== "approved") {
     return { results: [] };
   }
+  const def = kindOrThrow(p.kind);
   // Attribute the change to the reviewer (or the agent, for autonomy writes).
   const reviewerId = p.reviewedByUserId ?? p.createdByUserId;
   const reviewer = reviewerId
@@ -648,11 +613,7 @@ export async function applyProposal(
   for (const t of p.targets) {
     const issueId = t.issueId ?? p.issueId;
     try {
-      const current =
-        p.kind === "loader_create"
-          ? {}
-          : await currentTargetState(t.targetType, t.targetId);
-      if (!stateMatches(current, t.before)) {
+      if (!(await targetUnchanged(def, p.universe, t))) {
         results.push({
           targetType: t.targetType,
           targetId: t.targetId,
@@ -660,56 +621,9 @@ export async function applyProposal(
         });
         continue;
       }
-      switch (p.kind) {
-        case "loader_update":
-          await applyLoaderUpdate(t.targetId, t.after, actor, issueId);
-          await requestReload(t.targetId, actor, issueId);
-          break;
-        case "loader_disable":
-          await applyLoaderDisable(t.targetId, actor, issueId);
-          break;
-        case "loader_create": {
-          const s = await currentSeriesState(t.targetId);
-          const created = await applyLoaderCreate(
-            t.targetId,
-            s.universe as Universe,
-            t.after,
-            actor,
-            issueId,
-          );
-          await requestReload(created.loaderId, actor, issueId);
-          break;
-        }
-        case "reload":
-          await requestReload(t.targetId, actor, issueId);
-          break;
-        case "series_metadata":
-          await applySeriesMetadata(
-            t.targetId,
-            t.after,
-            actor,
-            issueId,
-            credit,
-          );
-          break;
-        case "measurement_metadata":
-          await applyMeasurementMetadata(
-            t.targetId,
-            t.after,
-            actor,
-            issueId,
-            credit,
-          );
-          break;
-        case "unquarantine":
-          await applyUnquarantine(t.targetId, actor);
-          break;
-      }
-      // Loader kinds verify through the reload; mark those issues "resolving".
-      if (
-        issueId &&
-        ["loader_update", "loader_create", "reload"].includes(p.kind)
-      ) {
+      await def.apply(t, { universe: p.universe, actor, issueId, credit });
+      // Verified through the reload the change queued.
+      if (issueId && def.verifiesByReload) {
         await IssueStore.update(issueId, {
           status: "resolving",
           owner: "agent",
@@ -782,4 +696,69 @@ export async function applyProposal(
   }
   await promoteQueue(p.universe);
   return { results };
+}
+
+// ─── Review record ────────────────────────────────────────────────────
+
+export interface ChangeTypeStat {
+  changeType: string;
+  approved: number;
+  rejected: number;
+  failed: number;
+  autoApplied: number;
+  streak: number;
+}
+
+/**
+ * Review record per change type for proposals the agent made: totals and
+ * the current run of consecutive approvals that applied cleanly. This is
+ * the evidence for raising (or lowering) an autonomy level.
+ */
+export async function changeTypeStats(
+  universe: string,
+): Promise<ChangeTypeStat[]> {
+  const agentId = await getAgentUserId();
+  if (agentId == null) return [];
+  const rows = await mysql<{
+    kind: string;
+    status: string;
+    dry_run: string | null;
+    reviewed_via: string | null;
+  }>`
+    SELECT kind, status, dry_run, reviewed_via FROM ops_proposals
+    WHERE universe = ${universe} AND created_by_user_id = ${agentId}
+      AND status IN ('applied', 'failed', 'rejected')
+    ORDER BY id
+  `;
+  const out = new Map<string, ChangeTypeStat>();
+  for (const r of rows) {
+    let type: string;
+    try {
+      const basis = parseJson<{ basis?: MetadataBasis }>(r.dry_run)?.basis;
+      type = getChangeKind(r.kind).changeType(basis ?? undefined);
+    } catch {
+      continue; // a kind that no longer exists
+    }
+    const m = out.get(type) ?? {
+      changeType: type,
+      approved: 0,
+      rejected: 0,
+      failed: 0,
+      autoApplied: 0,
+      streak: 0,
+    };
+    if (r.reviewed_via?.startsWith("autonomy")) {
+      m.autoApplied++;
+      if (r.status === "failed") m.failed++;
+    } else if (r.status === "applied") {
+      m.approved++;
+      m.streak++;
+    } else {
+      if (r.status === "rejected") m.rejected++;
+      else m.failed++;
+      m.streak = 0;
+    }
+    out.set(type, m);
+  }
+  return [...out.values()];
 }

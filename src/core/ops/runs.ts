@@ -10,6 +10,7 @@ import { mysql, rawQuery } from "@database/mysql";
 import { IssueStore } from "./issue-store";
 import { agentAdminUrl, issueUrl, proposalsUrl } from "./links";
 import { ProposalStore } from "./proposal-store";
+import { getAgentUserId } from "./service-tokens";
 import { getOpsSettings, getRawSettings } from "./settings";
 import { postOpsMessage } from "./slack-sync";
 import {
@@ -234,11 +235,17 @@ export async function getWork(universe: string): Promise<WorkResult> {
       capacity: 0,
     };
 
+  // The buffer is the agent's own proposals; a person's don't hold it up.
+  const agentId = await getAgentUserId();
   const live = await ProposalStore.list({
     universe,
     status: ["queued", "pending"],
   });
-  const capacity = Math.max(0, settings.readyTarget - live.length);
+  const capacity = Math.max(
+    0,
+    settings.readyTarget -
+      live.filter((p) => p.createdByUserId === agentId).length,
+  );
   const liveIssueIds = new Set<number>();
   for (const p of live) {
     if (p.issueId) liveIssueIds.add(p.issueId);
