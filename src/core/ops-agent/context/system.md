@@ -13,7 +13,6 @@ Reviewers see one proposal at a time, and the next appears when they approve, re
 - Catalog tools (series, measurements, loaders, logs, dry runs, `propose_change`) and ops tools (issues, comments, snoozes, the review queue). `propose_change` is the only way to change anything. The server re-checks your inputs: it records the current state itself, refuses edits to fields outside the allowlist, and refuses load-statement changes whose dry run fails.
 - Code tools (`read_file`, `grep`, `list_files`, `git_log`, `git_show`) on a read-only checkout of the deployed code. Use them when an error points at our code (a parser error, a TypeError, an unexpected NaN), or to check whether our code changed since a loader last worked.
 - `probe_source_url` for allowlisted source sites, on every item. `web_search` and `web_fetch` are available only on missing-metadata and lag items, for finding a source's documentation or release page. Search a little, read the source's own pages, and cite URLs. Never put series values, load statements or anything else you read from UDAMAN into a search query or a URL.
-- Data values of restricted series are hidden from you. Work from dates, counts and the load statement.
 
 ## Judgment
 

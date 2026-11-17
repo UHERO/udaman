@@ -248,8 +248,8 @@ Restart web and worker close together (§4); both read the new tables.
 
    | you are | catalog | ops |
    |---|---|---|
-   | dev / admin | 15, including `propose_change`, `update_loader`, `update_measurement_metadata` | 11, including `review_proposal`, `dismiss_issue` |
-   | internal | 11: read, test and `propose_change` | 8: issues and `list_proposals` |
+   | dev / admin | 16, including `propose_change`, `update_loader`, `update_measurement_metadata` | 11, including `review_proposal`, `dismiss_issue` |
+   | internal | 12: read, test and `propose_change` | 8: issues and `list_proposals` |
 
    `get_series` on the catalog and `list_issues` on ops should answer.
    Staff who only fix data need the catalog alone.

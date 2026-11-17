@@ -530,11 +530,11 @@ Tools per caller (catalog + ops):
 
 | caller | catalog | ops |
 |---|---|---|
-| agent, comment-only | 10: read and test | 7: issues, `list_proposals` |
-| agent, proposing | 11: + `propose_change` | 7 |
-| `internal` staff | 11: read, test, `propose_change` | 8: + `assign_issue` |
-| extra reviewers | 11 | 9: + `review_proposal` |
-| `dev`, `admin` | 15: + the four direct edit tools | 11: + `dismiss_issue`, `reopen_issue`, `review_proposal` |
+| agent, comment-only | 11: read and test | 7: issues, `list_proposals` |
+| agent, proposing | 12: + `propose_change` | 7 |
+| `internal` staff | 12: read, test, `propose_change` | 8: + `assign_issue` |
+| extra reviewers | 12 | 9: + `review_proposal` |
+| `dev`, `admin` | 16: + the four direct edit tools | 11: + `dismiss_issue`, `reopen_issue`, `review_proposal` |
 
 ### Reviewers
 
@@ -554,6 +554,9 @@ someone is added the agent's throughput is one developer's review time.
   with that series' own
 - `get_loader(id)`: load statement, settings, last run and error, newest
   points, change history
+- `get_data_points(loader_id | series_id, ...)`: rows of `data_points` with
+  every column, including superseded vintages, for one loader or for all of
+  a series' loaders; date range and limit (default 200, at most 1000)
 - `list_lookup(table)`: valid sources, source details, units, geographies
 - `get_reload_jobs()`, `get_app_logs(...)`: reads `app_logs`, which is in
   the shared DB, so the worker's entries are visible from the Next server
@@ -585,8 +588,9 @@ Both are generated from the change registry, below.
 - A load statement they supply, in a dry run or a proposal, may only name
   files by a relative path inside the data directory. Download handles and
   API loaders can only reach what the catalog already defines.
-- The agent additionally never sees data values of restricted series
-  (`get_loader` points and dry-run samples); dates and counts stay.
+- Restricted series are not hidden from anyone on these servers,
+  the agent included. `restricted` keeps internally useful series off the
+  public API; it does not mark the data as sensitive (decided 2026-11-17).
 
 ### Ops MCP tools
 
@@ -821,8 +825,9 @@ downloaded files, and web pages.
 
 Checked 2026-11-14, and closed in code:
 
-- The read tools did return data values for restricted series. They are now
-  hidden from the agent.
+- The read tools return data values for restricted series. This was hidden
+  from the agent on 11-14 and restored on 11-17: the flag is about the
+  public API, not sensitivity.
 - A load statement could name any file path (`load_from_file`, `.load_from`),
   so a dry run of an agent-supplied statement could read outside the data
   directory. Agent-supplied statements are now limited to relative paths
@@ -884,7 +889,7 @@ The first build (2026-11-13) followed the earlier draft. This revision:
 | Work selection | review-paced buffer, per-day item limit, claims, 7-day second looks |
 | Runner | polling service; web tools only on metadata and lag items |
 | Reviewers | `reviewers.user_ids` setting, used by the app, Slack and the MCP |
-| Safety | restricted values hidden from the agent; file paths in agent-supplied load statements confined to the data directory |
+| Safety | file paths in agent-supplied load statements confined to the data directory |
 | Logging | `loader.reload_error` is written whenever a loader's error is new or changed (it used to need a separate detail, and the local snapshot has none at all), so the load-error playbook has something to read |
 | Digest | daily, from the reconciler, not per run |
 | Context | lag playbook, measurement-level metadata playbooks and examples |
