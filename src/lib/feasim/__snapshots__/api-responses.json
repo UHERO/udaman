@@ -25,16 +25,16 @@
         "overall": "marginal",
         "return_on_cost": "marginal",
         "residual_land_value": "poor",
-        "rlv_ratio": 0.79732,
-        "equity_multiple": "strong",
+        "rlv_ratio": 0.81708,
+        "equity_multiple": "marginal",
         "levered_irr": "marginal"
       },
       "result": {
         "max_units": 140,
         "affordable_units": 0,
         "dev_cost": 56886725.438958086,
-        "dev_roc": 0.0607,
-        "rlv_sqft": 199.33
+        "dev_roc": 0.0615,
+        "rlv_sqft": 204.27
       }
     }
   },
@@ -57,19 +57,19 @@
         "open_space_bonus": 1
       },
       "verdict": {
-        "overall": "strong",
+        "overall": "marginal",
         "return_on_cost": "marginal",
         "residual_land_value": "strong",
-        "rlv_ratio": 1.834230769230769,
+        "rlv_ratio": 1.8843076923076925,
         "equity_multiple": "strong",
-        "levered_irr": "strong"
+        "levered_irr": "marginal"
       },
       "result": {
         "max_units": 140,
         "affordable_units": 0,
         "dev_cost": 56046725.438958086,
-        "dev_roc": 0.064,
-        "rlv_sqft": 238.45
+        "dev_roc": 0.0648,
+        "rlv_sqft": 244.96
       }
     }
   },
@@ -94,19 +94,19 @@
         "max_far": 4
       },
       "verdict": {
-        "overall": "marginal",
-        "return_on_cost": "marginal",
-        "residual_land_value": "poor",
-        "rlv_ratio": 0.5263076923076924,
+        "overall": "strong",
+        "return_on_cost": "strong",
+        "residual_land_value": "strong",
+        "rlv_ratio": 1.9317692307692307,
         "equity_multiple": "strong",
-        "levered_irr": "marginal"
+        "levered_irr": "strong"
       },
       "result": {
         "max_units": 100,
         "affordable_units": 80,
-        "dev_cost": 39317664.250781246,
-        "dev_roc": 0.0595,
-        "rlv_sqft": 68.42
+        "dev_cost": 34646508.738038845,
+        "dev_roc": 0.0677,
+        "rlv_sqft": 251.13
       }
     }
   },
@@ -135,19 +135,19 @@
         "front_no_parking_ft": 40
       },
       "verdict": {
-        "overall": "strong",
+        "overall": "marginal",
         "return_on_cost": "marginal",
         "residual_land_value": "strong",
-        "rlv_ratio": 1.7336153846153846,
+        "rlv_ratio": 1.7871538461538463,
         "equity_multiple": "strong",
-        "levered_irr": "strong"
+        "levered_irr": "marginal"
       },
       "result": {
         "max_units": 200,
         "affordable_units": 0,
         "dev_cost": 80820337,
-        "dev_roc": 0.0646,
-        "rlv_sqft": 225.37
+        "dev_roc": 0.0654,
+        "rlv_sqft": 232.33
       }
     }
   },
@@ -176,16 +176,16 @@
         "overall": "poor",
         "return_on_cost": "poor",
         "residual_land_value": "poor",
-        "rlv_ratio": -1.4826923076923078,
-        "equity_multiple": "marginal",
-        "levered_irr": "marginal"
+        "rlv_ratio": -1.4844615384615383,
+        "equity_multiple": "poor",
+        "levered_irr": "poor"
       },
       "result": {
         "max_units": 140,
         "affordable_units": 84,
         "dev_cost": 55072701,
-        "dev_roc": 0.0535,
-        "rlv_sqft": -192.75
+        "dev_roc": 0.054,
+        "rlv_sqft": -192.98
       }
     }
   },
@@ -210,19 +210,19 @@
         "open_space_bonus": 0
       },
       "verdict": {
-        "overall": "marginal",
+        "overall": "poor",
         "return_on_cost": "marginal",
         "residual_land_value": "poor",
-        "rlv_ratio": 0.5424615384615384,
-        "equity_multiple": "strong",
-        "levered_irr": "marginal"
+        "rlv_ratio": 0.5614615384615385,
+        "equity_multiple": "marginal",
+        "levered_irr": "poor"
       },
       "result": {
         "max_units": 17,
         "affordable_units": 0,
         "dev_cost": 6614283.221267521,
-        "dev_roc": 0.0576,
-        "rlv_sqft": 70.52
+        "dev_roc": 0.0584,
+        "rlv_sqft": 72.99
       }
     }
   },
@@ -250,16 +250,16 @@
         "overall": "poor",
         "return_on_cost": "poor",
         "residual_land_value": "poor",
-        "rlv_ratio": 0.4616153846153846,
-        "equity_multiple": "marginal",
-        "levered_irr": "marginal"
+        "rlv_ratio": 0.4751538461538462,
+        "equity_multiple": "poor",
+        "levered_irr": "poor"
       },
       "result": {
         "max_units": 12,
         "affordable_units": 0,
         "dev_cost": 4533923.69654656,
-        "dev_roc": 0.0552,
-        "rlv_sqft": 60.01
+        "dev_roc": 0.0559,
+        "rlv_sqft": 61.77
       }
     }
   },
@@ -284,19 +284,19 @@
         "max_far": 4
       },
       "verdict": {
-        "overall": "marginal",
+        "overall": "strong",
         "return_on_cost": "marginal",
-        "residual_land_value": "poor",
-        "rlv_ratio": 0.7652307692307693,
+        "residual_land_value": "strong",
+        "rlv_ratio": 1.1882307692307692,
         "equity_multiple": "strong",
-        "levered_irr": "marginal"
+        "levered_irr": "strong"
       },
       "result": {
-        "max_units": 27,
-        "affordable_units": 22,
-        "dev_cost": 8970898.484062403,
-        "dev_roc": 0.0604,
-        "rlv_sqft": 99.48
+        "max_units": 29,
+        "affordable_units": 24,
+        "dev_cost": 9022756.519360002,
+        "dev_roc": 0.0646,
+        "rlv_sqft": 154.47
       }
     }
   },
@@ -328,7 +328,7 @@
         "overall": "strong",
         "return_on_cost": "marginal",
         "residual_land_value": "strong",
-        "rlv_ratio": 1.781923076923077,
+        "rlv_ratio": 1.8302307692307693,
         "equity_multiple": "strong",
         "levered_irr": "strong"
       },
@@ -336,8 +336,8 @@
         "max_units": 96,
         "affordable_units": 0,
         "dev_cost": 38441467,
-        "dev_roc": 0.065,
-        "rlv_sqft": 231.65
+        "dev_roc": 0.0658,
+        "rlv_sqft": 237.93
       }
     }
   },
@@ -362,19 +362,19 @@
         "open_space_bonus": 0
       },
       "verdict": {
-        "overall": "poor",
-        "return_on_cost": "poor",
+        "overall": "marginal",
+        "return_on_cost": "marginal",
         "residual_land_value": "poor",
-        "rlv_ratio": 0.3956923076923077,
+        "rlv_ratio": 0.44153846153846155,
         "equity_multiple": "marginal",
         "levered_irr": "marginal"
       },
       "result": {
-        "max_units": 17,
-        "affordable_units": 9,
-        "dev_cost": 6515961,
-        "dev_roc": 0.0559,
-        "rlv_sqft": 51.44
+        "max_units": 18,
+        "affordable_units": 10,
+        "dev_cost": 6803104,
+        "dev_roc": 0.0571,
+        "rlv_sqft": 57.4
       }
     }
   },
@@ -389,7 +389,11 @@
         "height": 150
       },
       "tier": null,
-      "programs": ["bill6", "bill7", "h201"],
+      "programs": [
+        "bill6",
+        "bill7",
+        "h201"
+      ],
       "results": [
         {
           "program": "bill6",
@@ -400,17 +404,17 @@
             "open_space_bonus": 1
           },
           "verdict": {
-            "overall": "strong",
+            "overall": "marginal",
             "return_on_cost": "marginal",
             "residual_land_value": "strong",
-            "rlv_ratio": 1.834230769230769,
+            "rlv_ratio": 1.8843076923076925,
             "equity_multiple": "strong",
-            "levered_irr": "strong"
+            "levered_irr": "marginal"
           },
           "result": {
             "max_units": 140,
-            "dev_roc": 0.064,
-            "rlv_sqft": 238.45
+            "dev_roc": 0.0648,
+            "rlv_sqft": 244.96
           }
         },
         {
@@ -423,17 +427,17 @@
             "max_far": 4
           },
           "verdict": {
-            "overall": "marginal",
-            "return_on_cost": "marginal",
-            "residual_land_value": "poor",
-            "rlv_ratio": 0.8343846153846154,
+            "overall": "strong",
+            "return_on_cost": "strong",
+            "residual_land_value": "strong",
+            "rlv_ratio": 2.239923076923077,
             "equity_multiple": "strong",
-            "levered_irr": "marginal"
+            "levered_irr": "strong"
           },
           "result": {
             "max_units": 100,
-            "dev_roc": 0.061,
-            "rlv_sqft": 108.47
+            "dev_roc": 0.0696,
+            "rlv_sqft": 291.19
           }
         },
         {
@@ -445,17 +449,17 @@
             "open_space_bonus": 1
           },
           "verdict": {
-            "overall": "strong",
+            "overall": "marginal",
             "return_on_cost": "marginal",
             "residual_land_value": "strong",
-            "rlv_ratio": 1.3480769230769232,
+            "rlv_ratio": 1.3546153846153846,
             "equity_multiple": "strong",
-            "levered_irr": "strong"
+            "levered_irr": "marginal"
           },
           "result": {
             "max_units": 140,
-            "dev_roc": 0.0625,
-            "rlv_sqft": 175.25
+            "dev_roc": 0.0632,
+            "rlv_sqft": 176.1
           }
         }
       ]
@@ -475,7 +479,13 @@
         "tod_precinct": "core"
       },
       "tier": null,
-      "programs": ["bill6", "standard", "bill7", "tod", "h201"],
+      "programs": [
+        "bill6",
+        "standard",
+        "bill7",
+        "tod",
+        "h201"
+      ],
       "results": [
         {
           "program": "bill6",
@@ -492,13 +502,13 @@
             "overall": "marginal",
             "return_on_cost": "marginal",
             "residual_land_value": "poor",
-            "rlv_ratio": 0.5042307692307693,
-            "equity_multiple": "strong",
+            "rlv_ratio": 0.5234615384615384,
+            "equity_multiple": "marginal",
             "levered_irr": "marginal"
           },
           "result": {
             "max_units": 35,
-            "dev_roc": 0.059
+            "dev_roc": 0.0598
           }
         },
         {
@@ -513,16 +523,16 @@
             "open_space_bonus": 0
           },
           "verdict": {
-            "overall": "marginal",
+            "overall": "poor",
             "return_on_cost": "marginal",
             "residual_land_value": "poor",
-            "rlv_ratio": 0.1726923076923077,
-            "equity_multiple": "marginal",
-            "levered_irr": "marginal"
+            "rlv_ratio": 0.18715384615384614,
+            "equity_multiple": "poor",
+            "levered_irr": "poor"
           },
           "result": {
             "max_units": 26,
-            "dev_roc": 0.0561
+            "dev_roc": 0.0568
           }
         },
         {
@@ -538,14 +548,14 @@
           "verdict": {
             "overall": "marginal",
             "return_on_cost": "marginal",
-            "residual_land_value": "poor",
-            "rlv_ratio": -0.12961538461538463,
+            "residual_land_value": "marginal",
+            "rlv_ratio": 0.9830769230769231,
             "equity_multiple": "strong",
             "levered_irr": "marginal"
           },
           "result": {
-            "max_units": 47,
-            "dev_roc": 0.0563
+            "max_units": 50,
+            "dev_roc": 0.0624
           }
         },
         {
@@ -564,14 +574,14 @@
           "verdict": {
             "overall": "marginal",
             "return_on_cost": "marginal",
-            "residual_land_value": "marginal",
-            "rlv_ratio": 0.9546923076923077,
-            "equity_multiple": "strong",
-            "levered_irr": "strong"
+            "residual_land_value": "poor",
+            "rlv_ratio": 0.814076923076923,
+            "equity_multiple": "marginal",
+            "levered_irr": "marginal"
           },
           "result": {
-            "max_units": 32,
-            "dev_roc": 0.0617
+            "max_units": 30,
+            "dev_roc": 0.0614
           }
         },
         {
@@ -589,13 +599,13 @@
             "overall": "marginal",
             "return_on_cost": "marginal",
             "residual_land_value": "poor",
-            "rlv_ratio": 0.26907692307692305,
-            "equity_multiple": "strong",
+            "rlv_ratio": 0.40784615384615386,
+            "equity_multiple": "marginal",
             "levered_irr": "marginal"
           },
           "result": {
-            "max_units": 35,
-            "dev_roc": 0.0576
+            "max_units": 37,
+            "dev_roc": 0.0592
           }
         }
       ]
@@ -605,8 +615,19 @@
     "request": "/defaults?program=bill7",
     "status": 200,
     "body": {
-      "programs": ["bill6", "standard", "bill7", "tod", "h201"],
-      "tod_tiers": ["base", "minor_sd", "major_sd", "with_benefits"],
+      "programs": [
+        "bill6",
+        "standard",
+        "bill7",
+        "tod",
+        "h201"
+      ],
+      "tod_tiers": [
+        "base",
+        "minor_sd",
+        "major_sd",
+        "with_benefits"
+      ],
       "defaults": {
         "bill7": {
           "program": "bill7",
@@ -624,7 +645,7 @@
           "waivable_fee_basis": "none",
           "park": "exempt",
           "setback": 10,
-          "parking_ratio": 0.5,
+          "parking_ratio": 0.35,
           "permitting_months": 18,
           "const_months": 12,
           "leaseup_months": 9,
@@ -654,7 +675,11 @@
           "min": 0,
           "exclusiveMin": true,
           "description": "Floor-to-floor height, ft",
-          "pathways": ["bill6", "standard", "tod"]
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod"
+          ]
         },
         "setback": {
           "type": "number",
@@ -666,29 +691,51 @@
           "min": 0,
           "max": 1,
           "description": "Maximum lot coverage (default 0.8)",
-          "pathways": ["bill7"]
+          "pathways": [
+            "bill7"
+          ]
         },
         "stepback_trigger_ft": {
           "type": "number",
           "min": 0,
-          "description": "Override the zone's step-back: height that triggers it, ft"
+          "description": "Override the zone's step-back: height that triggers it, ft",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
         },
         "stepback_above_ft": {
           "type": "number",
           "min": 0,
-          "description": "Step-back: storeys above this height step back, ft (default 40)"
+          "description": "Step-back: storeys above this height step back, ft (default 40)",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
         },
         "stepback_ft_per_10ft": {
           "type": "number",
           "min": 0,
-          "description": "Step-back: ft per 10 ft of height (default 1)"
+          "description": "Step-back: ft per 10 ft of height (default 1)",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
         },
         "building_area_per_unit": {
           "type": "number",
           "min": 0,
           "exclusiveMin": true,
           "description": "Sqft per unit in the legal unit cap (default 800)",
-          "pathways": ["bill7"]
+          "pathways": [
+            "bill7"
+          ]
         },
         "unit_type": {
           "type": "enum",
@@ -727,7 +774,10 @@
             "ami_180"
           ],
           "description": "AMI bracket of affordable units",
-          "pathways": ["bill7", "h201"]
+          "pathways": [
+            "bill7",
+            "h201"
+          ]
         },
         "market_ami": {
           "type": "enum",
@@ -758,7 +808,9 @@
           "min": 0.51,
           "max": 1,
           "description": "Affordable share of units (at least 0.51)",
-          "pathways": ["h201"]
+          "pathways": [
+            "h201"
+          ]
         },
         "include_retail": {
           "type": "boolean",
@@ -792,18 +844,30 @@
         },
         "park": {
           "type": "enum",
-          "values": ["exempt", "in_lieu"],
+          "values": [
+            "exempt",
+            "in_lieu"
+          ],
           "description": "Park dedication: application fee only, or fee + park land value"
         },
         "impact_fee": {
           "type": "number",
           "min": 0,
           "description": "Impact fee, $ per unit (Bill 7 waives it)",
-          "pathways": ["bill6", "standard", "tod", "h201"]
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
         },
         "waivable_fee_basis": {
           "type": "enum",
-          "values": ["all_units", "market_units", "none"],
+          "values": [
+            "all_units",
+            "market_units",
+            "none"
+          ],
           "description": "Units the waivable fees are charged on"
         },
         "opex_ratio": {
@@ -884,34 +948,51 @@
         },
         "grant_type": {
           "type": "enum",
-          "values": ["post_construct", "pre_construct", "none"],
+          "values": [
+            "post_construct",
+            "pre_construct",
+            "none"
+          ],
           "description": "Grant structure (default post_construct)",
-          "pathways": ["bill7"]
+          "pathways": [
+            "bill7"
+          ]
         },
         "grant_amount": {
           "type": "number",
           "min": 0,
           "description": "Grant $ per unit. Default: the ordinance amount — $50,000 pre-construction; $12,000 post-construction, or $40/sqft for units under 300 sqft",
-          "pathways": ["bill7"]
+          "pathways": [
+            "bill7"
+          ]
         },
         "grant_units": {
           "type": "enum",
-          "values": ["all", "affordable"],
+          "values": [
+            "all",
+            "affordable"
+          ],
           "description": "Units the pre-construction subsidy pays on (post-construction always pays on affordable units)",
-          "pathways": ["bill7"]
+          "pathways": [
+            "bill7"
+          ]
         },
         "prevailing_wage_premium": {
           "type": "number",
           "min": 0,
           "description": "Extra cost of on-site labor at prevailing wages (default 0.45); pre-construction grants",
-          "pathways": ["bill7"]
+          "pathways": [
+            "bill7"
+          ]
         },
         "onsite_labor_share": {
           "type": "number",
           "min": 0,
           "max": 1,
           "description": "On-site labor as a share of hard cost (default 0.25); also caps the pre-construction subsidy",
-          "pathways": ["bill7"]
+          "pathways": [
+            "bill7"
+          ]
         }
       }
     }

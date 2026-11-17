@@ -1,0 +1,252 @@
+{
+  "_about": "Which pathways each lever affects. Made by `bun run upgrade:feasim`; don't edit by hand.",
+  "_feasim_version": "0.5.0",
+  "levers": {
+    "height_limit": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "max_far": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "floor_height": [
+      "bill6",
+      "standard",
+      "tod"
+    ],
+    "setback": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "coverage": [
+      "bill7"
+    ],
+    "stepback_trigger_ft": [
+      "bill6",
+      "standard",
+      "tod",
+      "h201"
+    ],
+    "stepback_above_ft": [
+      "bill6",
+      "standard",
+      "tod",
+      "h201"
+    ],
+    "stepback_ft_per_10ft": [
+      "bill6",
+      "standard",
+      "tod",
+      "h201"
+    ],
+    "building_area_per_unit": [
+      "bill7"
+    ],
+    "unit_type": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "affordable_ami": [
+      "bill7",
+      "h201"
+    ],
+    "market_ami": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "affordability": [
+      "h201"
+    ],
+    "include_retail": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "retail_rent": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "retail_share": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "parking_ratio": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "land_cost": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "hard_cost_per_sqft": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "park": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "impact_fee": [
+      "bill6",
+      "standard",
+      "tod",
+      "h201"
+    ],
+    "waivable_fee_basis": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "opex_ratio": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "permitting_months": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "const_months": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "leaseup_months": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "hold_years": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "equity": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "construction_rate": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "permanent_rate": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "amort_years": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "min_dscr": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "cap_rate": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "target_return": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "target_spread": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "profit_margin": [
+      "bill6",
+      "standard",
+      "bill7",
+      "tod",
+      "h201"
+    ],
+    "grant_type": [
+      "bill7"
+    ],
+    "grant_amount": [
+      "bill7"
+    ],
+    "grant_units": [
+      "bill7"
+    ],
+    "prevailing_wage_premium": [
+      "bill7"
+    ],
+    "onsite_labor_share": [
+      "bill7"
+    ]
+  }
+}

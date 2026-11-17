@@ -32,13 +32,28 @@ const saved = loadSnapshots();
 const next: Record<string, Snapshot> = {};
 const lines: string[] = [];
 
+/** A value short enough for one line of the summary. */
+const short = (v: unknown) => {
+  const s = v === undefined ? "(none)" : JSON.stringify(v);
+  return s.length > 40 ? `${s.slice(0, 37)}…` : s;
+};
+const SHOWN = 4;
+
 for (const c of SNAPSHOT_CASES) {
   next[c.name] = await takeSnapshot(c);
-  if (!saved[c.name]) lines.push(`  + new      ${c.name}`);
-  else {
-    const n = diffJson(saved[c.name], next[c.name]).length;
-    if (n) lines.push(`  ~ changed  ${c.name} (${n} field${n > 1 ? "s" : ""})`);
+  if (!saved[c.name]) {
+    lines.push(`  + new      ${c.name}`);
+    continue;
   }
+  const changes = diffJson(saved[c.name], next[c.name]);
+  if (!changes.length) continue;
+  lines.push(`  ~ changed  ${c.name}`);
+  for (const ch of changes.slice(0, SHOWN))
+    lines.push(
+      `      ${ch.path.replace(/^body\./, "")}: ${short(ch.saved)} → ${short(ch.current)}`,
+    );
+  if (changes.length > SHOWN)
+    lines.push(`      … and ${changes.length - SHOWN} more`);
 }
 for (const name of Object.keys(saved))
   if (!next[name]) lines.push(`  - removed  ${name}`);

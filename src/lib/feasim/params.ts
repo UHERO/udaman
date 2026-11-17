@@ -19,6 +19,7 @@ import {
 } from "@uhero/feasim";
 
 import pkg from "../../../package.json";
+import leverPathways from "./generated/lever-pathways.json";
 
 /**
  * The model version, read from the @uhero/feasim dependency in package.json,
@@ -90,12 +91,6 @@ export type LeverSpec = Applies &
     | { type: "enum"; values: readonly string[]; description: string }
   );
 
-/** Restrict an input to the pathways whose model reads it. */
-const only = (spec: LeverSpec, ...pathways: ProgramId[]): LeverSpec => ({
-  ...spec,
-  pathways,
-});
-
 /** Type every entry as a LeverSpec while keeping the key names. */
 const defineLevers = <K extends keyof SliderInputs>(
   levers: Record<K, LeverSpec>,
@@ -125,32 +120,21 @@ const positive = (description: string): LeverSpec => ({
 });
 
 /**
- * Every SliderInputs field a caller may override, and the pathways whose
- * model reads it (absent = all). The pathway lists are what the model does,
- * not what the docs say: the tests change each lever under each pathway
- * and fail if a listed lever doesn't change the result or an unlisted one does.
- *
- * Left out: fields calcParcel derives from the parcel or the envelope
- * (program, lot_sqft, zone_class, max_units, open_space_bonus,
- * far_without_bonus, front_no_parking_ft, parking_exempt), which it would
- * overwrite; and fields no pathway reads in this model version (mortgage,
- * market_price, rental_split, sale_split — every pathway builds 0 sale
- * units).
+ * Every SliderInputs field a caller may override. Which pathways each one
+ * applies to isn't written here: `bun scripts/update-feasim-levers.ts` (run
+ * by `bun run upgrade:feasim`) works it out from the installed model and
+ * saves it to generated/lever-pathways.json, which LEVERS reads. The other
+ * model inputs are in NOT_LEVERS, with why.
  */
-export const LEVERS = defineLevers({
+const LEVER_SPECS = defineLevers({
   // envelope overrides
   height_limit: positive(
     "Height limit override, ft (default: pathway envelope)",
   ),
   max_far: positive("FAR override (default: pathway envelope)"),
-  floor_height: only(
-    positive("Floor-to-floor height, ft"),
-    "bill6",
-    "standard",
-    "tod",
-  ),
+  floor_height: positive("Floor-to-floor height, ft"),
   setback: nonneg("Yard setback on every side, ft"),
-  coverage: only(frac("Maximum lot coverage (default 0.8)"), "bill7"),
+  coverage: frac("Maximum lot coverage (default 0.8)"),
   stepback_trigger_ft: nonneg(
     "Override the zone's step-back: height that triggers it, ft",
   ),
@@ -158,37 +142,29 @@ export const LEVERS = defineLevers({
     "Step-back: storeys above this height step back, ft (default 40)",
   ),
   stepback_ft_per_10ft: nonneg("Step-back: ft per 10 ft of height (default 1)"),
-  building_area_per_unit: only(
-    positive("Sqft per unit in the legal unit cap (default 800)"),
-    "bill7",
+  building_area_per_unit: positive(
+    "Sqft per unit in the legal unit cap (default 800)",
   ),
 
   // program
   unit_type: { type: "enum", values: UNIT_TYPES, description: "Unit mix" },
-  affordable_ami: only(
-    {
-      type: "enum",
-      values: AMI_BRACKETS,
-      description: "AMI bracket of affordable units",
-    },
-    "bill7",
-    "h201",
-  ),
+  affordable_ami: {
+    type: "enum",
+    values: AMI_BRACKETS,
+    description: "AMI bracket of affordable units",
+  },
   market_ami: {
     type: "enum",
     values: AMI_BRACKETS,
     description:
       "AMI bracket of market units. HHFDC publishes limits to ami_140; the model scales higher brackets.",
   },
-  affordability: only(
-    {
-      type: "number",
-      min: 0.51,
-      max: 1,
-      description: "Affordable share of units (at least 0.51)",
-    },
-    "h201",
-  ),
+  affordability: {
+    type: "number",
+    min: 0.51,
+    max: 1,
+    description: "Affordable share of units (at least 0.51)",
+  },
   include_retail: {
     type: "boolean",
     description: "Ground-floor retail, where the zone permits it",
@@ -208,13 +184,7 @@ export const LEVERS = defineLevers({
     description:
       "Park dedication: application fee only, or fee + park land value",
   },
-  impact_fee: only(
-    nonneg("Impact fee, $ per unit (Bill 7 waives it)"),
-    "bill6",
-    "standard",
-    "tod",
-    "h201",
-  ),
+  impact_fee: nonneg("Impact fee, $ per unit (Bill 7 waives it)"),
   waivable_fee_basis: {
     type: "enum",
     values: ["all_units", "market_units", "none"],
@@ -250,42 +220,61 @@ export const LEVERS = defineLevers({
   ),
 
   // Bill 7 grants
-  grant_type: only(
-    {
-      type: "enum",
-      values: ["post_construct", "pre_construct", "none"],
-      description: "Grant structure (default post_construct)",
-    },
-    "bill7",
+  grant_type: {
+    type: "enum",
+    values: ["post_construct", "pre_construct", "none"],
+    description: "Grant structure (default post_construct)",
+  },
+  grant_amount: nonneg(
+    "Grant $ per unit. Default: the ordinance amount — $50,000 pre-construction; $12,000 post-construction, or $40/sqft for units under 300 sqft",
   ),
-  grant_amount: only(
-    nonneg(
-      "Grant $ per unit. Default: the ordinance amount — $50,000 pre-construction; $12,000 post-construction, or $40/sqft for units under 300 sqft",
-    ),
-    "bill7",
+  grant_units: {
+    type: "enum",
+    values: ["all", "affordable"],
+    description:
+      "Units the pre-construction subsidy pays on (post-construction always pays on affordable units)",
+  },
+  prevailing_wage_premium: nonneg(
+    "Extra cost of on-site labor at prevailing wages (default 0.45); pre-construction grants",
   ),
-  grant_units: only(
-    {
-      type: "enum",
-      values: ["all", "affordable"],
-      description:
-        "Units the pre-construction subsidy pays on (post-construction always pays on affordable units)",
-    },
-    "bill7",
-  ),
-  prevailing_wage_premium: only(
-    nonneg(
-      "Extra cost of on-site labor at prevailing wages (default 0.45); pre-construction grants",
-    ),
-    "bill7",
-  ),
-  onsite_labor_share: only(
-    frac(
-      "On-site labor as a share of hard cost (default 0.25); also caps the pre-construction subsidy",
-    ),
-    "bill7",
+  onsite_labor_share: frac(
+    "On-site labor as a share of hard cost (default 0.25); also caps the pre-construction subsidy",
   ),
 });
+
+/**
+ * Model inputs that are deliberately not levers. The lever update reports
+ * any model input in neither list, so new ones in a feasim release show up.
+ */
+export const NOT_LEVERS: Record<string, string> = {
+  program: "set by the endpoint",
+  lot_sqft: "a lot parameter",
+  zone_class: "a lot parameter",
+  parking_exempt: "a lot parameter (gauge only)",
+  max_units: "worked out from the lot's envelope",
+  open_space_bonus: "worked out from the lot's envelope",
+  far_without_bonus: "worked out from the lot's envelope",
+  front_no_parking_ft: "worked out from the lot's envelope",
+  mortgage: "for-sale units, which no pathway builds",
+  market_price: "for-sale units, which no pathway builds",
+  rental_split: "for-sale units, which no pathway builds",
+  sale_split: "for-sale units, which no pathway builds",
+};
+
+/** The levers, each with the pathways it applies to (absent = all five). */
+export const LEVERS = Object.fromEntries(
+  Object.entries(LEVER_SPECS).map(([name, spec]) => {
+    const pathways = (leverPathways.levers as Record<string, ProgramId[]>)[
+      name
+    ];
+    return [
+      name,
+      pathways && pathways.length < PROGRAMS.length
+        ? { ...spec, pathways }
+        : spec,
+    ];
+  }),
+) as typeof LEVER_SPECS;
 
 /** The subset of parsed levers a pathway reads. */
 export function leversFor(program: ProgramId, levers: Levers): Levers {

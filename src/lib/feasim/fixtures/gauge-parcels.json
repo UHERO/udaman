@@ -1,7 +1,7 @@
 {
  "_about": "Test data only; nothing in the app reads this file. A sample of the real Oahu parcels the Housing Policy Simulator's gauge maps, per pathway. The gauge runs each through calcParcel; the gauge endpoints must give the same result from the parcel sent as query parameters. See gauge-cases.ts.",
- "_feasim_version": "0.4.0",
- "_source": "Copied from UHERO/feasim@v0.4.0 test/data/gauge-parcels.json. Sampled from UHERO/analytics app/housing/policy/gauge/data at commit da45f2df (10/8/26): for each zone (TOD: zone, regime, station area, parenthetical; others: zone, parking exemption), the smallest, median and largest lot.",
+ "_feasim_version": "0.5.0",
+ "_source": "Copied from UHERO/feasim@v0.5.0 test/data/gauge-parcels.json. Sampled from UHERO/analytics app/housing/policy/gauge/data at commit da45f2df (10/8/26): for each zone (TOD: zone, regime, station area, parenthetical; others: zone, parking exemption), the smallest, median and largest lot.",
  "bill6": [
   {
    "tmk": "17003028",

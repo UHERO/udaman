@@ -1,9 +1,9 @@
 /**
  * A visual report of the feasim API checked against the Housing Policy
  * Simulator, every difference highlighted:
- * - Calculator: each calculator-fixture case, the page's model inputs and
- *   result next to what the calculator endpoint built from a user's settings.
- * - Gauge: each sample parcel (TOD at every tier), the gauge's own result
+ * - Calculator: each calculator case, feasim's model inputs and result next
+ *   to what the calculator endpoint built from a user's settings.
+ * - Gauge: each sample parcel (TOD at every tier), feasim's result
  *   (calcParcel) next to the gauge endpoint's.
  * - Snapshots: each saved API response (snapshot-cases.ts) next to what the
  *   API returns now, so you can see what your changes did.
@@ -230,7 +230,7 @@ function CompareTable({
         <thead>
           <tr>
             <th>Field</th>
-            <th>Calculator page</th>
+            <th>feasim v{FEASIM_VERSION}</th>
             <th>API</th>
           </tr>
         </thead>
@@ -481,9 +481,9 @@ function Report({
           <p className="lede">
             {count(calculator.length, calcFailing, "cases")}
             <br />
-            Each case: the calculator page&apos;s full model inputs (the
-            fixture) and its result, next to what the calculator endpoint built
-            and returned from only the settings in the request.
+            Each case: feasim v{FEASIM_VERSION}&apos;s full model inputs and
+            result, next to what the calculator endpoint built and returned from
+            only the settings in the request.
           </p>
           {calculator.map((c) => (
             <CalculatorCase key={c.name} c={c} />
@@ -494,10 +494,11 @@ function Report({
             {count(gauge.length, gaugeFailing, "parcel runs")}
             <br />
             Real Oʻahu parcels from the gauge&apos;s data (feasim&apos;s sample:
-            the smallest, median and largest lot per zone). Each row: the
-            gauge&apos;s own result (<code>calcParcel</code> on the parcel) next
-            to the gauge endpoint&apos;s, given the parcel as query parameters.
-            A differing value shows <span className="bad">gauge → API</span>;
+            the smallest, median and largest lot per zone). Each row: feasim v
+            {FEASIM_VERSION}&apos;s result (<code>calcParcel</code> on the
+            parcel) next to the gauge endpoint&apos;s, given the parcel as query
+            parameters. A differing value shows{" "}
+            <span className="bad">feasim v{FEASIM_VERSION} → API</span>;
             &quot;Full result&quot; compares all ~100 result fields and the
             envelope.
           </p>

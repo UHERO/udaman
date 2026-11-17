@@ -1,14 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { NextRequest } from "next/server";
-import {
-  calcParcel,
-  calcSingle,
-  type Parcel,
-  type ProgramId,
-  type SliderInputs,
-  type TodEnvelopeOpts,
-} from "@uhero/feasim";
+import { calcParcel, calcSingle, overallLevel } from "@uhero/feasim";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 
 import { GET as calcPathway } from "@/app/api/feasim/calculator/[pathway]/route";
@@ -22,6 +15,8 @@ import { calculatorCases } from "./calculator-cases";
 import calculatorDefaults from "./fixtures/calculator-defaults.json";
 import gaugeParcels from "./fixtures/gauge-parcels.json";
 import { gaugeCases } from "./gauge-cases";
+import leverPathways from "./generated/lever-pathways.json";
+import { leverChangesResult } from "./lever-pathways";
 import {
   FEASIM_VERSION,
   LEVERS,
@@ -32,7 +27,6 @@ import {
   PROGRAMS,
   TOD_TIERS,
   type LeverName,
-  type LeverSpec,
 } from "./params";
 import { setRateLimit } from "./rate-limit";
 
@@ -102,6 +96,7 @@ describe("FEASIM_VERSION", () => {
   test.each([
     ["calculator-defaults.json", calculatorDefaults._feasim_version],
     ["gauge-parcels.json", gaugeParcels._feasim_version],
+    ["generated/lever-pathways.json", leverPathways._feasim_version],
   ])("fixture %s is from the same version", (file, version) => {
     // after bumping @uhero/feasim: bun scripts/update-feasim-fixtures.ts
     expect(
@@ -112,91 +107,18 @@ describe("FEASIM_VERSION", () => {
 });
 
 /**
- * The pathway lists in LEVERS must match what the model reads: change each
- * lever under each pathway across a spread of lots, tiers and options. A
- * listed lever must change some result; an unlisted one must change none.
+ * The pathway lists in LEVERS come from generated/lever-pathways.json; this
+ * checks that file is current for the installed model.
  */
-describe("lever applicability matches the model", () => {
-  const lots: Parcel[] = [
-    { lot_sqft: 20000, zone_class: "BMX-3", height: 150 },
-    { lot_sqft: 10000, zone_class: "A-2", height: 60 },
-    { lot_sqft: 5000, zone_class: "A-1", height: 30 },
-    {
-      lot_sqft: 40000,
-      zone_class: "AMX-2",
-      height: 90,
-      tod_regime: "pdt",
-      slu_urban: true,
-      tod_precinct: "core",
-    },
-  ];
-  const optsList: TodEnvelopeOpts[] = [{}, { tier: "with_benefits" }];
-  const contexts: Partial<SliderInputs>[] = [
-    {},
-    { include_retail: true },
-    { grant_type: "pre_construct" },
-    // the step-back shape levers only act on an override, and under TOD
-    // the trigger only switches that override on (its value is unused)
-    { stepback_trigger_ft: 30 },
-    { stepback_ft_per_10ft: 3 },
-  ];
-
-  /** Two values far enough apart to move the result if the lever is read. */
-  function values(name: LeverName, spec: LeverSpec): [unknown, unknown] {
-    if (spec.type === "boolean") return [true, false];
-    if (spec.type === "enum")
-      return [spec.values[0], spec.values[spec.values.length - 1]];
-    const hi = spec.max ?? Infinity;
-    const lo = spec.min ?? 0;
-    const pick: Partial<Record<LeverName, [number, number]>> = {
-      height_limit: [30, 120],
-      max_far: [1, 5],
-      floor_height: [9, 14],
-      setback: [0, 25],
-      stepback_trigger_ft: [20, 1000],
-      stepback_above_ft: [20, 60],
-      stepback_ft_per_10ft: [0, 3],
-      building_area_per_unit: [400, 1200],
-      grant_amount: [0, 80000],
-      impact_fee: [0, 30000],
-      land_cost: [50, 400],
-      hard_cost_per_sqft: [300, 800],
-      hold_years: [5, 15],
-      amort_years: [20, 40],
-      permitting_months: [6, 36],
-      const_months: [6, 36],
-      leaseup_months: [3, 24],
-      retail_rent: [1, 12],
-      min_dscr: [1, 1.5],
-    };
-    return pick[name] ?? [lo === 0 ? 0.05 : lo, Math.min(hi, (lo || 0.05) * 3)];
-  }
-
-  /** Does setting the lever ever change a result (unset vs. either value)? */
-  function reads(program: ProgramId, name: LeverName): boolean {
-    const [a, b] = values(name, LEVERS[name]);
-    for (const lot of lots)
-      for (const opts of optsList)
-        for (const ctx of contexts) {
-          if (name in ctx) continue;
-          const run = (v: unknown) =>
-            JSON.stringify(
-              calcParcel(program, lot, { ...ctx, [name]: v }, opts),
-            );
-          const unset = run(undefined);
-          if (run(a) !== unset || run(b) !== unset) return true;
-        }
-    return false;
-  }
-
+describe("lever pathways match the model", () => {
   for (const program of PROGRAMS)
     test(program, () => {
       for (const name of Object.keys(LEVERS) as LeverName[]) {
         const spec = LEVERS[name];
         const listed = !spec.pathways || spec.pathways.includes(program);
         expect(
-          reads(program, name),
-          `${name} ${listed ? "is listed for" : "is not listed for"} ${program}`,
+          leverChangesResult(program, name),
+          `${name} ${listed ? "is listed for" : "is not listed for"} ${program}, but the model says otherwise: run \`bun scripts/update-feasim-levers.ts\``,
         ).toBe(listed);
       }
     });
@@ -386,7 +308,9 @@ describe("gauge mode matches the gauge on feasim's parcel sample", () => {
 });
 
 describe("gauge/{pathway}", () => {
-  test("bill6 matches the README reference result", async () => {
+  // feasim's README example lot. Its numbers aren't hard-coded here: they
+  // change with model versions, which the API snapshots catch.
+  test("bill6: the response for feasim's README example lot", async () => {
     const res = await getPathway(gaugePathway, "bill6", LOT);
     expect(res.status).toBe(200);
     // keyed: privately cacheable; CORS only for a browser on the key's hostname
@@ -395,10 +319,13 @@ describe("gauge/{pathway}", () => {
     expect(body.model.version).toBe(FEASIM_VERSION);
     expect(body.mode).toBe("gauge");
     expect(body.program).toBe("bill6");
-    expect(body.result.max_units).toBe(140);
-    expect(body.result.dev_roc).toBeCloseTo(0.064, 3);
-    expect(body.result.rlv_sqft).toBeCloseTo(238.45, 2);
-    expect(body.verdict.overall).toBe("strong");
+    const expected = calcParcel("bill6", {
+      lot_sqft: 20000,
+      zone_class: "BMX-3",
+      height: 150,
+    });
+    expect(body.result).toEqual(JSON.parse(JSON.stringify(expected)));
+    expect(body.verdict.overall).toBe(overallLevel(expected));
   });
 
   test("bill7 takes its grant levers", async () => {
