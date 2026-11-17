@@ -14,6 +14,8 @@ import {
   type DvwUploadJobData,
   type IngestExtractJobData,
   type IngestFetchJobData,
+  type OpsApplyProposalJobData,
+  type OpsReconcileJobData,
   type QpubReparseJobData,
   type ReloadJobData,
   type SeriesReloadJobData,
@@ -194,4 +196,15 @@ export async function enqueueUniversePurge(
   if (existing) await existing.remove();
   const delay = Math.max(0, scheduledAt.getTime() - Date.now());
   return heavyQueue.add(JobName.UNIVERSE_PURGE, data, { jobId, delay });
+}
+
+/** Ops reconcile: detectors, auto-resolve, Slack cleanup. Deduped per universe. */
+export function enqueueOpsReconcile(data: OpsReconcileJobData = {}) {
+  return defaultQueue.add(JobName.OPS_RECONCILE, data, {
+    jobId: `ops-reconcile-${data.universe ?? "UHERO"}-${Math.floor(Date.now() / 60000)}`,
+  });
+}
+
+export function enqueueOpsApplyProposal(data: OpsApplyProposalJobData) {
+  return lightQueue.add(JobName.OPS_APPLY_PROPOSAL, data);
 }

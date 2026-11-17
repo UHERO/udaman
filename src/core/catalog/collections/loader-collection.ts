@@ -307,10 +307,18 @@ class LoaderCollection {
     await mysql`DELETE FROM data_sources WHERE id = ${id}`;
   }
 
-  /** Disable a loader: delete its data points and clear errors */
-  static async disable(id: number): Promise<Loader> {
+  /**
+   * Disable a loader and clear its errors. Its data points are deleted
+   * unless `keepDataPoints` is set — the choice for a discontinued source
+   * whose history should stay on the series (and stay current/public) while
+   * the load statement stops running.
+   */
+  static async disable(
+    id: number,
+    opts?: { keepDataPoints?: boolean },
+  ): Promise<Loader> {
     const loader = await this.getById(id);
-    await this.deleteDataPoints(loader);
+    if (!opts?.keepDataPoints) await this.deleteDataPoints(loader);
     return this.update(id, {
       disabled: true,
       lastError: null,
@@ -656,7 +664,16 @@ class LoaderCollection {
         typeof err.detail === "string"
           ? err.detail
           : null;
-      if (detail && detail !== message) {
+      // Logged when there is more to say than last_error holds (a separate
+      // detail, or a message cut at 254 characters) and whenever the error
+      // is new or changed, so each distinct failure has one full record
+      // without a row for every nightly repeat.
+      const changedError = loader.lastError !== updateProps.lastError;
+      if (
+        (detail && detail !== message) ||
+        message.length > 254 ||
+        changedError
+      ) {
         void AppLogCollection.log({
           level: "error",
           category: "loader",

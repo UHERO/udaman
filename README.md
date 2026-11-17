@@ -35,6 +35,32 @@ App is intended to replace udaman as-is, but there have been a few minor db chan
   bunx prisma migrate deploy
 ```
 
+## MCP Servers
+
+UDAMAN has three MCP servers, which let Claude (or another AI assistant) work with UHERO data on your behalf. You sign in to each with your UDAMAN account, and each one only offers the tools your account is allowed to use.
+
+| Server | Address | Who it's for | What it's for |
+| --- | --- | --- | --- |
+| **UHERO Data** | `https://udaman.uhero.hawaii.edu/api/mcp` | Anyone with a UDAMAN account | Looking up and reading UHERO series and their data. Read-only. |
+| **Catalog** | `https://udaman.uhero.hawaii.edu/api/mcp/catalog` | UHERO staff, on the office network or VPN | Maintaining the data. Look up series, measurements and loaders, test a loader, and propose a fix for someone to review. Developers can also edit loaders and metadata directly. |
+| **Ops** | `https://udaman.uhero.hawaii.edu/api/mcp/ops` | UHERO staff, on the office network or VPN | Working the to-do list. See open issues (load errors, late data, missing metadata), comment on or snooze them, and, for reviewers, approve or reject proposed changes. |
+
+Which one do I need?
+
+- To **use** UHERO data in an analysis or a question: UHERO Data.
+- To **fix** a series, loader or metadata: Catalog.
+- To see **what needs fixing**, or to review someone's proposed fix: Ops, usually alongside Catalog.
+
+To connect from Claude Code:
+
+```bash
+claude mcp add --transport http uhero-data     https://udaman.uhero.hawaii.edu/api/mcp
+claude mcp add --transport http udaman-catalog https://udaman.uhero.hawaii.edu/api/mcp/catalog
+claude mcp add --transport http udaman-ops     https://udaman.uhero.hawaii.edu/api/mcp/ops
+```
+
+Each server asks you to sign in separately the first time. Design and deployment notes: `docs/2026-11-13-ops-agent-design.md` and `docs/2026-11-14-ops-agent-deploy.md`.
+
 ## Hawaii Housing Database (QPub)
 
 Separate MariaDB database (`hawaii_housing_database`) that stores statewide property data scraped from Hawaii's county QPub tax assessment websites. Covers ~600k properties across 4 islands (Oahu, Maui, Hawaii, Kauai).

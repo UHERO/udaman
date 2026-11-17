@@ -22,6 +22,7 @@ import type {
 import { Queue } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
+import { noteUiChange } from "@/core/ops/actors";
 import { redisConnection } from "@/core/workers/connection";
 import { enqueueSeriesReload } from "@/core/workers/enqueue";
 import type { ActionResult } from "@/lib/action-result";
@@ -220,13 +221,17 @@ export async function deleteLoader(loaderId: number) {
   }
 }
 
-export async function disableLoader(loaderId: number) {
+export async function disableLoader(
+  loaderId: number,
+  opts?: { keepDataPoints?: boolean },
+) {
   const session = await requireAuth();
   const userId = parseInt(session.user!.id!);
+  const keepDataPoints = opts?.keepDataPoints === true;
 
-  log.info({ loaderId }, "disableLoader action called");
+  log.info({ loaderId, keepDataPoints }, "disableLoader action called");
   try {
-    const result = await disableLoaderCtrl({ id: loaderId });
+    const result = await disableLoaderCtrl({ id: loaderId, keepDataPoints });
     log.info({ loaderId }, "disableLoader action completed");
 
     AppLogCollection.log({
@@ -235,6 +240,7 @@ export async function disableLoader(loaderId: number) {
       userId,
       subject: "data_sources",
       subjectId: loaderId,
+      metadata: { keepDataPoints },
     });
 
     return result;
@@ -312,6 +318,7 @@ export async function clearLoaderError(loaderId: number) {
       priority: result.data.priority,
       eval: result.data.eval,
     });
+    noteUiChange("loader", loaderId, userId, "Loader error cleared in the app");
     AppLogCollection.log({
       category: "loader",
       name: "loader.clear_error",
@@ -361,6 +368,7 @@ export async function updateDataLoader(
       priority: result.data.priority,
       eval: result.data.eval,
     });
+    noteUiChange("loader", loaderId, userId, "Loader edited in the app");
     AppLogCollection.log({
       category: "loader",
       name: "loader.update",

@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertTriangle, LayoutDashboard, SearchX } from "lucide-react";
+import {
+  AlertTriangle,
+  CircleDot,
+  GitPullRequestArrow,
+  LayoutDashboard,
+  SearchX,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +20,7 @@ const TABS: {
   label: string;
   icon: LucideIcon;
   segment: string;
-  badgeKey?: "noSource" | "quarantine";
+  badgeKey?: "noSource" | "quarantine" | "proposals";
 }[] = [
   {
     label: "Dashboard",
@@ -33,6 +39,17 @@ const TABS: {
     segment: "quarantine",
     badgeKey: "quarantine",
   },
+  {
+    label: "Issues",
+    icon: CircleDot,
+    segment: "issues",
+  },
+  {
+    label: "Proposals",
+    icon: GitPullRequestArrow,
+    segment: "proposals",
+    badgeKey: "proposals",
+  },
 ];
 
 interface InvestigationsTabsProps {
@@ -42,6 +59,7 @@ interface InvestigationsTabsProps {
   badgeCounts?: {
     noSource: number;
     quarantine: number;
+    proposals?: number;
   };
 }
 

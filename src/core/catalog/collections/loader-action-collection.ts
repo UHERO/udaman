@@ -25,19 +25,33 @@ interface CreateLoaderActionPayload {
   action: string;
   priority: number | null;
   eval: string | null;
+  /** The ops issue that prompted this change, when there was one. */
+  opsIssueId?: number | null;
 }
 
 export class LoaderActionCollection {
   /** Fire-and-forget INSERT into data_source_actions. Never throws. */
   static async create(payload: CreateLoaderActionPayload): Promise<void> {
     try {
-      await mysql`
-        INSERT INTO data_source_actions
-          (data_source_id, series_id, user_id, user_email, action, priority, eval, created_at, updated_at)
-        VALUES
-          (${payload.loaderId}, ${payload.seriesId}, ${payload.userId}, ${payload.userEmail},
-           ${payload.action}, ${payload.priority}, ${payload.eval}, NOW(), NOW())
-      `;
+      // ops_issue_id only when set, so this keeps working on a database
+      // where the ops migration hasn't been applied yet.
+      if (payload.opsIssueId != null) {
+        await mysql`
+          INSERT INTO data_source_actions
+            (data_source_id, series_id, user_id, user_email, action, priority, eval, ops_issue_id, created_at, updated_at)
+          VALUES
+            (${payload.loaderId}, ${payload.seriesId}, ${payload.userId}, ${payload.userEmail},
+             ${payload.action}, ${payload.priority}, ${payload.eval}, ${payload.opsIssueId}, NOW(), NOW())
+        `;
+      } else {
+        await mysql`
+          INSERT INTO data_source_actions
+            (data_source_id, series_id, user_id, user_email, action, priority, eval, created_at, updated_at)
+          VALUES
+            (${payload.loaderId}, ${payload.seriesId}, ${payload.userId}, ${payload.userEmail},
+             ${payload.action}, ${payload.priority}, ${payload.eval}, NOW(), NOW())
+        `;
+      }
     } catch (e) {
       log.error({ err: e, payload }, "Failed to write data_source_action");
     }

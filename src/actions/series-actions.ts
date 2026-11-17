@@ -48,6 +48,7 @@ import { getSourceDetails } from "@/core/catalog/controllers/source-details";
 import { getSources } from "@/core/catalog/controllers/sources";
 import { getUnits } from "@/core/catalog/controllers/units";
 import { createLogger } from "@/core/observability/logger";
+import { noteUiChange } from "@/core/ops/actors";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.series");
@@ -538,6 +539,7 @@ export async function updateSeries(
       },
     });
 
+    noteUiChange("series", id, userId, "Series edited in the app");
     revalidatePath(`/udaman/${universe}/series/${id}`);
     return { message: result.message, data: result.data.toJSON() };
   } catch (err) {
