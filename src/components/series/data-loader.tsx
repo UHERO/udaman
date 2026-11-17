@@ -534,10 +534,10 @@ const LoaderItem = ({
       }
     });
 
-  const handleDisable = () =>
+  const handleDisable = (keepDataPoints: boolean) =>
     startTransition(async () => {
       try {
-        const result = await disableLoader(loader.id);
+        const result = await disableLoader(loader.id, { keepDataPoints });
         toast.success(result.message);
         router.refresh();
       } catch (err) {
@@ -621,16 +621,38 @@ const LoaderItem = ({
           className="bg-primary/60 w-4 shrink-0"
         />
         <CardAction>
-          <Button
-            title="disable data loader"
-            variant="link"
-            size="sm"
-            className="h-6"
-            onClick={handleDisable}
-            disabled={isPending}
-          >
-            disable
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                title="disable data loader"
+                variant="link"
+                size="sm"
+                className="h-6"
+                disabled={isPending}
+              >
+                disable
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Disable Loader {loader.id}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  A disabled loader no longer runs. Keep its data points if the
+                  source is discontinued but the history is still useful, or
+                  clear them to remove this loader&apos;s data from the series.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleDisable(false)}>
+                  Disable and clear data
+                </AlertDialogAction>
+                <AlertDialogAction onClick={() => handleDisable(true)}>
+                  Disable and keep data
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardAction>
         <Separator
           orientation="vertical"

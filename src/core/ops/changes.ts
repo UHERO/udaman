@@ -201,14 +201,20 @@ export async function applyLoaderDisable(
   loaderId: number,
   actor: Actor,
   issueId: number | null,
+  opts?: { clearDataPoints?: boolean },
 ): Promise<void> {
-  const result = await disableDataLoader({ id: loaderId });
+  // Ops keeps the data points unless told otherwise (the UI asks each time).
+  const clear = opts?.clearDataPoints === true;
+  const result = await disableDataLoader({
+    id: loaderId,
+    keepDataPoints: !clear,
+  });
   logLoaderAction(actor, result.data, "DISABLE", issueId);
   await noteSubjectChange(
     "loader",
     loaderId,
     actor,
-    `Loader ${loaderId} disabled`,
+    `Loader ${loaderId} disabled, data points ${clear ? "cleared" : "kept"}`,
   );
 }
 

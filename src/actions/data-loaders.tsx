@@ -221,13 +221,17 @@ export async function deleteLoader(loaderId: number) {
   }
 }
 
-export async function disableLoader(loaderId: number) {
+export async function disableLoader(
+  loaderId: number,
+  opts?: { keepDataPoints?: boolean },
+) {
   const session = await requireAuth();
   const userId = parseInt(session.user!.id!);
+  const keepDataPoints = opts?.keepDataPoints === true;
 
-  log.info({ loaderId }, "disableLoader action called");
+  log.info({ loaderId, keepDataPoints }, "disableLoader action called");
   try {
-    const result = await disableLoaderCtrl({ id: loaderId });
+    const result = await disableLoaderCtrl({ id: loaderId, keepDataPoints });
     log.info({ loaderId }, "disableLoader action completed");
 
     AppLogCollection.log({
@@ -236,6 +240,7 @@ export async function disableLoader(loaderId: number) {
       userId,
       subject: "data_sources",
       subjectId: loaderId,
+      metadata: { keepDataPoints },
     });
 
     return result;

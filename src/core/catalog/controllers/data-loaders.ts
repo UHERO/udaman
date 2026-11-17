@@ -128,13 +128,21 @@ export async function deleteDataLoader({
 
 export async function disableDataLoader({
   id,
+  keepDataPoints = false,
 }: {
   id: number;
+  /** Leave the loader's data points in place instead of deleting them */
+  keepDataPoints?: boolean;
 }): Promise<ControllerResponse<SerializedLoader>> {
-  log.info({ id }, "disabling data loader");
-  const loader = await LoaderCollection.disable(id);
-  log.info({ id }, "data loader disabled");
-  return { message: "data loader disabled", data: loader.toJSON() };
+  log.info({ id, keepDataPoints }, "disabling data loader");
+  const loader = await LoaderCollection.disable(id, { keepDataPoints });
+  log.info({ id, keepDataPoints }, "data loader disabled");
+  return {
+    message: keepDataPoints
+      ? "data loader disabled, data points kept"
+      : "data loader disabled, data points cleared",
+    data: loader.toJSON(),
+  };
 }
 
 export async function clearDataLoaderError({

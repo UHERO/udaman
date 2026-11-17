@@ -307,10 +307,18 @@ class LoaderCollection {
     await mysql`DELETE FROM data_sources WHERE id = ${id}`;
   }
 
-  /** Disable a loader: delete its data points and clear errors */
-  static async disable(id: number): Promise<Loader> {
+  /**
+   * Disable a loader and clear its errors. Its data points are deleted
+   * unless `keepDataPoints` is set — the choice for a discontinued source
+   * whose history should stay on the series (and stay current/public) while
+   * the load statement stops running.
+   */
+  static async disable(
+    id: number,
+    opts?: { keepDataPoints?: boolean },
+  ): Promise<Loader> {
     const loader = await this.getById(id);
-    await this.deleteDataPoints(loader);
+    if (!opts?.keepDataPoints) await this.deleteDataPoints(loader);
     return this.update(id, {
       disabled: true,
       lastError: null,

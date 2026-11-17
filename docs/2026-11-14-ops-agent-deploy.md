@@ -139,39 +139,74 @@ tables and the nullable column.
 
 ### 3B. nginx: restrict the internal endpoints
 
-Three paths. Add inside the UDAMAN `server` block, above the general
-`location /`:
+File: `/etc/nginx/sites-available/<udaman site>.conf` on uhero21. Add both
+blocks inside the first `server` block (the one that listens on 443), next
+to the existing `location /` and `location /api/uploads/`:
 
 ```nginx
-# Catalog and ops MCP: staff on VPN, and the agent
-location ~ ^/api/mcp/(catalog|ops)(/|$) {
-    allow <VPN_RANGE_CIDR>;        # staff Claude Code on VPN
-    allow <WORKSTATION_STATIC_IP>; # the agent
-    deny  all;
-    include /etc/nginx/snippets/udaman-proxy.conf;
-}
+    # Catalog and ops MCP: internal addresses only (staff, and later the agent)
+    location ~ ^/api/mcp/(catalog|ops)(/|$) {
+        include /etc/nginx/snippets/internal-ips.conf;
 
-# Runner API: the agent's harness only
-location /api/ops-runner/ {
-    allow <WORKSTATION_STATIC_IP>;
-    deny  all;
-    include /etc/nginx/snippets/udaman-proxy.conf;
-}
+        proxy_pass http://127.0.0.1:3008;
+        include /etc/nginx/snippets/proxy-params.conf;
+        proxy_read_timeout 300s;
+    }
+
+    # Runner API: closed until the agent is set up (§6)
+    location /api/ops-runner/ {
+        deny all;
+
+        proxy_pass http://127.0.0.1:3008;
+        include /etc/nginx/snippets/proxy-params.conf;
+    }
 ```
 
-`udaman-proxy.conf` stands for the same `proxy_pass` and `proxy_set_header`
-lines the existing `location /` uses (`Host`, `X-Real-IP`,
-`X-Forwarded-For`, `X-Forwarded-Proto`); copy them in, or put them in a
-snippet. The regex location must not catch `/api/mcp` itself, which is the
-public uhero-data MCP.
+Then:
 
-- **Check** how the workstation's requests arrive at this server. If they
-  come through a NAT or another proxy, `allow` the address nginx actually
-  sees.
-- Leave `/api/mcp` (the public uhero-data MCP), `/api/oauth/*` and
-  `/.well-known/*` as they are. Staff Claude Code needs the OAuth and
-  `.well-known` paths to sign in.
-- `sudo nginx -t && sudo systemctl reload nginx`
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Notes:
+
+- `internal-ips.conf` is a list of `allow` lines ending in `deny all;`.
+  Access rules apply only to the `location` they are in, so the regular
+  UDAMAN routes (`location /`, `/api/uploads/`) stay open. Never include
+  that file directly in the `server` block.
+- The regex does not catch `/api/mcp` itself, which is the public
+  uhero-data MCP. Leave it, `/api/oauth/*` and `/.well-known/*` alone;
+  staff Claude Code needs the OAuth and `.well-known` paths to sign in.
+- `proxy_read_timeout 300s` is there because `dry_run_loader` can run
+  longer than nginx's 60-second default.
+- **Check** that the allowlist covers the address you connect from. On VPN,
+  `curl -s https://ifconfig.me` prints it if the VPN routes all traffic;
+  otherwise look in `/var/log/nginx/access.log` for a request you made. If
+  it isn't in a listed range, add an `allow <range>;` line: in
+  `internal-ips.conf` (above its `deny all;`) if every internal-only
+  location should accept it, or above the `include` in the MCP block if
+  only the MCP paths should.
+
+Check from a machine that is not on the allowlist:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://udaman.uhero.hawaii.edu/                  # 200 or a redirect to sign-in, as before
+curl -s -o /dev/null -w "%{http_code}\n" https://udaman.uhero.hawaii.edu/api/mcp/catalog   # 403
+curl -s -o /dev/null -w "%{http_code}\n" -X POST https://udaman.uhero.hawaii.edu/api/ops-runner/work   # 403
+```
+
+**When the agent is set up (§6):** in the runner block, replace `deny all;`
+with
+
+```nginx
+        allow <WORKSTATION_STATIC_IP>;
+        deny all;
+```
+
+and, if the workstation's address is not already in `internal-ips.conf`,
+add `allow <WORKSTATION_STATIC_IP>;` above the `include` in the MCP block.
+Reload nginx. If the workstation's requests arrive through a NAT or another
+proxy, allow the address nginx actually sees.
 
 ### 3C. Code and restart
 

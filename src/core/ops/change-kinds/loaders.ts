@@ -121,15 +121,25 @@ registerChangeKind({
 registerChangeKind({
   kind: "loader_disable",
   targetType: "loader",
-  summary: "disable a loader. after: {}",
+  summary:
+    "disable a loader so it no longer runs. Its data points are kept (they stay current and public), which suits a discontinued source. after: {} or {clearDataPoints: true} to also delete the loader's data points.",
   workClass: "errors",
   changeType: () => "loader_disable",
-  afterSchema: z.unknown().transform(() => ({ disabled: true as const })),
+  // Keeping data is the default: deleting is the irreversible half, so it
+  // has to be asked for with a literal `true`.
+  afterSchema: z.unknown().transform((a) => ({
+    disabled: true as const,
+    clearDataPoints:
+      (a as { clearDataPoints?: unknown } | null | undefined)
+        ?.clearDataPoints === true,
+  })),
   async snapshot({ targetId }, universe) {
     return { disabled: (await loaderIn(universe, targetId)).disabled };
   },
-  apply: ({ targetId }, { actor, issueId }) =>
-    applyLoaderDisable(targetId, actor, issueId),
+  apply: ({ targetId, after }, { actor, issueId }) =>
+    applyLoaderDisable(targetId, actor, issueId, {
+      clearDataPoints: after.clearDataPoints,
+    }),
 });
 
 registerChangeKind({

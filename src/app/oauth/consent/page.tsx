@@ -27,8 +27,44 @@ type Query = {
   code_challenge_method?: string;
   state?: string;
   scope?: string;
+  /** RFC 8707: the MCP server the client is connecting to. */
+  resource?: string;
   error?: string;
 };
+
+/** What each MCP server lets a client do, keyed by the server's path. */
+const RESOURCE_TEXT: Record<string, { name: string; grants: string }> = {
+  "/api/mcp": {
+    name: "UHERO Data",
+    grants: "Read UHERO data as you through the UDAMAN MCP.",
+  },
+  "/api/mcp/catalog": {
+    name: "UDAMAN Catalog (internal)",
+    grants:
+      "Read series, measurements and loaders as you, test loaders, and propose changes. For dev accounts, also edit loaders and metadata directly.",
+  },
+  "/api/mcp/ops": {
+    name: "UDAMAN Ops (internal)",
+    grants:
+      "Read and comment on ops issues as you, and snooze them. For reviewers, also approve or reject proposed changes.",
+  },
+};
+
+/** Staff tokens work on every UDAMAN MCP, so the fallback says so. */
+const FALLBACK_TEXT = {
+  name: "UDAMAN",
+  grants: "Act as you on the UDAMAN MCP servers your account can use.",
+};
+
+function resourceText(resource: string | undefined) {
+  if (!resource) return FALLBACK_TEXT;
+  try {
+    const path = new URL(resource).pathname.replace(/\/+$/, "");
+    return RESOURCE_TEXT[path] ?? FALLBACK_TEXT;
+  } catch {
+    return FALLBACK_TEXT;
+  }
+}
 
 const ERROR_TEXT: Record<string, string> = {
   invalid_client: "This client is not registered with UDAMAN.",
@@ -118,6 +154,7 @@ export default async function ConsentPage({
     // leave as-is; the collection already validated it as a URL on register
   }
   const email = session.user.email ?? "your account";
+  const target = resourceText(q.resource);
 
   const hidden = {
     client_id: clientId,
@@ -137,7 +174,8 @@ export default async function ConsentPage({
           </div>
           <H1>Allow access?</H1>
           <Lead className="text-base">
-            <strong>{clientName}</strong> wants to connect to UDAMAN.
+            <strong>{clientName}</strong> wants to connect to{" "}
+            <strong>{target.name}</strong>.
           </Lead>
         </div>
 
@@ -148,7 +186,7 @@ export default async function ConsentPage({
           </div>
           <div className="grid gap-0.5">
             <dt className="text-muted-foreground text-xs">This will let it</dt>
-            <dd>Read UHERO data as you through the UDAMAN MCP.</dd>
+            <dd>{target.grants}</dd>
           </div>
           <div className="grid gap-0.5">
             <dt className="text-muted-foreground text-xs">

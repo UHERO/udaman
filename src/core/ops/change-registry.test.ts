@@ -69,7 +69,18 @@ describe("after schemas", () => {
 
   test("fixed changes normalize whatever they are given", () => {
     expect(parse("reload", { anything: 1 }).data).toEqual({});
-    expect(parse("loader_disable", undefined).data).toEqual({ disabled: true });
+    expect(parse("loader_disable", undefined).data).toEqual({
+      disabled: true,
+      clearDataPoints: false,
+    });
+    expect(parse("loader_disable", { clearDataPoints: true }).data).toEqual({
+      disabled: true,
+      clearDataPoints: true,
+    });
+    // only a literal true clears
+    expect(
+      parse("loader_disable", { clearDataPoints: "true" }).data,
+    ).toMatchObject({ clearDataPoints: false });
     expect(parse("unquarantine", {}).data).toEqual({ quarantined: false });
   });
 
