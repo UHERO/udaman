@@ -21,7 +21,7 @@
  */
 
 import { knownIssues, labelRules } from "./config";
-import { readMatrix, sheetNames, squish } from "./parse-matrix";
+import { fold, readMatrix, sheetNames, squish } from "./parse-matrix";
 import type { Matrix } from "./parse-matrix";
 
 export const GEO_CODES = ["HON", "MAU", "HAW", "KAU"] as const;
@@ -164,12 +164,13 @@ export function matchItem(
   if (itemCache.has(cacheKey)) return itemCache.get(cacheKey)!;
   const subs = sub ? [sub, "*"] : ["*"];
   let out: string | null = null;
+  const folded = fold(label);
   for (const r of labelRules()) {
     if (r.type !== ruleType) continue;
     if (r.section !== section && r.section !== "*") continue;
     if (!subs.includes(r.sub)) continue;
-    if (r.pattern.test(label)) {
-      out = r.item === "*" ? slug(label) : r.item;
+    if (r.pattern.test(folded)) {
+      out = r.item === "*" ? slug(folded) : r.item;
       break;
     }
   }
@@ -491,7 +492,7 @@ function parseActivity(
       }
       const geo: (string | null)[] = new Array(ncol(m)).fill(null);
       m[h].forEach((v, j) => {
-        const up = v.toUpperCase();
+        const up = fold(v).toUpperCase();
         if (/^OAHU/.test(up)) geo[j] = "HON";
         else if (/^MAUI/.test(up)) geo[j] = "MAU";
         else if (/^HAWAII/.test(up)) geo[j] = "HAW";
@@ -581,7 +582,7 @@ function parseActivity(
 function parseFuels(path: string, month: string, problems: Problems) {
   const monthsRx = `(${MONTH_NAMES.join("|")})\\s+\\d{4}`;
   const countyOf = (l: string): string | null => {
-    const u = squish(l).toUpperCase();
+    const u = fold(squish(l)).toUpperCase();
     if (/^(C(ITY)?\s*(&|AND)\s*C(OUNTY)?\s*OF\s*)?HONOLULU/.test(u))
       return "HON";
     if (/^COUNTY OF MAUI$|^MAUI( COUNTY)?$/.test(u)) return "MAU";
@@ -789,7 +790,7 @@ function parseLiqtob(
   problems: Problems,
 ) {
   const distOf = (v: string): string | null => {
-    const u = v.toUpperCase();
+    const u = fold(v).toUpperCase();
     if (/^(FIRST|OAHU)/.test(u)) return "HON";
     if (/^(SECOND|MAUI)/.test(u)) return "MAU";
     if (/^(THIRD|HAWAII)/.test(u)) return "HAW";

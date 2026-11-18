@@ -48,6 +48,18 @@ export function squish(s: string): string {
   return s.replace(/’/g, "'").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * For matching only: strip diacritics and okina/apostrophes, so the
+ * Hawaiian spellings DOTAX began printing in 2026-09 ("COUNTY OF HAWAI'I",
+ * "Island of Lāna'i") match the ASCII rules ("HAWAII", "Lanai").
+ */
+export function fold(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[ʻ‘’'`]/g, "");
+}
+
 function cellText(c: XLSX.CellObject | undefined): string {
   if (!c || c.v === undefined || c.v === null) return "";
   switch (c.t) {

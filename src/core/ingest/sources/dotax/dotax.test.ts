@@ -197,6 +197,60 @@ describe("dotax fetch (current page)", () => {
   });
 });
 
+describe("dotax parse: Hawaiian spellings (2026-09 fuels)", () => {
+  // first file printing "COUNTY OF HAWAI'I" / "KAUA'I" and "Island of
+  // Lāna'i" / "Moloka'i": the Hawaii and Kauai blocks used to be read as
+  // more of Maui, and the Maui island rows as unknown labels
+  let result: ReturnType<typeof parseDotaxReports>;
+  beforeAll(() => {
+    result = parseDotaxReports(
+      [
+        input(
+          "2026-09/202609fuels.xlsx",
+          "202609fuels.xlsx",
+          "dotax_current",
+          1,
+        ),
+      ],
+      () => {},
+    );
+  });
+  const value = (tax: string, source: string, area: string) =>
+    result.rows.find(
+      (r) =>
+        r.dims.tax === tax && r.dims.source === source && r.dims.area === area,
+    )?.value;
+
+  test("every county block is read under its own county", () => {
+    expect(value("Total Tax", "TOTAL", "Hawaii")).toBeCloseTo(3785312.18, 2);
+    expect(value("Total Tax", "TOTAL", "Kauai")).toBeCloseTo(1205349.25, 2);
+    expect(value("Total Tax", "TOTAL", "Maui")).toBeCloseTo(2913851.76, 2);
+    expect(
+      result.rows.some((r) => /^SUB-TOTAL [3-9]$/.test(r.dims.source)),
+    ).toBe(false);
+  });
+
+  test("the Maui island allocation rows resolve", () => {
+    expect(matchItem("Island of Lāna'i", "fuels", "alloc")).toBe(
+      "county_fuel_tax_lanai",
+    );
+    expect(matchItem("Island of Moloka'i", "fuels", "alloc")).toBe(
+      "county_fuel_tax_molokai",
+    );
+    expect(value("Allocation Amount", "Island of Lanai", "Maui")).toBeCloseTo(
+      20827.54,
+      2,
+    );
+  });
+
+  test("checks pass", () => {
+    const failed = (result.checks ?? []).filter(
+      (c) => !c.passed && c.check !== "dotax:series_gap",
+    );
+    expect(failed).toEqual([]);
+  });
+});
+
 test("the extract of the fixtures is stable", () => {
   const a = parseDotaxReports(fixtureInputs(), () => {});
   const b = parseDotaxReports(fixtureInputs(), () => {});
