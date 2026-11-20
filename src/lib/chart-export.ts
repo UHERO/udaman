@@ -10,7 +10,8 @@
  * page with title / subtitle / source / credits text, and exportTablePdf for
  * data tables. jspdf is loaded lazily (dynamic import) on first use.
  *
- * Used by the analyzer compare chart and the single-series chart.
+ * Used by the portal analyzer compare chart, the portal single-series chart
+ * and the udaman /analyze chart.
  */
 import { saveAs } from "file-saver";
 
@@ -36,6 +37,11 @@ export interface ChartExportOptions {
   source?: string[];
   /** Logo drawn bottom-left of the image (config.exportLogo; uhero only). */
   logo?: { src: string; width: number; height: number };
+  /** Chart elements left out of the image (e.g. ".recharts-brush"). */
+  omit?: string[];
+  /** Crop the chart at the top of the first element matching this selector
+   *  (drops the space a bottom brush leaves behind). */
+  cropAt?: string;
 }
 
 /** Logo height in the exported image (px, before the 2× raster scale). */
@@ -69,6 +75,13 @@ function inlinePaint(source: Element, clone: Element) {
   }
 }
 
+/** Resolve `var(--x)` colors (legend swatches are outside the page's CSS). */
+function resolveColor(color: string, el: Element): string {
+  const m = /^var\((--[\w-]+)\)$/.exec(color.trim());
+  if (!m) return color;
+  return window.getComputedStyle(el).getPropertyValue(m[1]).trim() || color;
+}
+
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -81,10 +94,21 @@ export function buildExportSvg(
 ): { svg: string; width: number; height: number } | null {
   const chart = container.querySelector<SVGSVGElement>("svg.recharts-surface");
   if (!chart) return null;
-  const width = Math.round(chart.getBoundingClientRect().width);
-  const chartH = Math.round(chart.getBoundingClientRect().height);
+  const rect = chart.getBoundingClientRect();
+  const width = Math.round(rect.width);
+  const fullH = Math.round(rect.height);
+  const cropEl = opts.cropAt ? chart.querySelector(opts.cropAt) : null;
+  const chartH = cropEl
+    ? Math.min(fullH, Math.round(cropEl.getBoundingClientRect().top - rect.top))
+    : fullH;
   const clone = chart.cloneNode(true) as SVGSVGElement;
+  // Collect omitted nodes before inlinePaint strips the classes; remove them
+  // after, since inlinePaint walks source and clone in parallel.
+  const omitted = (opts.omit ?? []).flatMap((sel) => [
+    ...clone.querySelectorAll(sel),
+  ]);
   inlinePaint(chart, clone);
+  for (const el of omitted) el.remove();
 
   const pad = 12;
   const headerH = opts.leftTitle || opts.rightTitle ? 20 : 4;
@@ -109,9 +133,11 @@ export function buildExportSvg(
   clone.setAttribute("y", String(headerH));
   clone.setAttribute("width", String(width));
   clone.setAttribute("height", String(chartH));
+  clone.setAttribute("viewBox", `0 0 ${width} ${chartH}`);
   parts.push(new XMLSerializer().serializeToString(clone));
   opts.legend.forEach((item, i) => {
     const y = headerH + chartH + 8 + i * lineH + 8;
+    item = { ...item, color: resolveColor(item.color, container) };
     parts.push(
       item.kind === "bar"
         ? `<rect x="${pad + 4}" y="${y - 9}" width="8" height="10" fill="${item.color}"/>`

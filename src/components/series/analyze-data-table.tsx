@@ -64,6 +64,8 @@ interface AnalyzeDataTableProps {
   rightTransformation?: Transformation | null;
   /** Map of series index → axis assignment */
   seriesAxisMap?: Map<number, "left" | "right">;
+  /** Extra toolbar buttons rendered beside Copy to Clipboard */
+  actions?: React.ReactNode;
 }
 
 const changeColor = (n: number) => {
@@ -83,6 +85,7 @@ export function AnalyzeDataTable({
   seriesNames,
   rightTransformation = null,
   seriesAxisMap,
+  actions,
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
@@ -447,7 +450,8 @@ export function AnalyzeDataTable({
   return (
     // Capped at the page width; wider tables scroll horizontally
     <div className="w-fit max-w-full">
-      <div className="flex items-center justify-end pb-2">
+      <div className="flex items-center justify-end gap-2 pb-2">
+        {actions}
         <Button
           variant="outline"
           size="sm"

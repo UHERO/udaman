@@ -1,5 +1,6 @@
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import GeographyCollection from "@catalog/collections/geography-collection";
+import { LoaderActionCollection } from "@catalog/collections/loader-action-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
@@ -203,10 +204,13 @@ export async function duplicateSeries({
   sourceId,
   payload,
   copyLoaders,
+  actor,
 }: {
   sourceId: number;
   payload: import("@catalog/collections/series-collection").CreateSeriesPayload;
   copyLoaders: boolean;
+  /** Who is duplicating — recorded on each copied loader's CREATE action. */
+  actor?: { userId: number | null; userEmail: string | null };
 }) {
   log.info({ sourceId, name: payload.name, copyLoaders }, "duplicating series");
   const newSeries = await SeriesCollection.create(payload);
@@ -214,7 +218,7 @@ export async function duplicateSeries({
   if (copyLoaders) {
     const loaders = await LoaderCollection.getEnabledBySeriesId(sourceId);
     for (const loader of loaders) {
-      await LoaderCollection.create({
+      const copy = await LoaderCollection.create({
         seriesId: newSeries.id!,
         code: loader.eval ?? "",
         universe: payload.universe ?? "UHERO",
@@ -224,6 +228,15 @@ export async function duplicateSeries({
         clearBeforeLoad: loader.clearBeforeLoad,
         pseudoHistory: loader.pseudoHistory,
         maxLagDays: loader.maxLagDays,
+      });
+      void LoaderActionCollection.create({
+        loaderId: copy.id!,
+        seriesId: newSeries.id!,
+        userId: actor?.userId ?? null,
+        userEmail: actor?.userEmail ?? null,
+        action: "CREATE",
+        priority: copy.priority,
+        eval: copy.eval,
       });
     }
     log.info(

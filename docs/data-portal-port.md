@@ -364,7 +364,7 @@ frequency change fixed; Infinity sentinels replaced by `null`.
   window). Min window per freq (`MIN_ZOOM_POINTS`). Drives the same range
   state as presets/brush (series: `changeRange` debounce; analyzer compare:
   local pending window + 250 ms debounced `onRange`).
-- Export (`components/analyzer/chart-export.ts`): PNG/JPEG/SVG/PDF from the
+- Export (`src/lib/chart-export.ts`): PNG/JPEG/SVG/PDF from the
   cloned recharts SVG (legend, axis titles, credits); PDF = that PNG on a
   landscape letter page with title/subtitle/source (jspdf, lazy-imported,
   dvw strategy). `exportTablePdf` = jspdf-autotable in the dvw style (gray

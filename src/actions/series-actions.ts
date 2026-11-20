@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { AppLogCollection } from "@catalog/collections/app-log-collection";
 import DataPointCollection from "@catalog/collections/data-point-collection";
+import { LoaderActionCollection } from "@catalog/collections/loader-action-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type {
@@ -49,6 +50,7 @@ import { getSources } from "@/core/catalog/controllers/sources";
 import { getUnits } from "@/core/catalog/controllers/units";
 import { createLogger } from "@/core/observability/logger";
 import { noteUiChange } from "@/core/ops/actors";
+import { requireAuth } from "@/lib/auth/dal";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.series");
@@ -383,6 +385,7 @@ export async function bulkCreateSeries(
   payload: BulkCreatePayload,
 ): Promise<{ successCount: number; errors: string[] }> {
   const { userId } = await requirePermission("series", "create");
+  const userEmail = (await requireAuth()).user.email ?? null;
   const { universe, definitions, ...optionalMeta } = payload;
   log.info({ universe }, "bulkCreateSeries action called");
 
@@ -441,6 +444,14 @@ export async function bulkCreateSeries(
   // Process within a transaction
   const errors: string[] = [];
   let successCount = 0;
+  // Loaders created inside the transaction; their CREATE actions are
+  // written only after it commits, so a rollback leaves no orphan history.
+  const created: {
+    loaderId: number;
+    seriesId: number;
+    priority: number | null;
+    eval: string | null;
+  }[] = [];
 
   try {
     successCount = await transaction(async () => {
@@ -458,7 +469,7 @@ export async function bulkCreateSeries(
           }));
 
         // Create the loader with the eval expression
-        await LoaderCollection.create({
+        const loader = await LoaderCollection.create({
           seriesId: series.id!,
           code: evalExpression,
           universe,
@@ -467,6 +478,12 @@ export async function bulkCreateSeries(
           presaveHook: "",
           clearBeforeLoad: false,
           pseudoHistory: false,
+        });
+        created.push({
+          loaderId: loader.id!,
+          seriesId: series.id!,
+          priority: loader.priority,
+          eval: loader.eval,
         });
 
         count++;
@@ -479,6 +496,15 @@ export async function bulkCreateSeries(
     log.error({ error: msg, userId }, "bulkCreateSeries failed — rolled back");
     AppLogCollection.logError(e, { userId, name: "series.bulk_create" });
     return { successCount: 0, errors };
+  }
+
+  for (const c of created) {
+    void LoaderActionCollection.create({
+      ...c,
+      userId: userId || null,
+      userEmail,
+      action: "CREATE",
+    });
   }
 
   log.info({ successCount }, "bulkCreateSeries action completed");
@@ -559,6 +585,7 @@ export async function duplicateSeries(
   payload: CreateSeriesFormPayload,
 ) {
   const { userId } = await requirePermission("series", "create");
+  const userEmail = (await requireAuth()).user.email ?? null;
   log.info({ originSeriesId, universe }, "duplicateSeries action called");
   try {
     const result = await duplicateSeriesCtrl({
@@ -582,6 +609,7 @@ export async function duplicateSeries(
         investigationNotes: payload.investigationNotes || null,
       },
       copyLoaders,
+      actor: { userId: userId || null, userEmail },
     });
 
     revalidatePath(`/udaman/${universe}/series`);

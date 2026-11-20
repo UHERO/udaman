@@ -10,6 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { exportChartImage, exportTablePdf } from "@/lib/chart-export";
+import type { ImageFormat } from "@/lib/chart-export";
 
 import { getChartPalette } from "../../lib/config";
 import { downloadCsv, toCsv } from "../../lib/csv";
@@ -18,8 +20,6 @@ import { usePortalConfig } from "../../lib/portal-context";
 import { specStroke } from "./analyzer-chart";
 import { analyzerChartRows, axisTitle, specKey } from "./analyzer-model";
 import type { AnalyzerSeriesSpec } from "./analyzer-model";
-import { exportChartImage, exportTablePdf } from "./chart-export";
-import type { ImageFormat } from "./chart-export";
 
 /**
  * Analyzer Download menu (header, beside Share): chart image/PDF exports

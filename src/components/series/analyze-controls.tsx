@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   History,
+  ImageDown,
   LineChart,
   Pencil,
   Plus,
@@ -70,6 +71,7 @@ import {
   TooltipRoot,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { exportChartImage, type ExportLegendItem } from "@/lib/chart-export";
 import { cn } from "@/lib/utils";
 
 import {
@@ -2460,6 +2462,112 @@ export function AnalyzeControls({
     return count;
   }, [compareSeriesNames.length, seriesVisibility, seriesAxisMap]);
 
+  // ── PNG export ──────────────────────────────────────────────────────
+  // The chart has no on-screen legend (the axis panels act as one), so the
+  // exported image gets one built from the same colors/visibility rules
+  // LevelChart uses.
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const handleExportPng = useCallback(async () => {
+    const container = chartRef.current;
+    if (!container) return;
+    const vintageIndices = new Set(vintagePairs.map((p) => p.vintageIndex));
+    const legend: ExportLegendItem[] = [];
+    for (let i = 0; i < compareSeriesNames.length; i++) {
+      const vis = seriesVisibility.get(i);
+      if (vis === "hidden") continue;
+      const axis = seriesAxisMap.get(i) ?? "left";
+      const unit =
+        transformUnitLabel(
+          axis === "right" ? rightTransformation : transformation,
+        ) ?? compareSeriesData[i].unitShortLabel;
+      const details = [unit, hasRightAxis && axis === "right" && "right axis"]
+        .filter(Boolean)
+        .join(", ");
+      legend.push({
+        color:
+          vis === "gray" ? "#94a3b8" : SERIES_COLORS[i % SERIES_COLORS.length],
+        label: details
+          ? `${compareSeriesNames[i]} (${details})`
+          : compareSeriesNames[i],
+        dashed: vintageIndices.has(i),
+        kind:
+          (axis === "right" ? rightChartType : leftChartType) === "column"
+            ? "bar"
+            : "line",
+      });
+    }
+    // Overlays only render with a single visible left-axis series
+    if (leftVisibleCount === 1) {
+      const overlayLegend: Partial<Record<Overlay, ExportLegendItem>> = {
+        mean: { color: "#16a34a", label: "Mean", dashed: true },
+        stdDev: {
+          color: "#7c3aed",
+          label: `±${stdDevMultiplier}σ`,
+          dashed: true,
+        },
+        rollingMean: {
+          color: "#f59e0b",
+          label: `Rolling mean (${rollingWindow})`,
+        },
+        rollingStdDev: {
+          color: "#f59e0b",
+          label: `Rolling ±σ (${rollingWindow})`,
+          kind: "bar",
+        },
+        linearTrend: { color: "#8b5cf6", label: "Linear trend", dashed: true },
+        logLinearTrend: {
+          color: "#8b5cf6",
+          label: "Log-linear trend",
+          dashed: true,
+        },
+        hpTrend: { color: "#0d9488", label: "HP trend" },
+      };
+      for (const o of overlays) {
+        const item = overlayLegend[o];
+        if (item) legend.push(item);
+      }
+    }
+    const fileName =
+      compareSeriesNames
+        .filter((_, i) => seriesVisibility.get(i) !== "hidden")
+        .slice(0, 3)
+        .join("_")
+        .replace(/[^\w@.-]+/g, "_")
+        .slice(0, 80) || "analyze";
+    setExporting(true);
+    try {
+      await exportChartImage(container, "png", fileName, {
+        legend,
+        omit: [
+          ".recharts-brush",
+          ".recharts-tooltip-cursor",
+          ".recharts-active-dot",
+        ],
+        cropAt: ".recharts-brush",
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PNG export failed");
+    } finally {
+      setExporting(false);
+    }
+  }, [
+    vintagePairs,
+    compareSeriesNames,
+    compareSeriesData,
+    seriesVisibility,
+    seriesAxisMap,
+    hasRightAxis,
+    transformation,
+    rightTransformation,
+    leftChartType,
+    rightChartType,
+    leftVisibleCount,
+    overlays,
+    stdDevMultiplier,
+    rollingWindow,
+  ]);
+
   // First visible series index on left axis (for overlay computation)
   const leftFirstVisibleIndex = useMemo(() => {
     for (let i = 0; i < compareSeriesNames.length; i++) {
@@ -2949,7 +3057,7 @@ export function AnalyzeControls({
       })()}
 
       {/* Multi-series level chart with brush */}
-      <div className="bg-background w-full rounded-md py-2">
+      <div ref={chartRef} className="bg-background w-full rounded-md py-2">
         <LevelChart
           data={compareFullDataWithOverlays}
           decimals={decimals}
@@ -2994,6 +3102,18 @@ export function AnalyzeControls({
         activeTransformation={transformation}
         rightTransformation={rightTransformation}
         seriesAxisMap={seriesAxisMap}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={handleExportPng}
+            disabled={exporting}
+          >
+            <ImageDown className="h-3 w-3" />
+            Download PNG
+          </Button>
+        }
       />
     </div>
   );
