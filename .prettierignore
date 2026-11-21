@@ -2,3 +2,6 @@ src/generated/
 .next/
 **/fixtures/
 **/__fixtures__/
+# written by scripts (feasim upgrade, snapshot save); formatted by them
+src/lib/feasim/generated/
+**/__snapshots__/

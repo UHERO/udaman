@@ -1,0 +1,1043 @@
+{
+  "_about": "Saved feasim API responses; see src/lib/feasim/snapshot-cases.ts. Written by `bun run snapshot:feasim` — don't edit by hand.",
+  "gauge/bill6": {
+    "request": "/gauge/bill6?lot_sqft=20000&zone_class=BMX-3&height=150&parking_exempt=true&land_cost=250&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "gauge",
+      "parcel": {
+        "lot_sqft": 20000,
+        "zone_class": "BMX-3",
+        "height": 150,
+        "parking_exempt": true
+      },
+      "tier": null,
+      "program": "bill6",
+      "levers": {
+        "land_cost": 250
+      },
+      "envelope": {
+        "height_limit": 150,
+        "max_far": 3.5,
+        "open_space_bonus": 1
+      },
+      "verdict": {
+        "overall": "marginal",
+        "return_on_cost": "marginal",
+        "residual_land_value": "poor",
+        "rlv_ratio": 0.81708,
+        "equity_multiple": "marginal",
+        "levered_irr": "marginal"
+      },
+      "result": {
+        "max_units": 140,
+        "affordable_units": 0,
+        "dev_cost": 56886725.438958086,
+        "dev_roc": 0.0615,
+        "rlv_sqft": 204.27
+      }
+    }
+  },
+  "gauge/standard": {
+    "request": "/gauge/standard?lot_sqft=20000&zone_class=BMX-3&height=150&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "gauge",
+      "parcel": {
+        "lot_sqft": 20000,
+        "zone_class": "BMX-3",
+        "height": 150
+      },
+      "tier": null,
+      "program": "standard",
+      "levers": {},
+      "envelope": {
+        "height_limit": 150,
+        "max_far": 3.5,
+        "open_space_bonus": 1
+      },
+      "verdict": {
+        "overall": "marginal",
+        "return_on_cost": "marginal",
+        "residual_land_value": "strong",
+        "rlv_ratio": 1.8843076923076925,
+        "equity_multiple": "strong",
+        "levered_irr": "marginal"
+      },
+      "result": {
+        "max_units": 140,
+        "affordable_units": 0,
+        "dev_cost": 56046725.438958086,
+        "dev_roc": 0.0648,
+        "rlv_sqft": 244.96
+      }
+    }
+  },
+  "gauge/bill7": {
+    "request": "/gauge/bill7?lot_sqft=20000&zone_class=BMX-3&height=150&grant_type=pre_construct&grant_units=affordable&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "gauge",
+      "parcel": {
+        "lot_sqft": 20000,
+        "zone_class": "BMX-3",
+        "height": 150
+      },
+      "tier": null,
+      "program": "bill7",
+      "levers": {
+        "grant_type": "pre_construct",
+        "grant_units": "affordable"
+      },
+      "envelope": {
+        "height_limit": 60,
+        "max_far": 4
+      },
+      "verdict": {
+        "overall": "strong",
+        "return_on_cost": "strong",
+        "residual_land_value": "strong",
+        "rlv_ratio": 1.9317692307692307,
+        "equity_multiple": "strong",
+        "levered_irr": "strong"
+      },
+      "result": {
+        "max_units": 100,
+        "affordable_units": 80,
+        "dev_cost": 34646508.738038845,
+        "dev_roc": 0.0677,
+        "rlv_sqft": 251.13
+      }
+    }
+  },
+  "gauge/tod": {
+    "request": "/gauge/tod?lot_sqft=40000&zone_class=AMX-2&height=90&tod_regime=pdt&slu_urban=true&tod_precinct=core&tier=with_benefits&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "gauge",
+      "parcel": {
+        "lot_sqft": 40000,
+        "zone_class": "AMX-2",
+        "height": 90,
+        "slu_urban": true,
+        "tod_regime": "pdt",
+        "tod_precinct": "core"
+      },
+      "tier": "with_benefits",
+      "program": "tod",
+      "levers": {},
+      "envelope": {
+        "height_limit": 90,
+        "max_far": 6,
+        "far_source": "pdt_ladder",
+        "height_source": "base",
+        "status": "eligible",
+        "front_no_parking_ft": 40
+      },
+      "verdict": {
+        "overall": "marginal",
+        "return_on_cost": "marginal",
+        "residual_land_value": "strong",
+        "rlv_ratio": 1.7871538461538463,
+        "equity_multiple": "strong",
+        "levered_irr": "marginal"
+      },
+      "result": {
+        "max_units": 200,
+        "affordable_units": 0,
+        "dev_cost": 80820337,
+        "dev_roc": 0.0654,
+        "rlv_sqft": 232.33
+      }
+    }
+  },
+  "gauge/h201": {
+    "request": "/gauge/h201?lot_sqft=20000&zone_class=BMX-3&height=150&affordability=0.6&affordable_ami=ami_60&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "gauge",
+      "parcel": {
+        "lot_sqft": 20000,
+        "zone_class": "BMX-3",
+        "height": 150
+      },
+      "tier": null,
+      "program": "h201",
+      "levers": {
+        "affordable_ami": "ami_60",
+        "affordability": 0.6
+      },
+      "envelope": {
+        "height_limit": 150,
+        "max_far": 3.5,
+        "open_space_bonus": 1
+      },
+      "verdict": {
+        "overall": "poor",
+        "return_on_cost": "poor",
+        "residual_land_value": "poor",
+        "rlv_ratio": -1.4844615384615383,
+        "equity_multiple": "poor",
+        "levered_irr": "poor"
+      },
+      "result": {
+        "max_units": 140,
+        "affordable_units": 84,
+        "dev_cost": 55072701,
+        "dev_roc": 0.054,
+        "rlv_sqft": -192.98
+      }
+    }
+  },
+  "calculator/bill6": {
+    "request": "/calculator/bill6?lot_sqft=10000&zone_class=A-1&height=30&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "calculator",
+      "parcel": {
+        "lot_sqft": 10000,
+        "zone_class": "A-1",
+        "height": 30
+      },
+      "tier": null,
+      "program": "bill6",
+      "levers": {
+        "height_limit": 30
+      },
+      "envelope": {
+        "height_limit": 30,
+        "max_far": 2,
+        "open_space_bonus": 0
+      },
+      "verdict": {
+        "overall": "poor",
+        "return_on_cost": "marginal",
+        "residual_land_value": "poor",
+        "rlv_ratio": 0.5614615384615385,
+        "equity_multiple": "marginal",
+        "levered_irr": "poor"
+      },
+      "result": {
+        "max_units": 17,
+        "affordable_units": 0,
+        "dev_cost": 6614283.221267521,
+        "dev_roc": 0.0584,
+        "rlv_sqft": 72.99
+      }
+    }
+  },
+  "calculator/standard": {
+    "request": "/calculator/standard?lot_sqft=10000&zone_class=A-1&height=30&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "calculator",
+      "parcel": {
+        "lot_sqft": 10000,
+        "zone_class": "A-1",
+        "height": 30
+      },
+      "tier": null,
+      "program": "standard",
+      "levers": {
+        "height_limit": 30
+      },
+      "envelope": {
+        "height_limit": 30,
+        "max_far": 0.6,
+        "open_space_bonus": 0
+      },
+      "verdict": {
+        "overall": "poor",
+        "return_on_cost": "poor",
+        "residual_land_value": "poor",
+        "rlv_ratio": 0.4751538461538462,
+        "equity_multiple": "poor",
+        "levered_irr": "poor"
+      },
+      "result": {
+        "max_units": 12,
+        "affordable_units": 0,
+        "dev_cost": 4533923.69654656,
+        "dev_roc": 0.0559,
+        "rlv_sqft": 61.77
+      }
+    }
+  },
+  "calculator/bill7": {
+    "request": "/calculator/bill7?lot_sqft=10000&zone_class=A-1&height=30&grant_amount=12000&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "calculator",
+      "parcel": {
+        "lot_sqft": 10000,
+        "zone_class": "A-1",
+        "height": 30
+      },
+      "tier": null,
+      "program": "bill7",
+      "levers": {
+        "grant_amount": 12000,
+        "height_limit": 30
+      },
+      "envelope": {
+        "height_limit": 30,
+        "max_far": 4
+      },
+      "verdict": {
+        "overall": "strong",
+        "return_on_cost": "marginal",
+        "residual_land_value": "strong",
+        "rlv_ratio": 1.1882307692307692,
+        "equity_multiple": "strong",
+        "levered_irr": "strong"
+      },
+      "result": {
+        "max_units": 29,
+        "affordable_units": 24,
+        "dev_cost": 9022756.519360002,
+        "dev_roc": 0.0646,
+        "rlv_sqft": 154.47
+      }
+    }
+  },
+  "calculator/tod": {
+    "request": "/calculator/tod?lot_sqft=20000&zone_class=AMX-1&height=30&tod_regime=pdt&tier=major_sd&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "calculator",
+      "parcel": {
+        "lot_sqft": 20000,
+        "zone_class": "AMX-1",
+        "height": 30,
+        "tod_regime": "pdt",
+        "slu_urban": true,
+        "tod_precinct": "core"
+      },
+      "tier": "major_sd",
+      "program": "tod",
+      "levers": {},
+      "envelope": {
+        "height_limit": 90,
+        "max_far": 2.4,
+        "far_source": "pdt_ladder",
+        "height_source": "pdt_major_sd",
+        "status": "eligible",
+        "front_no_parking_ft": 40
+      },
+      "verdict": {
+        "overall": "strong",
+        "return_on_cost": "marginal",
+        "residual_land_value": "strong",
+        "rlv_ratio": 1.8302307692307693,
+        "equity_multiple": "strong",
+        "levered_irr": "strong"
+      },
+      "result": {
+        "max_units": 96,
+        "affordable_units": 0,
+        "dev_cost": 38441467,
+        "dev_roc": 0.0658,
+        "rlv_sqft": 237.93
+      }
+    }
+  },
+  "calculator/h201": {
+    "request": "/calculator/h201?lot_sqft=10000&zone_class=A-2&height=30&fields=max_units,affordable_units,dev_cost,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "calculator",
+      "parcel": {
+        "lot_sqft": 10000,
+        "zone_class": "A-2",
+        "height": 30
+      },
+      "tier": null,
+      "program": "h201",
+      "levers": {
+        "height_limit": 30
+      },
+      "envelope": {
+        "height_limit": 30,
+        "max_far": 3,
+        "open_space_bonus": 0
+      },
+      "verdict": {
+        "overall": "marginal",
+        "return_on_cost": "marginal",
+        "residual_land_value": "poor",
+        "rlv_ratio": 0.44153846153846155,
+        "equity_multiple": "marginal",
+        "levered_irr": "marginal"
+      },
+      "result": {
+        "max_units": 18,
+        "affordable_units": 10,
+        "dev_cost": 6803104,
+        "dev_roc": 0.0571,
+        "rlv_sqft": 57.4
+      }
+    }
+  },
+  "gauge/compare": {
+    "request": "/gauge/compare?lot_sqft=20000&zone_class=BMX-3&height=150&programs=bill6,bill7,h201&grant_type=pre_construct&fields=max_units,dev_roc,rlv_sqft",
+    "status": 200,
+    "body": {
+      "mode": "gauge",
+      "parcel": {
+        "lot_sqft": 20000,
+        "zone_class": "BMX-3",
+        "height": 150
+      },
+      "tier": null,
+      "programs": [
+        "bill6",
+        "bill7",
+        "h201"
+      ],
+      "results": [
+        {
+          "program": "bill6",
+          "levers": {},
+          "envelope": {
+            "height_limit": 150,
+            "max_far": 3.5,
+            "open_space_bonus": 1
+          },
+          "verdict": {
+            "overall": "marginal",
+            "return_on_cost": "marginal",
+            "residual_land_value": "strong",
+            "rlv_ratio": 1.8843076923076925,
+            "equity_multiple": "strong",
+            "levered_irr": "marginal"
+          },
+          "result": {
+            "max_units": 140,
+            "dev_roc": 0.0648,
+            "rlv_sqft": 244.96
+          }
+        },
+        {
+          "program": "bill7",
+          "levers": {
+            "grant_type": "pre_construct"
+          },
+          "envelope": {
+            "height_limit": 60,
+            "max_far": 4
+          },
+          "verdict": {
+            "overall": "strong",
+            "return_on_cost": "strong",
+            "residual_land_value": "strong",
+            "rlv_ratio": 2.239923076923077,
+            "equity_multiple": "strong",
+            "levered_irr": "strong"
+          },
+          "result": {
+            "max_units": 100,
+            "dev_roc": 0.0696,
+            "rlv_sqft": 291.19
+          }
+        },
+        {
+          "program": "h201",
+          "levers": {},
+          "envelope": {
+            "height_limit": 150,
+            "max_far": 3.5,
+            "open_space_bonus": 1
+          },
+          "verdict": {
+            "overall": "marginal",
+            "return_on_cost": "marginal",
+            "residual_land_value": "strong",
+            "rlv_ratio": 1.3546153846153846,
+            "equity_multiple": "strong",
+            "levered_irr": "marginal"
+          },
+          "result": {
+            "max_units": 140,
+            "dev_roc": 0.0632,
+            "rlv_sqft": 176.1
+          }
+        }
+      ]
+    }
+  },
+  "calculator/compare": {
+    "request": "/calculator/compare?lot_sqft=10000&zone_class=A-2&height=60&hard_cost_per_sqft=500&fields=max_units,dev_roc",
+    "status": 200,
+    "body": {
+      "mode": "calculator",
+      "parcel": {
+        "lot_sqft": 10000,
+        "zone_class": "A-2",
+        "height": 60,
+        "slu_urban": true,
+        "tod_regime": "ipdt",
+        "tod_precinct": "core"
+      },
+      "tier": null,
+      "programs": [
+        "bill6",
+        "standard",
+        "bill7",
+        "tod",
+        "h201"
+      ],
+      "results": [
+        {
+          "program": "bill6",
+          "levers": {
+            "hard_cost_per_sqft": 500,
+            "height_limit": 60
+          },
+          "envelope": {
+            "height_limit": 60,
+            "max_far": 3,
+            "open_space_bonus": 0
+          },
+          "verdict": {
+            "overall": "marginal",
+            "return_on_cost": "marginal",
+            "residual_land_value": "poor",
+            "rlv_ratio": 0.5234615384615384,
+            "equity_multiple": "marginal",
+            "levered_irr": "marginal"
+          },
+          "result": {
+            "max_units": 35,
+            "dev_roc": 0.0598
+          }
+        },
+        {
+          "program": "standard",
+          "levers": {
+            "hard_cost_per_sqft": 500,
+            "height_limit": 60
+          },
+          "envelope": {
+            "height_limit": 60,
+            "max_far": 1.3,
+            "open_space_bonus": 0
+          },
+          "verdict": {
+            "overall": "poor",
+            "return_on_cost": "marginal",
+            "residual_land_value": "poor",
+            "rlv_ratio": 0.18715384615384614,
+            "equity_multiple": "poor",
+            "levered_irr": "poor"
+          },
+          "result": {
+            "max_units": 26,
+            "dev_roc": 0.0568
+          }
+        },
+        {
+          "program": "bill7",
+          "levers": {
+            "hard_cost_per_sqft": 500,
+            "height_limit": 60
+          },
+          "envelope": {
+            "height_limit": 60,
+            "max_far": 4
+          },
+          "verdict": {
+            "overall": "marginal",
+            "return_on_cost": "marginal",
+            "residual_land_value": "marginal",
+            "rlv_ratio": 0.9830769230769231,
+            "equity_multiple": "strong",
+            "levered_irr": "marginal"
+          },
+          "result": {
+            "max_units": 50,
+            "dev_roc": 0.0624
+          }
+        },
+        {
+          "program": "tod",
+          "levers": {
+            "hard_cost_per_sqft": 500
+          },
+          "envelope": {
+            "height_limit": 60,
+            "max_far": 3,
+            "far_source": "base",
+            "height_source": "base",
+            "status": "ineligible",
+            "status_reason": "below the 20,000 sqft minimum project size"
+          },
+          "verdict": {
+            "overall": "marginal",
+            "return_on_cost": "marginal",
+            "residual_land_value": "poor",
+            "rlv_ratio": 0.814076923076923,
+            "equity_multiple": "marginal",
+            "levered_irr": "marginal"
+          },
+          "result": {
+            "max_units": 30,
+            "dev_roc": 0.0614
+          }
+        },
+        {
+          "program": "h201",
+          "levers": {
+            "hard_cost_per_sqft": 500,
+            "height_limit": 60
+          },
+          "envelope": {
+            "height_limit": 60,
+            "max_far": 3,
+            "open_space_bonus": 0
+          },
+          "verdict": {
+            "overall": "marginal",
+            "return_on_cost": "marginal",
+            "residual_land_value": "poor",
+            "rlv_ratio": 0.40784615384615386,
+            "equity_multiple": "marginal",
+            "levered_irr": "marginal"
+          },
+          "result": {
+            "max_units": 37,
+            "dev_roc": 0.0592
+          }
+        }
+      ]
+    }
+  },
+  "defaults (bill7)": {
+    "request": "/defaults?program=bill7",
+    "status": 200,
+    "body": {
+      "programs": [
+        "bill6",
+        "standard",
+        "bill7",
+        "tod",
+        "h201"
+      ],
+      "tod_tiers": [
+        "base",
+        "minor_sd",
+        "major_sd",
+        "with_benefits"
+      ],
+      "defaults": {
+        "bill7": {
+          "program": "bill7",
+          "unit_type": "studio50_1br50",
+          "affordable_ami": "ami_80",
+          "market_ami": "ami_100",
+          "include_retail": false,
+          "retail_rent": 3,
+          "retail_share": 0.1,
+          "building_area_per_unit": 800,
+          "grant_type": "post_construct",
+          "hard_cost_per_sqft": 450,
+          "land_cost": 130,
+          "opex_ratio": 0.19,
+          "waivable_fee_basis": "none",
+          "park": "exempt",
+          "setback": 10,
+          "parking_ratio": 0.35,
+          "permitting_months": 18,
+          "const_months": 12,
+          "leaseup_months": 9,
+          "equity": 0.3,
+          "permanent_rate": 0.07,
+          "hold_years": 10,
+          "amort_years": 30,
+          "min_dscr": 1.15,
+          "target_return": 0.115
+        }
+      },
+      "levers": {
+        "height_limit": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "Height limit override, ft (default: pathway envelope)"
+        },
+        "max_far": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "FAR override (default: pathway envelope)"
+        },
+        "floor_height": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "Floor-to-floor height, ft",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod"
+          ]
+        },
+        "setback": {
+          "type": "number",
+          "min": 0,
+          "description": "Yard setback on every side, ft"
+        },
+        "coverage": {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "description": "Maximum lot coverage (default 0.8)",
+          "pathways": [
+            "bill7"
+          ]
+        },
+        "stepback_trigger_ft": {
+          "type": "number",
+          "min": 0,
+          "description": "Override the zone's step-back: height that triggers it, ft",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
+        },
+        "stepback_above_ft": {
+          "type": "number",
+          "min": 0,
+          "description": "Step-back: storeys above this height step back, ft (default 40)",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
+        },
+        "stepback_ft_per_10ft": {
+          "type": "number",
+          "min": 0,
+          "description": "Step-back: ft per 10 ft of height (default 1)",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
+        },
+        "building_area_per_unit": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "Sqft per unit in the legal unit cap (default 800)",
+          "pathways": [
+            "bill7"
+          ]
+        },
+        "unit_type": {
+          "type": "enum",
+          "values": [
+            "studio_100",
+            "studio75_1br25",
+            "studio50_1br50",
+            "studio25_1br75",
+            "one_bb_100",
+            "one_br50_2br50",
+            "two_bb_100",
+            "third_each"
+          ],
+          "description": "Unit mix"
+        },
+        "affordable_ami": {
+          "type": "enum",
+          "values": [
+            "ami_10",
+            "ami_20",
+            "ami_30",
+            "ami_40",
+            "ami_50",
+            "ami_60",
+            "ami_70",
+            "ami_80",
+            "ami_90",
+            "ami_100",
+            "ami_110",
+            "ami_120",
+            "ami_130",
+            "ami_140",
+            "ami_150",
+            "ami_160",
+            "ami_170",
+            "ami_180"
+          ],
+          "description": "AMI bracket of affordable units",
+          "pathways": [
+            "bill7",
+            "h201"
+          ]
+        },
+        "market_ami": {
+          "type": "enum",
+          "values": [
+            "ami_10",
+            "ami_20",
+            "ami_30",
+            "ami_40",
+            "ami_50",
+            "ami_60",
+            "ami_70",
+            "ami_80",
+            "ami_90",
+            "ami_100",
+            "ami_110",
+            "ami_120",
+            "ami_130",
+            "ami_140",
+            "ami_150",
+            "ami_160",
+            "ami_170",
+            "ami_180"
+          ],
+          "description": "AMI bracket of market units. HHFDC publishes limits to ami_140; the model scales higher brackets."
+        },
+        "affordability": {
+          "type": "number",
+          "min": 0.51,
+          "max": 1,
+          "description": "Affordable share of units (at least 0.51)",
+          "pathways": [
+            "h201"
+          ]
+        },
+        "include_retail": {
+          "type": "boolean",
+          "description": "Ground-floor retail, where the zone permits it"
+        },
+        "retail_rent": {
+          "type": "number",
+          "min": 0,
+          "description": "Retail rent, $/sqft/month"
+        },
+        "retail_share": {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "description": "Retail share of ground floor"
+        },
+        "parking_ratio": {
+          "type": "number",
+          "min": 0,
+          "description": "Housing stalls per unit"
+        },
+        "land_cost": {
+          "type": "number",
+          "min": 0,
+          "description": "Market price of land, $ per sqft of lot"
+        },
+        "hard_cost_per_sqft": {
+          "type": "number",
+          "min": 0,
+          "description": "Construction cost, $ per sqft of building"
+        },
+        "park": {
+          "type": "enum",
+          "values": [
+            "exempt",
+            "in_lieu"
+          ],
+          "description": "Park dedication: application fee only, or fee + park land value"
+        },
+        "impact_fee": {
+          "type": "number",
+          "min": 0,
+          "description": "Impact fee, $ per unit (Bill 7 waives it)",
+          "pathways": [
+            "bill6",
+            "standard",
+            "tod",
+            "h201"
+          ]
+        },
+        "waivable_fee_basis": {
+          "type": "enum",
+          "values": [
+            "all_units",
+            "market_units",
+            "none"
+          ],
+          "description": "Units the waivable fees are charged on"
+        },
+        "opex_ratio": {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "description": "Operating expenses as a share of EGI, excluding property tax"
+        },
+        "permitting_months": {
+          "type": "number",
+          "min": 0,
+          "description": "Permitting period, months"
+        },
+        "const_months": {
+          "type": "number",
+          "min": 0,
+          "description": "Construction period, months"
+        },
+        "leaseup_months": {
+          "type": "number",
+          "min": 0,
+          "description": "Lease-up period, months"
+        },
+        "hold_years": {
+          "type": "number",
+          "min": 0,
+          "description": "Hold period, years (the calculator allows 0)"
+        },
+        "equity": {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "description": "Equity share of construction financing"
+        },
+        "construction_rate": {
+          "type": "number",
+          "min": 0,
+          "description": "Construction loan interest rate (default 0.08)"
+        },
+        "permanent_rate": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "Permanent loan interest rate (must be > 0)"
+        },
+        "amort_years": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "Permanent loan amortization, years (must be > 0)"
+        },
+        "min_dscr": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "Minimum debt service coverage ratio"
+        },
+        "cap_rate": {
+          "type": "number",
+          "min": 0,
+          "exclusiveMin": true,
+          "description": "Market cap rate (default 0.051)"
+        },
+        "target_return": {
+          "type": "number",
+          "min": 0,
+          "description": "Land carry rate: annual cost of capital on the land, discounts the residual"
+        },
+        "target_spread": {
+          "type": "number",
+          "min": 0,
+          "description": "Required return-on-cost spread over the cap rate (default 0.015)"
+        },
+        "profit_margin": {
+          "type": "number",
+          "min": 0,
+          "description": "Developer profit margin on total project cost, in the residual (default 0.15)"
+        },
+        "grant_type": {
+          "type": "enum",
+          "values": [
+            "post_construct",
+            "pre_construct",
+            "none"
+          ],
+          "description": "Grant structure (default post_construct)",
+          "pathways": [
+            "bill7"
+          ]
+        },
+        "grant_amount": {
+          "type": "number",
+          "min": 0,
+          "description": "Grant $ per unit. Default: the ordinance amount — $50,000 pre-construction; $12,000 post-construction, or $40/sqft for units under 300 sqft",
+          "pathways": [
+            "bill7"
+          ]
+        },
+        "grant_units": {
+          "type": "enum",
+          "values": [
+            "all",
+            "affordable"
+          ],
+          "description": "Units the pre-construction subsidy pays on (post-construction always pays on affordable units)",
+          "pathways": [
+            "bill7"
+          ]
+        },
+        "prevailing_wage_premium": {
+          "type": "number",
+          "min": 0,
+          "description": "Extra cost of on-site labor at prevailing wages (default 0.45); pre-construction grants",
+          "pathways": [
+            "bill7"
+          ]
+        },
+        "onsite_labor_share": {
+          "type": "number",
+          "min": 0,
+          "max": 1,
+          "description": "On-site labor as a share of hard cost (default 0.25); also caps the pre-construction subsidy",
+          "pathways": [
+            "bill7"
+          ]
+        }
+      }
+    }
+  },
+  "error: invalid parameters": {
+    "request": "/gauge/bill6?lot_sqft=20000&zone_class=bmx3&grant_type=pre_construct&land_cots=200&permanent_rate=0",
+    "status": 400,
+    "body": {
+      "error": "Invalid parameters",
+      "issues": [
+        "grant_type: applies only to bill7; the bill6 model ignores it",
+        "land_cots: unknown parameter",
+        "zone_class: \"bmx3\" is not a zoning district the model can build in (use the Land Use Ordinance code, e.g. A-2, BMX-3, I-2, Apart, Resort)",
+        "permanent_rate: must be greater than 0"
+      ]
+    }
+  },
+  "error: unknown station area": {
+    "request": "/calculator/tod?lot_sqft=40000&zone_class=AMX-2&height=60&station_area=Nowhere",
+    "status": 400,
+    "body": {
+      "error": "Invalid parameters",
+      "issues": [
+        "station_area: expected one of Ala Moana, Downtown, Kalihi, Airport, East Kapolei, Waipahu, Aiea-Pearl City, Halawa, got \"Nowhere\""
+      ]
+    }
+  },
+  "error: unknown pathway": {
+    "request": "/gauge/bill9?lot_sqft=20000&zone_class=BMX-3&height=150",
+    "status": 404,
+    "body": {
+      "error": "Not found",
+      "issues": [
+        "\"bill9\" is not a pathway; use one of bill6, standard, bill7, tod, h201, or compare"
+      ]
+    }
+  },
+  "error: no API key": {
+    "request": "/gauge/bill6?lot_sqft=20000&zone_class=BMX-3&height=150",
+    "status": 401,
+    "body": {
+      "error": "Unauthorized",
+      "issues": [
+        "Send your API key as `Authorization: Bearer <key>`. Keys are issued by UHERO."
+      ]
+    }
+  }
+}

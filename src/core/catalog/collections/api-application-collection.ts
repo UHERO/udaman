@@ -48,6 +48,13 @@ class ApiApplicationCollection {
     return new ApiApplication(row);
   }
 
+  static async getByApiKey(apiKey: string): Promise<ApiApplication[]> {
+    const rows = await mysql<ApiApplicationAttrs>`
+      SELECT * FROM api_applications WHERE api_key = ${apiKey}
+    `;
+    return rows.map((row) => new ApiApplication(row));
+  }
+
   static async create(
     payload: CreateApiApplicationPayload,
   ): Promise<ApiApplication> {

@@ -77,6 +77,26 @@ function dataPortalRedirect(request: NextRequest): NextResponse | null {
 const TOP_LEVEL_APPS = ["/admin", "/hhdb", "/docs", "/comms", "/data-registry"];
 
 /**
+ * Pages under a protected prefix that anyone may read without a session.
+ * Each one's layout must not require auth either (see src/app/docs/(public)).
+ */
+const PUBLIC_PAGES = ["/docs/feasim-api"];
+
+/** Whole path segments only: /docs/feasim-api-internal is not public. */
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PAGES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
+
+/** Serve a public page as-is, with the path layouts read. */
+function servePublic(pathname: string): NextResponse {
+  const response = NextResponse.next();
+  response.headers.set("x-pathname", pathname);
+  return response;
+}
+
+/**
  * Extract the app name from the request Host header.
  * Handles both staging (`stage-udaman.uhero.hawaii.edu`)
  * and production (`udaman.uhero.hawaii.edu`).
@@ -247,6 +267,8 @@ export async function proxy(request: NextRequest) {
         return dataPortalRedirect(request) ?? NextResponse.next();
       }
 
+      if (isPublicPath(pathname)) return servePublic(pathname);
+
       // Top-level app routes (/admin, /hhdb, /docs, /comms, /data-registry) — rewrite directly
       const isTopLevel = TOP_LEVEL_APPS.some((p) => pathname.startsWith(p));
 
@@ -334,6 +356,7 @@ export async function proxy(request: NextRequest) {
 
   const portalRedirect = dataPortalRedirect(request);
   if (portalRedirect) return portalRedirect;
+  if (isPublicPath(pathname)) return servePublic(pathname);
   const protectedPrefixes = [
     "/udaman",
     "/admin",

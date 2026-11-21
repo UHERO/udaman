@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FunctionSquare, Server } from "lucide-react";
+import { Building2, FunctionSquare, Server } from "lucide-react";
 
 const docs = [
   {
@@ -14,6 +14,13 @@ const docs = [
       "Reference for eval expressions: arithmetic, interpolation, API loading, and county sharing methods.",
     href: "/docs/loader-actions",
     icon: FunctionSquare,
+  },
+  {
+    title: "feasim API",
+    description:
+      "REST endpoints for the housing development feasibility model: gauge and calculator runs, levers, responses.",
+    href: "/docs/feasim-api",
+    icon: Building2,
   },
 ];
 

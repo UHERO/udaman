@@ -3,15 +3,22 @@ import { mysql } from "@database/mysql";
 import { AppHeader } from "@/components/app-header";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { requireAuth } from "@/lib/auth/dal";
+import type { getSession } from "@/lib/auth/dal";
 import { getReadableResources } from "@/lib/auth/readable-resources";
 
-export default async function DocsLayout({
+type Session = NonNullable<Awaited<ReturnType<typeof getSession>>>;
+
+/**
+ * The feasim API docs section's sidebar layout for a signed-in user. Since the docs are public,
+ * the shell allows signed-in users to still navigate udaman internally.
+ */
+export async function DocsShell({
+  session,
   children,
 }: {
+  session: Session;
   children: React.ReactNode;
 }) {
-  const session = await requireAuth();
   const userId = session.user?.id;
 
   let createdAt = "";
